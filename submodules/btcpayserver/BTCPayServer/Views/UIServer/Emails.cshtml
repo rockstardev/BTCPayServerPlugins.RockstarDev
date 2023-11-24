@@ -1,0 +1,10 @@
+﻿@model EmailsViewModel
+@{
+    ViewData.SetActivePage(ServerNavPages.Emails, "Emails");
+}
+
+<partial name="EmailsBody" model="Model" />
+
+@section PageFootContent {
+    <partial name="_ValidationScriptsPartial" />
+}
