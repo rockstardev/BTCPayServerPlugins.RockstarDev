@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,10 +12,13 @@ using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
+using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payments;
+using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
+using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
@@ -26,8 +30,6 @@ using NBitcoin.DataEncoders;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
-
-
 public class VoucherController : Controller
 {
     private readonly PullPaymentHostedService _pullPaymentHostedService;
@@ -37,11 +39,13 @@ public class VoucherController : Controller
     private readonly StoreRepository _storeRepository;
     private readonly RateFetcher _rateFetcher;
     private readonly BTCPayNetworkProvider _networkProvider;
+    private readonly AppService _appService;
 
     public VoucherController(PullPaymentHostedService pullPaymentHostedService,
         UIStorePullPaymentsController uiStorePullPaymentsController, 
         ApplicationDbContextFactory dbContextFactory, 
-        IEnumerable< IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider )
+        IEnumerable< IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
+            AppService appService)
     {
         _pullPaymentHostedService = pullPaymentHostedService;
         _uiStorePullPaymentsController = uiStorePullPaymentsController;
@@ -50,7 +54,64 @@ public class VoucherController : Controller
         _storeRepository = storeRepository;
         _rateFetcher = rateFetcher;
         _networkProvider = networkProvider;
+        _appService = appService;
     }
+
+
+
+    [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
+    [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
+    public async Task<IActionResult> Keypad()
+    {
+        var settings = new PointOfSaleSettings
+        {
+            Title = "Bitcoin Vouchers"
+        };
+        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo("USD");
+        double step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
+        //var store = new Data.StoreData();
+        //var storeBlob = new StoreBlob();
+
+        return View(new ViewPointOfSaleViewModel
+        {
+            Title = settings.Title,
+            //StoreName = store.StoreName,
+            //BrandColor = storeBlob.BrandColor,
+            //CssFileId = storeBlob.CssFileId,
+            //LogoFileId = storeBlob.LogoFileId,
+            Step = step.ToString(CultureInfo.InvariantCulture),
+            //ViewType = BTCPayServer.Plugins.PointOfSale.PosViewType.Light,
+            //ShowCustomAmount = settings.ShowCustomAmount,
+            //ShowDiscount = settings.ShowDiscount,
+            //ShowSearch = settings.ShowSearch,
+            //ShowCategories = settings.ShowCategories,
+            //EnableTips = settings.EnableTips,
+            CurrencyCode = settings.Currency,
+            CurrencySymbol = numberFormatInfo.CurrencySymbol,
+            CurrencyInfo = new ViewPointOfSaleViewModel.CurrencyInfoData
+            {
+                CurrencySymbol = string.IsNullOrEmpty(numberFormatInfo.CurrencySymbol) ? settings.Currency : numberFormatInfo.CurrencySymbol,
+                Divisibility = numberFormatInfo.CurrencyDecimalDigits,
+                DecimalSeparator = numberFormatInfo.CurrencyDecimalSeparator,
+                ThousandSeparator = numberFormatInfo.NumberGroupSeparator,
+                Prefixed = new[] { 0, 2 }.Contains(numberFormatInfo.CurrencyPositivePattern),
+                SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
+            },
+            //Items = AppService.Parse(settings.Template, false),
+            //ButtonText = settings.ButtonText,
+            //CustomButtonText = settings.CustomButtonText,
+            //CustomTipText = settings.CustomTipText,
+            //CustomTipPercentages = settings.CustomTipPercentages,
+            //CustomCSSLink = settings.CustomCSSLink,
+            //CustomLogoLink = storeBlob.CustomLogo,
+            //AppId = "vouchers",
+            //StoreId = store.Id,
+            //Description = settings.Description,
+            //EmbeddedCSS = settings.EmbeddedCSS,
+            //RequiresRefundEmail = settings.RequiresRefundEmail
+        });
+    }
+
 
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
