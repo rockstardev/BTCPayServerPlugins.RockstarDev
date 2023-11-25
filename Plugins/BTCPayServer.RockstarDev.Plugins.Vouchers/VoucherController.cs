@@ -191,24 +191,25 @@ public class VoucherController : Controller
         var storeBlob = HttpContext.GetStoreData().GetStoreBlob();
         var currency = CURRENCY;
 
-        var rate = await _rateFetcher.FetchRate(new CurrencyPair("BTC", currency),
+        var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, "BTC"),
             storeBlob.GetRateRules(_networkProvider), CancellationToken.None);
         if (rate.BidAsk == null)
         {
-            
-            TempData[WellKnownTempData.ErrorMessage] =  "Currency is not supported";
+            TempData[WellKnownTempData.ErrorMessage] = "Currency is not supported";
             return View();
         }
 
         string description = string.Empty;
-        if (currency!= "BTC")
+        var satsAmount = Math.Floor(amount * rate.BidAsk.Bid * 100_000_000);
+        var amountInBtc = satsAmount / 100_000_000;
+        if (currency != "BTC")
         {
-            description = $"{amount} {currency} voucher redeemable for {amount * rate.BidAsk.Bid} BTC";
+            description = $"{amount} {currency} voucher redeemable for {amountInBtc} BTC";
         }
 
         var pp = await _pullPaymentHostedService.CreatePullPayment(new CreatePullPayment()
         {
-            Amount = amount* rate.BidAsk.Bid,
+            Amount = amountInBtc,
             Currency = "BTC",
             Name = "Voucher " + Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
             Description = description,
