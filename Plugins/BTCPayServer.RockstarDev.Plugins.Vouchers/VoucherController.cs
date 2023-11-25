@@ -43,9 +43,9 @@ public class VoucherController : Controller
     private readonly AppService _appService;
 
     public VoucherController(PullPaymentHostedService pullPaymentHostedService,
-        UIStorePullPaymentsController uiStorePullPaymentsController, 
-        ApplicationDbContextFactory dbContextFactory, 
-        IEnumerable< IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
+        UIStorePullPaymentsController uiStorePullPaymentsController,
+        ApplicationDbContextFactory dbContextFactory,
+        IEnumerable<IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
             AppService appService)
     {
         _pullPaymentHostedService = pullPaymentHostedService;
@@ -119,7 +119,7 @@ public class VoucherController : Controller
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> ListVouchers(string storeId)
     {
-        
+
         var now = DateTimeOffset.UtcNow;
         await using var ctx = _dbContextFactory.CreateContext();
         var ppsQuery = await ctx.PullPayments
@@ -127,8 +127,8 @@ public class VoucherController : Controller
             .Where(p => p.StoreId == storeId && p.Archived == false)
             .OrderByDescending(data => data.Id).ToListAsync();
 
-        var vouchers  = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
-        
+        var vouchers = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
+
         var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
         if (!paymentMethods.Any())
         {
@@ -137,9 +137,9 @@ public class VoucherController : Controller
                 Message = "You must enable at least one payment method before creating a voucher.",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
-            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new {storeId});
+            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
-        return View( vouchers.Select(tuple => new VoucherViewModel()
+        return View(vouchers.Select(tuple => new VoucherViewModel()
         {
             Amount = tuple.Blob.Limit,
             Currency = tuple.Blob.Currency,
@@ -149,7 +149,7 @@ public class VoucherController : Controller
             Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(tuple.PullPayment, now)
         }).ToList());
     }
-    
+
     [HttpGet("~/plugins/{storeId}/vouchers/create")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> CreateVoucher(string storeId)
@@ -162,7 +162,7 @@ public class VoucherController : Controller
                 Message = "You must enable at least one payment method before creating a voucher.",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
-            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new {storeId});
+            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
         return View();
     }
@@ -176,10 +176,10 @@ public class VoucherController : Controller
         var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
         if (!paymentMethods.Any())
         {
-            
+
             TempData[WellKnownTempData.ErrorMessage] = "You must enable at least one payment method before creating a voucher.";
 
-            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new {storeId});
+            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
 
         if (amount <= 0)
@@ -218,7 +218,7 @@ public class VoucherController : Controller
             AutoApproveClaims = true
         });
 
-        return RedirectToAction(nameof(View), new {id = pp});
+        return RedirectToAction(nameof(View), new { id = pp });
     }
 
     [HttpGet("~/plugins/vouchers/{id}")]
@@ -242,7 +242,7 @@ public class VoucherController : Controller
         }
 
         var now = DateTimeOffset.UtcNow;
-        var store = await  _storeRepository.FindStore(pp.StoreId);
+        var store = await _storeRepository.FindStore(pp.StoreId);
         var storeBlob = store.GetStoreBlob();
         var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
         return View(new VoucherViewModel()
@@ -257,7 +257,7 @@ public class VoucherController : Controller
             BrandColor = storeBlob.BrandColor,
             CssFileId = storeBlob.CssFileId,
             LogoFileId = storeBlob.LogoFileId,
-            SupportsLNURL =  _pullPaymentHostedService.SupportsLNURL(blob),
+            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(blob),
             Description = blob.Description
         });
     }
@@ -272,7 +272,7 @@ public class VoucherController : Controller
         public decimal Amount { get; set; }
         public string Currency { get; set; }
         public PaymentMethodId[] PaymentMethods { get; set; }
-        public  PullPaymentsModel.PullPaymentModel.ProgressModel Progress { get; set; }
+        public PullPaymentsModel.PullPaymentModel.ProgressModel Progress { get; set; }
         public string StoreName { get; set; }
         public string LogoFileId { get; set; }
         public string BrandColor { get; set; }
