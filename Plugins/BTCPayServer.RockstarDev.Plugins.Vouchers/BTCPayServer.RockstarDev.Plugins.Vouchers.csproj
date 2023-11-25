@@ -37,7 +37,4 @@
     <ItemGroup>
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
     </ItemGroup>
-    <ItemGroup>
-      <AdditionalFiles Include="Views\Shared\Nip05Nav.cshtml" />
-    </ItemGroup>
 </Project>
