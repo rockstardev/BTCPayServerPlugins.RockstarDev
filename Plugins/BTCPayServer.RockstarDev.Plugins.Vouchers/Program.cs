@@ -3,7 +3,7 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Abstractions.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BTCPayServer.Plugins.Vouchers
+namespace BTCPayServer.RockstarDev.Plugins.Vouchers
 {
     public class VoucherPlugin : BaseBTCPayServerPlugin
     {

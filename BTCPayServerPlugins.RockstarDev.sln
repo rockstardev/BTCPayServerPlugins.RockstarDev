@@ -28,7 +28,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Tests", "submo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Plugins.Tests", "BTCPayServer.Plugins.Tests\BTCPayServer.Plugins.Tests.csproj", "{C6E671F6-5417-4F2F-A5A2-0A7D307BA1F7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Plugins.Vouchers", "Plugins\BTCPayServer.Plugins.Vouchers\BTCPayServer.Plugins.Vouchers.csproj", "{ED061A37-488F-429C-A291-6A5188A47443}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.RockstarDev.Plugins.Vouchers", "Plugins\BTCPayServer.RockstarDev.Plugins.Vouchers\BTCPayServer.RockstarDev.Plugins.Vouchers.csproj", "{ED061A37-488F-429C-A291-6A5188A47443}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

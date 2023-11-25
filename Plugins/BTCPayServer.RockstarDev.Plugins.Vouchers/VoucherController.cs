@@ -24,7 +24,7 @@ using Microsoft.Extensions.Caching.Memory;
 using NBitcoin;
 using NBitcoin.DataEncoders;
 
-namespace BTCPayServer.Plugins.Vouchers;
+namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
 
 
