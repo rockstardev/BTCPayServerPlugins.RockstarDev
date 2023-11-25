@@ -14,6 +14,7 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
+using BTCPayServer.ModelBinders;
 using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.PointOfSale.Models;
@@ -57,17 +58,18 @@ public class VoucherController : Controller
         _appService = appService;
     }
 
+    private const string CURRENCY = "USD";
 
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
-    public async Task<IActionResult> Keypad()
+    public async Task<IActionResult> Keypad(string storeId)
     {
         var settings = new PointOfSaleSettings
         {
             Title = "Bitcoin Vouchers"
         };
-        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo("USD");
+        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(CURRENCY);
         double step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
         //var store = new Data.StoreData();
         //var storeBlob = new StoreBlob();
@@ -86,8 +88,8 @@ public class VoucherController : Controller
             //ShowSearch = settings.ShowSearch,
             //ShowCategories = settings.ShowCategories,
             //EnableTips = settings.EnableTips,
-            CurrencyCode = settings.Currency,
-            CurrencySymbol = numberFormatInfo.CurrencySymbol,
+            //CurrencyCode = settings.Currency,
+            //CurrencySymbol = numberFormatInfo.CurrencySymbol,
             CurrencyInfo = new ViewPointOfSaleViewModel.CurrencyInfoData
             {
                 CurrencySymbol = string.IsNullOrEmpty(numberFormatInfo.CurrencySymbol) ? settings.Currency : numberFormatInfo.CurrencySymbol,
@@ -105,7 +107,7 @@ public class VoucherController : Controller
             //CustomCSSLink = settings.CustomCSSLink,
             //CustomLogoLink = storeBlob.CustomLogo,
             //AppId = "vouchers",
-            //StoreId = store.Id,
+            StoreId = storeId,
             //Description = settings.Description,
             //EmbeddedCSS = settings.EmbeddedCSS,
             //RequiresRefundEmail = settings.RequiresRefundEmail
@@ -167,7 +169,8 @@ public class VoucherController : Controller
 
     [HttpPost("~/plugins/{storeId}/vouchers/create")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> CreateVoucher(string storeId, decimal amount, string currency)
+    public async Task<IActionResult> CreateVoucher(string storeId,
+        [ModelBinder(typeof(InvariantDecimalModelBinder))] decimal amount)
     {
         ModelState.Clear();
         var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
@@ -185,11 +188,11 @@ public class VoucherController : Controller
             return View();
         }
 
-        var storeBLob = HttpContext.GetStoreData().GetStoreBlob();
-        currency??=storeBLob.DefaultCurrency;
+        var storeBlob = HttpContext.GetStoreData().GetStoreBlob();
+        var currency = CURRENCY;
 
         var rate = await _rateFetcher.FetchRate(new CurrencyPair("BTC", currency),
-            storeBLob.GetRateRules(_networkProvider), CancellationToken.None);
+            storeBlob.GetRateRules(_networkProvider), CancellationToken.None);
         if (rate.BidAsk == null)
         {
             

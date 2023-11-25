@@ -17,7 +17,9 @@
     <partial name="_StatusMessage" />
     <partial name="_StoreHeader" model="(Model.Title, String.Empty)" />
 
-    <form id="PosKeypad" method="post" asp-action="ViewPointOfSale" asp-route-appId="@Model.AppId" asp-antiforgery="false" v-on:submit="handleFormSubmit" class="d-flex flex-column gap-4 my-auto" v-cloak>
+    <form id="PosKeypad" method="post" asp-action="CreateVoucher"
+          asp-route-storeId="@Model.StoreId"
+          asp-antiforgery="true" v-on:submit="handleFormSubmit" class="d-flex flex-column gap-4 my-auto" v-cloak>
         <input type="hidden" name="posdata" v-model="posdata" id="posdata">
         <input type="hidden" name="amount" v-model="totalNumeric">
         <div ref="display" class="d-flex flex-column align-items-center px-4 mb-auto">

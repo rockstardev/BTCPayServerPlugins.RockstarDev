@@ -26,17 +26,18 @@
             <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
         </ProjectReference>
     </ItemDefinitionGroup>
+    <ItemGroup>
+      <Compile Remove="Resources\**" />
+      <Content Remove="Resources\**" />
+      <EmbeddedResource Remove="Resources\**" />
+      <None Remove="Resources\**" />
+    </ItemGroup>
 
 
     <ItemGroup>
-        <EmbeddedResource Include="Resources\**" />
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="Resources" />
-    </ItemGroup>
-    <ItemGroup>
-      <AdditionalFiles Include="Views\Voucher\Edit.cshtml" />
       <AdditionalFiles Include="Views\Shared\Nip05Nav.cshtml" />
     </ItemGroup>
 </Project>
