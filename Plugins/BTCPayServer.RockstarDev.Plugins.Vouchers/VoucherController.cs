@@ -62,6 +62,7 @@ public class VoucherController : Controller
 
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
     public async Task<IActionResult> Keypad(string storeId)
     {
