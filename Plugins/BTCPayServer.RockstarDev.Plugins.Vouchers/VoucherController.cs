@@ -15,10 +15,12 @@ using BTCPayServer.Data;
 using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
 using BTCPayServer.ModelBinders;
+using BTCPayServer.Models;
 using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
+using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
@@ -114,6 +116,78 @@ public class VoucherController : Controller
             //RequiresRefundEmail = settings.RequiresRefundEmail
         });
     }
+
+    [HttpGet("~/plugins/{storeId}/vouchers/createsatsbill")]
+    [Authorize(Policy = Policies.CanCreateNonApprovedPullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> CreateSatsBill(string storeId, int amount, string image)
+    {
+        var selectedPaymentMethodIds = new PaymentMethodId[] {
+                PaymentMethodId.Parse("BTC"),
+                PaymentMethodId.Parse("BTC_LightningLike")
+            };
+        var res = await _pullPaymentHostedService.CreatePullPayment(new HostedServices.CreatePullPayment()
+        {
+            Name = $"Voucher {amount} Sats",
+            Description = image,
+            Amount = amount,
+            Currency = "SATS",
+            StoreId = storeId,
+            PaymentMethodIds = selectedPaymentMethodIds,
+            EmbeddedCSS = null,
+            CustomCSSLink = null,
+            BOLT11Expiration = TimeSpan.FromDays(21),
+            AutoApproveClaims = true
+        });
+        //this.TempData.SetStatusMessageModel(new StatusMessageModel()
+        //{
+        //    Message = "Pull payment request created",
+        //    Severity = StatusMessageModel.StatusSeverity.Success
+        //});
+        return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("~/plugins/vouchers/{id}/viewprintsatsbill")]
+    public async Task<IActionResult> ViewPrintSatsBill(string id)
+    {
+        await using var ctx = _dbContextFactory.CreateContext();
+        var pp = await ctx.PullPayments
+            .Include(data => data.Payouts)
+            .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
+
+        if (pp == null)
+        {
+            return NotFound();
+        }
+
+        var blob = pp.GetBlob();
+        if (!blob.Name.StartsWith("Voucher"))
+        {
+            return NotFound();
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var store = await _storeRepository.FindStore(pp.StoreId);
+        var storeBlob = store.GetStoreBlob();
+        var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
+        return View(new VoucherViewModel()
+        {
+            Amount = blob.Limit,
+            Currency = blob.Currency,
+            Id = pp.Id,
+            Name = blob.Name,
+            PaymentMethods = blob.SupportedPaymentMethods,
+            Progress = progress,
+            StoreName = store.StoreName,
+            BrandColor = storeBlob.BrandColor,
+            CssFileId = storeBlob.CssFileId,
+            LogoFileId = storeBlob.LogoFileId,
+            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(blob),
+            Description = blob.Description
+        });
+    }
+
+
 
 
     [HttpGet("~/plugins/{storeId}/vouchers")]

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
@@ -26,15 +26,10 @@
             <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
         </ProjectReference>
     </ItemDefinitionGroup>
-    <ItemGroup>
-      <Compile Remove="Resources\**" />
-      <Content Remove="Resources\**" />
-      <EmbeddedResource Remove="Resources\**" />
-      <None Remove="Resources\**" />
-    </ItemGroup>
 
 
     <ItemGroup>
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+		<EmbeddedResource Include="Resources\**" />
     </ItemGroup>
 </Project>
