@@ -200,7 +200,7 @@ public class VoucherController : Controller
         var ppsQuery = await ctx.PullPayments
             .Include(data => data.Payouts)
             .Where(p => p.StoreId == storeId && p.Archived == false)
-            .OrderByDescending(data => data.Id).ToListAsync();
+            .OrderByDescending(data => data.StartDate).ToListAsync();
 
         var vouchers = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
 
@@ -220,6 +220,7 @@ public class VoucherController : Controller
             Currency = tuple.Blob.Currency,
             Id = tuple.PullPayment.Id,
             Name = tuple.Blob.Name,
+            Description = tuple.Blob.Description,
             PaymentMethods = tuple.Blob.SupportedPaymentMethods,
             Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(tuple.PullPayment, now)
         }).ToList());

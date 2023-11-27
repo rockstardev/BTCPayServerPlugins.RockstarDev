@@ -117,11 +117,20 @@
                                 Full view
                             </a>
                             <span> - </span>
-                            <a asp-action="View"
-                               asp-controller="Voucher"
-                               asp-route-id="@pp.Id">
-                                Print view
-                            </a>
+                            @if (pp.Description.EndsWith(".png")) {
+                                <a asp-action="ViewPrintSatsBill"
+                                   asp-controller="Voucher"
+                                   asp-route-id="@pp.Id">
+                                    Print view
+                                </a>
+                            }
+                            else {
+                                <a asp-action="View"
+                                   asp-controller="Voucher"
+                                   asp-route-id="@pp.Id">
+                                    Print view
+                                </a>
+                            }
                         </td>
                     </tr>
                 }
