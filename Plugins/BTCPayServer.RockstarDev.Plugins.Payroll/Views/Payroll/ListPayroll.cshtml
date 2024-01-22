@@ -1,0 +1,156 @@
+﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.Client
+@using BTCPayServer.Services
+@inject IScopeProvider ScopeProvider
+@inject DisplayFormatter DisplayFormatter
+@model List<BTCPayServer.RockstarDev.Plugins.Payroll.PayrollController.PayrollInvoiceViewModel>
+@{
+    ViewData.SetActivePage("Voucher", "Voucher", "Voucher");
+
+    var storeId = ScopeProvider.GetCurrentStoreId();
+}
+
+<form method="post">
+
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+
+            <form asp-action="CreateSatsBill" method="get" class="">
+                <div class="dropdown">
+                    <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span>Print Bill</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="10000" asp-route-image="10000sats-jack.png" class="dropdown-item">10000 Sats Jack</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="10000" asp-route-image="10000sats-matt.png" class="dropdown-item">10000 Sats Odell</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="10000" asp-route-image="10000sats-giacomo.png" class="dropdown-item">10000 Sats Giacomo</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-luke.png" class="dropdown-item">1000 Sats Luke</a>
+                    </div>
+                </div>
+            </form>
+
+            <a asp-controller="Voucher" asp-action="Keypad" asp-route-storeId="@storeId" class="btn btn-primary">Create</a>
+
+        </div>
+    </div>
+
+
+    <partial name="_StatusMessage"/>
+
+
+    @if (Model.Any())
+    {
+        @foreach (var pp in Model)
+        {
+        @*     <script id="tooptip_template_@pp.Id" type="text/template">
+            <span>Awaiting:&nbsp;<span class="float-end">@pp.Progress.AwaitingFormatted</span></span>
+            <br />
+            <span>Completed:&nbsp;<span class="float-end">@pp.Progress.CompletedFormatted</span></span>
+            <br />
+            <span>Limit:&nbsp;<span class="float-end">@pp.Progress.LimitFormatted</span></span>
+            @if (pp.Progress.ResetIn != null)
+            {
+                <br />
+                <span>Resets in:&nbsp;<span class="float-end">@pp.Progress.ResetIn</span></span>
+            }
+            @if (pp.Progress.EndIn != null)
+            {
+                <br />
+                <span>Expires in:&nbsp;<span class="float-end">@pp.Progress.EndIn</span></span>
+            }
+        </script> *@
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Amount</th>
+                    <th scope="col">Progress</th>
+                    <th scope="col" class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var pp in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-action="EditPullPayment"
+                               asp-controller="UIPullPayment"
+                               asp-route-storeId="@storeId"
+                               asp-route-pullPaymentId="@pp.Id">
+                                @pp.Name
+                            </a>
+                        </td>
+                        <td>@DisplayFormatter.Currency(pp.Amount, pp.Currency)</td>
+                        <td>Payment Methods</td>
+                        <td class="align-middle">
+                            
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="ArchivePullPayment"
+                               asp-controller="UIStorePullPayments"
+                               permission="@Policies.CanArchivePullPayments"
+                               asp-route-storeId="@storeId"
+                               asp-route-pullPaymentId="@pp.Id"
+                               data-bs-toggle="modal"
+                               data-bs-target="#ConfirmModal"
+                               data-description="Do you really want to archive the pull payment <strong>@Html.Encode(pp.Name)</strong>?">
+                                Archive
+                            </a>
+                            <span> - </span>
+                            <a asp-action="ViewPullPayment"
+                               asp-controller="UIPullPayment"
+                               asp-route-pullPaymentId="@pp.Id">
+                                Full view
+                            </a>
+                            <span> - </span>
+                            @if (pp.Description.EndsWith(".png")) {
+                                <a asp-action="ViewPrintSatsBill"
+                                   asp-controller="Voucher"
+                                   asp-route-id="@pp.Id">
+                                    Print view
+                                </a>
+                            }
+                            else {
+                                <a asp-action="View"
+                                   asp-controller="Voucher"
+                                   asp-route-id="@pp.Id">
+                                    Print view
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Confirm" model="@(new ConfirmModel("Archive pull payment", "Do you really want to archive the pull payment?", "Archive"))"/>
+
+        @section PageFootContent {
+            <script>
+            const ppProgresses = document.getElementsByClassName("ppProgress");
+            for (var i = 0; i < ppProgresses.length; i++) {
+                var pp = ppProgresses[i];
+                var ppId = pp.getAttribute("data-pp");
+                var template = document.getElementById("tooptip_template_" + ppId);
+                pp.setAttribute("title", template.innerHTML);
+            }
+        </script>
+        }
+    }
+    else
+    {
+        <p class="text-secondary mt-4">
+            There are no active vouchers.
+        </p>
+    }
+
+
+</form>
