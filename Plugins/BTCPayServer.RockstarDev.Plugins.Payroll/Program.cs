@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
-public class VoucherPlugin : BaseBTCPayServerPlugin
+public class PayrollPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     {
