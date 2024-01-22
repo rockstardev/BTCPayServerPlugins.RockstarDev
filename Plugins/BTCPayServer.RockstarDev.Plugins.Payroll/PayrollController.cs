@@ -20,6 +20,7 @@ using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
@@ -38,6 +39,7 @@ public class PayrollController : Controller
     private readonly PullPaymentHostedService _pullPaymentHostedService;
     private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
     private readonly ApplicationDbContextFactory _dbContextFactory;
+    private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
     private readonly IEnumerable<IPayoutHandler> _payoutHandlers;
     private readonly StoreRepository _storeRepository;
     private readonly RateFetcher _rateFetcher;
@@ -47,12 +49,14 @@ public class PayrollController : Controller
     public PayrollController(PullPaymentHostedService pullPaymentHostedService,
         UIStorePullPaymentsController uiStorePullPaymentsController,
         ApplicationDbContextFactory dbContextFactory,
+        PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         IEnumerable<IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
             AppService appService)
     {
         _pullPaymentHostedService = pullPaymentHostedService;
         _uiStorePullPaymentsController = uiStorePullPaymentsController;
         _dbContextFactory = dbContextFactory;
+        _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _payoutHandlers = payoutHandlers;
         _storeRepository = storeRepository;
         _rateFetcher = rateFetcher;
@@ -63,38 +67,26 @@ public class PayrollController : Controller
     private const string CURRENCY = "USD";
 
 
-    [HttpGet("~/plugins/{storeId}/vouchers")]
+    [HttpGet("~/plugins/{storeId}/listpayroll")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> ListVouchers(string storeId)
+    public async Task<IActionResult> ListPayroll(string storeId)
     {
-
         var now = DateTimeOffset.UtcNow;
-        await using var ctx = _dbContextFactory.CreateContext();
-        var ppsQuery = await ctx.PullPayments
-            .Include(data => data.Payouts)
-            .Where(p => p.StoreId == storeId && p.Archived == false)
-            .OrderByDescending(data => data.StartDate).ToListAsync();
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        var payrollInvoices = await ctx.PayrollInvoices
+            .Include(data => data.User)
+            .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
+            .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        var vouchers = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
-
-        var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
-        if (!paymentMethods.Any())
+        return View(payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
         {
-            TempData.SetStatusMessageModel(new StatusMessageModel
-            {
-                Message = "You must enable at least one payment method before creating a voucher.",
-                Severity = StatusMessageModel.StatusSeverity.Error
-            });
-            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
-        }
-        return View(vouchers.Select(tuple => new PayrollInvoiceViewModel()
-        {
-            Amount = tuple.Blob.Limit,
-            Currency = tuple.Blob.Currency,
-            Id = tuple.PullPayment.Id,
-            Name = tuple.Blob.Name,
-            Description = tuple.Blob.Description
-        }).ToList());
+            Id = tuple.Id,
+            Name = tuple.User.Name,
+            Email = tuple.User.Email,
+            Amount = tuple.Amount,
+            Currency = tuple.Currency,
+            Description = tuple.Description
+            }).ToList());
     }
 
     [HttpGet("~/plugins/payroll/{id}")]

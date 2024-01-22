@@ -23,6 +23,8 @@ public class PayrollInvoice
     public string Currency { get; set; }
     public string Description { get; set; }
     public string InvoiceFilename { get; set; }
+    public bool IsArchived { get; set; }
+
 
     internal static void OnModelCreating(ModelBuilder builder)
     {

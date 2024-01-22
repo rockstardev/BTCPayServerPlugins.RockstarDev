@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,9 @@ public class PayrollUser
 
     public string Email { get; set; }
     public string Password { get; set; }
+
+    [MaxLength(50)]
+    public string StoreId { get; set; }
     public ICollection<PayrollInvoice> PayrollInvoices { get; set; } = new List<PayrollInvoice>();
 
     internal static void OnModelCreating(ModelBuilder modelBuilder)

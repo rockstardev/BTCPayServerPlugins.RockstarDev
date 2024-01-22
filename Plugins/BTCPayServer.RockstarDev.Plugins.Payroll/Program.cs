@@ -1,6 +1,7 @@
 ﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Abstractions.Services;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
@@ -16,6 +17,14 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
     {
         applicationBuilder.AddSingleton<IUIExtension>(new UIExtension("PayrollNav",
             "store-integrations-nav"));
+
+        applicationBuilder.AddSingleton<PayrollPluginDbContextFactory>();
+        applicationBuilder.AddDbContext<PayrollPluginDbContext>((provider, o) =>
+        {
+            var factory = provider.GetRequiredService<PayrollPluginDbContextFactory>();
+            factory.ConfigureBuilder(o);
+        });
+
         base.Execute(applicationBuilder);
     }
 }
