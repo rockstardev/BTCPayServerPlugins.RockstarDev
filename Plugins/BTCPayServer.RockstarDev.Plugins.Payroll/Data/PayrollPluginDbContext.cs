@@ -25,7 +25,7 @@ public class PayrollPluginDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema("BTCPayServer.Plugins.Payroll");
+        modelBuilder.HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.Payroll");
 
         PayrollInvoice.OnModelCreating(modelBuilder);
         PayrollUser.OnModelCreating(modelBuilder);
