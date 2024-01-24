@@ -24,6 +24,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
             var factory = provider.GetRequiredService<PayrollPluginDbContextFactory>();
             factory.ConfigureBuilder(o);
         });
+        applicationBuilder.AddHostedService<PayrollPluginMigrationRunner>();
 
         base.Execute(applicationBuilder);
     }
