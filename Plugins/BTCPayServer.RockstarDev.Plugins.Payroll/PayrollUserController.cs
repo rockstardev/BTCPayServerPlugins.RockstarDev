@@ -51,13 +51,7 @@ public class PayrollUserController : Controller
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _storeRepository = storeRepository;
     }
-    public StoreData CurrentStore
-    {
-        get
-        {
-            return HttpContext.GetStoreData();
-        }
-    }
+    public StoreData CurrentStore => HttpContext.GetStoreData();
 
 
     [HttpGet("~/plugins/{storeId}/payroll/users")]

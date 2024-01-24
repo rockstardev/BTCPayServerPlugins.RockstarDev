@@ -5,7 +5,7 @@
 @using BTCPayServer.Services
 @inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
-@model List<BTCPayServer.RockstarDev.Plugins.Payroll.PayrollController.PayrollInvoiceViewModel>
+@model List<BTCPayServer.RockstarDev.Plugins.Payroll.PayrollInvoiceController.PayrollInvoiceViewModel>
 @{
     ViewData.SetActivePage("Payroll", "Payroll Invoices", "Payroll");
 
@@ -18,9 +18,8 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-
+            <a asp-controller="PayrollInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Upload Invoice</a>
             <a asp-controller="PayrollUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
-
         </div>
     </div>
 
@@ -55,9 +54,9 @@
             <table class="table table-hover">
                 <thead>
                 <tr>
+                    <th></th>
                     <th scope="col">Name</th>
                     <th scope="col">Amount</th>
-                    <th scope="col">Progress</th>
                     <th scope="col" class="text-end">Actions</th>
                 </tr>
                 </thead>

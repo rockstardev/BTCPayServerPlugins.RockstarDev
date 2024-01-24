@@ -9,7 +9,7 @@
 @if (!string.IsNullOrEmpty(storeId))
 {
     <li class="nav-item">
-        <a asp-controller="Payroll" asp-action="List" asp-route-storeId="@storeId" class="nav-link @ViewData.IsActivePage("Payroll")"
+        <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="nav-link @ViewData.IsActivePage("Payroll")"
            permission="@Policies.CanModifyStoreSettings">            
             
             <svg xmlns="http://www.w3.org/2000/svg" style="    width: 20px;
