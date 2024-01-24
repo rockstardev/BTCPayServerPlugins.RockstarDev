@@ -23,103 +23,50 @@
         </div>
     </div>
 
-
     <partial name="_StatusMessage"/>
-
 
     @if (Model.Any())
     {
-        @foreach (var pp in Model)
-        {
-        @*     <script id="tooptip_template_@pp.Id" type="text/template">
-            <span>Awaiting:&nbsp;<span class="float-end">@pp.Progress.AwaitingFormatted</span></span>
-            <br />
-            <span>Completed:&nbsp;<span class="float-end">@pp.Progress.CompletedFormatted</span></span>
-            <br />
-            <span>Limit:&nbsp;<span class="float-end">@pp.Progress.LimitFormatted</span></span>
-            @if (pp.Progress.ResetIn != null)
-            {
-                <br />
-                <span>Resets in:&nbsp;<span class="float-end">@pp.Progress.ResetIn</span></span>
-            }
-            @if (pp.Progress.EndIn != null)
-            {
-                <br />
-                <span>Expires in:&nbsp;<span class="float-end">@pp.Progress.EndIn</span></span>
-            }
-        </script> *@
-        }
-
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
-                <tr>
-                    <th></th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Amount</th>
-                    <th scope="col" class="text-end">Actions</th>
-                </tr>
+                    <tr>
+                        <th scope="col">Created At</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Currency</th>
+                        <th scope="col">Description</th>
+                        <th scope="col" class="text-end"></th>
+                    </tr>
                 </thead>
                 <tbody>
-                @foreach (var pp in Model)
-                {
-                    <tr>
-                        <td>
-                            <a asp-action="EditPullPayment"
-                               asp-controller="UIPullPayment"
-                               asp-route-storeId="@storeId"
-                               asp-route-pullPaymentId="@pp.Id">
-                                @pp.Name
-                            </a>
-                        </td>
-                        <td>@DisplayFormatter.Currency(pp.Amount, pp.Currency)</td>
-                        <td>Payment Methods</td>
-                        <td class="align-middle">
-                            
-                        </td>
-                        <td class="text-end">
-                            <a asp-action="ArchivePullPayment"
-                               asp-controller="UIStorePullPayments"
-                               permission="@Policies.CanArchivePullPayments"
-                               asp-route-storeId="@storeId"
-                               asp-route-pullPaymentId="@pp.Id"
-                               data-bs-toggle="modal"
-                               data-bs-target="#ConfirmModal"
-                               data-description="Do you really want to archive the pull payment <strong>@Html.Encode(pp.Name)</strong>?">
-                                Archive
-                            </a>
-                            <span> - </span>
-                            <a asp-action="ViewPullPayment"
-                               asp-controller="UIPullPayment"
-                               asp-route-pullPaymentId="@pp.Id">
-                                Full view
-                            </a>
-                            <span> - </span>
-                            @if (pp.Description.EndsWith(".png")) {
-                                <a asp-action="ViewPrintSatsBill"
-                                   asp-controller="Voucher"
-                                   asp-route-id="@pp.Id">
-                                    Print view
+                    @foreach (var pp in Model)
+                    {
+                        <tr>
+                            <td>@pp.Name</td>
+                            <td>@pp.Email</td>
+                            <td>@pp.Amount</td>
+                            <td>@pp.Currency</td>
+                            <td>@pp.Description</td>
+                            <td class="text-end">
+                                <a href="/@pp.InvoiceUrl">Invoice</a> - 
+                                <a asp-controller="PayrollInvoice"
+                                   asp-action="Delete"
+                                   asp-route-userId="@pp.Id"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#ConfirmModal"
+                                   data-description="Do you really want to delete the invoice <strong>@Html.Encode(pp.Name)</strong>?">
+                                    Delete
                                 </a>
-                            }
-                            else {
-                                <a asp-action="View"
-                                   asp-controller="Voucher"
-                                   asp-route-id="@pp.Id">
-                                    Print view
-                                </a>
-                            }
-                        </td>
-                    </tr>
-                }
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
 
-        <partial name="_Confirm" model="@(new ConfirmModel("Archive pull payment", "Do you really want to archive the pull payment?", "Archive"))"/>
-
         @section PageFootContent {
-            <script>
+        <script>
             const ppProgresses = document.getElementsByClassName("ppProgress");
             for (var i = 0; i < ppProgresses.length; i++) {
                 var pp = ppProgresses[i];
@@ -129,6 +76,9 @@
             }
         </script>
         }
+
+        <partial name="_Confirm" model="@(new ConfirmModel("Delete Invoice", "Do you really want to delete the invoice...", "Delete"))" />
+        
     }
     else
     {

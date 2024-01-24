@@ -104,7 +104,8 @@ public class PayrollInvoiceController : Controller
             Email = tuple.User.Email,
             Amount = tuple.Amount,
             Currency = tuple.Currency,
-            Description = tuple.Description
+            Description = tuple.Description,
+            InvoiceUrl = tuple.InvoiceFilename
         }).ToList()
         );
     }
@@ -116,6 +117,7 @@ public class PayrollInvoiceController : Controller
         public decimal Amount { get; set; }
         public string Currency { get; set; }
         public string Description { get; set; }
+        public string InvoiceUrl { get; set; }
     }
 
 
