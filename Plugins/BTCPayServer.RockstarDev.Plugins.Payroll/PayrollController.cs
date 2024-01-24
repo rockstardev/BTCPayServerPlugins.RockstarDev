@@ -67,9 +67,9 @@ public class PayrollController : Controller
     private const string CURRENCY = "USD";
 
 
-    [HttpGet("~/plugins/{storeId}/listpayroll")]
+    [HttpGet("~/plugins/{storeId}/payroll/list")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> ListPayroll(string storeId)
+    public async Task<IActionResult> List(string storeId)
     {
         var now = DateTimeOffset.UtcNow;
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();

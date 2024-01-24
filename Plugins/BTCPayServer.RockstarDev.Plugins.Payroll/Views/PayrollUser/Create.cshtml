@@ -1,0 +1,47 @@
+﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.Client
+@using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
+@using BTCPayServer.Services
+@using static BTCPayServer.RockstarDev.Plugins.Payroll.PayrollUserController
+@inject IScopeProvider ScopeProvider
+@inject DisplayFormatter DisplayFormatter
+@model PayrollUserCreateViewModel
+@{
+    ViewData.SetActivePage("Payroll", "Create Payroll User", "Payroll");
+}
+
+<form method="post" asp-action="Create">
+    <div class="sticky-header d-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <input type="submit" value="Create" class="btn btn-primary" id="Create" />
+    </div>
+
+    <partial name="_StatusMessage" />
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" type="password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" type="password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</form>
