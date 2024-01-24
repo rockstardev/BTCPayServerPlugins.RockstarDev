@@ -99,6 +99,7 @@ public class PayrollInvoiceController : Controller
 
         return View(payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
         {
+            CreatedAt = tuple.CreatedAt,
             Id = tuple.Id,
             Name = tuple.User.Name,
             Email = tuple.User.Email,
@@ -111,6 +112,9 @@ public class PayrollInvoiceController : Controller
     }
     public class PayrollInvoiceViewModel
     {
+        // TODO: Implement selection and generation of invoices to pay through Bitcoin wallet
+        // public bool Selected { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
         public string Id { get; set; }
         public string Name { get; set; }
         public string Email { get; set; }
@@ -160,9 +164,9 @@ public class PayrollInvoiceController : Controller
             return View(model);
         }
 
-        // TODO: Make save of the file and entry in the database atomic
+        // TODO: Make saving of the file and entry in the database atomic
+        // TODO: Figure out abstraction of GetAdminUserId()
         var uploaded = await _fileService.AddFile(model.Invoice, GetAdminUserId());
-        Debug.WriteLine("File uploaded to " + uploaded.StorageFileName);
 
         var dbPayrollInvoice = new PayrollInvoice
         {
@@ -170,7 +174,7 @@ public class PayrollInvoiceController : Controller
             CreatedAt = DateTime.UtcNow,
             Currency = model.Currency,
             Description = model.Description,
-            InvoiceFilename = uploaded.StorageFileName,
+            InvoiceFilename = uploaded.Id,
             UserId = model.UserId
         };
 

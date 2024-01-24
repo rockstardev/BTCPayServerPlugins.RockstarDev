@@ -32,7 +32,7 @@
                 <thead>
                     <tr>
                         <th scope="col">Created At</th>
-                        <th scope="col">Name</th>
+                        <th scope="col">User</th>
                         <th scope="col">Amount</th>
                         <th scope="col">Currency</th>
                         <th scope="col">Description</th>
@@ -43,13 +43,14 @@
                     @foreach (var pp in Model)
                     {
                         <tr>
-                            <td>@pp.Name</td>
-                            <td>@pp.Email</td>
+                            <td>@pp.CreatedAt.ToBrowserDate()</td>
+                            <td>@pp.Name &lt;@pp.Email&gt;</td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
                             <td>@pp.Description</td>
                             <td class="text-end">
-                                <a href="/@pp.InvoiceUrl">Invoice</a> - 
+                                <a href="/Storage/@pp.InvoiceUrl">Invoice</a>
+                                - 
                                 <a asp-controller="PayrollInvoice"
                                    asp-action="Delete"
                                    asp-route-userId="@pp.Id"
