@@ -27,6 +27,11 @@
                 <select asp-for="UserId" asp-items="Model.PayrollUsers" class="form-select"></select>
                 <span asp-validation-for="UserId" class="text-danger"></span>
             </div>
+            <div class="form-group">
+                <label asp-for="Destination" class="form-label"></label>
+                <input asp-for="Destination" class="form-control" />
+                <span asp-validation-for="Destination" class="text-danger"></span>
+            </div>
             <div class="row">
                 <div class="form-group col-8">
                     <label asp-for="Amount" class="form-label" data-required></label>

@@ -107,6 +107,7 @@ public class PayrollInvoiceController : Controller
             Id = tuple.Id,
             Name = tuple.User.Name,
             Email = tuple.User.Email,
+            Destination = tuple.Destination,
             Amount = tuple.Amount,
             Currency = tuple.Currency,
             Description = tuple.Description,
@@ -122,6 +123,7 @@ public class PayrollInvoiceController : Controller
         public string Id { get; set; }
         public string Name { get; set; }
         public string Email { get; set; }
+        public string Destination { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
         public string Description { get; set; }
@@ -156,14 +158,16 @@ public class PayrollInvoiceController : Controller
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
-        var invoices = ctx.PayrollInvoices.Where(a => selectedItems.Contains(a.Id))
+        var invoices = ctx.PayrollInvoices
+            .Include(a => a.User)
+            .Where(a => selectedItems.Contains(a.Id))
             .ToList();
 
         var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
         List<string> bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
-            var bip21New = network.GenerateBIP21(invoice.Description, invoice.Amount);
+            var bip21New = network.GenerateBIP21(invoice.Destination, invoice.Amount);
             bip21New.QueryParams.Add("label", invoice.User.Name);
             bip21.Add(bip21New.ToString());
         }
@@ -218,6 +222,7 @@ public class PayrollInvoiceController : Controller
             Amount = model.Amount,
             CreatedAt = DateTime.UtcNow,
             Currency = model.Currency,
+            Destination = model.Destination,
             Description = model.Description,
             InvoiceFilename = uploaded.Id,
             UserId = model.UserId
@@ -238,6 +243,8 @@ public class PayrollInvoiceController : Controller
         [Required]
         [DisplayName("User")]
         public string UserId { get; set; }
+        [Required]
+        public string Destination { get; set; }
         [Required]
         public decimal Amount { get; set; }
         [Required]

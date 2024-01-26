@@ -43,6 +43,7 @@
                             </div>
                         </th>
                         <th scope="col">User</th>
+                        <th scope="col">Destination</th>
                         <th scope="col">Amount</th>
                         <th scope="col">Currency</th>
                         <th scope="col">Description</th>
@@ -54,7 +55,7 @@
                         <th class="mass-action-select-col only-for-js">
                             <input type="checkbox" class="form-check-input mass-action-select-all" />
                         </th>
-                        <th colspan="6">
+                        <th colspan="7">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                                 <div>
                                     <strong class="mass-action-selected-count">0</strong>
@@ -80,6 +81,7 @@
                             </td>
                             <td>@pp.CreatedAt.ToBrowserDate()</td>
                             <td>@pp.Name &lt;@pp.Email&gt;</td>
+                            <td>@pp.Destination</td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
                             <td>@pp.Description</td>

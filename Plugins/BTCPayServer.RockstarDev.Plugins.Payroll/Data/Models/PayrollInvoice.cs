@@ -19,6 +19,7 @@ public class PayrollInvoice
     public string UserId { get; set; }
     public PayrollUser User { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string Destination { get; set; }
     public decimal Amount { get; set; }
     public string Currency { get; set; }
     public string Description { get; set; }
