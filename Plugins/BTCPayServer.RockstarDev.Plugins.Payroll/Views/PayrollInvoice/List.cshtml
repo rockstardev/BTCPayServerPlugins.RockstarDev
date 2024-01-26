@@ -46,6 +46,7 @@
                         <th scope="col">Destination</th>
                         <th scope="col">Amount</th>
                         <th scope="col">Currency</th>
+                        <th scope="col">State</th>
                         <th scope="col">Description</th>
                         <th scope="col" class="text-end"></th>
                     </tr>
@@ -55,7 +56,7 @@
                         <th class="mass-action-select-col only-for-js">
                             <input type="checkbox" class="form-check-input mass-action-select-all" />
                         </th>
-                        <th colspan="7">
+                        <th colspan="8">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                                 <div>
                                     <strong class="mass-action-selected-count">0</strong>
@@ -63,8 +64,12 @@
                                 </div>
                                 <div class="d-inline-flex align-items-center gap-3">
                                     <button type="submit" name="command" value="payinvoices" id="payinvoices" class="btn btn-link">
-                                        <vc:icon symbol="archive" />
+                                        <vc:icon symbol="send" />
                                         Pay Invoices
+                                    </button>
+                                    <button type="submit" name="command" value="markpaid" id="markpaid" class="btn btn-link">
+                                        <vc:icon symbol="check" />
+                                        Mark Paid
                                     </button>
                                 </div>
                             </div>
@@ -84,7 +89,15 @@
                             <td>@pp.Destination</td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
-                            <td>@pp.Description</td>
+                            <td>@pp.State.ToString()</td>
+                            <td>
+                                @if (!String.IsNullOrEmpty(pp.Description))
+                                {
+                                    <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
+                                        <span style="max-width: 250px;">@pp.Description</span>
+                                    </span>
+                                }
+                            </td>
                             <td class="text-end">
                                 <a href="/Storage/@pp.InvoiceUrl">Invoice</a>
                                 -

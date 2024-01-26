@@ -111,6 +111,7 @@ public class PayrollInvoiceController : Controller
             Destination = tuple.Destination,
             Amount = tuple.Amount,
             Currency = tuple.Currency,
+            State = tuple.State,
             Description = tuple.Description,
             InvoiceUrl = tuple.InvoiceFilename
         }).ToList()
@@ -127,6 +128,7 @@ public class PayrollInvoiceController : Controller
         public string Destination { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
+        public PayrollInvoiceState State { get; set; }
         public string Description { get; set; }
         public string InvoiceUrl { get; set; }
     }
@@ -147,6 +149,22 @@ public class PayrollInvoiceController : Controller
         {
             case "payinvoices":
                 return await payInvoices(selectedItems);
+
+            case "markpaid":
+                using (var ctx = _payrollPluginDbContextFactory.CreateContext())
+                {
+                    var invoices = ctx.PayrollInvoices
+                        .Include(a => a.User)
+                        .Where(a => selectedItems.Contains(a.Id))
+                        .ToList();
+
+                    foreach (var invoice in invoices)
+                    {
+                        invoice.State = PayrollInvoiceState.Paid;
+                    }
+
+                    ctx.SaveChanges();
+                }
                 break;
 
             default:
@@ -172,8 +190,14 @@ public class PayrollInvoiceController : Controller
             var amountInBtc = await usdToBtcAmount(invoice);
             var bip21New = network.GenerateBIP21(invoice.Destination, amountInBtc);
             bip21New.QueryParams.Add("label", invoice.User.Name);
+            // TODO: Add parameter here on which payroll invoice it is being paid, so that when wallet sends trasaction you can mark it paid
+            // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
             bip21.Add(bip21New.ToString());
+
+            invoice.State = PayrollInvoiceState.Processing;
         }
+
+        await ctx.SaveChangesAsync();
 
         return new RedirectToActionResult("WalletSend", "UIWallets", new { walletId = new WalletId(CurrentStore.Id, BTC_CRYPTOCODE).ToString(), bip21 });
     }
@@ -260,7 +284,8 @@ public class PayrollInvoiceController : Controller
             Destination = model.Destination,
             Description = model.Description,
             InvoiceFilename = uploaded.Id,
-            UserId = model.UserId
+            UserId = model.UserId,
+            State = PayrollInvoiceState.New
         };
 
         ctx.Add(dbPayrollInvoice);
