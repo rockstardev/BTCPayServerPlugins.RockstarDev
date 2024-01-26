@@ -25,7 +25,7 @@ public class PayrollInvoice
     public string Description { get; set; }
     public string InvoiceFilename { get; set; }
     public bool IsArchived { get; set; }
-
+    public PayrollInvoiceState State { get; set; }
 
     internal static void OnModelCreating(ModelBuilder builder)
     {
@@ -35,4 +35,12 @@ public class PayrollInvoice
             .WithMany(w => w.PayrollInvoices)
             .OnDelete(DeleteBehavior.Cascade);
     }
+}
+
+public enum PayrollInvoiceState
+{
+    Invalid = 0,
+    New = 1,
+    Processing = 2,
+    Paid = 3
 }
