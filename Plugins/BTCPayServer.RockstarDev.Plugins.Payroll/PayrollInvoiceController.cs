@@ -18,6 +18,7 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
+using BTCPayServer.Migrations;
 using BTCPayServer.ModelBinders;
 using BTCPayServer.Models;
 using BTCPayServer.Models.WalletViewModels;
@@ -154,6 +155,7 @@ public class PayrollInvoiceController : Controller
         return RedirectToAction(nameof(List), new { CurrentStore.Id });
     }
 
+    // TODO: Is there a better way here to make it more generic?
     private const string BTC_CRYPTOCODE = "BTC";
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
@@ -164,15 +166,33 @@ public class PayrollInvoiceController : Controller
             .ToList();
 
         var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
-        List<string> bip21 = new List<string>();
+        var bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
-            var bip21New = network.GenerateBIP21(invoice.Destination, invoice.Amount);
+            var amountInBtc = await usdToBtcAmount(invoice);
+            var bip21New = network.GenerateBIP21(invoice.Destination, amountInBtc);
             bip21New.QueryParams.Add("label", invoice.User.Name);
             bip21.Add(bip21New.ToString());
         }
 
         return new RedirectToActionResult("WalletSend", "UIWallets", new { walletId = new WalletId(CurrentStore.Id, BTC_CRYPTOCODE).ToString(), bip21 });
+    }
+
+    private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)
+    {
+        if (invoice.Currency == BTC_CRYPTOCODE)
+            return invoice.Amount;
+
+        var rate = await _rateFetcher.FetchRate(new CurrencyPair(invoice.Currency, BTC_CRYPTOCODE),
+            CurrentStore.GetStoreBlob().GetRateRules(_networkProvider), CancellationToken.None);
+        if (rate.BidAsk == null)
+        {
+            throw new Exception("Currency is not supported");
+        }
+
+        var satsAmount = Math.Floor(invoice.Amount * rate.BidAsk.Bid * 100_000_000);
+        var amountInBtc = satsAmount / 100_000_000;
+        return amountInBtc;
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
@@ -204,6 +224,16 @@ public class PayrollInvoiceController : Controller
     {
         if (CurrentStore is null)
             return NotFound();
+
+        try
+        {
+            var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
+            var address = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address");
+        }
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
