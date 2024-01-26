@@ -170,7 +170,7 @@ public class PayrollInvoiceController : Controller
             default:
                 break;
         }
-        return RedirectToAction(nameof(List), new { CurrentStore.Id });
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
     // TODO: Is there a better way here to make it more generic?
