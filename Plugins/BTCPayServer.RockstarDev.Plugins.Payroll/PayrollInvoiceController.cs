@@ -225,6 +225,11 @@ public class PayrollInvoiceController : Controller
         if (CurrentStore is null)
             return NotFound();
 
+        if (model.Amount <= 0)
+        {
+            ModelState.AddModelError(nameof(model.Amount), "Amount must be more than 0.");
+        }
+
         try
         {
             var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
@@ -232,7 +237,7 @@ public class PayrollInvoiceController : Controller
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address");
+            ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
