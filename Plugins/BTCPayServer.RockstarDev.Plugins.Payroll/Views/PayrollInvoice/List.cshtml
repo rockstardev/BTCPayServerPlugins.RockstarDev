@@ -22,16 +22,26 @@
             <a asp-controller="PayrollUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
         </div>
     </div>
+</form>
 
-    <partial name="_StatusMessage"/>
+<partial name="_StatusMessage" />
 
-    @if (Model.Any())
-    {
+@if (Model.Any())
+{
+    <form method="post" asp-action="MassAction">
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
+            <table class="table table-hover mass-action">
+                <thead class="mass-action-head">
                     <tr>
-                        <th scope="col">Created At</th>
+                        <th class="mass-action-select-col only-for-js">
+                            <input type="checkbox" class="form-check-input mass-action-select-all" />
+                        </th>
+                        <th class="date-col">
+                            <div class="d-flex align-items-center gap-1">
+                                Created At
+                                <button type="button" class="btn btn-link p-0 fa fa-clock-o switch-time-format only-for-js" title="Switch date format"></button>
+                            </div>
+                        </th>
                         <th scope="col">User</th>
                         <th scope="col">Amount</th>
                         <th scope="col">Currency</th>
@@ -39,10 +49,35 @@
                         <th scope="col" class="text-end"></th>
                     </tr>
                 </thead>
+                <thead class="mass-action-actions">
+                    <tr>
+                        <th class="mass-action-select-col only-for-js">
+                            <input type="checkbox" class="form-check-input mass-action-select-all" />
+                        </th>
+                        <th colspan="6">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                <div>
+                                    <strong class="mass-action-selected-count">0</strong>
+                                    selected
+                                </div>
+                                <div class="d-inline-flex align-items-center gap-3">
+                                    <button type="submit" name="command" value="payinvoices" id="payinvoices" class="btn btn-link">
+                                        <vc:icon symbol="archive" />
+                                        Pay Invoices
+                                    </button>
+                                </div>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
                 <tbody>
                     @foreach (var pp in Model)
                     {
-                        <tr>
+                        var detailsId = $"invoice_details_{pp.Id}";
+                        <tr id="invoice_@pp.Id" class="mass-action-row">
+                            <td class="only-for-js align-middle">
+                                <input name="selectedItems" type="checkbox" class="form-check-input mass-action-select" value="@pp.Id" />
+                            </td>
                             <td>@pp.CreatedAt.ToBrowserDate()</td>
                             <td>@pp.Name &lt;@pp.Email&gt;</td>
                             <td>@pp.Amount</td>
@@ -50,7 +85,7 @@
                             <td>@pp.Description</td>
                             <td class="text-end">
                                 <a href="/Storage/@pp.InvoiceUrl">Invoice</a>
-                                - 
+                                -
                                 <a asp-controller="PayrollInvoice"
                                    asp-action="Delete"
                                    asp-route-userId="@pp.Id"
@@ -79,14 +114,11 @@
         }
 
         <partial name="_Confirm" model="@(new ConfirmModel("Delete Invoice", "Do you really want to delete the invoice...", "Delete"))" />
-        
-    }
-    else
-    {
-        <p class="text-secondary mt-4">
-            There are no active invoices submitted for payroll.
-        </p>
-    }
-
-
-</form>
+    </form>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        There are no active invoices submitted for payroll.
+    </p>
+}

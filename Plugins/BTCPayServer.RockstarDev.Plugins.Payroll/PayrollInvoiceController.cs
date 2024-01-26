@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +28,7 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
+using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
@@ -38,6 +40,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NBitcoin;
 using NBitcoin.DataEncoders;
+using NBXplorer;
+using NLog.Layouts;
 using static BTCPayServer.RockstarDev.Plugins.Payroll.PayrollUserController;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
@@ -125,6 +129,47 @@ public class PayrollInvoiceController : Controller
     }
 
 
+    [HttpPost]
+    public async Task<IActionResult> MassAction(string command, string[] selectedItems)
+    {
+        IActionResult NotSupported(string err)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = err;
+            return RedirectToAction(nameof(List), new { CurrentStore.Id });
+        }
+        if (selectedItems.Length == 0)
+            return NotSupported("No invoice has been selected");
+
+        switch (command)
+        {
+            case "payinvoices":
+                return await payInvoices(selectedItems);
+                break;
+
+            default:
+                break;
+        }
+        return RedirectToAction(nameof(List), new { CurrentStore.Id });
+    }
+
+    private const string BTC_CRYPTOCODE = "BTC";
+    private async Task<IActionResult> payInvoices(string[] selectedItems)
+    {
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        var invoices = ctx.PayrollInvoices.Where(a => selectedItems.Contains(a.Id))
+            .ToList();
+
+        var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
+        List<string> bip21 = new List<string>();
+        foreach (var invoice in invoices)
+        {
+            var bip21New = network.GenerateBIP21(invoice.Description, invoice.Amount);
+            bip21New.QueryParams.Add("label", invoice.User.Name);
+            bip21.Add(bip21New.ToString());
+        }
+
+        return new RedirectToActionResult("WalletSend", "UIWallets", new { walletId = new WalletId(CurrentStore.Id, BTC_CRYPTOCODE).ToString(), bip21 });
+    }
 
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
     public async Task<IActionResult> Upload()
