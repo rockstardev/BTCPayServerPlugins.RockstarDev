@@ -160,7 +160,7 @@ public class PayrollInvoiceController : Controller
 
                     foreach (var invoice in invoices)
                     {
-                        invoice.State = PayrollInvoiceState.Paid;
+                        invoice.State = PayrollInvoiceState.Completed;
                     }
 
                     ctx.SaveChanges();
@@ -194,7 +194,7 @@ public class PayrollInvoiceController : Controller
             // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
             bip21.Add(bip21New.ToString());
 
-            invoice.State = PayrollInvoiceState.Processing;
+            invoice.State = PayrollInvoiceState.AwaitingPayment;
         }
 
         await ctx.SaveChangesAsync();
@@ -285,7 +285,7 @@ public class PayrollInvoiceController : Controller
             Description = model.Description,
             InvoiceFilename = uploaded.Id,
             UserId = model.UserId,
-            State = PayrollInvoiceState.New
+            State = PayrollInvoiceState.AwaitingApproval
         };
 
         ctx.Add(dbPayrollInvoice);
