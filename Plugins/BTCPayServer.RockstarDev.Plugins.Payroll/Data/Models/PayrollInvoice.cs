@@ -39,8 +39,9 @@ public class PayrollInvoice
 
 public enum PayrollInvoiceState
 {
-    Invalid = 0,
-    New = 1,
-    Processing = 2,
-    Paid = 3
+    AwaitingApproval,
+    AwaitingPayment,
+    InProgress, // waiting for confirmation on blockchain (or for lightning it can be stuck HTLC
+    Completed,
+    Cancelled
 }
