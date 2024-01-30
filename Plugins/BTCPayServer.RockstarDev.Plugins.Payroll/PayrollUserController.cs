@@ -1,38 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using BTCPayServer.Abstractions.Constants;
+﻿using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Controllers;
 using BTCPayServer.Data;
-using BTCPayServer.Filters;
-using BTCPayServer.HostedServices;
-using BTCPayServer.ModelBinders;
-using BTCPayServer.Models;
-using BTCPayServer.Models.WalletViewModels;
-using BTCPayServer.Payments;
-using BTCPayServer.Plugins.PointOfSale.Models;
-using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.Services;
-using BTCPayServer.Services.Apps;
-using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using NBitcoin;
-using NBitcoin.DataEncoders;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
@@ -41,7 +22,6 @@ public class PayrollUserController : Controller
 {
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly StoreRepository _storeRepository;
 
     public PayrollUserController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -49,7 +29,6 @@ public class PayrollUserController : Controller
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
-        _storeRepository = storeRepository;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 

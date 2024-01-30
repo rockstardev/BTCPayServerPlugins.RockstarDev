@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     [DbContext(typeof(PayrollPluginDbContext))]
-    [Migration("20240126070439_AddingStateToPayrollInvoice")]
-    partial class AddingStateToPayrollInvoice
+    [Migration("20240129231814_AddingStateWithExistingEnum")]
+    partial class AddingStateWithExistingEnum
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

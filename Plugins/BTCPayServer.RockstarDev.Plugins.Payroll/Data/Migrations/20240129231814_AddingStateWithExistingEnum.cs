@@ -5,7 +5,7 @@
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AddingStateToPayrollInvoice : Migration
+    public partial class AddingStateWithExistingEnum : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

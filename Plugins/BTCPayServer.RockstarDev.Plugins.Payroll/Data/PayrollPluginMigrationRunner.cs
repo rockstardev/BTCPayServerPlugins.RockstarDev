@@ -1,10 +1,6 @@
 ﻿using BTCPayServer.Abstractions.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +9,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 internal class PayrollPluginMigrationRunner : IHostedService
 {
     private readonly PayrollPluginDbContextFactory _dbContextFactory;
-    private readonly ISettingsRepository _settingsRepository;
 
     public PayrollPluginMigrationRunner(
         PayrollPluginDbContextFactory dbContextFactory)

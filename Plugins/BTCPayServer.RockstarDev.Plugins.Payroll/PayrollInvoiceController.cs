@@ -1,35 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Reflection.Metadata;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using BTCPayServer.Abstractions.Constants;
+﻿using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
-using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
-using BTCPayServer.Migrations;
-using BTCPayServer.ModelBinders;
-using BTCPayServer.Models;
-using BTCPayServer.Models.WalletViewModels;
-using BTCPayServer.Payments;
-using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
-using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
@@ -38,51 +18,40 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using NBitcoin;
-using NBitcoin.DataEncoders;
-using NBXplorer;
-using NLog.Layouts;
-using static BTCPayServer.RockstarDev.Plugins.Payroll.PayrollUserController;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController : Controller
 {
-    private readonly PullPaymentHostedService _pullPaymentHostedService;
-    private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly IEnumerable<IPayoutHandler> _payoutHandlers;
-    private readonly StoreRepository _storeRepository;
     private readonly RateFetcher _rateFetcher;
     private readonly BTCPayNetworkProvider _networkProvider;
-    private readonly AppService _appService;
     private readonly IFileService _fileService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public PayrollInvoiceController(PullPaymentHostedService pullPaymentHostedService,
-        UIStorePullPaymentsController uiStorePullPaymentsController,
-        ApplicationDbContextFactory dbContextFactory,
+    public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        IEnumerable<IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
-            AppService appService,
+        RateFetcher rateFetcher,
+        BTCPayNetworkProvider networkProvider,
         IFileService fileService,
-
-            UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager)
     {
-        _pullPaymentHostedService = pullPaymentHostedService;
-        _uiStorePullPaymentsController = uiStorePullPaymentsController;
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
-        _payoutHandlers = payoutHandlers;
-        _storeRepository = storeRepository;
         _rateFetcher = rateFetcher;
         _networkProvider = networkProvider;
-        _appService = appService;
         _fileService = fileService;
-        this._userManager = userManager;
+        _userManager = userManager;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -160,7 +129,7 @@ public class PayrollInvoiceController : Controller
 
                     foreach (var invoice in invoices)
                     {
-                        invoice.State = PayrollInvoiceState.Paid;
+                        invoice.State = PayrollInvoiceState.Completed;
                     }
 
                     ctx.SaveChanges();
@@ -194,7 +163,7 @@ public class PayrollInvoiceController : Controller
             // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
             bip21.Add(bip21New.ToString());
 
-            invoice.State = PayrollInvoiceState.Processing;
+            invoice.State = PayrollInvoiceState.AwaitingPayment;
         }
 
         await ctx.SaveChangesAsync();
@@ -263,7 +232,7 @@ public class PayrollInvoiceController : Controller
             var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
             var address = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
@@ -289,7 +258,7 @@ public class PayrollInvoiceController : Controller
             Description = model.Description,
             InvoiceFilename = uploaded.Id,
             UserId = model.UserId,
-            State = PayrollInvoiceState.New
+            State = PayrollInvoiceState.AwaitingApproval
         };
 
         ctx.Add(dbPayrollInvoice);

@@ -1,13 +1,7 @@
-﻿using Amazon.Runtime.Internal.Util;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 
