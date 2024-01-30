@@ -189,13 +189,17 @@ public class PayrollInvoiceController : Controller
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
-    public async Task<IActionResult> Upload()
+    public async Task<IActionResult> Upload(string storeId)
     {
         var model = new PayrollInvoiceUploadViewModel();
         model.Currency = CurrentStore.GetStoreBlob().DefaultCurrency;
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
+        if (!model.PayrollUsers.Any())
+        {
+            return NoUserResult(storeId);
+        }
         if (model.PayrollUsers.Any())
         {
             model.UserId = model.PayrollUsers.First().Value;
@@ -267,6 +271,18 @@ public class PayrollInvoiceController : Controller
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
+
+    private IActionResult NoUserResult(string storeId)
+    {
+        TempData.SetStatusMessageModel(new StatusMessageModel
+        {
+            Severity = StatusMessageModel.StatusSeverity.Error,
+            Html = $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(PayrollUserController.Create), "PayrollUser", new { storeId })}' class='alert-link'>user</a> first",
+            AllowDismiss = false
+        });
+        return RedirectToAction(nameof(List), new { storeId });
+    }
+
     public class PayrollInvoiceUploadViewModel
     {
         [Required]
