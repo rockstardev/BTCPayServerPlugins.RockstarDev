@@ -1,8 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Design;
+﻿using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.Abstractions.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.Abstractions.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
