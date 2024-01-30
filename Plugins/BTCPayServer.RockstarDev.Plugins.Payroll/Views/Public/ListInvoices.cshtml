@@ -1,0 +1,29 @@
+﻿@using static BTCPayServer.RockstarDev.Plugins.Payroll.PublicController
+@inject BTCPayServer.Services.BTCPayServerEnvironment Env
+@model PublicListInvoicesViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Payroll invoices for ";
+    ViewData["StoreBranding"] = Model.StoreBranding;
+}
+<!DOCTYPE html>
+<html lang="en" @(Env.IsDeveloping ? " data-devenv" : "")>
+<head>
+    <partial name="LayoutHead" />
+    <meta name="robots" content="noindex,nofollow">
+</head>
+<body class="min-vh-100">
+    <div id="FormView" class="public-page-wrap" style="--wrap-max-width: 90%;">
+        <span>Hello World</span>
+    </div>
+    </main>
+    <footer class="store-footer">
+        <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
+            Powered by <partial name="_StoreFooterLogo" />
+        </a>
+    </footer>
+    </div>
+    <partial name="LayoutFoot" />
+    <partial name="_ValidationScriptsPartial" />
+</body>
+</html>
