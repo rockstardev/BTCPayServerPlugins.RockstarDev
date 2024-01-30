@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using BTCPayServer.Abstractions.Constants;
+﻿using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -26,45 +19,39 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController : Controller
 {
-    private readonly PullPaymentHostedService _pullPaymentHostedService;
-    private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly IEnumerable<IPayoutHandler> _payoutHandlers;
-    private readonly StoreRepository _storeRepository;
     private readonly RateFetcher _rateFetcher;
     private readonly BTCPayNetworkProvider _networkProvider;
-    private readonly AppService _appService;
     private readonly IFileService _fileService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public PayrollInvoiceController(PullPaymentHostedService pullPaymentHostedService,
-        UIStorePullPaymentsController uiStorePullPaymentsController,
-        ApplicationDbContextFactory dbContextFactory,
+    public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        IEnumerable<IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
-            AppService appService,
+        RateFetcher rateFetcher,
+        BTCPayNetworkProvider networkProvider,
         IFileService fileService,
-
-            UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager)
     {
-        _pullPaymentHostedService = pullPaymentHostedService;
-        _uiStorePullPaymentsController = uiStorePullPaymentsController;
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
-        _payoutHandlers = payoutHandlers;
-        _storeRepository = storeRepository;
         _rateFetcher = rateFetcher;
         _networkProvider = networkProvider;
-        _appService = appService;
         _fileService = fileService;
-        this._userManager = userManager;
+        _userManager = userManager;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -245,7 +232,7 @@ public class PayrollInvoiceController : Controller
             var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
             var address = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }

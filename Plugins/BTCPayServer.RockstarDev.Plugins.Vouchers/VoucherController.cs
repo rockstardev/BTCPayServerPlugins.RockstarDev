@@ -299,7 +299,7 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/vouchers/{id}")]
     [AllowAnonymous]
-    public async Task<IActionResult> View(string id)
+    public async new Task<IActionResult> View(string id)
     {
         await using var ctx = _dbContextFactory.CreateContext();
         var pp = await ctx.PullPayments

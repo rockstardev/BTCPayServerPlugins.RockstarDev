@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using BTCPayServer.Abstractions.Constants;
+﻿using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
@@ -14,6 +9,11 @@ using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
@@ -22,7 +22,6 @@ public class PayrollUserController : Controller
 {
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly StoreRepository _storeRepository;
 
     public PayrollUserController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,

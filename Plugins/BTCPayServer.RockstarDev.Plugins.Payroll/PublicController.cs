@@ -1,12 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using BTCPayServer.Data;
+﻿using BTCPayServer.Data;
 using BTCPayServer.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
@@ -56,7 +56,7 @@ public class PublicController : Controller
         //
 
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
-        var userExists = dbPlugins.PayrollUsers.Any(a=>
+        var userExists = dbPlugins.PayrollUsers.Any(a =>
             a.StoreId == storeId && a.Email == model.Email && a.Password == model.Password);
         if (!userExists)
             ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
