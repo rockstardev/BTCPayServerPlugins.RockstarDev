@@ -49,7 +49,6 @@ public class PayrollUserController : Controller
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
-        _storeRepository = storeRepository;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
