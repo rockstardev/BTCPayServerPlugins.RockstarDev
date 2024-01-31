@@ -13,19 +13,19 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         new() {Identifier = nameof(BTCPayServer), Condition = ">=1.12.0"}
     };
 
-    public override void Execute(IServiceCollection applicationBuilder)
+    public override void Execute(IServiceCollection serviceCollection)
     {
-        applicationBuilder.AddSingleton<IUIExtension>(new UIExtension("PayrollNav",
+        serviceCollection.AddSingleton<IUIExtension>(new UIExtension("PayrollNav",
             "store-integrations-nav"));
 
-        applicationBuilder.AddSingleton<PayrollPluginDbContextFactory>();
-        applicationBuilder.AddDbContext<PayrollPluginDbContext>((provider, o) =>
+        serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();
+        serviceCollection.AddDbContext<PayrollPluginDbContext>((provider, o) =>
         {
             var factory = provider.GetRequiredService<PayrollPluginDbContextFactory>();
             factory.ConfigureBuilder(o);
         });
-        applicationBuilder.AddHostedService<PayrollPluginMigrationRunner>();
+        serviceCollection.AddHostedService<PayrollPluginMigrationRunner>();
 
-        base.Execute(applicationBuilder);
+        base.Execute(serviceCollection);
     }
 }

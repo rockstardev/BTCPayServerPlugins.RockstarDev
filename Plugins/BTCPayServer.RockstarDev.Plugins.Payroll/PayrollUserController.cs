@@ -61,6 +61,8 @@ public class PayrollUserController : Controller
         if (model.Password != model.ConfirmPassword)
             ModelState.AddModelError(nameof(model.ConfirmPassword), "Password fields don't match");
 
+        // TODO: Validate that user doesn't exist in database
+
         if (!ModelState.IsValid)
             return View(model);
 
