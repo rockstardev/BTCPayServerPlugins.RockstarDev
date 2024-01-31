@@ -11,13 +11,9 @@
 <head>
     <partial name="LayoutHead" />
     <meta name="robots" content="noindex,nofollow">
-    <style>
-        #FormView {
-            --wrap-max-width: 576px;
-        }</style>
 </head>
 <body class="min-vh-100">
-    <div id="FormView" class="public-page-wrap">
+    <div id="FormView" class="public-page-wrap" style="--wrap-max-width: 576px;">
         <partial name="_StatusMessage" model="@(new ViewDataDictionary(ViewData) { { "Margin", "mb-4" } })" />
         @if (!string.IsNullOrEmpty(Model.StoreName) || !string.IsNullOrEmpty(Model.StoreBranding.LogoFileId))
         {

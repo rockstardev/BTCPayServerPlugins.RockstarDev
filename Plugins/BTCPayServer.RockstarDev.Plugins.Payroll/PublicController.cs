@@ -100,7 +100,7 @@ public class PublicController : Controller
     //
 
     [HttpGet("~/plugins/{storeId}/payroll/public/logout")]
-    public async Task<IActionResult> Logout(string storeId)
+    public async Task<IActionResult> Logout(object storeId)
     {
         _httpContextAccessor.HttpContext.Session.Remove(PAYROLL_AUTH_USER_ID);
         return redirectToLogin(storeId);
@@ -125,7 +125,7 @@ public class PublicController : Controller
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
-            .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
+            .Where(p => p.User.StoreId == storeId && p.UserId == userId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         var model = new PublicListInvoicesViewModel();
@@ -152,6 +152,7 @@ public class PublicController : Controller
         public List<PayrollInvoiceViewModel> Invoices { get; set; }
 
         // store properties
+        public string StoreId { get; set; }
         public string StoreName { get; set; }
         public StoreBrandingViewModel StoreBranding { get; set; }
     }
