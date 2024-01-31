@@ -35,12 +35,9 @@
             {
                 <form method="post" asp-action="MassAction">
                     <div class="table-responsive">
-                        <table class="table table-hover mass-action">
+                        <table class="table table-hover">
                             <thead class="mass-action-head">
                                 <tr>
-                                    <th class="mass-action-select-col only-for-js">
-                                        <input type="checkbox" class="form-check-input mass-action-select-all" />
-                                    </th>
                                     <th class="date-col">
                                         <div class="d-flex align-items-center gap-1">
                                             Created At
@@ -61,34 +58,13 @@
                                     <th class="mass-action-select-col only-for-js">
                                         <input type="checkbox" class="form-check-input mass-action-select-all" />
                                     </th>
-                                    <th colspan="8">
-                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                                            <div>
-                                                <strong class="mass-action-selected-count">0</strong>
-                                                selected
-                                            </div>
-                                            <div class="d-inline-flex align-items-center gap-3">
-                                                <button type="submit" name="command" value="payinvoices" id="payinvoices" class="btn btn-link">
-                                                    <vc:icon symbol="send" />
-                                                    Pay Invoices
-                                                </button>
-                                                <button type="submit" name="command" value="markpaid" id="markpaid" class="btn btn-link">
-                                                    <vc:icon symbol="check" />
-                                                    Mark Paid
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var pp in Model.Invoices)
                                 {
                                     var detailsId = $"invoice_details_{pp.Id}";
-                                    <tr id="invoice_@pp.Id" class="mass-action-row">
-                                        <td class="only-for-js align-middle">
-                                            <input name="selectedItems" type="checkbox" class="form-check-input mass-action-select" value="@pp.Id" />
-                                        </td>
+                                    <tr id="invoice_@pp.Id">
                                         <td>@pp.CreatedAt.ToBrowserDate()</td>
                                         <td>@pp.Name &lt;@pp.Email&gt;</td>
                                         <td>@pp.Destination</td>
