@@ -8,8 +8,8 @@
     <!-- Plugin specific properties -->
     <PropertyGroup>
         <Product>Vouchers</Product>
-        <Description>Allows you to give users Bitcoin vouchers.</Description>
-        <Version>1.0.8</Version>
+        <Description>THIS IS PRE-RELEASE ALPHA! Do NOT install unless you know what you are doing and want to test!</Description>
+        <Version>1.0.9</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>

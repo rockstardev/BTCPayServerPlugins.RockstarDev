@@ -64,7 +64,6 @@ public class PayrollInvoiceController : Controller
     [HttpGet("~/plugins/{storeId}/payroll/list")]
     public async Task<IActionResult> List(string storeId)
     {
-        var now = DateTimeOffset.UtcNow;
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
@@ -88,8 +87,6 @@ public class PayrollInvoiceController : Controller
     }
     public class PayrollInvoiceViewModel
     {
-        // TODO: Implement selection and generation of invoices to pay through Bitcoin wallet
-        // public bool Selected { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public string Id { get; set; }
         public string Name { get; set; }

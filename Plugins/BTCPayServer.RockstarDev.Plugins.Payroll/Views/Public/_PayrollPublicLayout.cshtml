@@ -1,4 +1,4 @@
-﻿@using static BTCPayServer.RockstarDev.Plugins.Payroll.PublicController
+@using static BTCPayServer.RockstarDev.Plugins.Payroll.PublicController
 @inject BTCPayServer.Services.BTCPayServerEnvironment Env
 @model PublicLoginViewModel
 @{
@@ -13,7 +13,7 @@
     <meta name="robots" content="noindex,nofollow">
 </head>
 <body class="min-vh-100">
-    <div id="FormView" class="public-page-wrap" style="--wrap-max-width: 576px;">
+    <div id="FormView" class="public-page-wrap">
         <partial name="_StatusMessage" model="@(new ViewDataDictionary(ViewData) { { "Margin", "mb-4" } })" />
         @if (!string.IsNullOrEmpty(Model.StoreName) || !string.IsNullOrEmpty(Model.StoreBranding.LogoFileId))
         {
