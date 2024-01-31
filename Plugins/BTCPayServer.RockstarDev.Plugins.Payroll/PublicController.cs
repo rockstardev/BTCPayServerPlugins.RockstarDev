@@ -100,15 +100,15 @@ public class PublicController : Controller
     //
 
     [HttpGet("~/plugins/{storeId}/payroll/public/logout")]
-    public async Task<IActionResult> Logout(object storeId)
+    public async Task<IActionResult> Logout(string storeId)
     {
         _httpContextAccessor.HttpContext.Session.Remove(PAYROLL_AUTH_USER_ID);
         return redirectToLogin(storeId);
     }
 
-    private IActionResult redirectToLogin(object storeId)
+    private IActionResult redirectToLogin(string storeId)
     {
-        return RedirectToAction(nameof(Login), storeId);
+        return RedirectToAction(nameof(Login), new { storeId = storeId });
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/public/listinvoices")]
@@ -129,6 +129,7 @@ public class PublicController : Controller
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         var model = new PublicListInvoicesViewModel();
+        model.StoreId = store.Id;
         model.StoreName = store.StoreName;
         model.StoreBranding = new StoreBrandingViewModel(store.GetStoreBlob());
         model.Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
