@@ -8,6 +8,7 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -30,18 +31,21 @@ public class PublicController : Controller
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
+    private readonly PayrollPluginPassHasher _hasher;
 
     public PublicController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         IHttpContextAccessor httpContextAccessor,
         BTCPayNetworkProvider networkProvider,
-        IFileService fileService)
+        IFileService fileService,
+        PayrollPluginPassHasher hasher)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _httpContextAccessor = httpContextAccessor;
         _networkProvider = networkProvider;
         _fileService = fileService;
+        _hasher = hasher;
     }
 
     private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
@@ -75,9 +79,12 @@ public class PublicController : Controller
 
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
-            a.StoreId == storeId && a.Email == model.Email && a.Password == model.Password);
+            a.StoreId == storeId && a.Email == model.Email);
         if (userInDb == null)
             ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
+
+        if (!_hasher.IsValidPassword(userInDb, model.Password))
+            ModelState.AddModelError(nameof(model.Password), "Invalid password");
 
         if (!ModelState.IsValid)
             return View(model);
@@ -267,17 +274,25 @@ public class PublicController : Controller
         model.StoreName = vali.Store.StoreName;
         model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
 
+        if (!ModelState.IsValid)
+            return View(model);
+
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
-            a.StoreId == storeId && a.Id == vali.UserId && a.Password == model.CurrentPassword);
+            a.StoreId == storeId && a.Id == vali.UserId);
         if (userInDb == null)
+            ModelState.AddModelError(nameof(model.CurrentPassword), "Invalid password");
+
+        if (!_hasher.IsValidPassword(userInDb, model.CurrentPassword))
             ModelState.AddModelError(nameof(model.CurrentPassword), "Invalid password");
 
         if (!ModelState.IsValid)
             return View(model);
 
+
+
         // 
-        userInDb.Password = model.NewPassword;
+        userInDb.Password = _hasher.HashPassword(vali.UserId, model.NewPassword);
         await dbPlugins.SaveChangesAsync();
 
         //

@@ -22,13 +22,16 @@ public class PayrollUserController : Controller
 {
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
+    private readonly PayrollPluginPassHasher _hasher;
 
     public PayrollUserController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        StoreRepository storeRepository)
+        StoreRepository storeRepository,
+        PayrollPluginPassHasher hasher)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
+        _hasher = hasher;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -58,19 +61,21 @@ public class PayrollUserController : Controller
         if (CurrentStore is null)
             return NotFound();
 
-        if (model.Password != model.ConfirmPassword)
-            ModelState.AddModelError(nameof(model.ConfirmPassword), "Password fields don't match");
-
         // TODO: Validate that user doesn't exist in database
 
         if (!ModelState.IsValid)
             return View(model);
 
+        var uid = Guid.NewGuid().ToString();
+
+        var passHashed = _hasher.HashPassword(uid, model.Password);
+
         var dbUser = new PayrollUser
         {
+            Id = uid,
             Name = model.Name,
             Email = model.Email,
-            Password = model.Password,
+            Password = passHashed,
             StoreId = CurrentStore.Id
         };
 
@@ -99,7 +104,13 @@ public class PayrollUserController : Controller
         public string Email { get; set; }
         [Required]
         [MinLength(6)]
+        [DataType(DataType.Password)]
         public string Password { get; set; }
+
+        [Required]
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm Password")]
+        [Compare("Password", ErrorMessage = "Password fields don't match")]
         public string ConfirmPassword { get; set; }
 
     }

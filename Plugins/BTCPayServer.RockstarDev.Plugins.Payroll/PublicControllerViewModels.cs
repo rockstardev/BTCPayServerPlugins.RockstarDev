@@ -55,6 +55,7 @@ public class PublicChangePasswordViewModel : BasePayrollPublicViewModel
     [Required]
     [DataType(DataType.Password)]
     [Display(Name = "Confirm New Password")]
+    [Compare("NewPassword", ErrorMessage = "Password fields don't match")]
     public string ConfirmNewPassword { get; set; }
 }
 
