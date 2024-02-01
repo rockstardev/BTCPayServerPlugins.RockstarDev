@@ -73,18 +73,6 @@
                         </tbody>
                     </table>
                 </div>
-
-                @section PageFootContent {
-                <script>
-                    const ppProgresses = document.getElementsByClassName("ppProgress");
-                    for (var i = 0; i < ppProgresses.length; i++) {
-                        var pp = ppProgresses[i];
-                        var ppId = pp.getAttribute("data-pp");
-                        var template = document.getElementById("tooptip_template_" + ppId);
-                        pp.setAttribute("title", template.innerHTML);
-                    }
-                </script>
-                }
             </form>
         }
         else
