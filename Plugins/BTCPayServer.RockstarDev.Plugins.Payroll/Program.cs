@@ -10,7 +10,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     {
-        new() {Identifier = nameof(BTCPayServer), Condition = ">=1.12.0"}
+        new() {Identifier = nameof(BTCPayServer), Condition = ">=1.12.4"}
     };
 
     public override void Execute(IServiceCollection serviceCollection)
@@ -18,6 +18,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddSingleton<IUIExtension>(new UIExtension("PayrollNav",
             "store-integrations-nav"));
 
+        serviceCollection.AddSingleton<PayrollPluginPassHasher>();
         serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();
         serviceCollection.AddDbContext<PayrollPluginDbContext>((provider, o) =>
         {

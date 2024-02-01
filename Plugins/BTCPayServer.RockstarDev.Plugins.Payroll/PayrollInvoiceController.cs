@@ -26,6 +26,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static BTCPayServer.Controllers.UIBoltcardController;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
@@ -38,13 +39,15 @@ public class PayrollInvoiceController : Controller
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ISettingsRepository _settingsRepository;
 
     public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         RateFetcher rateFetcher,
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ISettingsRepository settingsRepository)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
@@ -52,14 +55,9 @@ public class PayrollInvoiceController : Controller
         _networkProvider = networkProvider;
         _fileService = fileService;
         _userManager = userManager;
+        _settingsRepository = settingsRepository;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
-
-    // TODO: We need robust way to fetch this User Id, to which files will be bound
-    public string GetAdminUserId() => _userManager.GetUserId(User);
-
-    private const string CURRENCY = "USD";
-
 
     [HttpGet("~/plugins/{storeId}/payroll/list")]
     public async Task<IActionResult> List(string storeId)
@@ -69,6 +67,16 @@ public class PayrollInvoiceController : Controller
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
+
+        // triggering saving of admin user id if needed
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        settings ??= new PayrollPluginSettings();
+        if (settings.AdminAppUserId is null)
+        {
+            settings.AdminAppUserId = _userManager.GetUserId(User);
+            await _settingsRepository.UpdateSetting(settings, nameof(PayrollPluginSettings));
+        }
+        //
 
         return View(payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
         {
@@ -139,8 +147,6 @@ public class PayrollInvoiceController : Controller
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    // TODO: Is there a better way here to make it more generic?
-    private const string BTC_CRYPTOCODE = "BTC";
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
@@ -149,7 +155,7 @@ public class PayrollInvoiceController : Controller
             .Where(a => selectedItems.Contains(a.Id))
             .ToList();
 
-        var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
+        var network = _networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
         var bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
@@ -165,15 +171,16 @@ public class PayrollInvoiceController : Controller
 
         await ctx.SaveChangesAsync();
 
-        return new RedirectToActionResult("WalletSend", "UIWallets", new { walletId = new WalletId(CurrentStore.Id, BTC_CRYPTOCODE).ToString(), bip21 });
+        return new RedirectToActionResult("WalletSend", "UIWallets", 
+            new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 
     private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)
     {
-        if (invoice.Currency == BTC_CRYPTOCODE)
+        if (invoice.Currency == PayrollPluginConst.BTC_CRYPTOCODE)
             return invoice.Amount;
 
-        var rate = await _rateFetcher.FetchRate(new CurrencyPair(invoice.Currency, BTC_CRYPTOCODE),
+        var rate = await _rateFetcher.FetchRate(new CurrencyPair(invoice.Currency, PayrollPluginConst.BTC_CRYPTOCODE),
             CurrentStore.GetStoreBlob().GetRateRules(_networkProvider), CancellationToken.None);
         if (rate.BidAsk == null)
         {
@@ -226,7 +233,7 @@ public class PayrollInvoiceController : Controller
 
         try
         {
-            var network = _networkProvider.GetNetwork<BTCPayNetwork>(BTC_CRYPTOCODE);
+            var network = _networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
             var address = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
         catch (Exception)
@@ -234,17 +241,23 @@ public class PayrollInvoiceController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
-        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
+        var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
+            a.Destination == model.Destination &&
+            (a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled));
+
+        if (alreadyInvoiceWithAddress)
+            ModelState.AddModelError(nameof(model.Destination), "This destination is already specified for another invoice from which payment is in progress");
 
         if (!ModelState.IsValid)
         {
-            model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
+            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
             return View(model);
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        // TODO: Figure out abstraction of GetAdminUserId()
-        var uploaded = await _fileService.AddFile(model.Invoice, GetAdminUserId());
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var uploaded = await _fileService.AddFile(model.Invoice, settings.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
         {
@@ -258,8 +271,8 @@ public class PayrollInvoiceController : Controller
             State = PayrollInvoiceState.AwaitingApproval
         };
 
-        ctx.Add(dbPayrollInvoice);
-        await ctx.SaveChangesAsync();
+        dbPlugin.Add(dbPayrollInvoice);
+        await dbPlugin.SaveChangesAsync();
 
         this.TempData.SetStatusMessageModel(new StatusMessageModel()
         {
