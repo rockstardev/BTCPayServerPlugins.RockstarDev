@@ -60,8 +60,13 @@
                                 var detailsId = $"invoice_details_{pp.Id}";
                                 <tr id="invoice_@pp.Id">
                                     <td>@pp.CreatedAt.ToBrowserDate()</td>
-                                    <td>@pp.Name &lt;@pp.Email&gt;</td>
-                                    <td>@pp.Destination</td>
+                                    <td>
+                                        @pp.Name
+                                        <a href="mailto:@pp.Email"><i class="fa fa-envelope-o"></i></a>
+                                    </td>
+                                    <td>
+                                        <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
+                                    </td>
                                     <td>@pp.Amount</td>
                                     <td>@pp.Currency</td>
                                     <td>@pp.State.ToString()</td>
