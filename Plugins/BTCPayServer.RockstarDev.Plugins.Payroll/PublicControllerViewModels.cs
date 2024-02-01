@@ -39,10 +39,23 @@ public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
     public string Description { get; set; }
     [Required]
     public IFormFile Invoice { get; set; }
+}
 
-
-
-    public SelectList PayrollUsers { get; set; }
+public class PublicChangePasswordViewModel : BasePayrollPublicViewModel
+{
+    [Required]
+    [DataType(DataType.Password)]
+    [Display(Name = "Current Password")]
+    public string CurrentPassword { get; set; }
+    [Required]
+    [DataType(DataType.Password)]
+    [MinLength(6)]
+    [Display(Name = "New Password")]
+    public string NewPassword { get; set; }
+    [Required]
+    [DataType(DataType.Password)]
+    [Display(Name = "Confirm New Password")]
+    public string ConfirmNewPassword { get; set; }
 }
 
 public class BasePayrollPublicViewModel
