@@ -32,13 +32,15 @@ public class PublicController : Controller
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
     private readonly PayrollPluginPassHasher _hasher;
+    private readonly ISettingsRepository _settingsRepository;
 
     public PublicController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         IHttpContextAccessor httpContextAccessor,
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
-        PayrollPluginPassHasher hasher)
+        PayrollPluginPassHasher hasher,
+        ISettingsRepository settingsRepository)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
@@ -46,6 +48,7 @@ public class PublicController : Controller
         _networkProvider = networkProvider;
         _fileService = fileService;
         _hasher = hasher;
+        _settingsRepository = settingsRepository;
     }
 
     private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
@@ -181,6 +184,7 @@ public class PublicController : Controller
         model.StoreName = vali.Store.StoreName;
         model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
 
+        model.Amount = 0;
         model.Currency = vali.Store.GetStoreBlob().DefaultCurrency;
 
         return View(model);
@@ -219,8 +223,8 @@ public class PublicController : Controller
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
         // TODO: Make saving of the file and entry in the database atomic
-        // TODO: Figure out abstraction of GetAdminUserId()
-        var uploaded = await _fileService.AddFile(model.Invoice, PayrollPluginConst.ADMIN_USER_ID);
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>(nameof(PayrollPluginSettings));
+        var uploaded = await _fileService.AddFile(model.Invoice, settings.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
         {

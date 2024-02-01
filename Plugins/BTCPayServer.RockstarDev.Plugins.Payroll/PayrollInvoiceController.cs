@@ -26,6 +26,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static BTCPayServer.Controllers.UIBoltcardController;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
@@ -38,13 +39,15 @@ public class PayrollInvoiceController : Controller
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ISettingsRepository _settingsRepository;
 
     public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         RateFetcher rateFetcher,
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ISettingsRepository settingsRepository)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
@@ -52,12 +55,9 @@ public class PayrollInvoiceController : Controller
         _networkProvider = networkProvider;
         _fileService = fileService;
         _userManager = userManager;
+        _settingsRepository = settingsRepository;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
-
-    // TODO: We need robust way to fetch this User Id, to which files will be bound
-    public string GetAdminUserId() => _userManager.GetUserId(User);
-
 
     [HttpGet("~/plugins/{storeId}/payroll/list")]
     public async Task<IActionResult> List(string storeId)
@@ -67,6 +67,16 @@ public class PayrollInvoiceController : Controller
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
+
+        // triggering saving of admin user id if needed
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        settings ??= new PayrollPluginSettings();
+        if (settings.AdminAppUserId is null)
+        {
+            settings.AdminAppUserId = _userManager.GetUserId(User);
+            await _settingsRepository.UpdateSetting(settings, nameof(PayrollPluginSettings));
+        }
+        //
 
         return View(payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
         {
@@ -240,8 +250,8 @@ public class PayrollInvoiceController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        // TODO: Figure out abstraction of GetAdminUserId()
-        var uploaded = await _fileService.AddFile(model.Invoice, GetAdminUserId());
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var uploaded = await _fileService.AddFile(model.Invoice, settings.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
         {
