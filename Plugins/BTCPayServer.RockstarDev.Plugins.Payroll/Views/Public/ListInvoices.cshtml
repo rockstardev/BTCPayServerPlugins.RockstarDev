@@ -17,7 +17,15 @@
                 <h2 class="mb-0">@ViewData["Title"]</h2>
                 <div class="d-flex gap-3 mt-3 mt-sm-0">
                     <a asp-controller="Public" asp-action="Upload" asp-route-storeId="@Model.StoreId" class="btn btn-primary">Upload Invoice</a>
-                    <a asp-controller="Public" asp-action="Logout" asp-route-storeId="@Model.StoreId" class="btn btn-secondary">Logout</a>
+                    <div class="dropdown">
+                        <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span>Options</span>
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
+                            <a asp-controller="Public" asp-action="ChangePassword" asp-route-storeId="@Model.StoreId" class="dropdown-item">Change Password</a>
+                            <a asp-controller="Public" asp-action="Logout" asp-route-storeId="@Model.StoreId" class="dropdown-item">Logout</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </form>

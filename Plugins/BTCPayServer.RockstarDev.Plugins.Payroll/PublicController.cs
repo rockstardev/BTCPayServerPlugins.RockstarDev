@@ -44,6 +44,8 @@ public class PublicController : Controller
         _fileService = fileService;
     }
 
+    private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
+
 
     [HttpGet("~/plugins/{storeId}/payroll/public/login")]
     public async Task<IActionResult> Login(string storeId)
@@ -85,8 +87,6 @@ public class PublicController : Controller
 
         return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
     }
-
-    private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
 
     //
 
@@ -233,6 +233,57 @@ public class PublicController : Controller
         this.TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"Invoice uploaded successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
+    }
+
+
+    // change password
+
+    [HttpGet("~/plugins/{storeId}/payroll/public/changepassword")]
+    public async Task<IActionResult> ChangePassword(string storeId)
+    {
+        var vali = await validateStoreAndUser(storeId, true);
+        if (vali.ErrorActionResult != null)
+            return vali.ErrorActionResult;
+
+        var model = new PublicChangePasswordViewModel();
+        model.StoreId = vali.Store.Id;
+        model.StoreName = vali.Store.StoreName;
+        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+
+        return View(model);
+    }
+
+    [HttpPost("~/plugins/{storeId}/payroll/public/changepassword")]
+    public async Task<IActionResult> ChangePassword(string storeId, PublicChangePasswordViewModel model)
+    {
+        var vali = await validateStoreAndUser(storeId, true);
+        if (vali.ErrorActionResult != null)
+            return vali.ErrorActionResult;
+
+        model.StoreId = vali.Store.Id;
+        model.StoreName = vali.Store.StoreName;
+        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+
+        await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
+        var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
+            a.StoreId == storeId && a.Id == vali.UserId && a.Password == model.CurrentPassword);
+        if (userInDb == null)
+            ModelState.AddModelError(nameof(model.CurrentPassword), "Invalid password");
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        // 
+        userInDb.Password = model.NewPassword;
+        await dbPlugins.SaveChangesAsync();
+
+        //
+        this.TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"Password successfully changed",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
