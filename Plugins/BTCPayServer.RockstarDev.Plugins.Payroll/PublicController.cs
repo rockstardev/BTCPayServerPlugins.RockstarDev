@@ -179,7 +179,7 @@ public class PublicController : Controller
         return View(model);
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/upload")]
+    [HttpPost("~/plugins/{storeId}/payroll/public/upload")]
 
     public async Task<IActionResult> Upload(string storeId, PublicPayrollInvoiceUploadViewModel model)
     {
@@ -187,10 +187,12 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
+        model.StoreId = vali.Store.Id;
+        model.StoreName = vali.Store.StoreName;
+        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+
         if (model.Amount <= 0)
-        {
             ModelState.AddModelError(nameof(model.Amount), "Amount must be more than 0.");
-        }
 
         try
         {
