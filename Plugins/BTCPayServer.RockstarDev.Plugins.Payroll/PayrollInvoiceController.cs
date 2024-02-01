@@ -241,11 +241,17 @@ public class PayrollInvoiceController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
-        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
+        var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
+            a.Destination == model.Destination &&
+            (a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled));
+
+        if (alreadyInvoiceWithAddress)
+            ModelState.AddModelError(nameof(model.Destination), "This destination is already specified for another invoice from which payment is in progress");
 
         if (!ModelState.IsValid)
         {
-            model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
+            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
             return View(model);
         }
 
@@ -265,8 +271,8 @@ public class PayrollInvoiceController : Controller
             State = PayrollInvoiceState.AwaitingApproval
         };
 
-        ctx.Add(dbPayrollInvoice);
-        await ctx.SaveChangesAsync();
+        dbPlugin.Add(dbPayrollInvoice);
+        await dbPlugin.SaveChangesAsync();
 
         this.TempData.SetStatusMessageModel(new StatusMessageModel()
         {
