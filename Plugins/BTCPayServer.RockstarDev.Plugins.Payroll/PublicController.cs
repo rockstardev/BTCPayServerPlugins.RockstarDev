@@ -79,7 +79,7 @@ public class PublicController : Controller
 
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
-            a.StoreId == storeId && a.Email == model.Email);
+            a.StoreId == storeId && a.Email == model.Email.ToLowerInvariant());
         if (userInDb == null)
             ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
 

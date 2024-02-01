@@ -61,7 +61,12 @@ public class PayrollUserController : Controller
         if (CurrentStore is null)
             return NotFound();
 
-        // TODO: Validate that user doesn't exist in database
+        await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
+
+        var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
+            a.StoreId == CurrentStore.Id && a.Email == model.Email.ToLowerInvariant());
+        if (userInDb != null)
+            ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
 
         if (!ModelState.IsValid)
             return View(model);
@@ -74,14 +79,13 @@ public class PayrollUserController : Controller
         {
             Id = uid,
             Name = model.Name,
-            Email = model.Email,
+            Email = model.Email.ToLowerInvariant(),
             Password = passHashed,
             StoreId = CurrentStore.Id
         };
 
-        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
-        ctx.Add(dbUser);
-        await ctx.SaveChangesAsync();
+        dbPlugins.Add(dbUser);
+        await dbPlugins.SaveChangesAsync();
 
         this.TempData.SetStatusMessageModel(new StatusMessageModel()
         {
