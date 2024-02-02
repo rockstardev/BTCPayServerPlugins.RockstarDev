@@ -95,8 +95,13 @@
                                 <input name="selectedItems" type="checkbox" class="form-check-input mass-action-select" value="@pp.Id" />
                             </td>
                             <td>@pp.CreatedAt.ToBrowserDate()</td>
-                            <td>@pp.Name &lt;@pp.Email&gt;</td>
-                            <td>@pp.Destination</td>
+                            <td>
+                                @pp.Name
+                                <a href="mailto:@pp.Email"><i class="fa fa-envelope-o"></i></a>
+                            </td>
+                            <td>
+                                <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
+                            </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
                             <td>@pp.State.ToString()</td>
