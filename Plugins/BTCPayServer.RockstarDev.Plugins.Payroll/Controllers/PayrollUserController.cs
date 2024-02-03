@@ -170,6 +170,34 @@ public class PayrollUserController : Controller
         });
     }
 
+    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    public async Task<IActionResult> Delete(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        var payrollUser = ctx.PayrollUsers
+            .SingleOrDefault(a => a.Id == userId);
+
+        var userHasInvoice = ctx.PayrollInvoices.Any(a =>
+        a.UserId == payrollUser.Id);
+        if (userHasInvoice)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"User deletion was successful",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        ctx.Remove(payrollUser);
+        await ctx.SaveChangesAsync();
+
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
     public class PayrollUserCreateViewModel
     {
         public string Id { get; set; }
