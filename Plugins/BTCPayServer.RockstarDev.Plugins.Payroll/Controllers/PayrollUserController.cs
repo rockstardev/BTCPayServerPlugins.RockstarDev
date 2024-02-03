@@ -15,7 +15,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController : Controller
@@ -87,10 +87,10 @@ public class PayrollUserController : Controller
         dbPlugins.Add(dbUser);
         await dbPlugins.SaveChangesAsync();
 
-        this.TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel()
         {
-            Message = $"New user {dbUser.Name} created successfully",
-            Severity = StatusMessageModel.StatusSeverity.Success
+            Message = $"The user {dbUser.Name} cannot be deleted due to existing invoices associated with the account.",
+            Severity = StatusMessageModel.StatusSeverity.Error
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
