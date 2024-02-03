@@ -1,5 +1,4 @@
-﻿using BTCPayServer.Abstractions.Contracts;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using System.Threading;
 using System.Threading.Tasks;
