@@ -1,17 +1,14 @@
-﻿using BTCPayServer.Abstractions.Constants;
+﻿using BTCPayServer;
+using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Controllers;
 using BTCPayServer.Data;
-using BTCPayServer.HostedServices;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
-using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -26,9 +23,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static BTCPayServer.Controllers.UIBoltcardController;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController : Controller
@@ -171,7 +167,7 @@ public class PayrollInvoiceController : Controller
 
         await ctx.SaveChangesAsync();
 
-        return new RedirectToActionResult("WalletSend", "UIWallets", 
+        return new RedirectToActionResult("WalletSend", "UIWallets",
             new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 
@@ -244,7 +240,7 @@ public class PayrollInvoiceController : Controller
         await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
-            (a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled));
+            a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
 
         if (alreadyInvoiceWithAddress)
             ModelState.AddModelError(nameof(model.Destination), "This destination is already specified for another invoice from which payment is in progress");
@@ -274,7 +270,7 @@ public class PayrollInvoiceController : Controller
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
 
-        this.TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"Invoice uploaded successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
