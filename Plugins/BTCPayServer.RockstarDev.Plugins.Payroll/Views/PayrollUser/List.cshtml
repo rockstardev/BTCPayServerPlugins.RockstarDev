@@ -46,16 +46,15 @@
                         <td class="align-middle">
                             
                         </td>
+
                         <td class="text-end">
                             <a asp-controller="PayrollUser"
                                asp-action="Delete"
-                               asp-route-userId="@pp.Id"
-                               data-bs-toggle="modal"
-                               data-bs-target="#ConfirmModal"
-                               data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
+                               asp-route-userId="@pp.Id">
                                 Delete
                             </a>
                         </td>
+
                     </tr>
                 }
                 </tbody>
