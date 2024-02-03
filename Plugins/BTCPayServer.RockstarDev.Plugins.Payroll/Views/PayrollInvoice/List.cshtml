@@ -1,11 +1,11 @@
-﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.Abstractions.Contracts
+﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
-@using BTCPayServer.Client
 @using BTCPayServer.Services
+@using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
 @inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
-@model List<BTCPayServer.RockstarDev.Plugins.Payroll.PayrollInvoiceController.PayrollInvoiceViewModel>
+@model List<PayrollInvoiceController.PayrollInvoiceViewModel>
 @{
     ViewData.SetActivePage("Payroll", "Payroll Invoices", "Payroll");
 

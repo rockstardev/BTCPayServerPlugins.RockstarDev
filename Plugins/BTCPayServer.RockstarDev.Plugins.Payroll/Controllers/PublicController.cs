@@ -1,4 +1,5 @@
-﻿using BTCPayServer.Abstractions.Contracts;
+﻿using BTCPayServer;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Data;
@@ -8,20 +9,16 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
-using static BTCPayServer.RockstarDev.Plugins.Payroll.PayrollInvoiceController;
+using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [AllowAnonymous]
 public class PublicController : Controller
@@ -95,7 +92,7 @@ public class PublicController : Controller
         // Validate login credentials here and get user details.
         _httpContextAccessor.HttpContext.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb.Id);
 
-        return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
+        return RedirectToAction(nameof(ListInvoices), new { storeId });
     }
 
     //
@@ -109,7 +106,7 @@ public class PublicController : Controller
 
     private IActionResult redirectToLogin(string storeId)
     {
-        return RedirectToAction(nameof(Login), new { storeId = storeId });
+        return RedirectToAction(nameof(Login), new { storeId });
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/public/listinvoices")]
@@ -218,7 +215,7 @@ public class PublicController : Controller
         await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
-            (a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled));
+            a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
 
         if (alreadyInvoiceWithAddress)
             ModelState.AddModelError(nameof(model.Destination), "This destination is already specified for another invoice from which payment is in progress");
@@ -247,12 +244,12 @@ public class PublicController : Controller
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
 
-        this.TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"Invoice uploaded successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
+        return RedirectToAction(nameof(ListInvoices), new { storeId });
     }
 
 
@@ -306,11 +303,11 @@ public class PublicController : Controller
         await dbPlugins.SaveChangesAsync();
 
         //
-        this.TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"Password successfully changed",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
+        return RedirectToAction(nameof(ListInvoices), new { storeId });
     }
 }

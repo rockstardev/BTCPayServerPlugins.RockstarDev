@@ -1,22 +1,13 @@
-﻿using BTCPayServer.Data;
-using BTCPayServer.Events;
+﻿using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
-using BTCPayServer.Payments.Bitcoin;
-using BTCPayServer.Payments;
-using BTCPayServer.Services.Apps;
-using BTCPayServer.Services.PaymentRequests;
-using BTCPayServer.Services;
-using NBitcoin;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using NBitcoin.Protocol;
+using NBitcoin;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
@@ -25,16 +16,16 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
     private readonly PayrollPluginDbContextFactory _pluginDbContextFactory;
     private BTCPayNetworkProvider NetworkProvider { get; }
 
-    public PayrollInvoicesPaidHostedService(BTCPayNetworkProvider networkProvider, 
-        EventAggregator eventAggregator, 
-        PayrollPluginDbContextFactory pluginDbContextFactory, 
+    public PayrollInvoicesPaidHostedService(BTCPayNetworkProvider networkProvider,
+        EventAggregator eventAggregator,
+        PayrollPluginDbContextFactory pluginDbContextFactory,
         Logs logs) :
         base(eventAggregator, logs)
     {
         NetworkProvider = networkProvider;
         _pluginDbContextFactory = pluginDbContextFactory;
     }
-    
+
     protected override void SubscribeToEvents()
     {
         Subscribe<NewOnChainTransactionEvent>();
