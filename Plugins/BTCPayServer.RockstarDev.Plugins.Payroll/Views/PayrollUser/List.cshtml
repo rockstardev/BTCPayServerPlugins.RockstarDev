@@ -13,71 +13,90 @@
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
-<div class="sticky-header-setup"></div>
-<div class="sticky-header d-sm-flex align-items-center justify-content-between">
-    <h2 class="mb-0">@ViewData["Title"]</h2>
-    <div class="d-flex gap-3 mt-3 mt-sm-0">
-        <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-        <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Payroll Invoices</a>
+<form method="post">
+
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
+            <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Payroll Invoices</a>
+        </div>
     </div>
-</div>
 
-<partial name="_StatusMessage" />
+    <partial name="_StatusMessage"/>
 
-@if (Model.Any())
-{
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
+    @if (Model.Any())
+    {
+        <div class="table-responsive-md">
+            <table class="table table-hover">
+                <thead>
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Email</th>
                     <th scope="col" class="text-end"></th>
                 </tr>
-            </thead>
-            <tbody>
+                </thead>
+                <tbody>
                 @foreach (var pp in Model)
                 {
-                    <tr>
+                    <tr class="mass-action-row">
                         <td>@pp.Name</td>
                         <td>@pp.Email</td>
                         <td class="align-middle">
+                            
                         </td>
 
                         <td class="text-end">
-                            <a asp-controller="PayrollUser"
-                               asp-action="Delete"
-                               asp-route-userId="@pp.Id"
-                               data-bs-toggle="modal"
-                               data-bs-target="#ConfirmModal"
-                               data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
-                                Delete
-                            </a>
-                        </td>
+                            <div class="d-inline-flex align-items-center gap-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="ToggleActions-@pp.Id">
+                                        <vc:icon symbol="dots" />
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-userId="@pp.Id">Edit</a></li>
+                                        <li class="dropdown-divider"></li>
+                                        <li class="dropdown-item">
+                                            <a asp-controller="PayrollUser"
+                                                asp-action="Delete"
+                                                asp-route-userId="@pp.Id"
+                                                class="text-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#ConfirmModal"
+                                                data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
+                                                Delete
+                                            </a>
+                                        </li>
 
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                 }
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        </div>
 
-    @section PageFootContent {
-    <script>
-        const ppProgresses = document.getElementsByClassName("ppProgress");
-        for (var i = 0; i < ppProgresses.length; i++) {
-            var pp = ppProgresses[i];
-            var ppId = pp.getAttribute("data-pp");
-            var template = document.getElementById("tooptip_template_" + ppId);
-            pp.setAttribute("title", template.innerHTML);
+        @section PageFootContent {
+            <script>
+            const ppProgresses = document.getElementsByClassName("ppProgress");
+            for (var i = 0; i < ppProgresses.length; i++) {
+                var pp = ppProgresses[i];
+                var ppId = pp.getAttribute("data-pp");
+                var template = document.getElementById("tooptip_template_" + ppId);
+                pp.setAttribute("title", template.innerHTML);
+            }
+        </script>
         }
-    </script>
+
+        <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
+    }
+    else
+    {
+        <p class="text-secondary mt-4">
+            There are no users created yet. Why don't you create one?
+        </p>
     }
 
-    <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
-}
-else
-{
-    <p class="text-secondary mt-4">
-        There are no users created yet. Why don't you create one?
-    </p>
-}
+</form>

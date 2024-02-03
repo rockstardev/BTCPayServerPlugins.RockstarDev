@@ -70,7 +70,7 @@ public class PayrollInvoiceController : Controller
         if (settings.AdminAppUserId is null)
         {
             settings.AdminAppUserId = _userManager.GetUserId(User);
-            await _settingsRepository.UpdateSetting(settings, nameof(PayrollPluginSettings));
+            await _settingsRepository.UpdateSetting(settings);
         }
         //
 
