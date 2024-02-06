@@ -89,7 +89,7 @@ public class PayrollUserController : Controller
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet("~/plugins/payroll/users/delete/{userId}")]
+    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
     public async Task<IActionResult> Delete(string userId)
     {
         if (CurrentStore is null)
