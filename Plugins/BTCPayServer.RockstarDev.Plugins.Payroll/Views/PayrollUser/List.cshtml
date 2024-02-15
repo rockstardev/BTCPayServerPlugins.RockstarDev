@@ -13,39 +13,37 @@
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
-<form method="post">
-
-    <div class="sticky-header-setup"></div>
-    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
-        <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-            <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Payroll Invoices</a>
-        </div>
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div class="d-flex gap-3 mt-3 mt-sm-0">
+        <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
+        <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Payroll Invoices</a>
     </div>
+</div>
 
-    <partial name="_StatusMessage"/>
+<partial name="_StatusMessage" />
 
-    @if (Model.Any())
-    {
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
+@if (Model.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Email</th>
                     <th scope="col" class="text-end"></th>
                 </tr>
-                </thead>
-                <tbody>
+            </thead>
+            <tbody>
                 @foreach (var pp in Model)
                 {
                     <tr>
                         <td>@pp.Name</td>
                         <td>@pp.Email</td>
                         <td class="align-middle">
-                            
                         </td>
+
                         <td class="text-end">
                             <a asp-controller="PayrollUser"
                                asp-action="Delete"
@@ -56,32 +54,30 @@
                                 Delete
                             </a>
                         </td>
+
                     </tr>
                 }
-                </tbody>
-            </table>
-        </div>
+            </tbody>
+        </table>
+    </div>
 
-        @section PageFootContent {
-            <script>
-            const ppProgresses = document.getElementsByClassName("ppProgress");
-            for (var i = 0; i < ppProgresses.length; i++) {
-                var pp = ppProgresses[i];
-                var ppId = pp.getAttribute("data-pp");
-                var template = document.getElementById("tooptip_template_" + ppId);
-                pp.setAttribute("title", template.innerHTML);
-            }
-        </script>
+    @section PageFootContent {
+    <script>
+        const ppProgresses = document.getElementsByClassName("ppProgress");
+        for (var i = 0; i < ppProgresses.length; i++) {
+            var pp = ppProgresses[i];
+            var ppId = pp.getAttribute("data-pp");
+            var template = document.getElementById("tooptip_template_" + ppId);
+            pp.setAttribute("title", template.innerHTML);
         }
-
-        <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
-    }
-    else
-    {
-        <p class="text-secondary mt-4">
-            There are no users created yet. Why don't you create one?
-        </p>
+    </script>
     }
 
-
-</form>
+    <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
+}
+else
+{
+    <p class="text-secondary mt-4">
+        There are no users created yet. Why don't you create one?
+    </p>
+}
