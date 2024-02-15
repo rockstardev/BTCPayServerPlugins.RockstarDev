@@ -55,7 +55,6 @@ public class PayrollUserController : Controller
     }
 
     [HttpPost("~/plugins/{storeId}/payroll/users/create")]
-
     public async Task<IActionResult> Create(PayrollUserCreateViewModel model)
     {
         if (CurrentStore is null)
@@ -87,10 +86,37 @@ public class PayrollUserController : Controller
         dbPlugins.Add(dbUser);
         await dbPlugins.SaveChangesAsync();
 
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    public async Task<IActionResult> Delete(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        var payrollUser = ctx.PayrollUsers
+            .SingleOrDefault(a => a.Id == userId);
+
+        var userHasInvoice = ctx.PayrollInvoices.Any(a =>
+        a.UserId == payrollUser.Id);
+        if (userHasInvoice)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"The user {payrollUser.Name} cannot be deleted due to existing invoices associated with the account.",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        ctx.Remove(payrollUser);
+        await ctx.SaveChangesAsync();
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
-            Message = $"The user {dbUser.Name} cannot be deleted due to existing invoices associated with the account.",
-            Severity = StatusMessageModel.StatusSeverity.Error
+            Message = $"User deletion was successful",
+            Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
