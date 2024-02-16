@@ -99,7 +99,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         PayrollUserCreateViewModel model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
         return View(model);
     }
@@ -112,7 +112,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         user.Email = string.IsNullOrEmpty(model.Email) ? user.Email : model.Email;
         user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
@@ -133,7 +133,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         PayrollUserResetPasswordViewModel model = new PayrollUserResetPasswordViewModel { Id = user.Id };
         return View(model);
     }
@@ -146,7 +146,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (!ModelState.IsValid)
             return View(model);
@@ -178,7 +178,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollUser = ctx.PayrollUsers
-            .SingleOrDefault(a => a.Id == userId);
+            .SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         var userHasInvoice = ctx.PayrollInvoices.Any(a =>
         a.UserId == payrollUser.Id);
