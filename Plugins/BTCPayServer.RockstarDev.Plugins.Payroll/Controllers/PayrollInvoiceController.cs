@@ -4,6 +4,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Common;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -164,6 +165,9 @@ public class PayrollInvoiceController : Controller
 
             invoice.State = PayrollInvoiceState.AwaitingPayment;
         }
+        var payrollMessage = new PaymentUrlBuilder(network.NBitcoinNetwork.UriScheme);
+        payrollMessage.QueryParams.Add("message", $"Payroll on {DateTime.Now.ToString("yyyy-MM-dd")} for {invoices.Count} invoices");
+        bip21.Add(payrollMessage.ToString());
 
         await ctx.SaveChangesAsync();
 
