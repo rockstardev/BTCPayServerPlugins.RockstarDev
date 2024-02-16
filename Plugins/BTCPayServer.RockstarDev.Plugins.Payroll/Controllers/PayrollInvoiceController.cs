@@ -165,14 +165,16 @@ public class PayrollInvoiceController : Controller
 
             invoice.State = PayrollInvoiceState.AwaitingPayment;
         }
-        var payrollMessage = new PaymentUrlBuilder(network.NBitcoinNetwork.UriScheme);
-        payrollMessage.QueryParams.Add("message", $"Payroll on {DateTime.Now.ToString("yyyy-MM-dd")} for {invoices.Count} invoices");
-        bip21.Add(payrollMessage.ToString());
 
         await ctx.SaveChangesAsync();
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
-            new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
+            new
+            {
+                walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(),
+                bip21,
+                infoMessage = $"Payroll on {DateTime.Now.ToString("yyyy-MM-dd")} for {invoices.Count} invoices"
+            });
     }
 
     private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)
