@@ -4,6 +4,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Common;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -70,7 +71,7 @@ public class PayrollInvoiceController : Controller
         if (settings.AdminAppUserId is null)
         {
             settings.AdminAppUserId = _userManager.GetUserId(User);
-            await _settingsRepository.UpdateSetting(settings, nameof(PayrollPluginSettings));
+            await _settingsRepository.UpdateSetting(settings);
         }
         //
 
@@ -168,7 +169,12 @@ public class PayrollInvoiceController : Controller
         await ctx.SaveChangesAsync();
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
-            new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
+            new
+            {
+                walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(),
+                bip21,
+                infoMessage = $"Payroll on {DateTime.Now.ToString("yyyy-MM-dd")} for {invoices.Count} invoices"
+            });
     }
 
     private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)

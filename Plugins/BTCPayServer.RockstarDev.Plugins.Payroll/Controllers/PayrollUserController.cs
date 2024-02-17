@@ -9,6 +9,7 @@ using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NBitpayClient;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -87,12 +88,86 @@ public class PayrollUserController : Controller
         dbPlugins.Add(dbUser);
         await dbPlugins.SaveChangesAsync();
 
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpGet("~/plugins/payroll/users/edit/{userId}")]
+    public async Task<IActionResult> Edit(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUserCreateViewModel model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
+        return View(model);
+    }
+
+    [HttpPost("~/plugins/payroll/users/edit/{userId}")]
+    public async Task<IActionResult> Edit(string userId, PayrollUserCreateViewModel model)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+
+        user.Email = string.IsNullOrEmpty(model.Email) ? user.Email : model.Email;
+        user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
+
+        ctx.Update(user);
+        await ctx.SaveChangesAsync();
+
+        ReturnMessageStatus();
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+
+    [HttpGet("~/plugins/payroll/users/resetpassword/{userId}")]
+    public async Task<IActionResult> ResetPassword(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUserResetPasswordViewModel model = new PayrollUserResetPasswordViewModel { Id = user.Id };
+        return View(model);
+    }
+
+    [HttpPost("~/plugins/payroll/users/resetpassword/{userId}")]
+    public async Task<IActionResult> ResetPassword(string userId, PayrollUserResetPasswordViewModel model)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var passHashed = _hasher.HashPassword(user.Id, model.NewPassword);
+        user.Password = passHashed;
+
+        ctx.Update(user);
+        await ctx.SaveChangesAsync();
+
+        ReturnMessageStatus();
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    private void ReturnMessageStatus()
+    {
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
-            Message = $"The user {dbUser.Name} cannot be deleted due to existing invoices associated with the account.",
-            Severity = StatusMessageModel.StatusSeverity.Error
+            Message = $"User details updated successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
     public class PayrollUserCreateViewModel
@@ -116,6 +191,21 @@ public class PayrollUserController : Controller
         [Display(Name = "Confirm Password")]
         [Compare("Password", ErrorMessage = "Password fields don't match")]
         public string ConfirmPassword { get; set; }
+    }
 
+    public class PayrollUserResetPasswordViewModel
+    {
+        public string Id { get; set; }
+        [Required]
+        [MinLength(6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "New Password")]
+        public string NewPassword { get; set; }
+
+        [Required]
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm New Password")]
+        [Compare("NewPassword", ErrorMessage = "Password fields don't match")]
+        public string ConfirmNewPassword { get; set; }
     }
 }

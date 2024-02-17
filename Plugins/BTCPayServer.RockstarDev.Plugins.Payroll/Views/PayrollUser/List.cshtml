@@ -28,7 +28,7 @@
 
     @if (Model.Any())
     {
-        <div class="table-responsive">
+        <div class="table-responsive-md">
             <table class="table table-hover">
                 <thead>
                 <tr>
@@ -40,21 +40,37 @@
                 <tbody>
                 @foreach (var pp in Model)
                 {
-                    <tr>
+                    <tr class="mass-action-row">
                         <td>@pp.Name</td>
                         <td>@pp.Email</td>
                         <td class="align-middle">
                             
                         </td>
+
                         <td class="text-end">
-                            <a asp-controller="PayrollUser"
-                               asp-action="Delete"
-                               asp-route-userId="@pp.Id"
-                               data-bs-toggle="modal"
-                               data-bs-target="#ConfirmModal"
-                               data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
-                                Delete
-                            </a>
+                            <div class="d-inline-flex align-items-center gap-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="ToggleActions-@pp.Id">
+                                        <vc:icon symbol="dots" />
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-userId="@pp.Id">Edit</a></li>
+                                        <li class="dropdown-divider"></li>
+                                        <li class="dropdown-item">
+                                            <a asp-controller="PayrollUser"
+                                                asp-action="Delete"
+                                                asp-route-userId="@pp.Id"
+                                                class="text-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#ConfirmModal"
+                                                data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
+                                                Delete
+                                            </a>
+                                        </li>
+
+                                    </ul>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -82,6 +98,5 @@
             There are no users created yet. Why don't you create one?
         </p>
     }
-
 
 </form>
