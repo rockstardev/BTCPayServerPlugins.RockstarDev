@@ -99,7 +99,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         PayrollUserCreateViewModel model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
         return View(model);
     }
@@ -112,7 +112,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         user.Email = string.IsNullOrEmpty(model.Email) ? user.Email : model.Email;
         user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
@@ -133,7 +133,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         PayrollUserResetPasswordViewModel model = new PayrollUserResetPasswordViewModel { Id = user.Id };
         return View(model);
     }
@@ -146,7 +146,7 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (!ModelState.IsValid)
             return View(model);
@@ -168,6 +168,34 @@ public class PayrollUserController : Controller
             Message = $"User details updated successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
+    }
+
+    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    public async Task<IActionResult> Delete(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        var payrollUser = ctx.PayrollUsers
+            .SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        var userHasInvoice = ctx.PayrollInvoices.Any(a =>
+        a.UserId == payrollUser.Id);
+        if (userHasInvoice)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"User deletion was successful",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        ctx.Remove(payrollUser);
+        await ctx.SaveChangesAsync();
+
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
     public class PayrollUserCreateViewModel
