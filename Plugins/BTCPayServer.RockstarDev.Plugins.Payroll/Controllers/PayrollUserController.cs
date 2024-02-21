@@ -170,7 +170,7 @@ public class PayrollUserController : Controller
         });
     }
 
-    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    [HttpGet("~/plugins/payroll/users/delete/{userId}")]
     public async Task<IActionResult> Delete(string userId)
     {
         if (CurrentStore is null)
@@ -186,8 +186,8 @@ public class PayrollUserController : Controller
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                Message = $"User deletion was successful",
-                Severity = StatusMessageModel.StatusSeverity.Success
+                Message = $"User can't be deleted since there are active invoices",
+                Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
@@ -195,6 +195,11 @@ public class PayrollUserController : Controller
         ctx.Remove(payrollUser);
         await ctx.SaveChangesAsync();
 
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"User deletion was successful",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 

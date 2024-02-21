@@ -59,15 +59,19 @@
                                             </li>
                                             <li class="dropdown-divider"></li>
                                             <li>
-                                                <a class="dropdown-item text-danger"
-                                                   asp-controller="PayrollUser"
+                                                <a asp-controller="PayrollUser"
                                                    asp-action="Delete"
                                                    asp-route-userId="@pp.Id"
-                                                   data-bs-toggle="modal"
-                                                   data-bs-target="#ConfirmModal"
-                                                   data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
+                                                   class="dropdown-item text-danger">
                                                     Delete
                                                 </a>
+
+@* 
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#ConfirmModal"
+                                                data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
+ *@
+
                                             </li>
 
                                         </ul>
@@ -80,6 +84,8 @@
             </table>
         </div>
 
+        <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
+
         @section PageFootContent {
         <script>
             const ppProgresses = document.getElementsByClassName("ppProgress");
@@ -91,8 +97,6 @@
             }
         </script>
         }
-
-        <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
     }
     else
     {

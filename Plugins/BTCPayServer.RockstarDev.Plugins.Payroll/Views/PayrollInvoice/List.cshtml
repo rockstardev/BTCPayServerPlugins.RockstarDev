@@ -115,7 +115,7 @@
                             </td>
                             <td class="text-end">
                                 <a href="/Storage/@pp.InvoiceUrl">Invoice</a>
-                                -
+                                @* -
                                 <a asp-controller="PayrollInvoice"
                                    asp-action="Delete"
                                    asp-route-userId="@pp.Id"
@@ -123,7 +123,7 @@
                                    data-bs-target="#ConfirmModal"
                                    data-description="Do you really want to delete the invoice <strong>@Html.Encode(pp.Name)</strong>?">
                                     Delete
-                                </a>
+                                </a> *@
                             </td>
                         </tr>
                     }
