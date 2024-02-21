@@ -4,7 +4,6 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Common;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -21,9 +20,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO.Compression;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Storage.Services;
+using System.Net.Http;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -62,7 +65,7 @@ public class PayrollInvoiceController : Controller
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
-            .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
+            .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         // triggering saving of admin user id if needed
@@ -104,7 +107,6 @@ public class PayrollInvoiceController : Controller
         public string InvoiceUrl { get; set; }
     }
 
-
     [HttpPost]
     public async Task<IActionResult> MassAction(string command, string[] selectedItems)
     {
@@ -116,32 +118,70 @@ public class PayrollInvoiceController : Controller
         if (selectedItems.Length == 0)
             return NotSupported("No invoice has been selected");
 
+        var ctx = _payrollPluginDbContextFactory.CreateContext();
+        var invoices = ctx.PayrollInvoices
+                            .Include(a => a.User)
+                            .Where(a => selectedItems.Contains(a.Id))
+                            .ToList();
+
         switch (command)
         {
             case "payinvoices":
                 return await payInvoices(selectedItems);
 
             case "markpaid":
-                using (var ctx = _payrollPluginDbContextFactory.CreateContext())
+                invoices.ForEach(c => c.State = PayrollInvoiceState.Completed);
+                ctx.SaveChanges();
+                TempData.SetStatusMessageModel(new StatusMessageModel()
                 {
-                    var invoices = ctx.PayrollInvoices
-                        .Include(a => a.User)
-                        .Where(a => selectedItems.Contains(a.Id))
-                        .ToList();
-
-                    foreach (var invoice in invoices)
-                    {
-                        invoice.State = PayrollInvoiceState.Completed;
-                    }
-
-                    ctx.SaveChanges();
-                }
+                    Message = $"Invoices successfully marked as paid",
+                    Severity = StatusMessageModel.StatusSeverity.Success
+                });
                 break;
+
+            case "download":
+                return await DownloadInvoicesAsZipAsync(invoices);
 
             default:
                 break;
         }
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
+    {
+        var zipName = $"Invoices-{DateTime.Now.ToString("yyyy_MM_dd-HH_mm_ss")}.zip";
+
+        using (MemoryStream ms = new MemoryStream())
+        {
+            using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+            {
+                await Task.WhenAll(invoices.Select(async invoice =>
+                {
+                    var fileUrl = await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
+                    var fileBytes = await DownloadFileAsByteArray(fileUrl);
+
+                    string filename = Path.GetFileName(fileUrl);
+                    string extension = Path.GetExtension(filename);
+                    var entry = zip.CreateEntry($"{invoice.InvoiceFilename}{extension}");
+                    using (var entryStream = entry.Open())
+                    {
+                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                    }
+                }));
+            }
+
+            return File(ms.ToArray(), "application/zip", zipName);
+        }
+    }
+
+    async Task<byte[]> DownloadFileAsByteArray(string fileUrl)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            HttpResponseMessage response = await client.GetAsync(fileUrl);
+            return await response.Content.ReadAsByteArrayAsync();
+        }
     }
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
