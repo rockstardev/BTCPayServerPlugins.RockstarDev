@@ -85,6 +85,7 @@ public class PayrollInvoiceController : Controller
             Amount = tuple.Amount,
             Currency = tuple.Currency,
             State = tuple.State,
+            TxnId = tuple.TxnId,
             Description = tuple.Description,
             InvoiceUrl = tuple.InvoiceFilename
         }).ToList()
@@ -100,6 +101,7 @@ public class PayrollInvoiceController : Controller
         public decimal Amount { get; set; }
         public string Currency { get; set; }
         public PayrollInvoiceState State { get; set; }
+        public string TxnId { get; set; }
         public string Description { get; set; }
         public string InvoiceUrl { get; set; }
     }

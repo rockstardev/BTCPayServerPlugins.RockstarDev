@@ -21,6 +21,7 @@ public class PayrollInvoice
     public string InvoiceFilename { get; set; }
     public bool IsArchived { get; set; }
     public PayrollInvoiceState State { get; set; }
+    public string TxnId { get; set; }
 
     internal static void OnModelCreating(ModelBuilder builder)
     {

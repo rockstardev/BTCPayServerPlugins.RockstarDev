@@ -104,7 +104,19 @@
                             </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
-                            <td>@pp.State.ToString()</td>
+                            <td>
+                                @if (pp.State == BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollInvoiceState.Completed &&
+                               !String.IsNullOrEmpty(pp.TxnId))
+                                {
+                                    <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
+                                        @pp.State.ToString()
+                                    </a>
+                                }
+                                else
+                                {
+                                    @pp.State.ToString()
+                                }
+                            </td>
                             <td>
                                 @if (!String.IsNullOrEmpty(pp.Description))
                                 {
@@ -115,7 +127,7 @@
                             </td>
                             <td class="text-end">
                                 <a href="/Storage/@pp.InvoiceUrl">Invoice</a>
-                                -
+                                @* -
                                 <a asp-controller="PayrollInvoice"
                                    asp-action="Delete"
                                    asp-route-userId="@pp.Id"
@@ -123,7 +135,7 @@
                                    data-bs-target="#ConfirmModal"
                                    data-description="Do you really want to delete the invoice <strong>@Html.Encode(pp.Name)</strong>?">
                                     Delete
-                                </a>
+                                </a> *@
                             </td>
                         </tr>
                     }

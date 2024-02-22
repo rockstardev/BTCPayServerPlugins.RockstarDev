@@ -72,6 +72,7 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
                     {
                         if (matchedObjects.Contains(invoice.Destination))
                         {
+                            invoice.TxnId = txHash;
                             invoice.State = PayrollInvoiceState.Completed;
                         }
                     }
