@@ -104,7 +104,19 @@
                             </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
-                            <td>@pp.State.ToString()</td>
+                            <td>
+                                @if (pp.State == BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollInvoiceState.Completed &&
+                               !String.IsNullOrEmpty(pp.TxnId))
+                                {
+                                    <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
+                                        @pp.State.ToString()
+                                    </a>
+                                }
+                                else
+                                {
+                                    @pp.State.ToString()
+                                }
+                            </td>
                             <td>
                                 @if (!String.IsNullOrEmpty(pp.Description))
                                 {

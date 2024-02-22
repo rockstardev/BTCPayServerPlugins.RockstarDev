@@ -136,6 +136,7 @@ public class PublicController : Controller
             Amount = tuple.Amount,
             Currency = tuple.Currency,
             State = tuple.State,
+            TxnId = tuple.TxnId,
             Description = tuple.Description,
             InvoiceUrl = tuple.InvoiceFilename
         }).ToList();
