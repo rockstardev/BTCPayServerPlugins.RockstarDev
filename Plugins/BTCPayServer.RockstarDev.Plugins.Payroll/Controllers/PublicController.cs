@@ -226,7 +226,7 @@ public class PublicController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>(nameof(PayrollPluginSettings));
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         var uploaded = await _fileService.AddFile(model.Invoice, settings.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
