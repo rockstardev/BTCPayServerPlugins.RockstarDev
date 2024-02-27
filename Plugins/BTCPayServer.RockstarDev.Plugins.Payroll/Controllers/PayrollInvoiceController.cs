@@ -27,6 +27,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Services.Invoices;
+using System.Xml.Linq;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -321,6 +323,62 @@ public class PayrollInvoiceController : Controller
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"Invoice uploaded successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpGet("~/plugins/payroll/delete/{id}")]
+    public async Task<IActionResult> Delete(string id)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollInvoice invoice = ctx.PayrollInvoices.Include(c => c.User)
+            .SingleOrDefault(a => a.Id == id);
+
+        if (invoice == null)
+            return NotFound();
+
+        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Invoice cannot be deleted as it has been actioned upon",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+        return View("Confirm", new ConfirmModel($"Delete Invoice", $"Do you really want to delete the invoice for {invoice.Amount} {invoice.Currency} from {invoice.User.Name}?", "Delete"));
+    }
+
+    [HttpPost("~/plugins/payroll/delete/{id}")]
+    public async Task<IActionResult> DeletePost(string id)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+
+        PayrollInvoice invoice = ctx.PayrollInvoices.SingleOrDefault(a => a.Id == id);
+
+        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Invoice cannot be deleted as it has been actioned upon",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        ctx.Remove(invoice);
+        await ctx.SaveChangesAsync();
+
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"Invoice deleted successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
