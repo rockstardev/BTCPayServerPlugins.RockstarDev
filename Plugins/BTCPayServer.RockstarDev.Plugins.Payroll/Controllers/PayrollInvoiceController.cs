@@ -159,18 +159,18 @@ public class PayrollInvoiceController : Controller
         {
             using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
             {
-                await Task.WhenAll(invoices.Select(async invoice =>
+                foreach (var invoice in invoices)
                 {
                     var fileUrl = await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
                     var fileBytes = await DownloadFileAsByteArray(fileUrl);
                     string filename = Path.GetFileName(fileUrl);
                     string extension = Path.GetExtension(filename);
-                    var entry = zip.CreateEntry($"{invoice.InvoiceFilename}{extension}");
+                    var entry = zip.CreateEntry($"{filename}{extension}");
                     using (var entryStream = entry.Open())
                     {
                         await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
                     }
-                }));
+                }
             }
 
             return File(ms.ToArray(), "application/zip", zipName);
