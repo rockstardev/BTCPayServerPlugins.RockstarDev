@@ -154,6 +154,47 @@
                 var template = document.getElementById("tooptip_template_" + ppId);
                 pp.setAttribute("title", template.innerHTML);
             }
+
+            function allSelectedInState(state) {
+                var allCheckedItems = document.querySelectorAll('input[type="checkbox"].mass-action-select:checked');
+                if (allCheckedItems.length === 0) return false;
+
+                return Array.from(allCheckedItems).every(function (checkbox) {
+                    var row = checkbox.closest('tr');
+                    var stateCell = row.querySelector('td:nth-child(7)');
+                    return stateCell.textContent.trim() === state;
+                });
+            }
+
+            function selectedItemInState(state) {
+                var allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
+                return Array.from(allCheckedItems).every(function (checkbox) {
+                    var row = checkbox.closest('tr');
+                    var stateCell = row.querySelector('td:nth-child(7)');
+                    return stateCell.textContent.trim() === state;
+                });
+            }
+
+            function toggleButtons() {
+                var markPaidButton = document.getElementById('markpaid');
+                var payInvoicesButton = document.getElementById('payinvoices');
+                var selectAllCheckbox = document.querySelector('.mass-action-select-all');
+
+                if (selectAllCheckbox.checked) {
+                    payInvoicesButton.style.display = allSelectedInState('AwaitingApproval') ? 'inline-block' : 'none';
+                    markPaidButton.style.display = allSelectedInState('AwaitingApproval') || allSelectedInState('AwaitingPayment') || allSelectedInState('InProgress') ? 'inline-block' : 'none';
+                } else {
+                    payInvoicesButton.style.display = selectedItemInState('AwaitingApproval') ? 'inline-block' : 'none';
+                    markPaidButton.style.display = selectedItemInState('AwaitingApproval') || selectedItemInState('AwaitingPayment') || selectedItemInState('InProgress') ? 'inline-block' : 'none';
+                }
+            }
+
+            document.addEventListener('change', function (event) {
+                toggleButtons()
+            });
+
+            toggleButtons();
+
         </script>
         }
 
