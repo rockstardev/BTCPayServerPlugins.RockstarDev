@@ -4,7 +4,6 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Common;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -27,8 +26,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using BTCPayServer.Services.Invoices;
-using System.Xml.Linq;
+using System.Text.Json.Serialization;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Helper;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -61,13 +60,15 @@ public class PayrollInvoiceController : Controller
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
+
     [HttpGet("~/plugins/{storeId}/payroll/list")]
     public async Task<IActionResult> List(string storeId)
     {
+        PayrollInvoicePaymentHelper payrollInvoiceHelper = new PayrollInvoicePaymentHelper();
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
-            .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
+            .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         // triggering saving of admin user id if needed
@@ -78,9 +79,8 @@ public class PayrollInvoiceController : Controller
             settings.AdminAppUserId = _userManager.GetUserId(User);
             await _settingsRepository.UpdateSetting(settings);
         }
-        //
 
-        return View(payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+        List<PayrollInvoiceViewModel> model = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
         {
             CreatedAt = tuple.CreatedAt,
             Id = tuple.Id,
@@ -93,23 +93,11 @@ public class PayrollInvoiceController : Controller
             TxnId = tuple.TxnId,
             Description = tuple.Description,
             InvoiceUrl = tuple.InvoiceFilename
-        }).ToList()
-        );
+        }).ToList();
+        model.ForEach(c => c.InvoiceQrUrl = payrollInvoiceHelper.PaymentInvoiceQrUrl(c));
+        return View(model);
     }
-    public class PayrollInvoiceViewModel
-    {
-        public DateTimeOffset CreatedAt { get; set; }
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public string Destination { get; set; }
-        public decimal Amount { get; set; }
-        public string Currency { get; set; }
-        public PayrollInvoiceState State { get; set; }
-        public string TxnId { get; set; }
-        public string Description { get; set; }
-        public string InvoiceUrl { get; set; }
-    }
+
 
 
     [HttpPost]
@@ -221,6 +209,7 @@ public class PayrollInvoiceController : Controller
             });
     }
 
+
     private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)
     {
         if (invoice.Currency == PayrollPluginConst.BTC_CRYPTOCODE)
@@ -237,6 +226,7 @@ public class PayrollInvoiceController : Controller
         var amountInBtc = satsAmount / 100_000_000;
         return amountInBtc;
     }
+
 
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
     public async Task<IActionResult> Upload(string storeId)
@@ -257,6 +247,7 @@ public class PayrollInvoiceController : Controller
         return View(model);
     }
 
+
     private static SelectList getPayrollUsers(PayrollPluginDbContext ctx, string storeId)
     {
         var payrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId)
@@ -265,8 +256,8 @@ public class PayrollInvoiceController : Controller
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/upload")]
 
+    [HttpPost("~/plugins/{storeId}/payroll/upload")]
     public async Task<IActionResult> Upload(PayrollInvoiceUploadViewModel model)
     {
         if (CurrentStore is null)
@@ -328,6 +319,7 @@ public class PayrollInvoiceController : Controller
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
+
     [HttpGet("~/plugins/payroll/delete/{id}")]
     public async Task<IActionResult> Delete(string id)
     {
@@ -352,6 +344,7 @@ public class PayrollInvoiceController : Controller
         }
         return View("Confirm", new ConfirmModel($"Delete Invoice", $"Do you really want to delete the invoice for {invoice.Amount} {invoice.Currency} from {invoice.User.Name}?", "Delete"));
     }
+
 
     [HttpPost("~/plugins/payroll/delete/{id}")]
     public async Task<IActionResult> DeletePost(string id)
@@ -409,9 +402,24 @@ public class PayrollInvoiceController : Controller
         public string Description { get; set; }
         [Required]
         public IFormFile Invoice { get; set; }
-
-
-
         public SelectList PayrollUsers { get; set; }
+    }
+
+    public class PayrollInvoiceViewModel
+    {
+        public DateTimeOffset CreatedAt { get; set; }
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public string Destination { get; set; }
+        public decimal Amount { get; set; }
+        public string Currency { get; set; }
+        public PayrollInvoiceState State { get; set; }
+        public string TxnId { get; set; }
+        public string Description { get; set; }
+        [JsonIgnore]
+        public string InvoiceUrl { get; set; }
+        [JsonIgnore]
+        public string InvoiceQrUrl { get; set; }
     }
 }

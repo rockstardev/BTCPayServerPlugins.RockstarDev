@@ -104,12 +104,12 @@
                                 <a href="mailto:@pp.Email"><i class="fa fa-envelope-o"></i></a>
                             </td>
                             <td>
-                                <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
+                                <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" qrscan="@pp.InvoiceQrUrl" classes="truncate-center-id" />
                             </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
                             <td>
-                                @if (pp.State == BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollInvoiceState.Completed &&
+                                @if (pp.State == BTCPayServer.RockstarDev.Plugins.Payroll.PayrollInvoiceState.Completed &&
                                !String.IsNullOrEmpty(pp.TxnId))
                                 {
                                     <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
