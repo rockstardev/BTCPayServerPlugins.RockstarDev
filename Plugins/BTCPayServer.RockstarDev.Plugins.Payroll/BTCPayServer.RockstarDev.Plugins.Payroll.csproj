@@ -9,10 +9,9 @@
 	<PropertyGroup>
 		<Product>Payroll</Product>
 		<Description>
-			THIS IS PRE-RELEASE ALPHA! Do NOT install unless you know what you are doing and want to test!
-			Accept invoices from various sources and easily pay them out from Bitcoin wallet.
+			Accept invoices from various sources and easily pay them out from Bitcoin wallet. Run your payroll on Bitcoin.
 		</Description>
-		<Version>0.0.2</Version>
+		<Version>0.1.0</Version>
 	</PropertyGroup>
 	<!-- Plugin development properties -->
 	<PropertyGroup>
