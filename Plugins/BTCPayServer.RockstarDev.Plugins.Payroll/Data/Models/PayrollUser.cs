@@ -20,9 +20,17 @@ public class PayrollUser
     public ICollection<PayrollInvoice> PayrollInvoices { get; set; } = new List<PayrollInvoice>();
 
     // TODO: Adding State property
+    //public PayrollUserState State { get; set; }
     // Having a public page where user can visit the link and complete registration by entering password and activating account
 
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {
     }
+}
+
+public enum PayrollUserState
+{
+    Active,
+    Deactivated,
+    Archive
 }

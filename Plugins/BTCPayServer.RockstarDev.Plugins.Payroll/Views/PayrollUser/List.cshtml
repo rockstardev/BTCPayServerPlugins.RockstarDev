@@ -46,7 +46,7 @@
                             <td>@pp.Email</td>
                             <td class="align-middle">
                             </td>
-
+                             
                             <td class="text-end">
                                 <div class="d-inline-flex align-items-center gap-3">
                                     <div class="dropdown">
@@ -57,6 +57,9 @@
                                             <li>
                                                 <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-userId="@pp.Id">Edit</a>
                                             </li>
+                                            @* <li>
+                                                <a asp-action="ToggleUserStatus" asp-route-userId="@pp.Id" asp-route-enable="@pp.State">@(user.Disabled ? "Enable" : "Disable")</a>
+                                            </li> *@
                                             <li class="dropdown-divider"></li>
                                             <li>
                                                 <a asp-controller="PayrollUser"
@@ -65,13 +68,6 @@
                                                    class="dropdown-item text-danger">
                                                     Delete
                                                 </a>
-
-@* 
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#ConfirmModal"
-                                                data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
- *@
-
                                             </li>
 
                                         </ul>

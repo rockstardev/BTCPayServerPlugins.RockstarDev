@@ -9,7 +9,6 @@ using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NBitpayClient;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -161,17 +160,70 @@ public class PayrollUserController : Controller
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    private void ReturnMessageStatus()
+    [HttpGet("~/plugins/payroll/users/toggle/{userId}")]
+    public async Task<IActionResult> ToggleUserStatus(string userId, bool enable)
     {
-        TempData.SetStatusMessageModel(new StatusMessageModel()
-        {
-            Message = $"User details updated successfully",
-            Severity = StatusMessageModel.StatusSeverity.Success
-        });
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        if (user == null)
+            return NotFound();
+
+        return View("Confirm", new ConfirmModel($"{(enable ? "Enable" : "Disable")} user", $"The user ({user.Name}) will be {(enable ? "enabled" : "disabled")}. Are you sure?", (enable ? "Enable" : "Disable")));
+    }
+
+
+    [HttpPost("~/plugins/payroll/users/toggle/{userId}")]
+    public async Task<IActionResult> ToggleUserStatusPost(string userId, bool enable)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        if (user == null)
+            return NotFound();
+
+        // Handle the toggle, update the status and save changes
+        ctx.SaveChanges();
+
+        TempData[WellKnownTempData.SuccessMessage] = $"User {(enable ? "enabled" : "disabled")} successfully";
+
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
     [HttpGet("~/plugins/payroll/users/delete/{userId}")]
     public async Task<IActionResult> Delete(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        if (user == null)
+            return NotFound();
+
+        var userHasInvoice = ctx.PayrollInvoices.Any(a => a.UserId == user.Id);
+        if (userHasInvoice)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"User can't be deleted since there are active invoices for this user",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        return View("Confirm", new ConfirmModel($"Delete user", $"The user will be deleted. Are you sure?", "Delete"));
+    }
+
+    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    public async Task<IActionResult> DeletePost(string userId)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -186,7 +238,7 @@ public class PayrollUserController : Controller
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                Message = $"User can't be deleted since there are active invoices",
+                Message = $"User can't be deleted since there are active invoices for this user",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
@@ -197,10 +249,20 @@ public class PayrollUserController : Controller
 
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
-            Message = $"User deletion was successful",
+            Message = $"User deleted successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+
+    private void ReturnMessageStatus()
+    {
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"User details updated successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
     }
 
     public class PayrollUserCreateViewModel
