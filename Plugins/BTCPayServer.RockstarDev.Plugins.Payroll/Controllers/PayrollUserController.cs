@@ -177,6 +177,33 @@ public class PayrollUserController : Controller
             return NotFound();
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        if (user == null)
+            return NotFound();
+
+        var userHasInvoice = ctx.PayrollInvoices.Any(a => a.UserId == user.Id);
+        if (userHasInvoice)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"User can't be deleted since there are active invoices for this user",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        return View("Confirm", new ConfirmModel($"Delete user", $"The user: {user.Name} will be deleted. Are you sure?", "Delete"));
+    }
+
+
+    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    public async Task<IActionResult> DeletePost(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollUser = ctx.PayrollUsers
             .SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
@@ -186,7 +213,7 @@ public class PayrollUserController : Controller
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                Message = $"User can't be deleted since there are active invoices",
+                Message = $"User can't be deleted since there are active invoices for this user",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
