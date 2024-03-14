@@ -4,6 +4,7 @@
 @using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
+@using BTCPayServer.RockstarDev.Plugins.Payroll.Data
 @using BTCPayServer.Services
 @inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
@@ -56,6 +57,14 @@
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li>
                                                 <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-userId="@pp.Id">Edit</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   asp-action="ToggleUserStatus"
+                                                   asp-route-userId="@pp.Id"
+                                                   asp-route-enable="@(pp.State == PayrollUserState.Disabled ? true : false)">
+                                                    @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
+                                                </a>
                                             </li>
                                             <li class="dropdown-divider"></li>
                                             <li>
