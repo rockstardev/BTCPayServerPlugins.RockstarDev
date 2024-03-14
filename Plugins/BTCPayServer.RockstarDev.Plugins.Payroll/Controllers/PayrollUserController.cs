@@ -40,7 +40,6 @@ public class PayrollUserController : Controller
     [HttpGet("~/plugins/{storeId}/payroll/users")]
     public async Task<IActionResult> List(string storeId)
     {
-        var now = DateTimeOffset.UtcNow;
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollUsers = await ctx.PayrollUsers
             .Where(a => a.StoreId == storeId)
@@ -158,6 +157,55 @@ public class PayrollUserController : Controller
         await ctx.SaveChangesAsync();
 
         ReturnMessageStatus();
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpGet("~/plugins/payroll/users/toggle/{userId}")]
+    public async Task<IActionResult> ToggleUserStatus(string userId, bool enable)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        if (user == null)
+            return NotFound();
+
+        return View("Confirm", new ConfirmModel($"{(enable ? "Activate" : "Disable")} user", $"The user ({user.Name}) will be {(enable ? "activated" : "disabled")}. Are you sure?", (enable ? "Activate" : "Disable")));
+    }
+
+
+    [HttpPost("~/plugins/payroll/users/toggle/{userId}")]
+    public async Task<IActionResult> ToggleUserStatusPost(string userId, bool enable)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        if (user == null)
+            return NotFound();
+
+        switch (user.State)
+        {
+            case PayrollUserState.Disabled:
+                user.State = PayrollUserState.Active;
+                break;
+            case PayrollUserState.Active:
+                user.State = PayrollUserState.Disabled;
+                break;
+            case PayrollUserState.Archived:
+                // Would need to know use case for this.
+                break;
+            default:
+                break;
+        }
+        ctx.SaveChanges();
+
+        TempData[WellKnownTempData.SuccessMessage] = $"User {(enable ? "activated" : "disabled")} successfully";
+
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
