@@ -209,13 +209,18 @@ public class PayrollInvoiceController : Controller
         }
 
         await ctx.SaveChangesAsync();
+        
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Severity = StatusMessageModel.StatusSeverity.Info,
+            Message = $"Payroll on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices"
+        });
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
             new
             {
                 walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(),
-                bip21,
-                infoMessage = $"Payroll on {DateTime.Now.ToString("yyyy-MM-dd")} for {invoices.Count} invoices"
+                bip21
             });
     }
 
