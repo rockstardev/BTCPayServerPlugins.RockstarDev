@@ -54,7 +54,7 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
                     var walletOutputsByIndex = transactionEvent.NewTransactionEvent.Outputs.ToDictionary(o => (uint)o.Index);
                     foreach (var txOut in transactionEvent.NewTransactionEvent.TransactionData.Transaction.Outputs.AsIndexedOutputs())
                     {
-                        BitcoinAddress? address = null;
+                        BitcoinAddress address = null;
 
                         if (walletOutputsByIndex.TryGetValue(txOut.N, out var walletTxOut))
                             address = walletTxOut.Address;

@@ -1,19 +1,16 @@
-﻿using BTCPayServer;
-using BTCPayServer.Abstractions.Contracts;
+﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController;
@@ -58,9 +55,11 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var model = new PublicLoginViewModel();
-        model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        var model = new PublicLoginViewModel
+        {
+            StoreName = vali.Store.StoreName,
+            StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob())
+        };
 
         return View(model);
     }
@@ -104,9 +103,9 @@ public class PublicController : Controller
     //
 
     [HttpGet("~/plugins/{storeId}/payroll/public/logout")]
-    public async Task<IActionResult> Logout(string storeId)
+    public IActionResult Logout(string storeId)
     {
-        _httpContextAccessor.HttpContext.Session.Remove(PAYROLL_AUTH_USER_ID);
+        _httpContextAccessor.HttpContext?.Session.Remove(PAYROLL_AUTH_USER_ID);
         return redirectToLogin(storeId);
     }
 
@@ -217,7 +216,7 @@ public class PublicController : Controller
         try
         {
             var network = _networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
-            var address = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
+            var unused = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
         catch (Exception)
         {
@@ -239,7 +238,7 @@ public class PublicController : Controller
 
         // TODO: Make saving of the file and entry in the database atomic
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        var uploaded = await _fileService.AddFile(model.Invoice, settings.AdminAppUserId);
+        var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
         {
@@ -311,7 +310,7 @@ public class PublicController : Controller
 
 
         // 
-        userInDb.Password = _hasher.HashPassword(vali.UserId, model.NewPassword);
+        userInDb!.Password = _hasher.HashPassword(vali.UserId, model.NewPassword);
         await dbPlugins.SaveChangesAsync();
 
         //

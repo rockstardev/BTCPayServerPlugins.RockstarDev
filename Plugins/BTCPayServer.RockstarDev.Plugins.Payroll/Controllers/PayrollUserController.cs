@@ -9,9 +9,7 @@ using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NBitpayClient;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,16 +19,13 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController : Controller
 {
-    private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
     private readonly PayrollPluginPassHasher _hasher;
 
-    public PayrollUserController(ApplicationDbContextFactory dbContextFactory,
-        PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+    public PayrollUserController(PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         StoreRepository storeRepository,
         PayrollPluginPassHasher hasher)
     {
-        _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _hasher = hasher;
     }
@@ -49,7 +44,7 @@ public class PayrollUserController : Controller
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/users/create")]
-    public async Task<IActionResult> Create()
+    public IActionResult Create()
     {
         return View(new PayrollUserCreateViewModel());
     }

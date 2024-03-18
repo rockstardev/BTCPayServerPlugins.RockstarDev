@@ -1,10 +1,8 @@
-﻿using BTCPayServer;
-using BTCPayServer.Abstractions.Constants;
+﻿using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Common;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -306,7 +304,7 @@ public class PayrollInvoiceController : Controller
 
         // TODO: Make saving of the file and entry in the database atomic
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        var uploaded = await _fileService.AddFile(model.Invoice, settings.AdminAppUserId);
+        var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
         {
