@@ -13,6 +13,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -203,6 +204,31 @@ public class PayrollUserController : Controller
         TempData[WellKnownTempData.SuccessMessage] = $"User {(enable ? "activated" : "disabled")} successfully";
 
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpGet("~/plugins/payroll/users/downloadinvoices/{userId}")]
+    public async Task<IActionResult> DownloadInvoices(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        var payrollInvoices = await ctx.PayrollInvoices
+            .Include(c => c.User)
+            .Where(p => p.UserId == user.Id)
+            .OrderByDescending(data => data.CreatedAt).ToListAsync();
+
+        var fileName = $"Invoices-{DateTime.Now.ToString("yyyy_MM_dd-HH_mm_ss")}.csv";
+
+        StringBuilder csvData = new StringBuilder();
+        csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
+        foreach (var invoice in payrollInvoices)
+        {
+            csvData.AppendLine($"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
+        }
+        return File(Encoding.UTF8.GetBytes(csvData.ToString()), "text/csv", fileName);
     }
 
     private void ReturnMessageStatus()
