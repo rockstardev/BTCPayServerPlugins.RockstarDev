@@ -76,7 +76,8 @@ public class PayrollUserController : Controller
             Name = model.Name,
             Email = model.Email.ToLowerInvariant(),
             Password = passHashed,
-            StoreId = CurrentStore.Id
+            StoreId = CurrentStore.Id,
+            State = PayrollUserState.Active
         };
 
         dbPlugins.Add(dbUser);
