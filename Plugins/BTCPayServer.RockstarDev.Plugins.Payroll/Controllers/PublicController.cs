@@ -83,14 +83,20 @@ public class PublicController : Controller
         if (userInDb == null)
             ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
 
+        if (userInDb != null && userInDb.State != PayrollUserState.Active)
+        {
+            // doing the same message for user disabled in order not to easily differentiate
+            ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
+        }
+
         if (!_hasher.IsValidPassword(userInDb, model.Password))
-            ModelState.AddModelError(nameof(model.Password), "Invalid password");
+            ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
 
         if (!ModelState.IsValid)
             return View(model);
 
         // Validate login credentials here and get user details.
-        _httpContextAccessor.HttpContext.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb.Id);
+        _httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
 
         return RedirectToAction(nameof(ListInvoices), new { storeId });
     }
@@ -146,17 +152,22 @@ public class PublicController : Controller
 
     private async Task<StoreUserValidator> validateStoreAndUser(string storeId, bool validateUser)
     {
-        await using var ctx = _dbContextFactory.CreateContext();
-        var store = await ctx.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
+        await using var dbMain = _dbContextFactory.CreateContext();
+        var store = await dbMain.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
         if (store == null)
             return new StoreUserValidator { ErrorActionResult = NotFound() };
 
         string userId = null;
         if (validateUser)
         {
-            userId = _httpContextAccessor.HttpContext.Session.GetString(PAYROLL_AUTH_USER_ID);
-            if (userId == null)
+            await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
+            userId = _httpContextAccessor.HttpContext!.Session.GetString(PAYROLL_AUTH_USER_ID);
+            var userInDb = dbPlugin.PayrollUsers.SingleOrDefault(a =>
+                a.StoreId == storeId && a.Id == userId && a.State == PayrollUserState.Active);
+            if (userInDb == null)
                 return new StoreUserValidator { ErrorActionResult = redirectToLogin(storeId) };
+            else
+                userId = userInDb.Id;
         }
 
         return new StoreUserValidator { Store = store, UserId = userId };
