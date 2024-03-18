@@ -3,6 +3,7 @@
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Services
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
+@using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
 @inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
 @model List<PayrollInvoiceController.PayrollInvoiceViewModel>
@@ -131,13 +132,16 @@
                             </td>
                             <td class="text-end">
                                 <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
-                                -
-                                <a asp-controller="PayrollInvoice"
-                                   asp-action="Delete"
-                                   asp-route-id="@pp.Id"
-                                   class="text-danger">
-                                    Delete
-                                </a>
+                                @if (pp.State == PayrollInvoiceState.AwaitingApproval)
+                                {
+                                    <span>-</span>
+                                    <a asp-controller="PayrollInvoice"
+                                       asp-action="Delete"
+                                       asp-route-id="@pp.Id"
+                                       class="text-danger">
+                                        Delete
+                                    </a>
+                                }
                             </td>
                         </tr>
                     }
