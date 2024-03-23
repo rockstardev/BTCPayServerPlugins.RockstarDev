@@ -11,9 +11,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text;
+using BTCPayServer.Abstractions.Contracts;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -22,13 +26,18 @@ public class PayrollUserController : Controller
 {
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
     private readonly PayrollPluginPassHasher _hasher;
+    private readonly IFileService _fileService;
+    private readonly HttpClient _httpClient;
 
     public PayrollUserController(PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        StoreRepository storeRepository,
-        PayrollPluginPassHasher hasher)
+        PayrollPluginPassHasher hasher,
+        IFileService fileService,
+        HttpClient httpClient)
     {
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _hasher = hasher;
+        _fileService = fileService;
+        _httpClient = httpClient ?? new HttpClient();
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -213,22 +222,47 @@ public class PayrollUserController : Controller
             return NotFound();
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        PayrollUser user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(c => c.User)
             .Where(p => p.UserId == user.Id)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        var fileName = $"Invoices-{DateTime.Now.ToString("yyyy_MM_dd-HH_mm_ss")}.csv";
+        
+        var zipName = $"Invoices-{user.Name}-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
 
-        StringBuilder csvData = new StringBuilder();
-        csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
-        foreach (var invoice in payrollInvoices)
+        using (MemoryStream ms = new MemoryStream())
         {
-            csvData.AppendLine($"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
+            using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+            {
+                var csvData = new StringBuilder();
+                csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
+                foreach (var invoice in payrollInvoices)
+                {
+                    csvData.AppendLine($"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
+
+                    var fileUrl = await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
+                    var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
+                    string filename = Path.GetFileName(fileUrl);
+                    string extension = Path.GetExtension(filename);
+                    var entry = zip.CreateEntry($"{filename}{extension}");
+                    using (var entryStream = entry.Open())
+                    {
+                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                    }
+                }
+                var csv = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
+                using (var entryStream = csv.Open())
+                {
+                    var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
+                    await entryStream.WriteAsync(csvBytes, 0, csvBytes.Length);
+                }
+                
+            }
+
+            return File(ms.ToArray(), "application/zip", zipName);
         }
-        return File(Encoding.UTF8.GetBytes(csvData.ToString()), "text/csv", fileName);
     }
 
     private void ReturnMessageStatus()

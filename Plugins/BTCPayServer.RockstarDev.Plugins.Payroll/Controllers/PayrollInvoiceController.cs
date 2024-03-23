@@ -38,6 +38,7 @@ public class PayrollInvoiceController : Controller
     private readonly IFileService _fileService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ISettingsRepository _settingsRepository;
+    private readonly HttpClient _httpClient;
 
     public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -45,7 +46,8 @@ public class PayrollInvoiceController : Controller
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
         UserManager<ApplicationUser> userManager,
-        ISettingsRepository settingsRepository)
+        ISettingsRepository settingsRepository,
+        HttpClient httpClient)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
@@ -54,6 +56,7 @@ public class PayrollInvoiceController : Controller
         _fileService = fileService;
         _userManager = userManager;
         _settingsRepository = settingsRepository;
+        _httpClient = httpClient;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -160,7 +163,7 @@ public class PayrollInvoiceController : Controller
                 foreach (var invoice in invoices)
                 {
                     var fileUrl = await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                    var fileBytes = await DownloadFileAsByteArray(fileUrl);
+                    var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
                     string filename = Path.GetFileName(fileUrl);
                     string extension = Path.GetExtension(filename);
                     var entry = zip.CreateEntry($"{filename}{extension}");
@@ -172,15 +175,6 @@ public class PayrollInvoiceController : Controller
             }
 
             return File(ms.ToArray(), "application/zip", zipName);
-        }
-    }
-
-    async Task<byte[]> DownloadFileAsByteArray(string fileUrl)
-    {
-        using (HttpClient client = new HttpClient())
-        {
-            HttpResponseMessage response = await client.GetAsync(fileUrl);
-            return await response.Content.ReadAsByteArrayAsync();
         }
     }
 
