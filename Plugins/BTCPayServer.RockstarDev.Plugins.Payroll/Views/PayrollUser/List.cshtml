@@ -66,6 +66,9 @@
                                                     @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
                                                 </a>
                                             </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-userId="@pp.Id">Download all invoices</a>
+                                            </li>
                                             <li class="dropdown-divider"></li>
                                             <li>
                                                 <a asp-controller="PayrollUser"
