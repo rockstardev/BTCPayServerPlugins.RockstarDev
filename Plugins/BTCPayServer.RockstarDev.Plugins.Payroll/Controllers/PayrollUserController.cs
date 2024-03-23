@@ -43,21 +43,21 @@ public class PayrollUserController : Controller
 
 
     [HttpGet("~/plugins/{storeId}/payroll/users")]
-    public async Task<IActionResult> List(string storeId, bool allUser)
+    public async Task<IActionResult> List(string storeId, bool all)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         List<PayrollUser> payrollUsers = await ctx.PayrollUsers
             .Where(a => a.StoreId == storeId)
             .OrderByDescending(data => data.Name).ToListAsync();
 
-        if (!allUser)
+        if (!all)
         {
             payrollUsers = payrollUsers.Where(a => a.State == PayrollUserState.Active).ToList();
         }
 
-        PayrollUserListViewModel payrollUserListViewModel = new PayrollUserListViewModel
+        var payrollUserListViewModel = new PayrollUserListViewModel
         {
-            ActiveState = allUser ? PayrollUserActiveState.All : PayrollUserActiveState.Active,
+            All = all,
             PayrollUsers = payrollUsers
         };
         return View(payrollUserListViewModel);

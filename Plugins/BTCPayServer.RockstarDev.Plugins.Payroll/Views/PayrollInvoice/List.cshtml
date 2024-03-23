@@ -8,7 +8,7 @@
 @using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController
 @inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
-@model List<PayrollInvoiceController.PayrollInvoiceViewModel>
+@model PayrollInvoiceListViewModel
 @{
     ViewData.SetActivePage("Payroll", "Payroll Invoices", "Payroll");
 
@@ -44,14 +44,14 @@
         <a id="active-view"
            asp-action="List"
            asp-route-storeId="@storeId"
-           class="nav-link @(!Model.AllUserInvoices ? "active" : "")"
+           class="nav-link @(!Model.All ? "active" : "")"
            role="tab">Active</a>
 
         <a id="all-view"
            asp-action="List"
            asp-route-storeId="@storeId"
-           asp-route-allUserInvoices=true
-           class="nav-link @(Model.AllUserInvoices ? "active" : "")"
+           asp-route-all=true
+           class="nav-link @(Model.All ? "active" : "")"
            role="tab">All</a>
     </div>
 </nav>

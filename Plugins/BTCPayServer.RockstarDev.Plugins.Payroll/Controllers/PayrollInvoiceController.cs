@@ -61,7 +61,7 @@ public class PayrollInvoiceController : Controller
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("~/plugins/{storeId}/payroll/list")]
-    public async Task<IActionResult> List(string storeId, bool allUserInvoices)
+    public async Task<IActionResult> List(string storeId, bool all)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
@@ -69,7 +69,7 @@ public class PayrollInvoiceController : Controller
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        if (!allUserInvoices)
+        if (!all)
         {
             payrollInvoices = payrollInvoices.Where(a => a.User.State == PayrollUserState.Active).ToList();
         }
@@ -85,7 +85,7 @@ public class PayrollInvoiceController : Controller
 
         PayrollInvoiceListViewModel model = new PayrollInvoiceListViewModel
         {
-            AllUserInvoices = allUserInvoices,
+            All = all,
             PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
             {
                 CreatedAt = tuple.CreatedAt,
@@ -106,7 +106,7 @@ public class PayrollInvoiceController : Controller
 
     public class PayrollInvoiceListViewModel
     {
-        public bool AllUserInvoices { get; set; }
+        public bool All { get; set; }
         public List<PayrollInvoiceViewModel> PayrollInvoices { get; set; }
     }
 

@@ -33,15 +33,15 @@
                     <a id="@state-view"
                        asp-action="List"
                        asp-route-storeId="@storeId"
-                       class="nav-link @(Model.ActiveState == PayrollUserActiveState.Active ? "active" : "")"
+                       class="nav-link @(!Model.All ? "active" : "")"
                        role="tab">@state</a>
                 }
             }
             <a id="all-view"
                asp-action="List"
                asp-route-storeId="@storeId"
-               asp-route-allUser=true
-               class="nav-link @(Model.ActiveState == PayrollUserActiveState.All ? "active" : "")"
+               asp-route-all=true
+               class="nav-link @(Model.All ? "active" : "")"
                role="tab">All</a>
         </div>
     </nav>
@@ -125,7 +125,14 @@
     else
     {
         <p class="text-secondary mt-4">
-            There are no @(Model.ActiveState == PayrollUserActiveState.All ? "" : Model.ActiveState.ToString()) users @(Model.ActiveState == PayrollUserActiveState.All ? "created yet. Why don't you create one?" : "found.")
+            @if (Model.All)
+            {
+                <span>There are no users created yet. Why don't you create one?</span>
+            }
+            else
+            {
+                <span>There are no Active users found.</span>
+            }
         </p>
     }
 
