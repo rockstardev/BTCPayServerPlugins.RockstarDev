@@ -1,14 +1,5 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.Abstractions.Contracts
-@using BTCPayServer.Abstractions.Models
-@using BTCPayServer.Client
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Data
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
-@using BTCPayServer.Services
-@using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollUserController
-@inject IScopeProvider ScopeProvider
-@inject DisplayFormatter DisplayFormatter
-@model PayrollUserCreateViewModel
+@model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser.PayrollUserCreateViewModel
 @{
     ViewData.SetActivePage("Payroll", "Edit Payroll User", "Payroll");
 }

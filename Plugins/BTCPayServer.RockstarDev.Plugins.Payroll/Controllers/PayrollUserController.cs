@@ -5,21 +5,19 @@ using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Text;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Text;
 using System.Collections.Generic;
 using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
