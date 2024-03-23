@@ -1,12 +1,14 @@
 ﻿@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.Payroll.Data
 @using BTCPayServer.Services
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
+@using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController
 @inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
-@model List<PayrollInvoiceController.PayrollInvoiceViewModel>
+@model PayrollInvoiceListViewModel
 @{
     ViewData.SetActivePage("Payroll", "Payroll Invoices", "Payroll");
 
@@ -37,7 +39,24 @@
 
 <partial name="_StatusMessage" />
 
-@if (Model.Any())
+<nav id="SectionNav" class="mb-3">
+    <div class="nav">
+        <a id="active-view"
+           asp-action="List"
+           asp-route-storeId="@storeId"
+           class="nav-link @(!Model.All ? "active" : "")"
+           role="tab">Active</a>
+
+        <a id="all-view"
+           asp-action="List"
+           asp-route-storeId="@storeId"
+           asp-route-all=true
+           class="nav-link @(Model.All ? "active" : "")"
+           role="tab">All</a>
+    </div>
+</nav>
+
+@if (Model.PayrollInvoices.Any())
 {
     <form method="post" asp-action="MassAction">
         <div class="table-responsive">
@@ -92,7 +111,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var pp in Model)
+                    @foreach (var pp in Model.PayrollInvoices)
                     {
                         var detailsId = $"invoice_details_{pp.Id}";
                         <tr id="invoice_@pp.Id" class="mass-action-row">
