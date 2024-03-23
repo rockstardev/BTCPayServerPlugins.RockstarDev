@@ -61,13 +61,18 @@ public class PayrollInvoiceController : Controller
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("~/plugins/{storeId}/payroll/list")]
-    public async Task<IActionResult> List(string storeId)
+    public async Task<IActionResult> List(string storeId, bool allUserInvoices)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
-            .Where(p => p.User.StoreId == storeId && p.IsArchived == false)
+            .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
+
+        if (!allUserInvoices)
+        {
+            payrollInvoices = payrollInvoices.Where(a => a.User.State == PayrollUserState.Active).ToList();
+        }
 
         // triggering saving of admin user id if needed
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
@@ -77,24 +82,34 @@ public class PayrollInvoiceController : Controller
             settings.AdminAppUserId = _userManager.GetUserId(User);
             await _settingsRepository.UpdateSetting(settings);
         }
-        //
 
-        return View(payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+        PayrollInvoiceListViewModel model = new PayrollInvoiceListViewModel
         {
-            CreatedAt = tuple.CreatedAt,
-            Id = tuple.Id,
-            Name = tuple.User.Name,
-            Email = tuple.User.Email,
-            Destination = tuple.Destination,
-            Amount = tuple.Amount,
-            Currency = tuple.Currency,
-            State = tuple.State,
-            TxnId = tuple.TxnId,
-            Description = tuple.Description,
-            InvoiceUrl = tuple.InvoiceFilename
-        }).ToList()
-        );
+            AllUserInvoices = allUserInvoices,
+            PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+            {
+                CreatedAt = tuple.CreatedAt,
+                Id = tuple.Id,
+                Name = tuple.User.Name,
+                Email = tuple.User.Email,
+                Destination = tuple.Destination,
+                Amount = tuple.Amount,
+                Currency = tuple.Currency,
+                State = tuple.State,
+                TxnId = tuple.TxnId,
+                Description = tuple.Description,
+                InvoiceUrl = tuple.InvoiceFilename
+            }).ToList()
+        };
+        return View(model);
     }
+
+    public class PayrollInvoiceListViewModel
+    {
+        public bool AllUserInvoices { get; set; }
+        public List<PayrollInvoiceViewModel> PayrollInvoices { get; set; }
+    }
+
     public class PayrollInvoiceViewModel
     {
         public DateTimeOffset CreatedAt { get; set; }
@@ -254,7 +269,7 @@ public class PayrollInvoiceController : Controller
 
     private static SelectList getPayrollUsers(PayrollPluginDbContext ctx, string storeId)
     {
-        var payrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId)
+        var payrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId && a.State == PayrollUserState.Active)
             .Select(a => new SelectListItem { Text = $"{a.Name} <{a.Email}>", Value = a.Id })
             .ToList();
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
