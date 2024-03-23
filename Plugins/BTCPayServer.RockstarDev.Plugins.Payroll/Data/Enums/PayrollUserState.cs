@@ -6,4 +6,12 @@
         Active,
         Archived
     }
+
+    public enum PayrollUserActiveState
+    {
+        All,
+        Disabled,
+        Active,
+        Archived
+    }
 }

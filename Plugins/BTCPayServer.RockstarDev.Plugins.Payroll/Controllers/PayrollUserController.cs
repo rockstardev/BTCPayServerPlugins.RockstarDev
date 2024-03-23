@@ -5,19 +5,19 @@ using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.ComponentModel.DataAnnotations;
+using System.Text;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Text;
+using System.Collections.Generic;
 using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -43,14 +43,24 @@ public class PayrollUserController : Controller
 
 
     [HttpGet("~/plugins/{storeId}/payroll/users")]
-    public async Task<IActionResult> List(string storeId)
+    public async Task<IActionResult> List(string storeId, bool allUser)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
-        var payrollUsers = await ctx.PayrollUsers
+        List<PayrollUser> payrollUsers = await ctx.PayrollUsers
             .Where(a => a.StoreId == storeId)
             .OrderByDescending(data => data.Name).ToListAsync();
 
-        return View(payrollUsers.ToList());
+        if (!allUser)
+        {
+            payrollUsers = payrollUsers.Where(a => a.State == PayrollUserState.Active).ToList();
+        }
+
+        PayrollUserListViewModel payrollUserListViewModel = new PayrollUserListViewModel
+        {
+            ActiveState = allUser ? PayrollUserActiveState.All : PayrollUserActiveState.Active,
+            PayrollUsers = payrollUsers
+        };
+        return View(payrollUserListViewModel);
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/users/create")]
@@ -334,44 +344,5 @@ public class PayrollUserController : Controller
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
-    }
-
-    public class PayrollUserCreateViewModel
-    {
-        public string Id { get; set; }
-        [MaxLength(50)]
-        [Required]
-
-        public string Name { get; set; }
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-        [Required]
-        [MinLength(6)]
-        [DataType(DataType.Password)]
-        public string Password { get; set; }
-
-        [Required]
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm Password")]
-        [Compare("Password", ErrorMessage = "Password fields don't match")]
-        public string ConfirmPassword { get; set; }
-    }
-
-    public class PayrollUserResetPasswordViewModel
-    {
-        public string Id { get; set; }
-        [Required]
-        [MinLength(6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "New Password")]
-        public string NewPassword { get; set; }
-
-        [Required]
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm New Password")]
-        [Compare("NewPassword", ErrorMessage = "Password fields don't match")]
-        public string ConfirmNewPassword { get; set; }
     }
 }

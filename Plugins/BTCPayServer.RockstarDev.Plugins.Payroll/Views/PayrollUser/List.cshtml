@@ -1,12 +1,9 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Models
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data
-@using BTCPayServer.Services
 @inject IScopeProvider ScopeProvider
-@inject DisplayFormatter DisplayFormatter
-@model List<PayrollUser>
+@model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser.PayrollUserListViewModel
 @{
     ViewData.SetActivePage("Payroll", "Payroll Users", "Payroll");
 
@@ -26,7 +23,30 @@
 
     <partial name="_StatusMessage" />
 
-    @if (Model.Any())
+
+    <nav id="SectionNav" class="mb-3">
+        <div class="nav">
+            @foreach (var state in Enum.GetValues(typeof(PayrollUserState)).Cast<PayrollUserState>())
+            {
+                @if (state == PayrollUserState.Active)
+                {
+                    <a id="@state-view"
+                       asp-action="List"
+                       asp-route-storeId="@storeId"
+                       class="nav-link @(Model.ActiveState == PayrollUserActiveState.Active ? "active" : "")"
+                       role="tab">@state</a>
+                }
+            }
+            <a id="all-view"
+               asp-action="List"
+               asp-route-storeId="@storeId"
+               asp-route-allUser=true
+               class="nav-link @(Model.ActiveState == PayrollUserActiveState.All ? "active" : "")"
+               role="tab">All</a>
+        </div>
+    </nav>
+
+    @if (Model.PayrollUsers.Any())
     {
         <div class="table-responsive-md">
             <table class="table table-hover">
@@ -39,7 +59,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var pp in Model)
+                    @foreach (var pp in Model.PayrollUsers)
                     {
                         <tr class="mass-action-row">
                             <td>@pp.Name</td>
@@ -77,15 +97,7 @@
                                                    class="dropdown-item text-danger">
                                                     Delete
                                                 </a>
-
-@* 
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#ConfirmModal"
-                                                data-description="Do you really want to delete the user <strong>@Html.Encode(pp.Name)</strong>?">
- *@
-
                                             </li>
-
                                         </ul>
                                     </div>
                                 </div>
@@ -113,7 +125,7 @@
     else
     {
         <p class="text-secondary mt-4">
-            There are no users created yet. Why don't you create one?
+            There are no @(Model.ActiveState == PayrollUserActiveState.All ? "" : Model.ActiveState.ToString()) users @(Model.ActiveState == PayrollUserActiveState.All ? "created yet. Why don't you create one?" : "found.")
         </p>
     }
 
