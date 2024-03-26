@@ -61,13 +61,24 @@ public class PayrollInvoiceController : Controller
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("~/plugins/{storeId}/payroll/list")]
-    public async Task<IActionResult> List(string storeId, bool all)
+    public async Task<IActionResult> List(string storeId, bool all, string payrollInvoiceId)
     {
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
+
+        if (!string.IsNullOrEmpty(payrollInvoiceId))
+        {
+            List<string> payrollInvoiceIds = payrollInvoiceId.Split(",", StringSplitOptions.RemoveEmptyEntries).ToList();
+            foreach (var invoiceId in payrollInvoiceIds)
+            {
+                if (payrollInvoices.Find(c => c.Id == invoiceId) is PayrollInvoice invoice)
+                    invoice.State = PayrollInvoiceState.AwaitingPayment;
+            }
+            await ctx.SaveChangesAsync();
+        }
 
         if (!all)
         {
@@ -195,6 +206,10 @@ public class PayrollInvoiceController : Controller
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
+        if (CurrentStore is null)
+        {
+            return NotFound();
+        }
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var invoices = ctx.PayrollInvoices
             .Include(a => a.User)
@@ -223,11 +238,17 @@ public class PayrollInvoiceController : Controller
             Message = $"Payroll on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices"
         });
 
+        var payrollInvoiceIds = string.Join(",", invoices.Select(p => p.Id));
+        string url = Url.Action("List", "PayrollInvoice", new { storeId = CurrentStore.Id });
+        url = $"{url}?payrollInvoiceId={payrollInvoiceIds}";
+
+
         return new RedirectToActionResult("WalletSend", "UIWallets",
             new
             {
                 walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(),
-                bip21
+                bip21,
+                returnUrl = url
             });
     }
 
