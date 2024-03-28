@@ -84,17 +84,6 @@ public class PayrollInvoiceController : Controller
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        if (!string.IsNullOrEmpty(payrollInvoiceId))
-        {
-            List<string> payrollInvoiceIds = payrollInvoiceId.Split(",", StringSplitOptions.RemoveEmptyEntries).ToList();
-            foreach (var invoiceId in payrollInvoiceIds)
-            {
-                if (payrollInvoices.Find(c => c.Id == invoiceId) is PayrollInvoice invoice)
-                    invoice.State = PayrollInvoiceState.AwaitingPayment;
-            }
-            await ctx.SaveChangesAsync();
-        }
-
         var pendingPayrollInvoices = payrollInvoices.Where(c => c.State == PayrollInvoiceState.Pending).ToList();
         if (pendingPayrollInvoices.Any())
         {
