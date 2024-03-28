@@ -245,33 +245,40 @@ public class PayrollUserController : Controller
         using var ms = new MemoryStream();
         using var zip = new ZipArchive(ms, ZipArchiveMode.Create, true);
 
-        if (payrollInvoices.Count > 0)
+        if (!payrollInvoices.Any())
         {
-            var csvData = new StringBuilder();
-            csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
-            foreach (var invoice in payrollInvoices)
+            TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                csvData.AppendLine(
-                    $"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
+                Message = $"No invoice found for this user ({user.Name})",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
 
-                var fileUrl =
-                    await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
-                string filename = Path.GetFileName(fileUrl);
-                string extension = Path.GetExtension(filename);
-                var entry = zip.CreateEntry($"{filename}{extension}");
-                using (var entryStream = entry.Open())
-                {
-                    await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
-                }
-            }
+        var csvData = new StringBuilder();
+        csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
+        foreach (var invoice in payrollInvoices)
+        {
+            csvData.AppendLine(
+                $"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
 
-            var csv = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
-            await using (var entryStream = csv.Open())
+            var fileUrl =
+                await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
+            var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
+            string filename = Path.GetFileName(fileUrl);
+            string extension = Path.GetExtension(filename);
+            var entry = zip.CreateEntry($"{filename}{extension}");
+            using (var entryStream = entry.Open())
             {
-                var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
-                await entryStream.WriteAsync(csvBytes);
+                await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
             }
+        }
+
+        var csv = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
+        await using (var entryStream = csv.Open())
+        {
+            var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
+            await entryStream.WriteAsync(csvBytes);
         }
 
         return File(ms.ToArray(), "application/zip", zipName);
