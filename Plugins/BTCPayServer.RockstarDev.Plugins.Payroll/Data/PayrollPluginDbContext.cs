@@ -15,6 +15,7 @@ public class PayrollPluginDbContext : DbContext
 
     public DbSet<PayrollInvoice> PayrollInvoices { get; set; }
     public DbSet<PayrollUser> PayrollUsers { get; set; }
+    public DbSet<PayrollTransaction> PayrollTransactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

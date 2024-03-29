@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     [DbContext(typeof(PayrollPluginDbContext))]
-    partial class PayrollPluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240328224732_AddingPayrollTranasaction")]
+    partial class AddingPayrollTranasaction
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,60 +70,60 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
                 });
 
             modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollTransaction", b =>
-            {
-                b.Property<string>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("text");
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text");
 
-                b.Property<string>("Address")
-                    .HasColumnType("text");
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
 
-                b.Property<decimal>("Amount")
-                    .HasColumnType("numeric");
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
 
-                b.Property<string>("Balance")
-                    .HasColumnType("text");
+                    b.Property<string>("Balance")
+                        .HasColumnType("text");
 
-                b.Property<decimal>("BtcAmount")
-                    .HasColumnType("numeric");
+                    b.Property<decimal>("BtcAmount")
+                        .HasColumnType("numeric");
 
-                b.Property<decimal>("BtcJpyRate")
-                    .HasColumnType("numeric");
+                    b.Property<decimal>("BtcJpyRate")
+                        .HasColumnType("numeric");
 
-                b.Property<decimal>("BtcUsdRate")
-                    .HasColumnType("numeric");
+                    b.Property<decimal>("BtcUsdRate")
+                        .HasColumnType("numeric");
 
-                b.Property<string>("Currency")
-                    .HasColumnType("text");
+                    b.Property<string>("Currency")
+                        .HasColumnType("text");
 
-                b.Property<string>("InvoiceId")
-                    .HasColumnType("text");
+                    b.Property<string>("InvoiceId")
+                        .HasColumnType("text");
 
-                b.Property<string>("Link")
-                    .HasColumnType("text");
+                    b.Property<string>("Link")
+                        .HasColumnType("text");
 
-                b.Property<decimal>("MinerFee")
-                    .HasColumnType("numeric");
+                    b.Property<decimal>("MinerFee")
+                        .HasColumnType("numeric");
 
-                b.Property<string>("Recipient")
-                    .HasColumnType("text");
+                    b.Property<string>("Recipient")
+                        .HasColumnType("text");
 
-                b.Property<int>("State")
-                    .HasColumnType("integer");
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
 
-                b.Property<DateTime>("TransactionDate")
-                    .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<string>("TransactionId")
-                    .HasColumnType("text");
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("text");
 
-                b.Property<string>("UserId")
-                    .HasColumnType("text");
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.ToTable("PayrollTransactions", "BTCPayServer.RockstarDev.Plugins.Payroll");
-            });
+                    b.ToTable("PayrollTransactions", "BTCPayServer.RockstarDev.Plugins.Payroll");
+                });
 
             modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollUser", b =>
                 {
@@ -138,7 +141,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("State")
-                       .HasColumnType("integer");
+                        .HasColumnType("integer");
 
                     b.Property<string>("StoreId")
                         .HasMaxLength(50)

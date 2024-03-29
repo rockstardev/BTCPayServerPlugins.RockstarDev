@@ -25,12 +25,20 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Services;
+using BTCPayServer.Services.Wallets;
+using BTCPayServer.Models.WalletViewModels;
+using BTCPayServer.Services.Labels;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Helper;
+using System.Text;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController : Controller
 {
+    private WalletRepository WalletRepository { get; }
+
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
     private readonly RateFetcher _rateFetcher;
@@ -39,6 +47,8 @@ public class PayrollInvoiceController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ISettingsRepository _settingsRepository;
     private readonly HttpClient _httpClient;
+    private readonly BTCPayWalletProvider _walletProvider;
+    private readonly LabelService _labelService;
 
     public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -47,8 +57,14 @@ public class PayrollInvoiceController : Controller
         IFileService fileService,
         UserManager<ApplicationUser> userManager,
         ISettingsRepository settingsRepository,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        BTCPayWalletProvider walletProvider,
+        WalletRepository walletRepository,
+        LabelService labelService)
     {
+        _labelService = labelService;
+        _walletProvider = walletProvider;
+        WalletRepository = walletRepository;
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _rateFetcher = rateFetcher;
@@ -68,6 +84,12 @@ public class PayrollInvoiceController : Controller
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
+
+        List<PayrollInvoice> pendingPayrollInvoices = payrollInvoices.Where(c => c.State == PayrollInvoiceState.AwaitingApproval).ToList();
+        if (pendingPayrollInvoices.Any())
+        {
+            await ValidatePaidInvoice(pendingPayrollInvoices, ctx);
+        }
 
         if (!all)
         {
@@ -195,6 +217,11 @@ public class PayrollInvoiceController : Controller
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
+        PayrollInvoicePaymentHelper payrollInvoiceHelper = new PayrollInvoicePaymentHelper();
+        if (CurrentStore is null)
+        {
+            return NotFound();
+        }
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         var invoices = ctx.PayrollInvoices
             .Include(a => a.User)
@@ -207,16 +234,12 @@ public class PayrollInvoiceController : Controller
         {
             var amountInBtc = await usdToBtcAmount(invoice);
             var bip21New = network.GenerateBIP21(invoice.Destination, amountInBtc);
-            bip21New.QueryParams.Add("label", invoice.User.Name);
-            // TODO: Add parameter here on which payroll invoice it is being paid, so that when wallet sends trasaction you can mark it paid
-            // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
+            bip21New.QueryParams.Add("label", invoice.Id);
             bip21.Add(bip21New.ToString());
-
-            invoice.State = PayrollInvoiceState.AwaitingPayment;
+            payrollInvoiceHelper.AddPayrollTransaction(invoice, ctx);
         }
-
         await ctx.SaveChangesAsync();
-        
+
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Severity = StatusMessageModel.StatusSeverity.Info,
@@ -229,6 +252,61 @@ public class PayrollInvoiceController : Controller
                 walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(),
                 bip21
             });
+    }
+
+    private async Task ValidatePaidInvoice(List<PayrollInvoice> invoices, PayrollPluginDbContext context)
+    {
+        PayrollInvoicePaymentHelper payrollInvoiceHelper = new PayrollInvoicePaymentHelper();
+        ListTransactionsViewModel txns = await GetWalletTransaction();
+        foreach (var invoice in invoices)
+        {
+            var walletTransaction = txns?.Transactions.Find(t => t.Tags.Any(tag => tag.Text.Contains(invoice.Id)));
+            if (walletTransaction != null)
+            {
+                payrollInvoiceHelper.FinalizePayrollTransaction(invoice, walletTransaction, context);
+                invoice.State = PayrollInvoiceState.AwaitingPayment;
+                context.PayrollInvoices.Update(invoice);
+            }
+        }
+        await context.SaveChangesAsync();
+    }
+
+    private async Task<ListTransactionsViewModel> GetWalletTransaction()
+    {
+
+        ListTransactionsViewModel model = new ListTransactionsViewModel();
+        WalletId walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE);
+        var paymentMethod = GetDerivationSchemeSettings(walletId);
+
+        var wallet = _walletProvider.GetWallet(paymentMethod.Network);
+        var transactions = await wallet.FetchTransactionHistory(paymentMethod.AccountDerivation);
+        var walletTransactionsInfo = await WalletRepository.GetWalletTransactionsInfo(walletId, transactions.Select(t => t.TransactionId.ToString()).ToArray());
+
+        foreach (var tx in transactions)
+        {
+            var vm = new ListTransactionsViewModel.TransactionViewModel();
+            vm.Id = tx.TransactionId.ToString();
+            vm.Timestamp = tx.SeenAt;
+            vm.Balance = tx.BalanceChange.ShowMoney(wallet.Network);
+            vm.IsConfirmed = tx.Confirmations != 0;
+
+            if (walletTransactionsInfo.TryGetValue(tx.TransactionId.ToString(), out var transactionInfo))
+            {
+                var labels = _labelService.CreateTransactionTagModels(transactionInfo, Request);
+                vm.Tags.AddRange(labels);
+                vm.Comment = transactionInfo.Comment;
+            }
+
+            model.Transactions.Add(vm);
+        }
+        return model;
+    }
+
+    private StoreData GetCurrentStore() => HttpContext.GetStoreData();
+
+    internal DerivationSchemeSettings? GetDerivationSchemeSettings(WalletId walletId)
+    {
+        return GetCurrentStore().GetDerivationSchemeSettings(_networkProvider, walletId.CryptoCode);
     }
 
     private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)
@@ -327,6 +405,21 @@ public class PayrollInvoiceController : Controller
             State = PayrollInvoiceState.AwaitingApproval
         };
 
+        if (!string.IsNullOrEmpty(model.InvoiceId))
+        {
+            bool existingInvoice = dbPlugin.PayrollInvoices.Any(c => c.Id == model.InvoiceId);
+            if (existingInvoice)
+            {
+                TempData.SetStatusMessageModel(new StatusMessageModel()
+                {
+                    Message = $"This invoice Id already exists. Please input a unique invoice Id or allow the system generates one for you",
+                    Severity = StatusMessageModel.StatusSeverity.Error
+                });
+                return RedirectToAction(nameof(Upload), new { storeId = CurrentStore.Id });
+            }
+            dbPayrollInvoice.Id = model.InvoiceId;
+        }
+
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
 
@@ -336,6 +429,41 @@ public class PayrollInvoiceController : Controller
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpGet("~/plugins/{storeId}/payroll/invoices/export")]
+    public async Task<IActionResult> ExportInvoices(string storeId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        List<PayrollTransaction> payrollTransactions = await ctx.PayrollTransactions.ToListAsync();
+
+        if (!payrollTransactions.Any())
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"No invoice transaction found",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        string fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
+
+        StringBuilder csvData = new StringBuilder();
+        csvData.AppendLine("Date,Name,InvoiceId,Address,Currency,Amount,Balance,TransactionId");
+        foreach (var transaction in payrollTransactions)
+        {
+            //string balance = string.IsNullOrEmpty(transaction.Balance) ? "" : transaction.Balance;
+            string balance = string.Empty;
+            csvData.AppendLine($"{transaction.TransactionDate.ToString("MM/dd/yy HH:mm")},{transaction.Recipient},{transaction.InvoiceId}" +
+                $",{transaction.Address},{transaction.Currency},-{transaction.Amount},{balance},{transaction.TransactionId}");
+        }
+        byte[] fileBytes = Encoding.UTF8.GetBytes(csvData.ToString());
+
+        return File(fileBytes, "text/csv", fileName);
     }
 
     [HttpGet("~/plugins/payroll/delete/{id}")]
@@ -418,6 +546,7 @@ public class PayrollInvoiceController : Controller
         [Required]
         public string Currency { get; set; }
         public string Description { get; set; }
+        public string InvoiceId { get; set; }
         [Required]
         public IFormFile Invoice { get; set; }
 
