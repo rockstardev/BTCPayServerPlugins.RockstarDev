@@ -23,8 +23,13 @@ using System.IO.Compression;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Models.WalletViewModels;
+using BTCPayServer.Services;
+using BTCPayServer.Services.Labels;
+using BTCPayServer.Services.Wallets;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -39,6 +44,9 @@ public class PayrollInvoiceController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ISettingsRepository _settingsRepository;
     private readonly HttpClient _httpClient;
+    private readonly BTCPayWalletProvider _walletProvider;
+    private readonly WalletRepository _walletRepository;
+    private readonly LabelService _labelService;
 
     public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -47,7 +55,10 @@ public class PayrollInvoiceController : Controller
         IFileService fileService,
         UserManager<ApplicationUser> userManager,
         ISettingsRepository settingsRepository,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        BTCPayWalletProvider walletProvider,
+        WalletRepository walletRepository,
+        LabelService labelService)
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
@@ -57,6 +68,9 @@ public class PayrollInvoiceController : Controller
         _userManager = userManager;
         _settingsRepository = settingsRepository;
         _httpClient = httpClient;
+        _walletProvider = walletProvider;
+        _walletRepository = walletRepository;
+        _labelService = labelService;
     }
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -160,6 +174,9 @@ public class PayrollInvoiceController : Controller
 
             case "download":
                 return await DownloadInvoicesAsZipAsync(invoices);
+            
+            case "export":
+                return await ExportInvoices(invoices);
 
             default:
                 break;
@@ -392,6 +409,86 @@ public class PayrollInvoiceController : Controller
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    } 
+    
+    private async Task<IActionResult> ExportInvoices(List<PayrollInvoice> invoices)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        if (!invoices.Any())
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"No invoice transaction found",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+
+        var transactionIds = invoices.Select(a => a.TxnId).Distinct().ToList();
+        var walletTxnInfo = await GetWalletTransactions(transactionIds);
+        var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
+
+        var csvData = new StringBuilder();
+        csvData.AppendLine("Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate, BTCJPY Rate,Balance,TransactionId");
+        string emptyStr = string.Empty;
+        foreach (var invoice in invoices)
+        {
+            var txn = walletTxnInfo.Transactions.SingleOrDefault(a => a.Id == invoice.TxnId);
+            //string balance = string.IsNullOrEmpty(transaction.Balance) ? "" : transaction.Balance;
+
+            decimal usdRate = 0;
+            var btcPaid = Convert.ToDecimal(invoice.BtcPaid);
+            if (btcPaid > 0)
+            {
+                usdRate = Math.Floor(Convert.ToDecimal(invoice.Amount) / btcPaid);
+                usdRate = Math.Abs(usdRate);
+            }
+
+            csvData.AppendLine($"{txn?.Timestamp.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{emptyStr}" +
+                               $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
+                               $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId}");
+        }
+        
+        byte[] fileBytes = Encoding.UTF8.GetBytes(csvData.ToString());
+        return File(fileBytes, "text/csv", fileName);
+    }
+    
+    private async Task<ListTransactionsViewModel> GetWalletTransactions(List<string> transactionIds)
+    {
+        var  model = new ListTransactionsViewModel();
+        WalletId walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE);
+        var paymentMethod = CurrentStore.GetDerivationSchemeSettings(_networkProvider, walletId.CryptoCode);
+        
+        var wallet = _walletProvider.GetWallet(paymentMethod.Network);
+        var walletTransactionsInfo = await _walletRepository.GetWalletTransactionsInfo(
+            walletId, transactionIds.ToArray());
+        
+        // TODO: This will only select first 100 transactions, fix it
+        foreach (var transactionId in transactionIds)
+        {
+            var txnIdUid = uint256.Parse(transactionId);
+            
+            var tx = await wallet.FetchTransaction(paymentMethod.AccountDerivation, txnIdUid);
+            var vm = new ListTransactionsViewModel.TransactionViewModel
+            {
+                Id = tx.TransactionId.ToString(),
+                Timestamp = tx.SeenAt,
+                Balance = tx.BalanceChange.ShowMoney(wallet.Network),
+                IsConfirmed = tx.Confirmations != 0
+            };
+
+            if (walletTransactionsInfo.TryGetValue(tx.TransactionId.ToString(), out var transactionInfo))
+            {
+                var labels = _labelService.CreateTransactionTagModels(transactionInfo, Request);
+                vm.Tags.AddRange(labels);
+                vm.Comment = transactionInfo.Comment;
+            }
+
+            model.Transactions.Add(vm);
+        }
+        return model;
     }
 
 

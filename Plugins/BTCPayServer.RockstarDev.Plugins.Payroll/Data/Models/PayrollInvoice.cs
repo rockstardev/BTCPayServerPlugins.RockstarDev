@@ -22,6 +22,7 @@ public class PayrollInvoice
     public bool IsArchived { get; set; }
     public PayrollInvoiceState State { get; set; }
     public string TxnId { get; set; }
+    public string BtcPaid { get; set; }
 
     internal static void OnModelCreating(ModelBuilder builder)
     {

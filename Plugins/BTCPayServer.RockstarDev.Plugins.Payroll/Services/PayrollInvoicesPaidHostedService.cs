@@ -50,6 +50,7 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
 
                     var matchedObjects = new List<string>();
 
+                    var amountPaid = new Dictionary<string,string>();
                     // Check if outputs match some UTXOs
                     var walletOutputsByIndex = transactionEvent.NewTransactionEvent.Outputs.ToDictionary(o => (uint)o.Index);
                     foreach (var txOut in transactionEvent.NewTransactionEvent.TransactionData.Transaction.Outputs.AsIndexedOutputs())
@@ -60,7 +61,10 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
                             address = walletTxOut.Address;
                         address ??= txOut.TxOut.ScriptPubKey.GetDestinationAddress(network.NBitcoinNetwork);
                         if (address is not null)
+                        {
                             matchedObjects.Add(address.ToString());
+                            amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
+                        }
                     }
 
                     await using var dbPlugin = _pluginDbContextFactory.CreateContext();
@@ -74,6 +78,7 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
                         {
                             invoice.TxnId = txHash;
                             invoice.State = PayrollInvoiceState.Completed;
+                            invoice.BtcPaid = amountPaid[invoice.Destination];
                         }
                     }
 
