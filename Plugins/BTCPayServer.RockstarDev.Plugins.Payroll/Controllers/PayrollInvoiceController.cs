@@ -218,11 +218,35 @@ public class PayrollInvoiceController : Controller
             .Where(a => selectedItems.Contains(a.Id))
             .ToList();
 
+        // initialize exchange rates
+        var rates = new Dictionary<string, decimal>();
+        var currencies = invoices.Select(a => a.Currency).Distinct().ToList();
+        foreach (var currency in currencies)
+        {
+            if (currency == PayrollPluginConst.BTC_CRYPTOCODE)
+            {
+                rates.Add(currency, 1);
+            }
+            else
+            {
+                var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, PayrollPluginConst.BTC_CRYPTOCODE),
+                    CurrentStore.GetStoreBlob().GetRateRules(_networkProvider), CancellationToken.None);
+                if (rate.BidAsk == null)
+                {
+                    throw new Exception("Currency is not supported");
+                }
+
+                rates.Add(currency, rate.BidAsk.Bid);
+            }
+        }
+
         var network = _networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
         var bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
-            var amountInBtc = await usdToBtcAmount(invoice);
+            var satsAmount = Math.Ceiling(invoice.Amount * rates[invoice.Currency] * 100_000_000);
+            var amountInBtc = satsAmount / 100_000_000;
+            
             var bip21New = network.GenerateBIP21(invoice.Destination, amountInBtc);
             bip21New.QueryParams.Add("label", invoice.User.Name);
             // TODO: Add parameter here on which payroll invoice it is being paid, so that when wallet sends trasaction you can mark it paid
@@ -233,11 +257,12 @@ public class PayrollInvoiceController : Controller
         }
 
         await ctx.SaveChangesAsync();
-        
+
+        var strRates = String.Join(", ", rates.Select(a => $"BTC/{a.Key}:{Math.Ceiling(100/a.Value)/100}"));
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Severity = StatusMessageModel.StatusSeverity.Info,
-            Message = $"Payroll on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices"
+            Message = $"Payroll on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
         });
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
@@ -246,23 +271,6 @@ public class PayrollInvoiceController : Controller
                 walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(),
                 bip21
             });
-    }
-
-    private async Task<decimal> usdToBtcAmount(PayrollInvoice invoice)
-    {
-        if (invoice.Currency == PayrollPluginConst.BTC_CRYPTOCODE)
-            return invoice.Amount;
-
-        var rate = await _rateFetcher.FetchRate(new CurrencyPair(invoice.Currency, PayrollPluginConst.BTC_CRYPTOCODE),
-            CurrentStore.GetStoreBlob().GetRateRules(_networkProvider), CancellationToken.None);
-        if (rate.BidAsk == null)
-        {
-            throw new Exception("Currency is not supported");
-        }
-
-        var satsAmount = Math.Floor(invoice.Amount * rate.BidAsk.Bid * 100_000_000);
-        var amountInBtc = satsAmount / 100_000_000;
-        return amountInBtc;
     }
 
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
