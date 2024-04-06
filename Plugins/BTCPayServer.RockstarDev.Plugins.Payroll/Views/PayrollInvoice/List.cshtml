@@ -35,6 +35,19 @@
             <a asp-controller="PayrollUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
         </div>
     </div>
+
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qrModalLabel">Destination Address QR</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><vc:icon symbol="close" /></button>
+                </div>
+                <div class="modal-body" id="qrModalBody">
+                </div>
+            </div>
+        </div>
+    </div>
 </form>
 
 <partial name="_StatusMessage" />
@@ -129,6 +142,10 @@
                             </td>
                             <td>
                                 <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
+
+                                <a href="#" class="show-qr" data-invoice="bitcoin:@(pp.Destination)">
+                                    <vc:icon symbol="scan-qr" />
+                                </a>
                             </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
@@ -174,6 +191,46 @@
 
         @section PageFootContent {
         <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var qrModal = document.getElementById('qrModal');
+                var qrModalBody = document.getElementById('qrModalBody');
+
+                var showQRButtons = document.querySelectorAll('.show-qr');
+                showQRButtons.forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        event.preventDefault();
+                        var invoiceDestination = button.getAttribute('data-invoice');
+
+                        var qrCodeHtml = generateQRCodeHtml(invoiceDestination)
+                            .then(qrCodeHtml => {
+                                qrModalBody.innerHTML = qrCodeHtml;
+                                var modal = new bootstrap.Modal(qrModal);
+                                modal.show();
+                            })
+                    });
+                });
+
+                function generateQRCodeHtml(data) {
+                    return new Promise((resolve, reject) => {
+                        fetch('https://api.qrserver.com/v1/create-qr-code/?data=' + encodeURIComponent(data))
+                            .then(response => {
+                                return response.blob();
+                            })
+                            .then(blob => {
+                                var reader = new FileReader();
+                                reader.onload = function () {
+                                    var qrCodeHtml = `<img style="image-rendering:pixelated;image-rendering:-moz-crisp-edges;min-width:256px;min-height:256px" src="${reader.result}" class="qr-code" alt="QR Code">`;
+                                    resolve(qrCodeHtml);
+                                };
+                                reader.readAsDataURL(blob);
+                            })
+                            .catch(error => {
+                                console.log(error);
+                            });
+                    });
+                }
+            });
+
             const ppProgresses = document.getElementsByClassName("ppProgress");
             for (var i = 0; i < ppProgresses.length; i++) {
                 var pp = ppProgresses[i];

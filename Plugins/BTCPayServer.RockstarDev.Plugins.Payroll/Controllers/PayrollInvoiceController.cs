@@ -30,6 +30,7 @@ using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
+using BTCPayServer.Components.QRCode;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -182,6 +183,16 @@ public class PayrollInvoiceController : Controller
                 break;
         }
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    [HttpGet]
+    public IActionResult GenerateQR(string data)
+    {
+        QRCode qrCode = new QRCode();
+        var qrHtml = qrCode.Invoke(data);
+
+        var qrString = qrHtml.ToString();
+        return Content(qrString, "text/html");
     }
 
     async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
