@@ -35,19 +35,6 @@
             <a asp-controller="PayrollUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
         </div>
     </div>
-
-    <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="qrModalLabel">Destination Address QR</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><vc:icon symbol="close" /></button>
-                </div>
-                <div class="modal-body" id="qrModalBody">
-                </div>
-            </div>
-        </div>
-    </div>
 </form>
 
 <partial name="_StatusMessage" />
@@ -146,6 +133,10 @@
                                 <a href="#" class="show-qr" data-invoice="bitcoin:@(pp.Destination)">
                                     <vc:icon symbol="scan-qr" />
                                 </a>
+                                <div class="qr-container" style="display: none;">
+                                    <vc:qr-code data="bitcoin:@(pp.Destination)" />
+                                </div>
+
                             </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
@@ -191,6 +182,21 @@
 
         @section PageFootContent {
         <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var showQrLinks = document.querySelectorAll('.show-qr');
+                showQrLinks.forEach(function (link) {
+                    link.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        var qrContainer = this.parentNode.querySelector('.qr-container');
+                        if (qrContainer.style.display === 'none') {
+                            qrContainer.style.display = 'block';
+                        } else {
+                            qrContainer.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
             document.addEventListener('DOMContentLoaded', function () {
                 var qrModal = document.getElementById('qrModal');
                 var qrModalBody = document.getElementById('qrModalBody');

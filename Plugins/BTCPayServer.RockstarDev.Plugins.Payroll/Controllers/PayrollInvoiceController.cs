@@ -185,16 +185,6 @@ public class PayrollInvoiceController : Controller
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet]
-    public IActionResult GenerateQR(string data)
-    {
-        QRCode qrCode = new QRCode();
-        var qrHtml = qrCode.Invoke(data);
-
-        var qrString = qrHtml.ToString();
-        return Content(qrString, "text/html");
-    }
-
     async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
     {
         var zipName = $"Invoices-{DateTime.Now.ToString("yyyy_MM_dd-HH_mm_ss")}.zip";
