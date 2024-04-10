@@ -197,46 +197,6 @@
                 });
             });
 
-            document.addEventListener('DOMContentLoaded', function () {
-                var qrModal = document.getElementById('qrModal');
-                var qrModalBody = document.getElementById('qrModalBody');
-
-                var showQRButtons = document.querySelectorAll('.show-qr');
-                showQRButtons.forEach(function (button) {
-                    button.addEventListener('click', function () {
-                        event.preventDefault();
-                        var invoiceDestination = button.getAttribute('data-invoice');
-
-                        var qrCodeHtml = generateQRCodeHtml(invoiceDestination)
-                            .then(qrCodeHtml => {
-                                qrModalBody.innerHTML = qrCodeHtml;
-                                var modal = new bootstrap.Modal(qrModal);
-                                modal.show();
-                            })
-                    });
-                });
-
-                function generateQRCodeHtml(data) {
-                    return new Promise((resolve, reject) => {
-                        fetch('https://api.qrserver.com/v1/create-qr-code/?data=' + encodeURIComponent(data))
-                            .then(response => {
-                                return response.blob();
-                            })
-                            .then(blob => {
-                                var reader = new FileReader();
-                                reader.onload = function () {
-                                    var qrCodeHtml = `<img style="image-rendering:pixelated;image-rendering:-moz-crisp-edges;min-width:256px;min-height:256px" src="${reader.result}" class="qr-code" alt="QR Code">`;
-                                    resolve(qrCodeHtml);
-                                };
-                                reader.readAsDataURL(blob);
-                            })
-                            .catch(error => {
-                                console.log(error);
-                            });
-                    });
-                }
-            });
-
             const ppProgresses = document.getElementsByClassName("ppProgress");
             for (var i = 0; i < ppProgresses.length; i++) {
                 var pp = ppProgresses[i];
