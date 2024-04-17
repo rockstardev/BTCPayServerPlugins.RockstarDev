@@ -129,6 +129,14 @@
                             </td>
                             <td>
                                 <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
+
+                                <a href="#" class="show-qr" data-invoice="bitcoin:@(pp.Destination)">
+                                    <vc:icon symbol="scan-qr" />
+                                </a>
+                                <div class="qr-container" style="display: none;">
+                                    <vc:qr-code data="bitcoin:@(pp.Destination)" />
+                                </div>
+
                             </td>
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
@@ -174,6 +182,21 @@
 
         @section PageFootContent {
         <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var showQrLinks = document.querySelectorAll('.show-qr');
+                showQrLinks.forEach(function (link) {
+                    link.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        var qrContainer = this.parentNode.querySelector('.qr-container');
+                        if (qrContainer.style.display === 'none') {
+                            qrContainer.style.display = 'block';
+                        } else {
+                            qrContainer.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
             const ppProgresses = document.getElementsByClassName("ppProgress");
             for (var i = 0; i < ppProgresses.length; i++) {
                 var pp = ppProgresses[i];

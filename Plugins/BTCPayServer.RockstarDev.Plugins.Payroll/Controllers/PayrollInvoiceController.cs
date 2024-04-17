@@ -30,6 +30,7 @@ using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
+using BTCPayServer.Components.QRCode;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
