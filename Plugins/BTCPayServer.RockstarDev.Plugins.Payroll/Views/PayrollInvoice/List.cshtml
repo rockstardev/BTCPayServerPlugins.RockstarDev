@@ -29,6 +29,9 @@
                     <a asp-controller="Public" asp-action="ListInvoices" asp-route-storeId="@storeId" class="dropdown-item" target="_blank">
                         Share Invoice Upload Link <i class="fa fa-external-link"></i>
                     </a>
+                    <a asp-controller="PayrollSetting" asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
+                        Settings
+                    </a>
                 </div>
             </div>
             <a asp-controller="PayrollInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Admin Upload Invoice</a>
