@@ -162,7 +162,7 @@
                                 }
                             </td>
                             <td class="text-end">
-                                <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
+                                <a href="#" onclick="openInvoices('@pp.InvoiceUrl'); return false;">View Invoice</a>
                                 @if (pp.State == PayrollInvoiceState.AwaitingApproval)
                                 {
                                     <span>-</span>
@@ -243,6 +243,14 @@
                 toggleButtons()
             });
             toggleButtons();
+
+            function openInvoices(invoiceUrls) {
+                var urls = invoiceUrls.split(',');
+                urls.forEach(function (url) {
+                    var fullUrl = '/Storage/' + url.trim();
+                    window.open(fullUrl, '_blank');
+                });
+            }
         </script>
         }
 
