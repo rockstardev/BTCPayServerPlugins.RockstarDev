@@ -339,7 +339,12 @@ public class PayrollInvoiceController : Controller
 
         // TODO: Make saving of the file and entry in the database atomic
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
+        List<string> invoiceFiles = new List<string>();
+        foreach (var invoice in model.Invoices)
+        {
+            var uploaded = await _fileService.AddFile(invoice, settings!.AdminAppUserId);
+            invoiceFiles.Add(uploaded.Id);
+        }
 
         var dbPayrollInvoice = new PayrollInvoice
         {
@@ -348,7 +353,7 @@ public class PayrollInvoiceController : Controller
             Currency = model.Currency,
             Destination = model.Destination,
             Description = model.Description,
-            InvoiceFilename = uploaded.Id,
+            InvoiceFilename = invoiceFiles.Any() ? string.Join(", ", invoiceFiles) : string.Empty,
             UserId = model.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
@@ -525,7 +530,7 @@ public class PayrollInvoiceController : Controller
         public string Currency { get; set; }
         public string Description { get; set; }
         [Required]
-        public IFormFile Invoice { get; set; }
+        public List<IFormFile> Invoices { get; set; }
 
 
 
