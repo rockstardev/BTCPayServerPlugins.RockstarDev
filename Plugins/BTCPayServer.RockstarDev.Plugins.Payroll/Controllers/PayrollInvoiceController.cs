@@ -323,6 +323,12 @@ public class PayrollInvoiceController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
+        {
+            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
+        }
+
         await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
@@ -338,9 +344,6 @@ public class PayrollInvoiceController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
-
         var dbPayrollInvoice = new PayrollInvoice
         {
             Amount = model.Amount,
@@ -348,10 +351,15 @@ public class PayrollInvoiceController : Controller
             Currency = model.Currency,
             Destination = model.Destination,
             Description = model.Description,
-            InvoiceFilename = uploaded.Id,
             UserId = model.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
+        if (!settings.MakeInvoiceFilesOptional && model.Invoice != null)
+        {
+            var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
+            dbPayrollInvoice.InvoiceFilename = uploaded.Id;
+        }
+
 
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
@@ -524,10 +532,7 @@ public class PayrollInvoiceController : Controller
         [Required]
         public string Currency { get; set; }
         public string Description { get; set; }
-        [Required]
         public IFormFile Invoice { get; set; }
-
-
 
         public SelectList PayrollUsers { get; set; }
     }

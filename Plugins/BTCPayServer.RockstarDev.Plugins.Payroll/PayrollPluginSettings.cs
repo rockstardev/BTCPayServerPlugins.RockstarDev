@@ -3,5 +3,6 @@
     public class PayrollPluginSettings
     {
         public string AdminAppUserId { get; set; }
+        public bool MakeInvoiceFilesOptional { get; set; }
     }
 }
