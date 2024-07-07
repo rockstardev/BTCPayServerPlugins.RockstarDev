@@ -305,7 +305,6 @@ public class PayrollInvoiceController : Controller
 
     public async Task<IActionResult> Upload(PayrollInvoiceUploadViewModel model)
     {
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         if (CurrentStore is null)
             return NotFound();
 
@@ -324,6 +323,7 @@ public class PayrollInvoiceController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
         {
             ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
@@ -343,6 +343,7 @@ public class PayrollInvoiceController : Controller
             return View(model);
         }
 
+        // TODO: Make saving of the file and entry in the database atomic
         var dbPayrollInvoice = new PayrollInvoice
         {
             Amount = model.Amount,
