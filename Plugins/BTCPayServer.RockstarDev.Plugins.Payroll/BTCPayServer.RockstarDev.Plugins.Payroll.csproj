@@ -11,7 +11,7 @@
 		<Description>
 			Accept invoices from various sources and easily pay them out from Bitcoin wallet. Run your payroll on Bitcoin.
 		</Description>
-		<Version>0.1.3</Version>
+		<Version>0.1.4</Version>
 	</PropertyGroup>
 	<!-- Plugin development properties -->
 	<PropertyGroup>
