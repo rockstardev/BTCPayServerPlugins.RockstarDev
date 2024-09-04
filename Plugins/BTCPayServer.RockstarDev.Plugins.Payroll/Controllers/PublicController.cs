@@ -74,30 +74,23 @@ public class PublicController : Controller
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
         model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
-        //
 
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
             a.StoreId == storeId && a.Email == model.Email.ToLowerInvariant());
-        if (userInDb == null)
-            ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
 
-        if (userInDb != null && userInDb.State != PayrollUserState.Active)
+        if (userInDb != null)
         {
-            // doing the same message for user disabled in order not to easily differentiate
-            ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
+            if (userInDb.State == PayrollUserState.Active && _hasher.IsValidPassword(userInDb, model.Password))
+            {
+                _httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
+                return RedirectToAction(nameof(ListInvoices), new { storeId });
+            }
         }
 
-        if (!_hasher.IsValidPassword(userInDb, model.Password))
-            ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
-
-        if (!ModelState.IsValid)
-            return View(model);
-
-        // Validate login credentials here and get user details.
-        _httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
-
-        return RedirectToAction(nameof(ListInvoices), new { storeId });
+        // if we end up here, credentials are invalid 
+        ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
+        return View(model);
     }
 
     //

@@ -5,7 +5,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll
 {
     public class PayrollPluginPassHasher
     {
-        private PasswordHasher<string> _hasher = new PasswordHasher<string>();
+        private readonly PasswordHasher<string> _hasher = new();
 
         public bool IsValidPassword(PayrollUser user, string providedPassword)
         {
