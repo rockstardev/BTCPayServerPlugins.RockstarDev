@@ -187,28 +187,54 @@ public class PayrollInvoiceController : Controller
 
     async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
     {
-        var zipName = $"Invoices-{DateTime.Now.ToString("yyyy_MM_dd-HH_mm_ss")}.zip";
+        var zipName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
 
-        using (MemoryStream ms = new MemoryStream())
+        using var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
-            using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+            var usedFilenames = new HashSet<string>();
+
+            foreach (var invoice in invoices)
             {
-                foreach (var invoice in invoices)
+                var fileUrl =
+                    await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
+                var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
+                var filename = Path.GetFileName(fileUrl);
+
+                // replace guid of invoice with name of the user + year-month
+                if (filename?.Length > 36)
                 {
-                    var fileUrl = await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                    var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
-                    string filename = Path.GetFileName(fileUrl);
-                    string extension = Path.GetExtension(filename);
-                    var entry = zip.CreateEntry($"{filename}{extension}");
-                    using (var entryStream = entry.Open())
+                    var first36 = filename.Substring(0, 36);
+                    if (Guid.TryParse(first36, out Guid result))
                     {
-                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                        var newName = $"{invoice.User.Name} - {invoice.CreatedAt:yyyy-MM} ";
+                        filename = filename.Replace(first36, newName);
+
+                        // Ensure filename is unique
+                        var baseFilename = Path.GetFileNameWithoutExtension(filename);
+                        var extension = Path.GetExtension(filename);
+                        int counter = 1;
+
+                        while (usedFilenames.Contains(filename))
+                        {
+                            filename = $"{baseFilename} ({counter}){extension}";
+                            counter++;
+                        }
+
+                        usedFilenames.Add(filename);
                     }
                 }
-            }
 
-            return File(ms.ToArray(), "application/zip", zipName);
+                var entry = zip.CreateEntry(filename);
+                using (var entryStream = entry.Open())
+                {
+                    await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                }
+            }
         }
+
+        ms.Position = 0;
+        return File(ms.ToArray(), "application/zip", zipName);
     }
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
