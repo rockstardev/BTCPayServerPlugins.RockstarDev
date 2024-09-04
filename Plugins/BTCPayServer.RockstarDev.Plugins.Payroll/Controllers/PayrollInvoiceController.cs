@@ -31,6 +31,8 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Components.QRCode;
+using BTCPayServer.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -42,6 +44,7 @@ public class PayrollInvoiceController : Controller
     private readonly RateFetcher _rateFetcher;
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
+    private readonly IOptions<DataDirectories> _dataDirectories;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ISettingsRepository _settingsRepository;
     private readonly HttpClient _httpClient;
@@ -54,6 +57,7 @@ public class PayrollInvoiceController : Controller
         RateFetcher rateFetcher,
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
+        IOptions<DataDirectories> dataDirectories,
         UserManager<ApplicationUser> userManager,
         ISettingsRepository settingsRepository,
         HttpClient httpClient,
@@ -66,6 +70,7 @@ public class PayrollInvoiceController : Controller
         _rateFetcher = rateFetcher;
         _networkProvider = networkProvider;
         _fileService = fileService;
+        _dataDirectories = dataDirectories;
         _userManager = userManager;
         _settingsRepository = settingsRepository;
         _httpClient = httpClient;
@@ -198,9 +203,15 @@ public class PayrollInvoiceController : Controller
             {
                 var fileUrl =
                     await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
                 var filename = Path.GetFileName(fileUrl);
-
+                byte[] fileBytes = null;
+                
+                // if it is local storage, then read file from HDD
+                if (fileUrl?.Contains("/LocalStorage/") == true)
+                    fileBytes = await System.IO.File.ReadAllBytesAsync(Path.Combine(_dataDirectories.Value.StorageDir, filename));
+                else 
+                    fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
+                
                 // replace guid of invoice with name of the user + year-month
                 if (filename?.Length > 36)
                 {
