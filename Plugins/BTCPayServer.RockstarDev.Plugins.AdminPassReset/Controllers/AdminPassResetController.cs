@@ -52,7 +52,7 @@ public class AdminPassResetController : Controller
         model.CallbackUrl = _generator.GetUriByAction(
             action: nameof(UIAccountController.SetPassword),
             controller: "UIAccount",
-            values: new { user.Id, code },
+            values: new { userId = user.Id, code },
             scheme: uri.Scheme,
             host: host,
             pathBase: uri.PathAndQuery
