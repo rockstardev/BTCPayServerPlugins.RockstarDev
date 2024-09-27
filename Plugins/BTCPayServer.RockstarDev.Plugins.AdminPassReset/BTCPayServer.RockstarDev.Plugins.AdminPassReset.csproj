@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>10</LangVersion>
+    </PropertyGroup>
+    <!-- -->
+    <!-- Plugin specific properties -->
+    <PropertyGroup>
+        <Product>Admin Pass Reset</Product>
+        <Description>Reset the password for any user on your BTCPay Server instance. **Do not install this if you’re unsure of what you’re doing.**</Description>
+        <Version>0.9.0</Version>
+    </PropertyGroup>
+    <!-- Plugin development properties -->
+    <PropertyGroup>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <PreserveCompilationContext>false</PreserveCompilationContext>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    </PropertyGroup>
+
+    <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
+    <ItemDefinitionGroup>
+        <ProjectReference>
+            <Properties>StaticWebAssetsEnabled=false</Properties>
+            <Private>false</Private>
+            <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
+        </ProjectReference>
+    </ItemDefinitionGroup>
+
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+    </ItemGroup>
+</Project>
