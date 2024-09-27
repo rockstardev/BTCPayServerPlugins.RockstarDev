@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>Admin Pass Reset</Product>
         <Description>Reset the password for any user on your BTCPay Server instance. **Do not install this if you’re unsure of what you’re doing.**</Description>
-        <Version>0.9.0</Version>
+        <Version>0.9.1</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>

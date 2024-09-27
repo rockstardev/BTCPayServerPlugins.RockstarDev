@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Client;
+using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -48,7 +49,15 @@ public class AdminPassResetController : Controller
         var uri = Request.GetAbsoluteRootUri();
         var host = new HostString(uri.Host, uri.Port);
         var code = await _userManager.GeneratePasswordResetTokenAsync(user!);
-        model.CallbackUrl = _generator.ResetPasswordCallbackLink(user.Id, code, uri.Scheme, host, uri.PathAndQuery);
+        model.CallbackUrl = _generator.GetUriByAction(
+            action: nameof(UIAccountController.SetPassword),
+            controller: "UIAccount",
+            values: new { user.Id, code },
+            scheme: uri.Scheme,
+            host: host,
+            pathBase: uri.PathAndQuery
+        );
+        
         return View(model);
     }
 
