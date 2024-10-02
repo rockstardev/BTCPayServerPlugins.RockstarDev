@@ -5,6 +5,8 @@ using BTCPayServer.Data;
 using BTCPayServer.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +27,7 @@ public class PublicController : Controller
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
+    private readonly UriResolver uriResolver;
     private readonly PayrollPluginPassHasher _hasher;
     private readonly ISettingsRepository _settingsRepository;
 
@@ -33,6 +36,7 @@ public class PublicController : Controller
         IHttpContextAccessor httpContextAccessor,
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
+        UriResolver uriResolver,
         PayrollPluginPassHasher hasher,
         ISettingsRepository settingsRepository)
     {
@@ -41,6 +45,7 @@ public class PublicController : Controller
         _httpContextAccessor = httpContextAccessor;
         _networkProvider = networkProvider;
         _fileService = fileService;
+        this.uriResolver = uriResolver;
         _hasher = hasher;
         _settingsRepository = settingsRepository;
     }
@@ -55,11 +60,9 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var model = new PublicLoginViewModel
-        {
-            StoreName = vali.Store.StoreName,
-            StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob())
-        };
+        var model = new PublicLoginViewModel();
+        model.StoreName = vali.Store.StoreName;
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         return View(model);
     }
@@ -73,7 +76,7 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(this.Request, uriResolver, vali.Store.GetStoreBlob());
 
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
@@ -123,7 +126,7 @@ public class PublicController : Controller
         var model = new PublicListInvoicesViewModel();
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
         model.Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
         {
             CreatedAt = tuple.CreatedAt,
@@ -183,7 +186,7 @@ public class PublicController : Controller
         var model = new PublicPayrollInvoiceUploadViewModel();
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         model.Amount = 0;
         model.Currency = vali.Store.GetStoreBlob().DefaultCurrency;
@@ -201,7 +204,7 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         if (model.Amount <= 0)
             ModelState.AddModelError(nameof(model.Amount), "Amount must be more than 0.");
@@ -269,7 +272,7 @@ public class PublicController : Controller
         var model = new PublicChangePasswordViewModel();
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         return View(model);
     }
@@ -283,7 +286,7 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = new StoreBrandingViewModel(vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         if (!ModelState.IsValid)
             return View(model);

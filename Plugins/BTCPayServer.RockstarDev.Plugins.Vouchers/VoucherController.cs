@@ -18,6 +18,7 @@ using BTCPayServer.ModelBinders;
 using BTCPayServer.Models;
 using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payments;
+using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
 using BTCPayServer.Services;
@@ -25,6 +26,7 @@ using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -38,7 +40,9 @@ public class VoucherController : Controller
     private readonly PullPaymentHostedService _pullPaymentHostedService;
     private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
     private readonly ApplicationDbContextFactory _dbContextFactory;
-    private readonly IEnumerable<IPayoutHandler> _payoutHandlers;
+    private readonly DefaultRulesCollection _defaultRulesCollection;
+    private readonly UriResolver _uriResolver;
+    private readonly PayoutMethodHandlerDictionary _payoutHandlers;
     private readonly StoreRepository _storeRepository;
     private readonly RateFetcher _rateFetcher;
     private readonly BTCPayNetworkProvider _networkProvider;
@@ -47,12 +51,16 @@ public class VoucherController : Controller
     public VoucherController(PullPaymentHostedService pullPaymentHostedService,
         UIStorePullPaymentsController uiStorePullPaymentsController,
         ApplicationDbContextFactory dbContextFactory,
-        IEnumerable<IPayoutHandler> payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
+        DefaultRulesCollection defaultRulesCollection,
+        UriResolver uriResolver,
+        PayoutMethodHandlerDictionary payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
             AppService appService)
     {
         _pullPaymentHostedService = pullPaymentHostedService;
         _uiStorePullPaymentsController = uiStorePullPaymentsController;
         _dbContextFactory = dbContextFactory;
+        _defaultRulesCollection = defaultRulesCollection;
+        _uriResolver = uriResolver;
         _payoutHandlers = payoutHandlers;
         _storeRepository = storeRepository;
         _rateFetcher = rateFetcher;
@@ -66,7 +74,7 @@ public class VoucherController : Controller
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
-    public async Task<IActionResult> Keypad(string storeId)
+    public IActionResult Keypad(string storeId)
     {
         var settings = new PointOfSaleSettings
         {
@@ -121,9 +129,9 @@ public class VoucherController : Controller
     [Authorize(Policy = Policies.CanCreateNonApprovedPullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> CreateSatsBill(string storeId, int amount, string image)
     {
-        var selectedPaymentMethodIds = new PaymentMethodId[] {
-                PaymentMethodId.Parse("BTC"),
-                PaymentMethodId.Parse("BTC_LightningLike")
+        var selectedPaymentMethodIds = new PayoutMethodId[] {
+                PayoutMethodId.Parse("BTC-CHAIN"),
+                PayoutMethodId.Parse("BTC-LN")
             };
         var res = await _pullPaymentHostedService.CreatePullPayment(new HostedServices.CreatePullPayment()
         {
@@ -132,9 +140,7 @@ public class VoucherController : Controller
             Amount = amount,
             Currency = "SATS",
             StoreId = storeId,
-            PaymentMethodIds = selectedPaymentMethodIds,
-            EmbeddedCSS = null,
-            CustomCSSLink = null,
+            PayoutMethods = selectedPaymentMethodIds,
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
@@ -170,21 +176,18 @@ public class VoucherController : Controller
         var store = await _storeRepository.FindStore(pp.StoreId);
         var storeBlob = store.GetStoreBlob();
         var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
-        return View(new VoucherViewModel()
+        return View(await new VoucherViewModel()
         {
-            Amount = blob.Limit,
-            Currency = blob.Currency,
+            Amount = pp.Limit,
+            Currency = pp.Currency,
             Id = pp.Id,
             Name = blob.Name,
-            PaymentMethods = blob.SupportedPaymentMethods,
+            PayoutMethods = blob.SupportedPayoutMethods,
             Progress = progress,
             StoreName = store.StoreName,
-            BrandColor = storeBlob.BrandColor,
-            CssFileId = storeBlob.CssFileId,
-            LogoFileId = storeBlob.LogoFileId,
-            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(blob),
+            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
             Description = blob.Description
-        });
+        }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
 
 
@@ -204,7 +207,7 @@ public class VoucherController : Controller
 
         var vouchers = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
 
-        var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
+        var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
         if (!paymentMethods.Any())
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
@@ -216,21 +219,21 @@ public class VoucherController : Controller
         }
         return View(vouchers.Select(tuple => new VoucherViewModel()
         {
-            Amount = tuple.Blob.Limit,
-            Currency = tuple.Blob.Currency,
+            Amount = tuple.PullPayment.Limit,
+            Currency = tuple.PullPayment.Currency,
             Id = tuple.PullPayment.Id,
             Name = tuple.Blob.Name,
             Description = tuple.Blob.Description,
-            PaymentMethods = tuple.Blob.SupportedPaymentMethods,
+            PayoutMethods = tuple.Blob.SupportedPayoutMethods,
             Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(tuple.PullPayment, now)
         }).ToList());
     }
 
     [HttpGet("~/plugins/{storeId}/vouchers/create")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> CreateVoucher(string storeId)
+    public IActionResult CreateVoucher(string storeId)
     {
-        var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
+        var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
         if (!paymentMethods.Any())
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
@@ -249,7 +252,7 @@ public class VoucherController : Controller
         [ModelBinder(typeof(InvariantDecimalModelBinder))] decimal amount)
     {
         ModelState.Clear();
-        var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(HttpContext.GetStoreData());
+        var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
         if (!paymentMethods.Any())
         {
 
@@ -268,7 +271,7 @@ public class VoucherController : Controller
         var currency = CURRENCY;
 
         var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, "BTC"),
-            storeBlob.GetRateRules(_networkProvider), CancellationToken.None);
+            storeBlob.GetRateRules(_defaultRulesCollection), new StoreIdRateContext(storeId), CancellationToken.None);
         if (rate.BidAsk == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Currency is not supported";
@@ -290,7 +293,7 @@ public class VoucherController : Controller
             Name = "Voucher " + Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
             Description = description,
             StoreId = storeId,
-            PaymentMethodIds = paymentMethods.ToArray(),
+            PayoutMethods = paymentMethods.ToArray(),
             AutoApproveClaims = true
         });
 
@@ -321,21 +324,18 @@ public class VoucherController : Controller
         var store = await _storeRepository.FindStore(pp.StoreId);
         var storeBlob = store.GetStoreBlob();
         var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
-        return View(new VoucherViewModel()
+        return View(await new VoucherViewModel()
         {
-            Amount = blob.Limit,
-            Currency = blob.Currency,
+            Amount = pp.Limit,
+            Currency = pp.Currency,
             Id = pp.Id,
             Name = blob.Name,
-            PaymentMethods = blob.SupportedPaymentMethods,
+            PayoutMethods = blob.SupportedPayoutMethods,
             Progress = progress,
             StoreName = store.StoreName,
-            BrandColor = storeBlob.BrandColor,
-            CssFileId = storeBlob.CssFileId,
-            LogoFileId = storeBlob.LogoFileId,
-            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(blob),
+            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
             Description = blob.Description
-        });
+        }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
 
 
@@ -347,13 +347,21 @@ public class VoucherController : Controller
         public string Name { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
-        public PaymentMethodId[] PaymentMethods { get; set; }
+        public PayoutMethodId[] PayoutMethods { get; set; }
         public PullPaymentsModel.PullPaymentModel.ProgressModel Progress { get; set; }
         public string StoreName { get; set; }
-        public string LogoFileId { get; set; }
+        public string LogoUrl { get; set; }
         public string BrandColor { get; set; }
-        public string CssFileId { get; set; }
+        public string CssUrl { get; set; }
         public bool SupportsLNURL { get; set; }
         public string Description { get; set; }
+        public async Task<VoucherViewModel> SetStoreBranding(HttpRequest request, UriResolver uriResolver, StoreBlob storeBlob)
+        {
+            var branding = await StoreBrandingViewModel.CreateAsync(request, uriResolver, storeBlob);
+            LogoUrl = branding.LogoUrl;
+            CssUrl = branding.CssUrl;
+            BrandColor = branding.BrandColor;
+            return this;
+        }
     }
 }

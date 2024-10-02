@@ -33,6 +33,8 @@ using BTCPayServer.Services.Wallets;
 using BTCPayServer.Components.QRCode;
 using BTCPayServer.Configuration;
 using Microsoft.Extensions.Options;
+using BTCPayServer.Payments;
+using BTCPayServer.Services.Invoices;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -41,7 +43,9 @@ public class PayrollInvoiceController : Controller
 {
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
+    private readonly DefaultRulesCollection _defaultRulesCollection;
     private readonly RateFetcher _rateFetcher;
+    private readonly PaymentMethodHandlerDictionary handlers;
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
     private readonly IOptions<DataDirectories> _dataDirectories;
@@ -54,7 +58,9 @@ public class PayrollInvoiceController : Controller
 
     public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
         PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+        DefaultRulesCollection defaultRulesCollection,
         RateFetcher rateFetcher,
+        PaymentMethodHandlerDictionary handlers,
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
         IOptions<DataDirectories> dataDirectories,
@@ -67,7 +73,9 @@ public class PayrollInvoiceController : Controller
     {
         _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
+        _defaultRulesCollection = defaultRulesCollection;
         _rateFetcher = rateFetcher;
+        this.handlers = handlers;
         _networkProvider = networkProvider;
         _fileService = fileService;
         _dataDirectories = dataDirectories;
@@ -268,7 +276,7 @@ public class PayrollInvoiceController : Controller
             else
             {
                 var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, PayrollPluginConst.BTC_CRYPTOCODE),
-                    CurrentStore.GetStoreBlob().GetRateRules(_networkProvider), CancellationToken.None);
+                    CurrentStore.GetStoreBlob().GetRateRules(_defaultRulesCollection), new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
                 if (rate.BidAsk == null)
                 {
                     throw new Exception("Currency is not supported");
@@ -513,9 +521,9 @@ public class PayrollInvoiceController : Controller
     {
         var  model = new ListTransactionsViewModel();
         WalletId walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE);
-        var paymentMethod = CurrentStore.GetDerivationSchemeSettings(_networkProvider, walletId.CryptoCode);
+        var paymentMethod = CurrentStore.GetDerivationSchemeSettings(handlers, walletId.CryptoCode);
         
-        var wallet = _walletProvider.GetWallet(paymentMethod.Network);
+        var wallet = _walletProvider.GetWallet(walletId.CryptoCode);
         var walletTransactionsInfo = await _walletRepository.GetWalletTransactionsInfo(
             walletId, transactionIds.ToArray());
         

@@ -9,7 +9,7 @@
 @if (!string.IsNullOrEmpty(storeId))
 {
     <li class="nav-item">
-        <a asp-controller="Voucher" asp-action="ListVouchers" asp-route-storeId="@storeId" class="nav-link @ViewData.IsActivePage("Voucher")"
+        <a asp-controller="Voucher" asp-action="ListVouchers" asp-route-storeId="@storeId" class="nav-link @ViewData.ActivePageClass("Voucher")"
            permission="@Policies.CanModifyStoreSettings">
             
             

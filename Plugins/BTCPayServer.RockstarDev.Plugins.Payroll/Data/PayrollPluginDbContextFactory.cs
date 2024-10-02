@@ -2,6 +2,8 @@
 using BTCPayServer.Abstractions.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
+using System;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
@@ -11,11 +13,10 @@ public class PayrollPluginDbContextFactory : BaseDbContextFactory<PayrollPluginD
         "BTCPayServer.RockstarDev.Plugins.Payroll")
     {
     }
-
-    public override PayrollPluginDbContext CreateContext()
+    public override PayrollPluginDbContext CreateContext(Action<NpgsqlDbContextOptionsBuilder> npgsqlOptionsAction = null)
     {
         DbContextOptionsBuilder<PayrollPluginDbContext> builder = new DbContextOptionsBuilder<PayrollPluginDbContext>();
-        ConfigureBuilder(builder);
+        ConfigureBuilder(builder, npgsqlOptionsAction);
         return new PayrollPluginDbContext(builder.Options);
     }
 }
