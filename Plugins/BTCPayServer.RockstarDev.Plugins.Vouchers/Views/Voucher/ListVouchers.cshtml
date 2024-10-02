@@ -52,11 +52,6 @@
             <span>Completed:&nbsp;<span class="float-end">@pp.Progress.CompletedFormatted</span></span>
             <br />
             <span>Limit:&nbsp;<span class="float-end">@pp.Progress.LimitFormatted</span></span>
-            @if (pp.Progress.ResetIn != null)
-            {
-                <br />
-                <span>Resets in:&nbsp;<span class="float-end">@pp.Progress.ResetIn</span></span>
-            }
             @if (pp.Progress.EndIn != null)
             {
                 <br />
@@ -88,7 +83,7 @@
                             </a>
                         </td>
                         <td>@DisplayFormatter.Currency(pp.Amount, pp.Currency)</td>
-                        <td>@string.Join(", ", pp.PaymentMethods.Select(id => id.ToPrettyString()))</td>
+                        <td>@string.Join(", ", pp.PayoutMethods.Select(id => id.ToString()))</td>
                         <td class="align-middle">
                             <div class="progress ppProgress" data-pp="@pp.Id" data-bs-toggle="tooltip" data-bs-html="true">
                                 <div class="progress-bar" role="progressbar" aria-valuenow="@pp.Progress.CompletedPercent"
