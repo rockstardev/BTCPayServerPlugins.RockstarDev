@@ -11,7 +11,7 @@ For those who don’t have SMTP server credentials handy, I created this plugin 
 
 1. Install the plugin by navigating to BTCPay Server > Settings > Plugin > Available Plugins, and restart your server.
 
-<Insert Picture on GitHub>
+![Admin Pass Reset plugin](https://github.com/user-attachments/assets/2df211cb-04eb-4dac-97cf-5e77d3f97286)
 
 2. Once installed, you'll see the Admin Pass Reset plugin listed in the left sidebar of BTCPay Server.
 3. Click the link, and you'll be presented with a form where you can reset the password of any user by entering their email address and clicking the "Reset Password" button.
