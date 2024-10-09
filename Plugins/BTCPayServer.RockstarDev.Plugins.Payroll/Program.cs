@@ -17,8 +17,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddSingleton<IUIExtension>(new UIExtension("PayrollNav",
-            "store-integrations-nav"));
+        serviceCollection.AddUIExtension("store-integrations-nav", "PayrollNav");
 
         serviceCollection.AddSingleton<IHostedService, PayrollInvoicesPaidHostedService>();
         serviceCollection.AddSingleton<PayrollPluginPassHasher>();

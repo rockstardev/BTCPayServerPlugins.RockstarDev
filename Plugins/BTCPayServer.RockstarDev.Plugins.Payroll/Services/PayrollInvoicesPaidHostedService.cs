@@ -3,6 +3,7 @@ using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.Services.Invoices;
 using NBitcoin;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,16 +14,16 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
 public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
 {
+    private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly PayrollPluginDbContextFactory _pluginDbContextFactory;
-    private BTCPayNetworkProvider NetworkProvider { get; }
 
-    public PayrollInvoicesPaidHostedService(BTCPayNetworkProvider networkProvider,
+    public PayrollInvoicesPaidHostedService(PaymentMethodHandlerDictionary handlers,
         EventAggregator eventAggregator,
         PayrollPluginDbContextFactory pluginDbContextFactory,
         Logs logs) :
         base(eventAggregator, logs)
     {
-        NetworkProvider = networkProvider;
+        _handlers = handlers;
         _pluginDbContextFactory = pluginDbContextFactory;
     }
 
@@ -39,7 +40,7 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
             // If we find, then we create a link between them and the tx object.
             case NewOnChainTransactionEvent transactionEvent:
                 {
-                    var network = NetworkProvider.GetNetwork<BTCPayNetwork>(transactionEvent.CryptoCode);
+                    var network = _handlers.TryGetNetwork(transactionEvent.PaymentMethodId);
                     var derivation = transactionEvent.NewTransactionEvent.DerivationStrategy;
                     if (network is null || derivation is null)
                         break;
