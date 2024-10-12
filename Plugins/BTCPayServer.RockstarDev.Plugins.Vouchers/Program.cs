@@ -14,8 +14,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers
 
         public override void Execute(IServiceCollection applicationBuilder)
         {
-            applicationBuilder.AddSingleton<IUIExtension>(new UIExtension("VoucherNav",
-                "store-integrations-nav"));
+            applicationBuilder.AddUIExtension("store-integrations-nav", "VoucherNav");
             base.Execute(applicationBuilder);
         }
     }

@@ -9,7 +9,7 @@
 @if (!string.IsNullOrEmpty(storeId))
 {
     <li class="nav-item">
-        <a asp-controller="AdminPassReset" asp-action="Create" class="nav-link @ViewData.IsActivePage("AdminPassReset")"
+        <a asp-controller="AdminPassReset" asp-action="Create" class="nav-link @ViewData.ActivePageClass("AdminPassReset")"
            permission="@Policies.CanModifyServerSettings">
 
             <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 1024 1024" fill="currentColor">

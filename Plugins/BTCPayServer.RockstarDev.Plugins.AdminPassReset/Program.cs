@@ -15,8 +15,7 @@ namespace BTCPayServer.RockstarDev.Plugins.AdminPassReset
 
         public override void Execute(IServiceCollection applicationBuilder)
         {
-            applicationBuilder.AddSingleton<IUIExtension>(new UIExtension("PluginNav",
-                "store-integrations-nav"));
+            applicationBuilder.AddUIExtension("store-integrations-nav", "PluginNav");
             base.Execute(applicationBuilder);
         }
     }
