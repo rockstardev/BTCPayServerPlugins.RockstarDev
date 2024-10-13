@@ -10,6 +10,7 @@
 @inject DisplayFormatter DisplayFormatter
 @model PayrollInvoiceListViewModel
 @{
+    Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("Payroll", "Payroll Invoices", "Payroll");
 
     var storeId = ScopeProvider.GetCurrentStoreId();

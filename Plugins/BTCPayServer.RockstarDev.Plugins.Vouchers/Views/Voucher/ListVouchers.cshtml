@@ -7,6 +7,7 @@
 @inject DisplayFormatter DisplayFormatter
 @model List<BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel>
 @{
+    Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("Voucher", "Voucher", "Voucher");
 
     var storeId = ScopeProvider.GetCurrentStoreId();

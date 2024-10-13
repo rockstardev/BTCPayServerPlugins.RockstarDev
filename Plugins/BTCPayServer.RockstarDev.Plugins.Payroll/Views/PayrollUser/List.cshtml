@@ -5,6 +5,7 @@
 @inject IScopeProvider ScopeProvider
 @model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser.PayrollUserListViewModel
 @{
+    Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("Payroll", "Payroll Users", "Payroll");
 
     var storeId = ScopeProvider.GetCurrentStoreId();
