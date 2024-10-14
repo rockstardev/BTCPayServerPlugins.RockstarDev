@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 
+// TODO: Length limits on strings in model, to enhance performance
 public class PayrollInvoice
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

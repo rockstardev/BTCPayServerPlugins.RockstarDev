@@ -15,7 +15,7 @@ public class PayrollPluginDbContextFactory : BaseDbContextFactory<PayrollPluginD
     }
     public override PayrollPluginDbContext CreateContext(Action<NpgsqlDbContextOptionsBuilder> npgsqlOptionsAction = null)
     {
-        DbContextOptionsBuilder<PayrollPluginDbContext> builder = new DbContextOptionsBuilder<PayrollPluginDbContext>();
+        var builder = new DbContextOptionsBuilder<PayrollPluginDbContext>();
         ConfigureBuilder(builder, npgsqlOptionsAction);
         return new PayrollPluginDbContext(builder.Options);
     }

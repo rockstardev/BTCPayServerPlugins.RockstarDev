@@ -1,6 +1,5 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
-@inject BTCPayServer.Services.BTCPayServerEnvironment Env
 @model PublicListInvoicesViewModel
 @{
     Layout = "_PayrollPublicLayout";
@@ -56,7 +55,6 @@
                         <tbody>
                             @foreach (var pp in Model.Invoices)
                             {
-                                var detailsId = $"invoice_details_{pp.Id}";
                                 <tr id="invoice_@pp.Id">
                                     <td>@pp.CreatedAt.ToBrowserDate()</td>
                                     <td>

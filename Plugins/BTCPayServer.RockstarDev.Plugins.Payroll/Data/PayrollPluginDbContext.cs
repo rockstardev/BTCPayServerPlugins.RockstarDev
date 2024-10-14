@@ -5,6 +5,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
 public class PayrollPluginDbContext : DbContext
 {
+    // ReSharper disable once NotAccessedField.Local
     private readonly bool _designTime;
 
     public PayrollPluginDbContext(DbContextOptions<PayrollPluginDbContext> options, bool designTime = false)

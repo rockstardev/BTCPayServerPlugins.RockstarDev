@@ -1,13 +1,10 @@
 ﻿@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Data
 @using BTCPayServer.Services
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
 @using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController
 @inject IScopeProvider ScopeProvider
-@inject DisplayFormatter DisplayFormatter
 @model PayrollInvoiceListViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
@@ -121,7 +118,6 @@
                 <tbody>
                     @foreach (var pp in Model.PayrollInvoices)
                     {
-                        var detailsId = $"invoice_details_{pp.Id}";
                         <tr id="invoice_@pp.Id" class="mass-action-row">
                             <td class="only-for-js align-middle">
                                 <input name="selectedItems" type="checkbox" class="form-check-input mass-action-select" value="@pp.Id" />
@@ -145,7 +141,7 @@
                             <td>@pp.Amount</td>
                             <td>@pp.Currency</td>
                             <td>
-                                @if (pp.State == BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollInvoiceState.Completed &&
+                                @if (pp.State == PayrollInvoiceState.Completed &&
                                !String.IsNullOrEmpty(pp.TxnId))
                                 {
                                     <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">

@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
+// ReSharper disable once UnusedType.Global
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<PayrollPluginDbContext>
 {
     public PayrollPluginDbContext CreateDbContext(string[] args)
     {
-        DbContextOptionsBuilder<PayrollPluginDbContext> builder = new DbContextOptionsBuilder<PayrollPluginDbContext>();
+        var builder = new DbContextOptionsBuilder<PayrollPluginDbContext>();
 
         // FIXME: Somehow the DateTimeOffset column types get messed up when not using Postgres
         // https://docs.microsoft.com/en-us/ef/core/managing-schemas/migrations/providers?tabs=dotnet-core-cli

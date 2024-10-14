@@ -114,8 +114,8 @@ public class PayrollUserController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
-        PayrollUserCreateViewModel model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
+        var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        var model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
         return View(model);
     }
 

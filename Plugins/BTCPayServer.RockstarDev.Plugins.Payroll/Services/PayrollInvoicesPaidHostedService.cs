@@ -61,11 +61,12 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
                         if (walletOutputsByIndex.TryGetValue(txOut.N, out var walletTxOut))
                             address = walletTxOut.Address;
                         address ??= txOut.TxOut.ScriptPubKey.GetDestinationAddress(network.NBitcoinNetwork);
-                        if (address is not null)
-                        {
-                            matchedObjects.Add(address.ToString());
-                            amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
-                        }
+                        
+                        if (address is null)
+                            continue;
+                        
+                        matchedObjects.Add(address.ToString());
+                        amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
                     }
 
                     await using var dbPlugin = _pluginDbContextFactory.CreateContext();
@@ -75,15 +76,15 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
 
                     foreach (var invoice in invoicesToBePaid)
                     {
-                        if (matchedObjects.Contains(invoice.Destination))
-                        {
-                            invoice.TxnId = txHash;
-                            invoice.State = PayrollInvoiceState.Completed;
-                            invoice.BtcPaid = amountPaid[invoice.Destination];
-                        }
+                        if (!matchedObjects.Contains(invoice.Destination))
+                            continue;
+                        
+                        invoice.TxnId = txHash;
+                        invoice.State = PayrollInvoiceState.Completed;
+                        invoice.BtcPaid = amountPaid[invoice.Destination];
                     }
 
-                    await dbPlugin.SaveChangesAsync();
+                    await dbPlugin.SaveChangesAsync(cancellationToken);
 
                     break;
                 }

@@ -30,10 +30,8 @@ using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
-using BTCPayServer.Components.QRCode;
 using BTCPayServer.Configuration;
 using Microsoft.Extensions.Options;
-using BTCPayServer.Payments;
 using BTCPayServer.Services.Invoices;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
@@ -45,7 +43,7 @@ public class PayrollInvoiceController : Controller
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
     private readonly RateFetcher _rateFetcher;
-    private readonly PaymentMethodHandlerDictionary handlers;
+    private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
     private readonly IOptions<DataDirectories> _dataDirectories;
@@ -75,7 +73,7 @@ public class PayrollInvoiceController : Controller
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _defaultRulesCollection = defaultRulesCollection;
         _rateFetcher = rateFetcher;
-        this.handlers = handlers;
+        this._handlers = handlers;
         _networkProvider = networkProvider;
         _fileService = fileService;
         _dataDirectories = dataDirectories;
@@ -198,7 +196,7 @@ public class PayrollInvoiceController : Controller
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
+    private async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
     {
         var zipName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
 
@@ -212,7 +210,7 @@ public class PayrollInvoiceController : Controller
                 var fileUrl =
                     await _fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
                 var filename = Path.GetFileName(fileUrl);
-                byte[] fileBytes = null;
+                byte[] fileBytes;
                 
                 // if it is local storage, then read file from HDD
                 if (fileUrl?.Contains("/LocalStorage/") == true)
@@ -521,7 +519,7 @@ public class PayrollInvoiceController : Controller
     {
         var  model = new ListTransactionsViewModel();
         WalletId walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE);
-        var paymentMethod = CurrentStore.GetDerivationSchemeSettings(handlers, walletId.CryptoCode);
+        var paymentMethod = CurrentStore.GetDerivationSchemeSettings(_handlers, walletId.CryptoCode);
         
         var wallet = _walletProvider.GetWallet(walletId.CryptoCode);
         var walletTransactionsInfo = await _walletRepository.GetWalletTransactionsInfo(
