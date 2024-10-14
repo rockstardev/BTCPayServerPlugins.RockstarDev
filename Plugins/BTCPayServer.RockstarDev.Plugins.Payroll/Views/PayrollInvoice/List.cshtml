@@ -162,10 +162,16 @@
                                 }
                             </td>
                             <td class="text-end">
-                                <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
+                                @if (!String.IsNullOrEmpty(pp.InvoiceUrl))
+                                {
+                                    <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
+                                }
                                 @if (pp.State == PayrollInvoiceState.AwaitingApproval)
                                 {
-                                    <span>-</span>
+                                    @if (!String.IsNullOrEmpty(pp.InvoiceUrl))
+                                    {
+                                        <span>-</span>
+                                    }
                                     <a asp-controller="PayrollInvoice"
                                        asp-action="Delete"
                                        asp-route-id="@pp.Id"
