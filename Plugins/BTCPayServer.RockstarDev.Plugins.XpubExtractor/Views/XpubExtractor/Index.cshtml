@@ -88,12 +88,12 @@
 <partial name="_ValidationScriptsPartial" />
 <partial name="VaultElements" />
 
-<script src="~/js/vaultbridge.js" defer asp-append-version="true"></script>
-<script src="~/js/vaultbridge.ui.js" defer asp-append-version="true"></script>
+<script src="~/Resources/js/plugin-vaultbridge.js" defer asp-append-version="true"></script>
+<script src="~/Resources/js/plugin-vaultbridge.ui.js" defer asp-append-version="true"></script>
 
 <script>
     window.addEventListener("load", async () => {
-        const wsPath = "@Url.Action("VaultBridgeConnection", "UIVault", new {cryptoCode = Model.CryptoCode})";
+        const wsPath = "/plugins"+"@Url.Action("VaultBridgeConnection", "XpubExtractor", new {cryptoCode = Model.CryptoCode})";
         const wsProto = location.protocol.replace(/^http/, "ws");
         const vaultUI = new vaultui.VaultBridgeUI(`${wsProto}//${location.host}${wsPath}`);
 
