@@ -6,13 +6,16 @@
 @model BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers.XpubExtractorController.IndexViewModel
 @{
     ViewData.SetActivePage("XpubExtractor", "Xpub Extractor", "XpubExtractor");
-    
 }
 
-<header class="text-center">
-    <h1>@ViewData["Title"]</h1>
-    <p class="lead text-secondary mt-3">In order to securely connect to your hardware wallet you must first download, install, and run the BTCPay Server Vault.</p>
-</header>
+
+<h2 class="mt-1">@ViewData["Title"]</h2>
+<div class="text-secondary">In order to securely connect to your hardware wallet you must first
+    <a href="https://github.com/btcpayserver/BTCPayServer.Vault/releases/latest" target="_blank">
+        download, install, and run the BTCPay Server Vault.
+    </a>
+</div>
+
 
 @if (!ViewContext.ModelState.IsValid)
 {
@@ -21,8 +24,8 @@
 
 <partial name="LocalhostBrowserSupport" />
 
-<div class="row mt-5 mb-4">
-    <div class="col-md-8 mx-auto">
+<div class="row mt-4 mb-4">
+    <div class="col-md-8">
         <div id="vault-status" class="mb-4"></div>
         <div id="vault-xpub" class="mt-4" style="display:none;">
             <div class="form-group">
