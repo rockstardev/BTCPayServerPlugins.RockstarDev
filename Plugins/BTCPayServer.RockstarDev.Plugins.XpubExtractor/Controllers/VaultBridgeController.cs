@@ -246,10 +246,14 @@ public class VaultBridgeController : Controller
                             if (await RequireDeviceUnlocking()) continue;
                             await websocketHelper.Send("{ \"info\": \"ok\"}", cancellationToken);
                             var askedXpub = JObject.Parse(await websocketHelper.NextMessageAsync(cancellationToken));
+                            // when we're in ask-xpub mode, we will wait here on server until we get another message from client view
+                            
                             var signatureType = askedXpub["signatureType"].Value<string>();
                             var addressType = askedXpub["addressType"].Value<string>();
                             var accountNumber = askedXpub["accountNumber"].Value<int>();
-                            if (fingerprint is null) await FetchFingerprint();
+                            if (fingerprint is null) 
+                                await FetchFingerprint();
+                            
                             var keyPath = GetKeyPath(signatureType, addressType, network.CoinType, accountNumber);
                             if (keyPath is null)
                             {

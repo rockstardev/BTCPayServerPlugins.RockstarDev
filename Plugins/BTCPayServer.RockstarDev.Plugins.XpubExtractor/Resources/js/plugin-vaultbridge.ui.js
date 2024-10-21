@@ -318,10 +318,11 @@ var vaultui = (function () {
                     $("#vault-xpub").css("display", "none");
                     $("#vault-confirm").css("display", "none");
                     $(this).unbind();
+                    const signatureType = $("select[name=\"signatureType\"]").val();
                     const addressType = $("select[name=\"addressType\"]").val();
                     const accountNumber = parseInt($("input[name=\"accountNumber\"]").val());
-                    if (addressType && !isNaN(accountNumber)) {
-                        resolve({ addressType, accountNumber });
+                    if (signatureType && addressType && !isNaN(accountNumber)) {
+                        resolve({ signatureType, addressType, accountNumber });
                     } else {
                         reject("Provide an address type and account number")
                     }
