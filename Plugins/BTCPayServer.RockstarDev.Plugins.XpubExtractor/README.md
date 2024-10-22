@@ -27,7 +27,8 @@ Make sure you have [the latest version of BTCPayServer Vault](https://github.com
 - For your convenience, click the 'Copy Information' button to copy all the data
 
 See this video demonstration for more information:
-ADD_LINK_HERE_ON_GITHUB
+
+https://github.com/user-attachments/assets/45136a17-f50d-4295-a520-44c2e0051de8
 
 ## Contributing to plugin development
 Open issue or pull request on [BTCPayServerPlugins.RockstarDev GitHub](https://github.com/btcpayserver/BTCPayServer.Vault/releases)
