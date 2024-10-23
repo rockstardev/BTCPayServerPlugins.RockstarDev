@@ -312,6 +312,22 @@ var vaultui = (function () {
             $("#vault-xpub").css("display", "block");
             $("#vault-confirm").css("display", "block");
             $("#vault-confirm").text("Confirm");
+            
+            // restore previous settings if applicable
+            const savedSignatureType = localStorage.getItem('signatureType');
+            if (savedSignatureType) {
+                $("#signatureType").val(savedSignatureType);
+            }            
+            const savedAddressType = localStorage.getItem('addressType');
+            if (savedAddressType) {
+                $("#addressType").val(savedAddressType);
+            }
+            const savedAccountNumber = localStorage.getItem('accountNumber');
+            if (savedAccountNumber) {
+                $("#accountNumber").val(savedAccountNumber);
+            }
+            //            
+            
             return new Promise(function (resolve, reject) {
                 $("#vault-confirm").click(async function (e) {
                     e.preventDefault();
@@ -322,6 +338,10 @@ var vaultui = (function () {
                     const addressType = $("select[name=\"addressType\"]").val();
                     const accountNumber = parseInt($("input[name=\"accountNumber\"]").val());
                     if (signatureType && addressType && !isNaN(accountNumber)) {
+                        localStorage.setItem('signatureType', signatureType);
+                        localStorage.setItem('addressType', addressType);
+                        localStorage.setItem('accountNumber', accountNumber+"");
+                        
                         resolve({ signatureType, addressType, accountNumber });
                     } else {
                         reject("Provide an address type and account number")
