@@ -1,6 +1,6 @@
 ﻿# Xpub Extractor
 
-This plugin is designed to to easily extract xpub from hardware wallets using BTCPayServer Vault.
+This plugin is designed to easily extract xpub from hardware wallets using BTCPayServer Vault.
 Make sure you have [the latest version of BTCPayServer Vault](https://github.com/btcpayserver/BTCPayServer.Vault/releases) installed on your computer.
 
 ## Usage

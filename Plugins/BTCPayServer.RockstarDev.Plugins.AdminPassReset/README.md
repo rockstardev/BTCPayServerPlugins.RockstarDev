@@ -17,7 +17,6 @@ For those who don’t have SMTP server credentials handy, I created this plugin 
 3. Click the link, and you'll be presented with a form where you can reset the password of any user by entering their email address and clicking the "Reset Password" button.
 4. A link will be displayed, which you can click to reset the user's password.
 
-
 ## Contributing to plugin development
 You shouldn't. Like, seriously. The BTCPay team has improved the onboarding process in version 2.0, and you can already do this without the plugin. This is just a temporary solution for those who haven’t upgraded to 2.0 yet.
 

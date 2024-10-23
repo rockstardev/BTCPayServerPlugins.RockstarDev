@@ -34,7 +34,6 @@ This plugin enables administrators to manage payroll users, inspect invoices, an
   - An admin can edit payroll users
   - An admin can also download invoices belonging to a particular user
 
-
 ## Contributing to plugin development
 This documentation is a work in progress. You can contribute by improving it.
 Also, a list of open issues is maintained on: https://github.com/rockstardev/BTCPayServerPlugins.RockstarDev/issues?q=is%3Aissue+is%3Aopen+label%3Apayroll
