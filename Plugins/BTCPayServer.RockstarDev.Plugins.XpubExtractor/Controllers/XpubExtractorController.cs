@@ -46,17 +46,6 @@ public class XpubExtractorController : Controller
         });
     }
 
-    [HttpPost("~/plugins/xpubextractor/")]
-    public async Task<IActionResult> Index(IndexViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        return View(model);
-    }
-    
     // view model
     public class IndexViewModel
     {

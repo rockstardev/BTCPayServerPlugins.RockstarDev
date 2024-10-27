@@ -74,11 +74,8 @@ public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
                         .Where(a => a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
                         .ToList();
 
-                    foreach (var invoice in invoicesToBePaid)
+                    foreach (var invoice in invoicesToBePaid.Where(invoice => matchedObjects.Contains(invoice.Destination)))
                     {
-                        if (!matchedObjects.Contains(invoice.Destination))
-                            continue;
-                        
                         invoice.TxnId = txHash;
                         invoice.State = PayrollInvoiceState.Completed;
                         invoice.BtcPaid = amountPaid[invoice.Destination];

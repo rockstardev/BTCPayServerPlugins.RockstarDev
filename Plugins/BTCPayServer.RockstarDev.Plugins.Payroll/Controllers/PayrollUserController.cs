@@ -215,10 +215,8 @@ public class PayrollUserController : Controller
             case PayrollUserState.Archived:
                 // Would need to know use case for this.
                 break;
-            default:
-                break;
         }
-        ctx.SaveChanges();
+        await ctx.SaveChangesAsync();
 
         TempData[WellKnownTempData.SuccessMessage] = $"User {(enable ? "activated" : "disabled")} successfully";
 

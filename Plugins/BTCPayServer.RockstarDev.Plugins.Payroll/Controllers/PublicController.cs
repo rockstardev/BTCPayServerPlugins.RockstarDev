@@ -44,7 +44,7 @@ public class PublicController : Controller
         _httpContextAccessor = httpContextAccessor;
         _networkProvider = networkProvider;
         _fileService = fileService;
-        this._uriResolver = uriResolver;
+        _uriResolver = uriResolver;
         _hasher = hasher;
         _settingsRepository = settingsRepository;
     }
@@ -77,7 +77,7 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(this.Request, _uriResolver, vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
 
         await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
@@ -124,24 +124,26 @@ public class PublicController : Controller
             .Where(p => p.User.StoreId == storeId && p.UserId == vali.UserId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        var model = new PublicListInvoicesViewModel();
-        model.StoreId = vali.Store.Id;
-        model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
-        model.Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+        var model = new PublicListInvoicesViewModel
         {
-            CreatedAt = tuple.CreatedAt,
-            Id = tuple.Id,
-            Name = tuple.User.Name,
-            Email = tuple.User.Email,
-            Destination = tuple.Destination,
-            Amount = tuple.Amount,
-            Currency = tuple.Currency,
-            State = tuple.State,
-            TxnId = tuple.TxnId,
-            Description = tuple.Description,
-            InvoiceUrl = tuple.InvoiceFilename
-        }).ToList();
+            StoreId = vali.Store.Id,
+            StoreName = vali.Store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob()),
+            Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+            {
+                CreatedAt = tuple.CreatedAt,
+                Id = tuple.Id,
+                Name = tuple.User.Name,
+                Email = tuple.User.Email,
+                Destination = tuple.Destination,
+                Amount = tuple.Amount,
+                Currency = tuple.Currency,
+                State = tuple.State,
+                TxnId = tuple.TxnId,
+                Description = tuple.Description,
+                InvoiceUrl = tuple.InvoiceFilename
+            }).ToList()
+        };
 
         return View(model);
     }
@@ -184,13 +186,14 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var model = new PublicPayrollInvoiceUploadViewModel();
-        model.StoreId = vali.Store.Id;
-        model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
-
-        model.Amount = 0;
-        model.Currency = vali.Store.GetStoreBlob().DefaultCurrency;
+        var model = new PublicPayrollInvoiceUploadViewModel
+        {
+            StoreId = vali.Store.Id,
+            StoreName = vali.Store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob()),
+            Amount = 0,
+            Currency = vali.Store.GetStoreBlob().DefaultCurrency
+        };
 
         return View(model);
     }
@@ -270,10 +273,12 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var model = new PublicChangePasswordViewModel();
-        model.StoreId = vali.Store.Id;
-        model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
+        var model = new PublicChangePasswordViewModel
+        {
+            StoreId = vali.Store.Id,
+            StoreName = vali.Store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob())
+        };
 
         return View(model);
     }

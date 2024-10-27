@@ -22,7 +22,8 @@ public class PayrollSettingController : Controller
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _settingsRepository = settingsRepository;
     }
-    public StoreData CurrentStore => HttpContext.GetStoreData();
+
+    private StoreData CurrentStore => HttpContext.GetStoreData();
 
 
     [HttpGet("~/plugins/{storeId}/payroll/settings")]
