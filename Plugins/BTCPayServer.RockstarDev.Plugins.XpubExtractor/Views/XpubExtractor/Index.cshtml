@@ -1,8 +1,5 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.TagHelpers
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@using BTCPayServer
-@using BTCPayServer.Data
 @model BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers.XpubExtractorController.IndexViewModel
 @{
     Layout = "_Layout";
@@ -74,7 +71,7 @@
                 <textarea asp-for="DerivationScheme" class="form-control store-derivation-scheme font-monospace py-2" rows="3" readonly></textarea>
 
                 <!-- Hidden text area to copy the information -->
-                <textarea class="input-hidden" style="display: none;" readonly="" id="mainCode"></textarea>
+                <textarea class="input-hidden" style="display: none;" readonly="readonly" id="mainCode"></textarea>
                 <button class="mt-2 btn btn-outline-secondary btcpay-butt" id="btnCopy" data-clipboard-target="#mainCode">
                     <vc:icon symbol="actions-copy"/>&nbsp;Copy Information
                 </button>
@@ -113,7 +110,7 @@
 
     <script>
     window.addEventListener("load", async () => {
-        const wsPath = "/plugins"+"@Url.Action("VaultBridgeConnection", "XpubExtractor", new { cryptoCode = Model.CryptoCode })";
+        const wsPath = @Url.Action("VaultBridgeConnection", "VaultBridge", new { cryptoCode = Model.CryptoCode })";
         const wsProto = location.protocol.replace(/^http/, "ws");
         const vaultUI = new vaultui.VaultBridgeUI(`${wsProto}//${location.host}${wsPath}`);
 
