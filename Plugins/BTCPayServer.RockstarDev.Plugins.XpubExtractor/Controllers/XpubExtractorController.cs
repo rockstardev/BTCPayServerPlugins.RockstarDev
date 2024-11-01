@@ -1,40 +1,19 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Client;
-using BTCPayServer.Controllers;
-using BTCPayServer.Data;
-using BTCPayServer.Hwi;
-using BTCPayServer.ModelBinders;
-using BTCPayServer.Payments;
-using BTCPayServer.Payments.Bitcoin;
 using BTCPayServer.Services.Invoices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using NBitcoin;
-using NBXplorer.DerivationStrategy;
-using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class XpubExtractorController : Controller
 {
-    private readonly PaymentMethodHandlerDictionary _handlers;
-    private readonly IAuthorizationService _authorizationService;
-
-    public XpubExtractorController(PaymentMethodHandlerDictionary handlers, IAuthorizationService authorizationService)
+    public XpubExtractorController()
     {
-        _handlers = handlers;
-        _authorizationService = authorizationService;
     }
 
     [HttpGet("~/plugins/xpubextractor/")]
