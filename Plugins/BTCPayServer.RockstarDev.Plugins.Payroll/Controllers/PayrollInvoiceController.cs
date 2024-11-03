@@ -39,7 +39,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController : Controller
 {
-    private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
     private readonly RateFetcher _rateFetcher;
@@ -54,8 +53,7 @@ public class PayrollInvoiceController : Controller
     private readonly WalletRepository _walletRepository;
     private readonly LabelService _labelService;
 
-    public PayrollInvoiceController(ApplicationDbContextFactory dbContextFactory,
-        PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+    public PayrollInvoiceController(PayrollPluginDbContextFactory payrollPluginDbContextFactory,
         DefaultRulesCollection defaultRulesCollection,
         RateFetcher rateFetcher,
         PaymentMethodHandlerDictionary handlers,
@@ -69,7 +67,6 @@ public class PayrollInvoiceController : Controller
         WalletRepository walletRepository,
         LabelService labelService)
     {
-        _dbContextFactory = dbContextFactory;
         _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
         _defaultRulesCollection = defaultRulesCollection;
         _rateFetcher = rateFetcher;
@@ -84,7 +81,8 @@ public class PayrollInvoiceController : Controller
         _walletRepository = walletRepository;
         _labelService = labelService;
     }
-    public StoreData CurrentStore => HttpContext.GetStoreData();
+
+    private StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("~/plugins/{storeId}/payroll/list")]
     public async Task<IActionResult> List(string storeId, bool all)
@@ -109,10 +107,10 @@ public class PayrollInvoiceController : Controller
             await _settingsRepository.UpdateSetting(settings);
         }
 
-        PayrollInvoiceListViewModel model = new PayrollInvoiceListViewModel
+        var model = new PayrollInvoiceListViewModel
         {
             All = all,
-            PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+            PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
@@ -189,9 +187,6 @@ public class PayrollInvoiceController : Controller
             
             case "export":
                 return await ExportInvoices(invoices);
-
-            default:
-                break;
         }
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
@@ -359,7 +354,7 @@ public class PayrollInvoiceController : Controller
         try
         {
             var network = _networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
-            var address = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
+            var unused = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
         catch (Exception)
         {
@@ -430,7 +425,7 @@ public class PayrollInvoiceController : Controller
 
         if (invoice.State != PayrollInvoiceState.AwaitingApproval)
         {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
                 Message = $"Invoice cannot be deleted as it has been actioned upon",
                 Severity = StatusMessageModel.StatusSeverity.Error
@@ -448,11 +443,11 @@ public class PayrollInvoiceController : Controller
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
 
-        PayrollInvoice invoice = ctx.PayrollInvoices.SingleOrDefault(a => a.Id == id);
+        var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
 
         if (invoice.State != PayrollInvoiceState.AwaitingApproval)
         {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
                 Message = $"Invoice cannot be deleted as it has been actioned upon",
                 Severity = StatusMessageModel.StatusSeverity.Error
