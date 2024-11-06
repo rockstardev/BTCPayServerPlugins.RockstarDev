@@ -7,11 +7,11 @@
 	<!-- -->
 	<!-- Plugin specific properties -->
 	<PropertyGroup>
-		<Product>Payroll</Product>
+		<Product>Vendor Pay</Product>
 		<Description>
-			Accept invoices from various sources and easily pay them out from Bitcoin wallet. Run your payroll on Bitcoin.
+			Accept invoices from various sources and easily pay them out from Bitcoin wallet. Pay all your vendors using Bitcoin.
 		</Description>
-		<Version>0.2.0</Version>
+		<Version>0.3.0</Version>
 	</PropertyGroup>
 	<!-- Plugin development properties -->
 	<PropertyGroup>
