@@ -110,7 +110,7 @@
 
     <script>
     window.addEventListener("load", async () => {
-        const wsPath = @Url.Action("VaultBridgeConnection", "VaultBridge", new { cryptoCode = Model.CryptoCode })";
+        const wsPath = "@Url.Action("VaultBridgeConnection", "VaultBridge", new { cryptoCode = Model.CryptoCode })";
         const wsProto = location.protocol.replace(/^http/, "ws");
         const vaultUI = new vaultui.VaultBridgeUI(`${wsProto}//${location.host}${wsPath}`);
 
@@ -135,7 +135,7 @@
         const textToCopy = `
 Derivation Scheme: ${strategy}
 Root Fingerprint: ${fingerprint}
-Key Path: ${accountKey}
+Key Path: ${keyPath}
         `;
 
         document.getElementById("mainCode").value = textToCopy.trim();
