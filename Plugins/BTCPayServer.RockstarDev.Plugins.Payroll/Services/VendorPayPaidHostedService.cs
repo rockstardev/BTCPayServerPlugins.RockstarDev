@@ -12,12 +12,12 @@ using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class PayrollInvoicesPaidHostedService : EventHostedServiceBase
+public class VendorPayPaidHostedService : EventHostedServiceBase
 {
     private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly PayrollPluginDbContextFactory _pluginDbContextFactory;
 
-    public PayrollInvoicesPaidHostedService(PaymentMethodHandlerDictionary handlers,
+    public VendorPayPaidHostedService(PaymentMethodHandlerDictionary handlers,
         EventAggregator eventAggregator,
         PayrollPluginDbContextFactory pluginDbContextFactory,
         Logs logs) :

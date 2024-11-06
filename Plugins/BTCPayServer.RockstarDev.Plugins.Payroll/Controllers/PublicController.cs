@@ -27,7 +27,7 @@ public class PublicController : Controller
     private readonly BTCPayNetworkProvider _networkProvider;
     private readonly IFileService _fileService;
     private readonly UriResolver _uriResolver;
-    private readonly PayrollPluginPassHasher _hasher;
+    private readonly VendorPayPassHasher _hasher;
     private readonly ISettingsRepository _settingsRepository;
 
     public PublicController(ApplicationDbContextFactory dbContextFactory,
@@ -36,7 +36,7 @@ public class PublicController : Controller
         BTCPayNetworkProvider networkProvider,
         IFileService fileService,
         UriResolver uriResolver,
-        PayrollPluginPassHasher hasher,
+        VendorPayPassHasher hasher,
         ISettingsRepository settingsRepository)
     {
         _dbContextFactory = dbContextFactory;

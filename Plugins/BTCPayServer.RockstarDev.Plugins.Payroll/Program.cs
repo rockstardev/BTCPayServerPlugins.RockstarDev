@@ -19,8 +19,8 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
     {
         serviceCollection.AddUIExtension("store-integrations-nav", "PayrollNav");
 
-        serviceCollection.AddSingleton<IHostedService, PayrollInvoicesPaidHostedService>();
-        serviceCollection.AddSingleton<PayrollPluginPassHasher>();
+        serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
+        serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();
         serviceCollection.AddDbContext<PayrollPluginDbContext>((provider, o) =>
         {

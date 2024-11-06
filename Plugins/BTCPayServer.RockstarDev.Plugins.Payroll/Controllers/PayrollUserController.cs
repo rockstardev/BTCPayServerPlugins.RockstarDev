@@ -25,12 +25,12 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 public class PayrollUserController : Controller
 {
     private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly PayrollPluginPassHasher _hasher;
+    private readonly VendorPayPassHasher _hasher;
     private readonly IFileService _fileService;
     private readonly HttpClient _httpClient;
 
     public PayrollUserController(PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        PayrollPluginPassHasher hasher,
+        VendorPayPassHasher hasher,
         IFileService fileService,
         HttpClient httpClient)
     {

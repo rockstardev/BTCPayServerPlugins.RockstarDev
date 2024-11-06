@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 
-public class PayrollPluginPassHasher
+public class VendorPayPassHasher
 {
     private readonly PasswordHasher<string> _hasher = new();
 
