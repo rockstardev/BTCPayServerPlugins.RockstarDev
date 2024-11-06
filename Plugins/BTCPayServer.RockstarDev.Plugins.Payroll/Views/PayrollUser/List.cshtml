@@ -6,7 +6,7 @@
 @model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser.PayrollUserListViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage("Payroll", "Payroll Users", "Payroll");
+    ViewData.SetActivePage("VendorPay", "Vendor Pay Users", "VendorPay");
 
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
@@ -18,7 +18,7 @@
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
             <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-            <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Payroll Invoices</a>
+            <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
         </div>
     </div>
 
