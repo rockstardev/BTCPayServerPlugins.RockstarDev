@@ -31,6 +31,7 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Configuration;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using Microsoft.Extensions.Options;
 using BTCPayServer.Services.Invoices;
 
@@ -110,6 +111,7 @@ public class PayrollInvoiceController : Controller
         var model = new PayrollInvoiceListViewModel
         {
             All = all,
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel
             {
                 CreatedAt = tuple.CreatedAt,
@@ -121,6 +123,7 @@ public class PayrollInvoiceController : Controller
                 Currency = tuple.Currency,
                 State = tuple.State,
                 TxnId = tuple.TxnId,
+                PurchaseOrder = tuple.PurchaseOrder,
                 Description = tuple.Description,
                 InvoiceUrl = tuple.InvoiceFilename
             }).ToList()
@@ -132,6 +135,7 @@ public class PayrollInvoiceController : Controller
     {
         public bool All { get; set; }
         public List<PayrollInvoiceViewModel> PayrollInvoices { get; set; }
+        public bool PurchaseOrdersRequired { get; set; }
     }
 
     public class PayrollInvoiceViewModel
@@ -145,6 +149,7 @@ public class PayrollInvoiceController : Controller
         public string Currency { get; set; }
         public PayrollInvoiceState State { get; set; }
         public string TxnId { get; set; }
+        public string PurchaseOrder { get; set; }
         public string Description { get; set; }
         public string InvoiceUrl { get; set; }
     }
@@ -315,8 +320,13 @@ public class PayrollInvoiceController : Controller
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
     public async Task<IActionResult> Upload(string storeId)
     {
-        var model = new PayrollInvoiceUploadViewModel();
-        model.Currency = CurrentStore.GetStoreBlob().DefaultCurrency;
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var model = new PayrollInvoiceUploadViewModel
+        {
+            Amount = 0,
+            Currency = CurrentStore.GetStoreBlob().DefaultCurrency,
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
+        };
 
         await using var ctx = _payrollPluginDbContextFactory.CreateContext();
         model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
@@ -366,6 +376,12 @@ public class PayrollInvoiceController : Controller
         {
             ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
         }
+        
+        if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
+        {
+            model.PurchaseOrdersRequired = true;
+            ModelState.AddModelError(nameof(model.PurchaseOrder), "Purchase Order is required");
+        }
 
         await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
@@ -388,6 +404,7 @@ public class PayrollInvoiceController : Controller
             CreatedAt = DateTime.UtcNow,
             Currency = model.Currency,
             Destination = model.Destination,
+            PurchaseOrder = model.PurchaseOrder,
             Description = model.Description,
             UserId = model.UserId,
             State = PayrollInvoiceState.AwaitingApproval
@@ -563,15 +580,25 @@ public class PayrollInvoiceController : Controller
         [Required]
         [DisplayName("User")]
         public string UserId { get; set; }
+
+        public SelectList PayrollUsers { get; set; }
+        
+        
+        
         [Required]
         public string Destination { get; set; }
         [Required]
         public decimal Amount { get; set; }
         [Required]
         public string Currency { get; set; }
+        
+        [RequiredIf("PurchaseOrdersRequired", true)]
+        [DisplayName("Purchase Order")]
+        [MaxLength(20)]
+        public string PurchaseOrder { get; set; }
+
+        public bool PurchaseOrdersRequired { get; set; }
         public string Description { get; set; }
         public IFormFile Invoice { get; set; }
-
-        public SelectList PayrollUsers { get; set; }
     }
 }

@@ -30,7 +30,11 @@ public class PayrollSettingController : Controller
     public async Task<IActionResult> Settings(string storeId)
     {
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        PayrollPluginSettingViewModel model = new PayrollPluginSettingViewModel { MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional };
+        var model = new PayrollPluginSettingViewModel
+        {
+            MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
+        };
         return View(model);
     }
 
@@ -45,6 +49,7 @@ public class PayrollSettingController : Controller
 
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         settings.MakeInvoiceFilesOptional = model.MakeInvoiceFileOptional;
+        settings.PurchaseOrdersRequired = model.PurchaseOrdersRequired;
         await dbPlugins.SaveChangesAsync(); 
         return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
 

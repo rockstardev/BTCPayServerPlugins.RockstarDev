@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
@@ -18,6 +19,8 @@ public class PayrollInvoice
     public string Destination { get; set; }
     public decimal Amount { get; set; }
     public string Currency { get; set; }
+    [MaxLength(20)]
+    public string PurchaseOrder { get; set; }
     public string Description { get; set; }
     public string InvoiceFilename { get; set; }
     public bool IsArchived { get; set; }
@@ -39,7 +42,7 @@ public enum PayrollInvoiceState
 {
     AwaitingApproval,
     AwaitingPayment,
-    InProgress, // waiting for confirmation on blockchain (or for lightning it can be stuck HTLC
+    InProgress, // waiting for confirmation on blockchain (or for lightning it can be stuck HTLC)
     Completed,
     Cancelled
 }

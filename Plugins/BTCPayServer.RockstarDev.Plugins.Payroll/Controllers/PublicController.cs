@@ -124,11 +124,13 @@ public class PublicController : Controller
             .Where(p => p.User.StoreId == storeId && p.UserId == vali.UserId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         var model = new PublicListInvoicesViewModel
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob()),
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
             {
                 CreatedAt = tuple.CreatedAt,
@@ -140,6 +142,7 @@ public class PublicController : Controller
                 Currency = tuple.Currency,
                 State = tuple.State,
                 TxnId = tuple.TxnId,
+                PurchaseOrder = tuple.PurchaseOrder,
                 Description = tuple.Description,
                 InvoiceUrl = tuple.InvoiceFilename
             }).ToList()
@@ -186,13 +189,15 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         var model = new PublicPayrollInvoiceUploadViewModel
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob()),
             Amount = 0,
-            Currency = vali.Store.GetStoreBlob().DefaultCurrency
+            Currency = vali.Store.GetStoreBlob().DefaultCurrency,
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
         };
 
         return View(model);
@@ -223,6 +228,18 @@ public class PublicController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
+        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
+        {
+            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
+        }
+        
+        if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
+        {
+            model.PurchaseOrdersRequired = true;
+            ModelState.AddModelError(nameof(model.PurchaseOrder), "Purchase Order is required");
+        }
+
         await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
@@ -237,7 +254,6 @@ public class PublicController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
@@ -246,6 +262,7 @@ public class PublicController : Controller
             CreatedAt = DateTime.UtcNow,
             Currency = model.Currency,
             Destination = model.Destination,
+            PurchaseOrder = model.PurchaseOrder,
             Description = model.Description,
             InvoiceFilename = uploaded.Id,
             UserId = vali.UserId,

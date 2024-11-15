@@ -6,4 +6,7 @@ public class PayrollPluginSettingViewModel
 {
     [Display(Name = "Make Invoice file optional")]
     public bool MakeInvoiceFileOptional { get; set; }
+    
+    [Display(Name = "Require Purchase Orders (PO)")]
+    public bool PurchaseOrdersRequired { get; set; }
 }
