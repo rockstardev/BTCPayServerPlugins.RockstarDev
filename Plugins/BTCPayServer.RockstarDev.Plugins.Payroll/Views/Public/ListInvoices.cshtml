@@ -48,7 +48,14 @@
                                 <th scope="col">Amount</th>
                                 <th scope="col">Currency</th>
                                 <th scope="col">State</th>
+                                @if (Model.PurchaseOrdersRequired)
+                                {
+                                <th scope="col">Purchase Order</th>
+                                }
+                                else
+                                {
                                 <th scope="col">Description</th>
+                                }
                                 <th scope="col" class="text-end"></th>
                             </tr>
                         </thead>
@@ -68,11 +75,18 @@
                                     <td>@pp.Currency</td>
                                     <td>@pp.State.ToString()</td>
                                     <td>
+                                        @if (Model.PurchaseOrdersRequired)
+                                        {
+                                        <span style="max-width: 250px;">@pp.PurchaseOrder</span>
+                                        }
+                                        else
+                                        {
                                         @if (!string.IsNullOrEmpty(pp.Description))
                                         {
-                                            <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
-                                                <span style="max-width: 250px;">@pp.Description</span>
-                                            </span>
+                                        <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
+                                            <span style="max-width: 250px;">@pp.Description</span>
+                                        </span>
+                                        }
                                         }
                                     </td>
                                     <td class="text-end">

@@ -1,7 +1,9 @@
 ﻿using BTCPayServer.Models;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
@@ -20,6 +22,7 @@ public class PublicLoginViewModel : BasePayrollPublicViewModel
 public class PublicListInvoicesViewModel : BasePayrollPublicViewModel
 {
     public List<PayrollInvoiceViewModel> Invoices { get; set; }
+    public bool PurchaseOrdersRequired { get; set; }
 }
 
 public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
@@ -30,8 +33,14 @@ public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
     public decimal Amount { get; set; }
     [Required]
     public string Currency { get; set; }
+        
+    [RequiredIf("PurchaseOrdersRequired", true)]
+    [DisplayName("Purchase Order")]
+    [MaxLength(20)]
+    public string PurchaseOrder { get; set; }
+
+    public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
-    [Required]
     public IFormFile Invoice { get; set; }
 }
 

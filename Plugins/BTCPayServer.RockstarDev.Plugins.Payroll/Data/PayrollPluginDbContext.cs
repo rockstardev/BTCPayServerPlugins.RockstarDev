@@ -1,5 +1,8 @@
-﻿using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+﻿using System.Threading.Tasks;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
@@ -16,6 +19,7 @@ public class PayrollPluginDbContext : DbContext
 
     public DbSet<PayrollInvoice> PayrollInvoices { get; set; }
     public DbSet<PayrollUser> PayrollUsers { get; set; }
+    public DbSet<PayrollSetting> PayrollSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,5 +28,18 @@ public class PayrollPluginDbContext : DbContext
 
         PayrollInvoice.OnModelCreating(modelBuilder);
         PayrollUser.OnModelCreating(modelBuilder);
+    }
+
+    public async Task<PayrollStoreSetting> GetSettingAsync(string storeId)
+    {
+        var setting = await PayrollSettings.FirstOrDefaultAsync(a => a.StoreId == storeId);
+        if (setting is null)
+        {
+            return new PayrollStoreSetting();
+        }
+
+        // need to deserialize the setting from json
+        var payrollStoreSetting = JsonConvert.DeserializeObject<PayrollStoreSetting>(setting.Setting);
+        return payrollStoreSetting;
     }
 }

@@ -19,6 +19,11 @@
                 <label asp-for="MakeInvoiceFileOptional" class="form-label mb-0 me-1"></label>
                 <span asp-validation-for="MakeInvoiceFileOptional" class="text-danger"></span>
             </div>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="PurchaseOrdersRequired" type="checkbox" class="btcpay-toggle me-3" />
+                <label asp-for="PurchaseOrdersRequired" class="form-label mb-0 me-1"></label>
+                <span asp-validation-for="PurchaseOrdersRequired" class="text-danger"></span>
+            </div>
         </div>
     </div>
 </form>

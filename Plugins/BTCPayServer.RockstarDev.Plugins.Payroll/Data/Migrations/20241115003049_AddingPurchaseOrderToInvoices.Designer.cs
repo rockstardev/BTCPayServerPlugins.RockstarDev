@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     [DbContext(typeof(PayrollPluginDbContext))]
-    partial class PayrollPluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241115003049_AddingPurchaseOrderToInvoices")]
+    partial class AddingPurchaseOrderToInvoices
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -71,20 +74,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PayrollInvoices", "BTCPayServer.RockstarDev.Plugins.Payroll");
-                });
-
-            modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollSetting", b =>
-                {
-                    b.Property<string>("StoreId")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Setting")
-                        .HasColumnType("text");
-
-                    b.HasKey("StoreId");
-
-                    b.ToTable("PayrollSettings", "BTCPayServer.RockstarDev.Plugins.Payroll");
                 });
 
             modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models.PayrollUser", b =>

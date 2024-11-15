@@ -77,7 +77,14 @@
                         <th scope="col">Amount</th>
                         <th scope="col">Currency</th>
                         <th scope="col">State</th>
-                        <th scope="col">Description</th>
+                        @if (Model.PurchaseOrdersRequired)
+                        {
+                            <th scope="col">Purchase Order</th>
+                        }
+                        else
+                        {
+                            <th scope="col">Description</th>
+                        }
                         <th scope="col" class="text-end"></th>
                     </tr>
                 </thead>
@@ -153,11 +160,18 @@
                                 }
                             </td>
                             <td>
-                                @if (!string.IsNullOrEmpty(pp.Description))
+                                @if (Model.PurchaseOrdersRequired)
                                 {
-                                    <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
-                                        <span style="max-width: 250px;">@pp.Description</span>
-                                    </span>
+                                    <span style="max-width: 250px;">@pp.PurchaseOrder</span>
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrEmpty(pp.Description))
+                                    {
+                                        <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
+                                            <span style="max-width: 250px;">@pp.Description</span>
+                                        </span>
+                                    }
                                 }
                             </td>
                             <td class="text-end">
