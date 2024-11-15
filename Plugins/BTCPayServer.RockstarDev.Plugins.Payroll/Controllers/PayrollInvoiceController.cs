@@ -100,14 +100,15 @@ public class PayrollInvoiceController : Controller
         }
 
         // triggering saving of admin user id if needed
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        settings ??= new PayrollPluginSettings();
-        if (settings.AdminAppUserId is null)
+        var adminset = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        adminset ??= new PayrollPluginSettings();
+        if (adminset.AdminAppUserId is null)
         {
-            settings.AdminAppUserId = _userManager.GetUserId(User);
-            await _settingsRepository.UpdateSetting(settings);
+            adminset.AdminAppUserId = _userManager.GetUserId(User);
+            await _settingsRepository.UpdateSetting(adminset);
         }
 
+        var settings = await ctx.GetSettingAsync(storeId);
         var model = new PayrollInvoiceListViewModel
         {
             All = all,
@@ -320,7 +321,7 @@ public class PayrollInvoiceController : Controller
     [HttpGet("~/plugins/{storeId}/payroll/upload")]
     public async Task<IActionResult> Upload(string storeId)
     {
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var settings = await _payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollInvoiceUploadViewModel
         {
             Amount = 0,
@@ -351,7 +352,7 @@ public class PayrollInvoiceController : Controller
 
     [HttpPost("~/plugins/{storeId}/payroll/upload")]
 
-    public async Task<IActionResult> Upload(PayrollInvoiceUploadViewModel model)
+    public async Task<IActionResult> Upload(string storeId, PayrollInvoiceUploadViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -371,7 +372,8 @@ public class PayrollInvoiceController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
+        var settings = await dbPlugin.GetSettingAsync(storeId);
         if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
         {
             ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
@@ -383,7 +385,6 @@ public class PayrollInvoiceController : Controller
             ModelState.AddModelError(nameof(model.PurchaseOrder), "Purchase Order is required");
         }
 
-        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
             a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
@@ -411,10 +412,10 @@ public class PayrollInvoiceController : Controller
         };
         if (!settings.MakeInvoiceFilesOptional && model.Invoice != null)
         {
-            var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
+            var adminset = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+            var uploaded = await _fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
             dbPayrollInvoice.InvoiceFilename = uploaded.Id;
         }
-
 
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();

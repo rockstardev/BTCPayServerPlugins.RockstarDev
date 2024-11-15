@@ -124,7 +124,7 @@ public class PublicController : Controller
             .Where(p => p.User.StoreId == storeId && p.UserId == vali.UserId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var settings = await ctx.GetSettingAsync(storeId);
         var model = new PublicListInvoicesViewModel
         {
             StoreId = vali.Store.Id,
@@ -189,7 +189,7 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var settings = await _payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PublicPayrollInvoiceUploadViewModel
         {
             StoreId = vali.Store.Id,
@@ -228,7 +228,8 @@ public class PublicController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
-        var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
+        var settings = await dbPlugin.GetSettingAsync(storeId);
         if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
         {
             ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
@@ -240,7 +241,6 @@ public class PublicController : Controller
             ModelState.AddModelError(nameof(model.PurchaseOrder), "Purchase Order is required");
         }
 
-        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
             a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
@@ -254,7 +254,8 @@ public class PublicController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        var uploaded = await _fileService.AddFile(model.Invoice, settings!.AdminAppUserId);
+        var adminset = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var uploaded = await _fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
 
         var dbPayrollInvoice = new PayrollInvoice
         {
