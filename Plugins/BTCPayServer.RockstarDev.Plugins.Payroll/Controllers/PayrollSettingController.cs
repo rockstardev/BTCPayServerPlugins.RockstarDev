@@ -50,7 +50,8 @@ public class PayrollSettingController : Controller
         var settings = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
         settings.MakeInvoiceFilesOptional = model.MakeInvoiceFileOptional;
         settings.PurchaseOrdersRequired = model.PurchaseOrdersRequired;
-        await dbPlugins.SaveChangesAsync(); 
+        
+        await _settingsRepository.UpdateSetting(settings);
         return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
 
     }
