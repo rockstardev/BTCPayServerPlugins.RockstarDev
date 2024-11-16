@@ -399,9 +399,10 @@ public class PayrollInvoiceController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
+        var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount; // this will remove .00 from the amount
         var dbPayrollInvoice = new PayrollInvoice
         {
-            Amount = model.Amount,
+            Amount = removeTrailingZeros,
             CreatedAt = DateTime.UtcNow,
             Currency = model.Currency,
             Destination = model.Destination,
