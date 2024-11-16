@@ -1,12 +1,12 @@
-﻿using BTCPayServer.Models;
-using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using BTCPayServer.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using Microsoft.AspNetCore.Http;
 using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 public class PublicLoginViewModel : BasePayrollPublicViewModel
 {

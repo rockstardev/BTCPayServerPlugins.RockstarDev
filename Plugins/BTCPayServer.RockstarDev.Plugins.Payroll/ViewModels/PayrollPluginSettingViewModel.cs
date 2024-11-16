@@ -2,7 +2,7 @@
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
-public class PayrollPluginSettingViewModel
+public class PayrollSettingViewModel
 {
     [Display(Name = "Make Invoice file optional")]
     public bool MakeInvoiceFileOptional { get; set; }

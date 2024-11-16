@@ -9,7 +9,6 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services.Rates;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -17,8 +16,6 @@ using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.IO.Compression;
 using System.IO;
 using System.Linq;
@@ -31,7 +28,7 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Configuration;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using Microsoft.Extensions.Options;
 using BTCPayServer.Services.Invoices;
 
@@ -131,30 +128,6 @@ public class PayrollInvoiceController : Controller
         };
         return View(model);
     }
-
-    public class PayrollInvoiceListViewModel
-    {
-        public bool All { get; set; }
-        public List<PayrollInvoiceViewModel> PayrollInvoices { get; set; }
-        public bool PurchaseOrdersRequired { get; set; }
-    }
-
-    public class PayrollInvoiceViewModel
-    {
-        public DateTimeOffset CreatedAt { get; set; }
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public string Destination { get; set; }
-        public decimal Amount { get; set; }
-        public string Currency { get; set; }
-        public PayrollInvoiceState State { get; set; }
-        public string TxnId { get; set; }
-        public string PurchaseOrder { get; set; }
-        public string Description { get; set; }
-        public string InvoiceUrl { get; set; }
-    }
-
 
     [HttpPost]
     public async Task<IActionResult> MassAction(string command, string[] selectedItems)
@@ -565,7 +538,6 @@ public class PayrollInvoiceController : Controller
         return model;
     }
 
-
     private IActionResult NoUserResult(string storeId)
     {
         TempData.SetStatusMessageModel(new StatusMessageModel
@@ -575,32 +547,5 @@ public class PayrollInvoiceController : Controller
             AllowDismiss = false
         });
         return RedirectToAction(nameof(List), new { storeId });
-    }
-
-    public class PayrollInvoiceUploadViewModel
-    {
-        [Required]
-        [DisplayName("User")]
-        public string UserId { get; set; }
-
-        public SelectList PayrollUsers { get; set; }
-        
-        
-        
-        [Required]
-        public string Destination { get; set; }
-        [Required]
-        public decimal Amount { get; set; }
-        [Required]
-        public string Currency { get; set; }
-        
-        [RequiredIf("PurchaseOrdersRequired", true)]
-        [DisplayName("Purchase Order")]
-        [MaxLength(20)]
-        public string PurchaseOrder { get; set; }
-
-        public bool PurchaseOrdersRequired { get; set; }
-        public string Description { get; set; }
-        public IFormFile Invoice { get; set; }
     }
 }

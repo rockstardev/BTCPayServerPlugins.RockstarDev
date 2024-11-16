@@ -14,6 +14,7 @@ using NBitcoin;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;

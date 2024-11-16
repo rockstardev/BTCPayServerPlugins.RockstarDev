@@ -17,7 +17,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollUser;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 

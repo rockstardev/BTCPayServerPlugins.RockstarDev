@@ -31,7 +31,7 @@ public class PayrollSettingController : Controller
     public async Task<IActionResult> Settings(string storeId)
     {
         var settings = await _payrollPluginDbContextFactory.GetSettingAsync(storeId);
-        var model = new PayrollPluginSettingViewModel
+        var model = new PayrollSettingViewModel
         {
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired
@@ -41,7 +41,7 @@ public class PayrollSettingController : Controller
 
     [HttpPost("~/plugins/{storeId}/payroll/settings")]
 
-    public async Task<IActionResult> Settings(string storeId, PayrollPluginSettingViewModel model)
+    public async Task<IActionResult> Settings(string storeId, PayrollSettingViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
