@@ -20,36 +20,17 @@ using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoice
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [AllowAnonymous]
-public class PublicController : Controller
+public class PublicController(
+    ApplicationDbContextFactory dbContextFactory,
+    PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+    IHttpContextAccessor httpContextAccessor,
+    BTCPayNetworkProvider networkProvider,
+    IFileService fileService,
+    UriResolver uriResolver,
+    VendorPayPassHasher hasher,
+    ISettingsRepository settingsRepository)
+    : Controller
 {
-    private readonly ApplicationDbContextFactory _dbContextFactory;
-    private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly BTCPayNetworkProvider _networkProvider;
-    private readonly IFileService _fileService;
-    private readonly UriResolver _uriResolver;
-    private readonly VendorPayPassHasher _hasher;
-    private readonly ISettingsRepository _settingsRepository;
-
-    public PublicController(ApplicationDbContextFactory dbContextFactory,
-        PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        IHttpContextAccessor httpContextAccessor,
-        BTCPayNetworkProvider networkProvider,
-        IFileService fileService,
-        UriResolver uriResolver,
-        VendorPayPassHasher hasher,
-        ISettingsRepository settingsRepository)
-    {
-        _dbContextFactory = dbContextFactory;
-        _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
-        _httpContextAccessor = httpContextAccessor;
-        _networkProvider = networkProvider;
-        _fileService = fileService;
-        _uriResolver = uriResolver;
-        _hasher = hasher;
-        _settingsRepository = settingsRepository;
-    }
-
     private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
 
 
@@ -63,7 +44,7 @@ public class PublicController : Controller
         var model = new PublicLoginViewModel
         {
             StoreName = vali.Store.StoreName,
-            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob())
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob())
         };
 
         return View(model);
@@ -78,17 +59,17 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
-        await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
             a.StoreId == storeId && a.Email == model.Email.ToLowerInvariant());
 
         if (userInDb != null)
         {
-            if (userInDb.State == PayrollUserState.Active && _hasher.IsValidPassword(userInDb, model.Password))
+            if (userInDb.State == PayrollUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
             {
-                _httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
+                httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
                 return RedirectToAction(nameof(ListInvoices), new { storeId });
             }
         }
@@ -103,7 +84,7 @@ public class PublicController : Controller
     [HttpGet("~/plugins/{storeId}/payroll/public/logout")]
     public IActionResult Logout(string storeId)
     {
-        _httpContextAccessor.HttpContext?.Session.Remove(PAYROLL_AUTH_USER_ID);
+        httpContextAccessor.HttpContext?.Session.Remove(PAYROLL_AUTH_USER_ID);
         return redirectToLogin(storeId);
     }
 
@@ -119,7 +100,7 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        await using var ctx = _payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && p.UserId == vali.UserId && p.IsArchived == false)
@@ -130,7 +111,7 @@ public class PublicController : Controller
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
-            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob()),
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob()),
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
             {
@@ -154,7 +135,7 @@ public class PublicController : Controller
 
     private async Task<StoreUserValidator> validateStoreAndUser(string storeId, bool validateUser)
     {
-        await using var dbMain = _dbContextFactory.CreateContext();
+        await using var dbMain = dbContextFactory.CreateContext();
         var store = await dbMain.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
         if (store == null)
             return new StoreUserValidator { ErrorActionResult = NotFound() };
@@ -162,8 +143,8 @@ public class PublicController : Controller
         string userId = null;
         if (validateUser)
         {
-            await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
-            userId = _httpContextAccessor.HttpContext!.Session.GetString(PAYROLL_AUTH_USER_ID);
+            await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
+            userId = httpContextAccessor.HttpContext!.Session.GetString(PAYROLL_AUTH_USER_ID);
             var userInDb = dbPlugin.PayrollUsers.SingleOrDefault(a =>
                 a.StoreId == storeId && a.Id == userId && a.State == PayrollUserState.Active);
             if (userInDb == null)
@@ -190,12 +171,12 @@ public class PublicController : Controller
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var settings = await _payrollPluginDbContextFactory.GetSettingAsync(storeId);
+        var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PublicPayrollInvoiceUploadViewModel
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
-            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob()),
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob()),
             Amount = 0,
             Currency = vali.Store.GetStoreBlob().DefaultCurrency,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired
@@ -214,14 +195,14 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         if (model.Amount <= 0)
             ModelState.AddModelError(nameof(model.Amount), "Amount must be more than 0.");
 
         try
         {
-            var network = _networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
+            var network = networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
             var unused = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
         catch (Exception)
@@ -229,7 +210,7 @@ public class PublicController : Controller
             ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
         }
 
-        await using var dbPlugin = _payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
         var settings = await dbPlugin.GetSettingAsync(storeId);
         if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
         {
@@ -255,8 +236,8 @@ public class PublicController : Controller
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        var adminset = await _settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        var uploaded = await _fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
+        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
 
         var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount; // this will remove .00 from the amount
         var dbPayrollInvoice = new PayrollInvoice
@@ -297,7 +278,7 @@ public class PublicController : Controller
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
-            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob())
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob())
         };
 
         return View(model);
@@ -312,18 +293,18 @@ public class PublicController : Controller
 
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
-        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, vali.Store.GetStoreBlob());
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
         if (!ModelState.IsValid)
             return View(model);
 
-        await using var dbPlugins = _payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
             a.StoreId == storeId && a.Id == vali.UserId);
         if (userInDb == null)
             ModelState.AddModelError(nameof(model.CurrentPassword), "Invalid password");
 
-        if (!_hasher.IsValidPassword(userInDb, model.CurrentPassword))
+        if (!hasher.IsValidPassword(userInDb, model.CurrentPassword))
             ModelState.AddModelError(nameof(model.CurrentPassword), "Invalid password");
 
         if (!ModelState.IsValid)
@@ -332,7 +313,7 @@ public class PublicController : Controller
 
 
         // 
-        userInDb!.Password = _hasher.HashPassword(vali.UserId, model.NewPassword);
+        userInDb!.Password = hasher.HashPassword(vali.UserId, model.NewPassword);
         await dbPlugins.SaveChangesAsync();
 
         //

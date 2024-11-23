@@ -12,25 +12,15 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollSettingController : Controller
+public class PayrollSettingController(PayrollPluginDbContextFactory payrollPluginDbContextFactory) : Controller
 {
-    private readonly PayrollPluginDbContextFactory _payrollPluginDbContextFactory;
-    private readonly ISettingsRepository _settingsRepository;
-
-    public PayrollSettingController(PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-        ISettingsRepository settingsRepository)
-    {
-        _payrollPluginDbContextFactory = payrollPluginDbContextFactory;
-        _settingsRepository = settingsRepository;
-    }
-
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
 
     [HttpGet("~/plugins/{storeId}/payroll/settings")]
     public async Task<IActionResult> Settings(string storeId)
     {
-        var settings = await _payrollPluginDbContextFactory.GetSettingAsync(storeId);
+        var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollSettingViewModel
         {
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
@@ -52,7 +42,7 @@ public class PayrollSettingController : Controller
             PurchaseOrdersRequired = model.PurchaseOrdersRequired
         };
         
-        await _payrollPluginDbContextFactory.SetSettingAsync(storeId, settings);
+        await payrollPluginDbContextFactory.SetSettingAsync(storeId, settings);
         return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
 
     }
