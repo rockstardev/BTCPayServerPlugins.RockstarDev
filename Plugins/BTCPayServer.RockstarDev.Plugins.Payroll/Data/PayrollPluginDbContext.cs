@@ -6,16 +6,9 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
-public class PayrollPluginDbContext : DbContext
+public class PayrollPluginDbContext(DbContextOptions<PayrollPluginDbContext> options, bool designTime = false)
+    : DbContext(options)
 {
-    // ReSharper disable once NotAccessedField.Local
-    private readonly bool _designTime;
-
-    public PayrollPluginDbContext(DbContextOptions<PayrollPluginDbContext> options, bool designTime = false)
-        : base(options)
-    {
-        _designTime = designTime;
-    }
 
     public DbSet<PayrollInvoice> PayrollInvoices { get; set; }
     public DbSet<PayrollUser> PayrollUsers { get; set; }

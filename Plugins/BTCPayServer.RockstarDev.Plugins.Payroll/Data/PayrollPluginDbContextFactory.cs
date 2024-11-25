@@ -11,13 +11,10 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
-public class PayrollPluginDbContextFactory : BaseDbContextFactory<PayrollPluginDbContext>
-{
-    public PayrollPluginDbContextFactory(IOptions<DatabaseOptions> options) : base(options,
+public class PayrollPluginDbContextFactory(IOptions<DatabaseOptions> options)
+    : BaseDbContextFactory<PayrollPluginDbContext>(options,
         "BTCPayServer.RockstarDev.Plugins.Payroll")
-    {
-    }
-
+{
     public override PayrollPluginDbContext CreateContext(
         Action<NpgsqlDbContextOptionsBuilder> npgsqlOptionsAction = null)
     {

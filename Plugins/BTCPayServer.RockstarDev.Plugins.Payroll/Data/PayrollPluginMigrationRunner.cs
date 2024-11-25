@@ -5,20 +5,12 @@ using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
-internal class PayrollPluginMigrationRunner : IHostedService
+internal class PayrollPluginMigrationRunner(PayrollPluginDbContextFactory dbContextFactory) : IHostedService
 {
-    private readonly PayrollPluginDbContextFactory _dbContextFactory;
-
-    public PayrollPluginMigrationRunner(
-        PayrollPluginDbContextFactory dbContextFactory)
-    {
-        _dbContextFactory = dbContextFactory;
-    }
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await using var ctx = _dbContextFactory.CreateContext();
-        await using var dbContext = _dbContextFactory.CreateContext();
+        await using var ctx = dbContextFactory.CreateContext();
+        await using var dbContext = dbContextFactory.CreateContext();
         await ctx.Database.MigrateAsync(cancellationToken);
     }
 

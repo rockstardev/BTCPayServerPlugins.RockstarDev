@@ -12,21 +12,13 @@ using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class VendorPayPaidHostedService : EventHostedServiceBase
+public class VendorPayPaidHostedService(
+    PaymentMethodHandlerDictionary handlers,
+    EventAggregator eventAggregator,
+    PayrollPluginDbContextFactory pluginDbContextFactory,
+    Logs logs)
+    : EventHostedServiceBase(eventAggregator, logs)
 {
-    private readonly PaymentMethodHandlerDictionary _handlers;
-    private readonly PayrollPluginDbContextFactory _pluginDbContextFactory;
-
-    public VendorPayPaidHostedService(PaymentMethodHandlerDictionary handlers,
-        EventAggregator eventAggregator,
-        PayrollPluginDbContextFactory pluginDbContextFactory,
-        Logs logs) :
-        base(eventAggregator, logs)
-    {
-        _handlers = handlers;
-        _pluginDbContextFactory = pluginDbContextFactory;
-    }
-
     protected override void SubscribeToEvents()
     {
         Subscribe<NewOnChainTransactionEvent>();
@@ -40,7 +32,7 @@ public class VendorPayPaidHostedService : EventHostedServiceBase
             // If we find, then we create a link between them and the tx object.
             case NewOnChainTransactionEvent transactionEvent:
                 {
-                    var network = _handlers.TryGetNetwork(transactionEvent.PaymentMethodId);
+                    var network = handlers.TryGetNetwork(transactionEvent.PaymentMethodId);
                     var derivation = transactionEvent.NewTransactionEvent.DerivationStrategy;
                     if (network is null || derivation is null)
                         break;
@@ -69,7 +61,7 @@ public class VendorPayPaidHostedService : EventHostedServiceBase
                         amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
                     }
 
-                    await using var dbPlugin = _pluginDbContextFactory.CreateContext();
+                    await using var dbPlugin = pluginDbContextFactory.CreateContext();
                     var invoicesToBePaid = dbPlugin.PayrollInvoices
                         .Where(a => a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
                         .ToList();
