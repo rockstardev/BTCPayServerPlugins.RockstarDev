@@ -10,7 +10,7 @@
 @if (!string.IsNullOrEmpty(storeId))
 {
     <li class="nav-item">
-        <a asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequests" class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginNavKey)"
+        <a asp-controller="RockstarStrikeUtils" asp-action="Dashboard" class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginNavKey)"
            permission="@Policies.CanModifyServerSettings">
 
             <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 1024 1024" fill="currentColor">

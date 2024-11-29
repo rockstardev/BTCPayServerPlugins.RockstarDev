@@ -1,10 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Client;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
+using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
+using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.RockstarStrikeUtils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -15,29 +19,45 @@ using Strike.Client;
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class RockstarStrikeUtilsController(UserManager<ApplicationUser> userManager, StrikeClient strikeClient) : Controller
+public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strikeDbContextFactory) : Controller
 {
-    [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests")]
-    public IActionResult ReceiveRequests()
+    [HttpGet("~/plugins/rockstarstrikeutils/dashboard")]
+    public async Task<IActionResult> Dashboard()
     {
-        return View(new AdminPassResetViewModel());
-    }
+        await using var db = strikeDbContextFactory.CreateContext();
 
-    [HttpPost("~/plugins/adminpassreset/create")]
-    public async Task<IActionResult> Create(AdminPassResetViewModel model)
-    {
-        var receiveRequests = strikeClient.ReceiveRequests.GetRequests();
+        var model = new DashboardViewModel
+        {
+            StrikeApiKey = db.Settings.SingleOrDefault(a => a.Key == "StrikeApiKey")?.Value
+        };
         
         return View(model);
     }
 
-    public class AdminPassResetViewModel
+    [HttpPost("~/plugins/rockstarstrikeutils/dashboard")]
+    public async Task<IActionResult> Dashboard(DashboardViewModel model)
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email address of the user")]
-        public string Email { get; set; }
+        if (!ModelState.IsValid)
+            return View(model);
 
-        public string CallbackUrl { get; set; }
+        await using var db = strikeDbContextFactory.CreateContext();
+        var setting = db.Settings.SingleOrDefault(a => a.Key == "StrikeApiKey");
+        if (setting is null)
+        {
+            setting = new DbSetting
+            {
+                Key = "StrikeApiKey",
+                Value = model.StrikeApiKey
+            };
+            db.Settings.Add(setting);
+        }
+        else
+        {
+            setting.Value = model.StrikeApiKey;
+        }
+
+        await db.SaveChangesAsync();
+        
+        return View(model);
     }
 }

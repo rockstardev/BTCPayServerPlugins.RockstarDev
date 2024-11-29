@@ -13,12 +13,20 @@ namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
             new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
         };
 
-        public override void Execute(IServiceCollection applicationBuilder)
+        public override void Execute(IServiceCollection serviceCollection)
         {
-            applicationBuilder.AddUIExtension("store-integrations-nav", RockstarStrikeUtilsPlugin.PluginNavKey);
+            serviceCollection.AddUIExtension("store-integrations-nav", PluginNavKey);
             
-            applicationBuilder.AddHostedService<RockstarStrikeMigrationRunner>();
-            base.Execute(applicationBuilder);
+            // Add the database related registrations
+            serviceCollection.AddSingleton<RockstarStrikeDbContextFactory>();
+            serviceCollection.AddDbContext<RockstarStrikeDbContext>((provider, o) =>
+            {
+                var factory = provider.GetRequiredService<RockstarStrikeDbContextFactory>();
+                factory.ConfigureBuilder(o);
+            });
+            serviceCollection.AddHostedService<RockstarStrikeMigrationRunner>();
+
+            base.Execute(serviceCollection);
         }
     }
 }
