@@ -29,11 +29,27 @@
     
     <ItemGroup>
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
-    </ItemGroup>
-    
-    <ItemGroup>
       <PackageReference Include="StrikeWallet.Client" Version="1.2.3">
           <Private>true</Private>
       </PackageReference>
+    </ItemGroup>
+    
+    <!-- This is all so that we can generate entity framework migrations in design mode
+    <Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
+        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
+              DestinationFolder="$(OutputPath)"
+              Condition="'$(Configuration)' == 'Debug'" />
+        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer.Abstractions\bin\Debug\net8.0\BTCPayServer.Abstractions.dll"
+              DestinationFolder="$(OutputPath)"
+              Condition="'$(Configuration)' == 'Debug'" />
+    </Target>
+     -->
+    
+    <ItemGroup Condition="'$(Configuration)' != 'Release'">
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
     </ItemGroup>
 </Project>

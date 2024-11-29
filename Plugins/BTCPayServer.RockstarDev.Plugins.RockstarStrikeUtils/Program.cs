@@ -1,5 +1,6 @@
 ﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
@@ -15,6 +16,8 @@ namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
         public override void Execute(IServiceCollection applicationBuilder)
         {
             applicationBuilder.AddUIExtension("store-integrations-nav", RockstarStrikeUtilsPlugin.PluginNavKey);
+            
+            applicationBuilder.AddHostedService<RockstarStrikeMigrationRunner>();
             base.Execute(applicationBuilder);
         }
     }
