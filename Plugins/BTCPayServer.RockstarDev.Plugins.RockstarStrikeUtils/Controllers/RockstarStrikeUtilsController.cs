@@ -21,6 +21,12 @@ namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strikeDbContextFactory) : Controller
 {
+    [HttpGet("~/plugins/rockstarstrikeutils/index")]
+    public async Task<IActionResult> Index()
+    {
+        return RedirectToAction(nameof(Dashboard));
+    }
+    
     [HttpGet("~/plugins/rockstarstrikeutils/dashboard")]
     public async Task<IActionResult> Dashboard()
     {
@@ -57,6 +63,14 @@ public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strike
         }
 
         await db.SaveChangesAsync();
+        
+        return View(model);
+    }
+    
+    [HttpGet("~/plugins/rockstarstrikeutils/receiverequests")]
+    public async Task<IActionResult> ReceiveRequests()
+    {
+        var model = new ReceiveRequestsViewModel();
         
         return View(model);
     }

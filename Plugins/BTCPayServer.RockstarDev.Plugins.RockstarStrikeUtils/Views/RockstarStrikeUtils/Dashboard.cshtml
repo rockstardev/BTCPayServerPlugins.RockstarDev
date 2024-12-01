@@ -1,8 +1,8 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.RockstarStrikeUtils.DashboardViewModel
+@model DashboardViewModel
 @{
-    ViewData.SetActivePage("Dashboard", "Rockstar Strike Dashboard", RockstarStrikeUtilsPlugin.PluginNavKey);
+    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginNavKey, "Rockstar Strike Dashboard", "Dashboard");
 }
 
 <h2 class="mt-1 mb-4">@ViewData["Title"]</h2>
