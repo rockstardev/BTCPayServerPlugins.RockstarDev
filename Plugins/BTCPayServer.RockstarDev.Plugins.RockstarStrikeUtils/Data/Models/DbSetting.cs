@@ -15,3 +15,8 @@ public class DbSetting
     {
     }
 }
+
+public enum DbSettingKeys
+{
+    StrikeApiClient
+}

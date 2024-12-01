@@ -3,11 +3,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
+using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.RockstarStrikeUtils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -19,16 +21,17 @@ using Strike.Client;
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strikeDbContextFactory) : Controller
+public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strikeDbContextFactory,
+    StrikeClientFactory strikeClientFactory) : Controller
 {
     [HttpGet("~/plugins/rockstarstrikeutils/index")]
     public async Task<IActionResult> Index()
     {
-        return RedirectToAction(nameof(Dashboard));
+        return RedirectToAction(nameof(ReceiveRequests));
     }
     
-    [HttpGet("~/plugins/rockstarstrikeutils/dashboard")]
-    public async Task<IActionResult> Dashboard()
+    [HttpGet("~/plugins/rockstarstrikeutils/Configuration")]
+    public async Task<IActionResult> Configuration()
     {
         await using var db = strikeDbContextFactory.CreateContext();
 
@@ -40,34 +43,30 @@ public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strike
         return View(model);
     }
 
-    [HttpPost("~/plugins/rockstarstrikeutils/dashboard")]
-    public async Task<IActionResult> Dashboard(DashboardViewModel model)
+    [HttpPost("~/plugins/rockstarstrikeutils/Configuration")]
+    public async Task<IActionResult> Configuration(DashboardViewModel model)
     {
         if (!ModelState.IsValid)
             return View(model);
 
-        await using var db = strikeDbContextFactory.CreateContext();
-        var setting = db.Settings.SingleOrDefault(a => a.Key == "StrikeApiKey");
-        if (setting is null)
+        var validKey = await strikeClientFactory.TestAndSaveApiKeyAsync(model.StrikeApiKey);
+        if (!validKey)
         {
-            setting = new DbSetting
-            {
-                Key = "StrikeApiKey",
-                Value = model.StrikeApiKey
-            };
-            db.Settings.Add(setting);
+            ModelState.AddModelError(nameof(model.StrikeApiKey), "Invalid API key.");
         }
         else
         {
-            setting.Value = model.StrikeApiKey;
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Strike API key saved successfully.",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
         }
 
-        await db.SaveChangesAsync();
-        
         return View(model);
     }
     
-    [HttpGet("~/plugins/rockstarstrikeutils/receiverequests")]
+    [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
     {
         var model = new ReceiveRequestsViewModel();

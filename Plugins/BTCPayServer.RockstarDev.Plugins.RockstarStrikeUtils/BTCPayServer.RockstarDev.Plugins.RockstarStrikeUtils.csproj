@@ -29,9 +29,6 @@
     
     <ItemGroup>
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
-      <PackageReference Include="StrikeWallet.Client" Version="1.2.3">
-          <Private>true</Private>
-      </PackageReference>
     </ItemGroup>
     
     <!-- This is all so that we can generate entity framework migrations in design mode
@@ -51,5 +48,12 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <!-- Need to see how Strike.Client DLLs are copied -->    
+        <PackageReference Include="StrikeWallet.Client" Version="1.2.3">
+            <Private>true</Private>
+        </PackageReference>
     </ItemGroup>
 </Project>

@@ -27,13 +27,13 @@
     {
         <li class="nav-item nav-item-sub">
             <a permission="@Policies.CanModifyServerSettings" 
-               asp-controller="RockstarStrikeUtils" asp-action="Dashboard" asp-route-storeId="@storeId" 
-               class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginNavKey, null, "Dashboard")">Dashboard</a>
+               asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequests" asp-route-storeId="@storeId" 
+               class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginNavKey, null, "ReceiveRequests")">Receive Requests</a>
         </li>
         <li class="nav-item nav-item-sub">
             <a permission="@Policies.CanModifyServerSettings" 
-               asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequests" asp-route-storeId="@storeId" 
-               class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginNavKey, null, "ReceiveRequests")">Receive Requests</a>
+               asp-controller="RockstarStrikeUtils" asp-action="Configuration" asp-route-storeId="@storeId" 
+               class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginNavKey, null, "Configuration")">Configuration</a>
         </li>
     }
 }

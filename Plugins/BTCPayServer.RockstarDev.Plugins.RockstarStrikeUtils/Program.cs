@@ -1,7 +1,9 @@
 ﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
+using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
 using Microsoft.Extensions.DependencyInjection;
+using Strike.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
 {
@@ -16,6 +18,12 @@ namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
         public override void Execute(IServiceCollection serviceCollection)
         {
             serviceCollection.AddUIExtension("store-integrations-nav", PluginNavKey);
+            
+            // strike registrations
+            serviceCollection.AddStrikeHttpClient();
+            serviceCollection.AddStrikeClient();
+
+            serviceCollection.AddSingleton<StrikeClientFactory>();
             
             // Add the database related registrations
             serviceCollection.AddSingleton<RockstarStrikeDbContextFactory>();
