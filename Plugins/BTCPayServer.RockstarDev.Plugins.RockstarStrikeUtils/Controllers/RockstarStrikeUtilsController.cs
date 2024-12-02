@@ -71,6 +71,7 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
+    //  Receive Requests
     [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
     {
@@ -88,7 +89,6 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
-    //
     [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests/create")]
     public async Task<IActionResult> ReceiveRequestsCreate()
     {
@@ -146,5 +146,22 @@ public class RockstarStrikeUtilsController(
         }
 
         return RedirectToAction(nameof(ReceiveRequests));
+    }
+    
+    //  Exchanges
+    [HttpGet("~/plugins/rockstarstrikeutils/CurrencyExchanges")]
+    public async Task<IActionResult> CurrencyExchanges()
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        var resp = await client.Balances.GetBalances();
+        var model = new CurrencyExchangesViewModel()
+        {
+            Balances = resp.ToList()
+        };
+        
+        return View(model);
     }
 }

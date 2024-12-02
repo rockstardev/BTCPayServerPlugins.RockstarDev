@@ -1,0 +1,55 @@
+﻿@using System.Text.Json
+@using BTCPayServer.Abstractions.Extensions
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model CurrencyExchangesViewModel
+@{
+    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginNavKey, "Currency Exchanges", "CurrencyExchanges");
+}
+
+<form method="post">
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        @* <div class="d-flex gap-3 mt-3 mt-sm-0"> *@
+        @*     <a asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequestsCreate" class="btn btn-primary">Create Receive Request</a> *@
+        @* </div> *@
+    </div>
+</form>
+
+<partial name="_StatusMessage" />
+
+@if (Model.Balances.Any())
+{
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Currency</th>
+                    <th scope="col">Available</th>
+                    <th scope="col">Outgoing</th>
+                    <th scope="col">Total</th>
+                    <th scope="col" class="text-end"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Balances)
+                {
+                    <tr class="mass-action-row">
+                        <td>@item.Currency</td>
+                        <td>@item.Available</td>
+                        <td>@item.Outgoing</td>
+                        <td>@item.Total</td>
+                        <td class="text-end">
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        There are no receive requests available.
+    </p>
+}
