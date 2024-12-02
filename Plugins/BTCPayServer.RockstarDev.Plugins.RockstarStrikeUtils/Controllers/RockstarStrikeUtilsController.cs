@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Strike.Client;
+using Strike.Client.CurrencyExchanges;
 using Strike.Client.Models;
 using Strike.Client.ReceiveRequests.Requests;
 
@@ -163,5 +164,45 @@ public class RockstarStrikeUtilsController(
         };
         
         return View(model);
+    }
+    
+    [HttpPost("~/plugins/rockstarstrikeutils/CurrencyExchangesCreate")]
+    public async Task<IActionResult> CurrencyExchangesCreate(CurrencyExchangesViewModel model)
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        var resp = await client.Balances.GetBalances();
+        if (resp.Single(a=>a.Currency == Currency.Usd).Available < model.UsdAmount)
+        {
+            ModelState.AddModelError(nameof(model.UsdAmount), "Insufficient funds.");
+            return View(nameof(CurrencyExchanges), model);
+        }
+
+        var req = new CurrencyExchangeQuoteReq
+        {
+            Buy = Currency.Btc,
+            Sell = Currency.Usd,
+            Amount = new MoneyWithFee
+            {
+                Currency = Currency.Usd,
+                Amount = model.UsdAmount,
+                FeePolicy = FeePolicy.Exclusive
+            }
+        };
+        var exchangeResp = await client.CurrencyExchanges.CreateQuote(req);
+        
+        var newModel = new CurrencyExchangesCreateViewModel()
+        {
+            Quote = exchangeResp,
+            Sell = exchangeResp.Source.Currency.ToString(),
+            SellAmount = exchangeResp.Source.Amount,
+            Buy = exchangeResp.Target.Currency.ToString(),
+            BuyAmount = exchangeResp.Target.Amount,
+            ExchangeRate = exchangeResp.ConversionRate.Amount
+        };
+        
+        return View(newModel);
     }
 }
