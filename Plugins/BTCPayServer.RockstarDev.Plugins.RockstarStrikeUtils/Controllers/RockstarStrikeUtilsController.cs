@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -17,25 +18,29 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Strike.Client;
+using Strike.Client.Models;
+using Strike.Client.ReceiveRequests.Requests;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strikeDbContextFactory,
+public class RockstarStrikeUtilsController(
+    RockstarStrikeDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
 {
     [HttpGet("~/plugins/rockstarstrikeutils/index")]
     public async Task<IActionResult> Index()
     {
-        return RedirectToAction(nameof(ReceiveRequests));
+        var isSetup = await strikeClientFactory.ClientExistsAsync();
+        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration));
     }
-    
+
     [HttpGet("~/plugins/rockstarstrikeutils/Configuration")]
     public async Task<IActionResult> Configuration()
     {
         await using var db = strikeDbContextFactory.CreateContext();
 
-        var model = new DashboardViewModel
+        var model = new ConfigurationViewModel
         {
             StrikeApiKey = db.Settings.SingleOrDefault(a => a.Key == "StrikeApiKey")?.Value
         };
@@ -44,7 +49,7 @@ public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strike
     }
 
     [HttpPost("~/plugins/rockstarstrikeutils/Configuration")]
-    public async Task<IActionResult> Configuration(DashboardViewModel model)
+    public async Task<IActionResult> Configuration(ConfigurationViewModel model)
     {
         if (!ModelState.IsValid)
             return View(model);
@@ -82,7 +87,64 @@ public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strike
         
         return View(model);
     }
-        
+    
+    //
+    [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests/create")]
+    public async Task<IActionResult> ReceiveRequestsCreate()
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+
+        var model = new ReceiveRequestsCreateViewModel
+        {
+            TargetCurrency = "USD",
+            Onchain = true
+        };
         return View(model);
+    }
+    
+    [HttpPost("~/plugins/rockstarstrikeutils/ReceiveRequests/create")]
+    public async Task<IActionResult> ReceiveRequestsCreate(ReceiveRequestsCreateViewModel model)
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var req = new ReceiveRequestReq
+        {
+            TargetCurrency = model.TargetCurrency switch
+            {
+                "USD" => Currency.Usd,
+                "EUR" => Currency.Eur,
+                "BTC" => Currency.Btc,
+                _ => throw new ArgumentException("Invalid currency")
+            },
+            Onchain = model.Onchain
+                ? new OnchainReceiveRequestReq()
+                : null
+        };
+        var resp = await client.ReceiveRequests.Create(req);
+        if (resp.IsSuccessStatusCode)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Created Receive Request {resp.ReceiveRequestId}",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+        }
+        else
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $" Receive Request creation failed: {resp.Error}",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+        }
+
+        return RedirectToAction(nameof(ReceiveRequests));
     }
 }

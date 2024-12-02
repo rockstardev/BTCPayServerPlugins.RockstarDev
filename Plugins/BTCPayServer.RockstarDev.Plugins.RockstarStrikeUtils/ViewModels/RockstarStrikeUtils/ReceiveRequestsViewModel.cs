@@ -9,4 +9,14 @@ public class ReceiveRequestsViewModel
 
     public int TotalCount { get; set; }
 }
+
+public class ReceiveRequestsCreateViewModel
+{
+    public string TargetCurrency { get; set; }
+
+    public bool Bolt11 { get; set; }
+
+    public bool Bolt12 { get; set; }
+
+    public bool Onchain { get; set; }
 }
