@@ -15,6 +15,8 @@ public class StrikeClientFactory(
     IServiceProvider serviceProvider,
     ILoggerFactory loggerFactory)
 {
+    private string DbKey => DbSettingKeys.StrikeApiClient.ToString();
+    
     public async Task<bool> TestAndSaveApiKeyAsync(string apiKey)
     {
         var client = InitClient(apiKey);
@@ -31,11 +33,10 @@ public class StrikeClientFactory(
             }
 
             await using var db = strikeDbContextFactory.CreateContext();
-            var key = DbSettingKeys.StrikeApiClient.ToString();
-            var setting = await db.Settings.SingleOrDefaultAsync(a => a.Key == key);
+            var setting = await db.Settings.SingleOrDefaultAsync(a => a.Key == DbKey);
 
             if (setting is null)
-                db.Settings.Add(new DbSetting { Key = key, Value = apiKey });
+                db.Settings.Add(new DbSetting { Key = DbKey, Value = apiKey });
             else
                 setting.Value = apiKey;
 
@@ -48,11 +49,19 @@ public class StrikeClientFactory(
         }
     }
 
-
-    public async Task<StrikeClient> CreateClientAsync()
+    public async Task<bool> ClientExistsAsync()
     {
         await using var db = strikeDbContextFactory.CreateContext();
-        var apiKey = db.Settings.SingleOrDefault(a => a.Key == "StrikeApiKey")?.Value;
+        var apiKey = db.Settings.SingleOrDefault(a => a.Key == DbKey)?.Value;
+
+        return apiKey != null;
+    }
+
+
+    public async Task<StrikeClient> ClientCreateAsync()
+    {
+        await using var db = strikeDbContextFactory.CreateContext();
+        var apiKey = db.Settings.SingleOrDefault(a => a.Key == DbKey)?.Value;
         if (apiKey is null)
         {
             throw new InvalidOperationException("API key not found in the database.");

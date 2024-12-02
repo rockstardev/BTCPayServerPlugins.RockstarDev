@@ -1,13 +1,59 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@using System.Text.Json
+@using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model ReceiveRequestsViewModel
 @{
     ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginNavKey, "Receive Requests", "ReceiveRequests");
 }
 
-<h2 class="mt-1 mb-4">@ViewData["Title"]</h2>
-<div class="row">
-    <div class="col-xl-8 col-xxl-constrain">
-        Foo
+<form method="post">
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequestsCreate" class="btn btn-primary">Create Receive Request</a>
+        </div>
     </div>
-</div>
+</form>
+
+<partial name="_StatusMessage" />
+
+@if (Model.ReceiveRequests.Any())
+{
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Request ID</th>
+                    <th scope="col">Created</th>
+                    <th scope="col">TargetCurrency</th>
+                    <th scope="col">Bolt11</th>
+                    <th scope="col">Bolt12</th>
+                    <th scope="col">Onchain</th>
+                    <th scope="col" class="text-end"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var request in Model.ReceiveRequests)
+                {
+                    <tr class="mass-action-row">
+                        <td>@request.ReceiveRequestId</td>
+                        <td>@request.Created</td>
+                        <td>@request.TargetCurrency</td>
+                        <td>@JsonSerializer.Serialize(request.Bolt11, new JsonSerializerOptions { WriteIndented = true })</td>
+                        <td>@JsonSerializer.Serialize(request.Bolt12, new JsonSerializerOptions { WriteIndented = true })</td>
+                        <td>@JsonSerializer.Serialize(request.Onchain, new JsonSerializerOptions { WriteIndented = true })</td>
+                        <td class="text-end">
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        There are no receive requests available.
+    </p>
+}

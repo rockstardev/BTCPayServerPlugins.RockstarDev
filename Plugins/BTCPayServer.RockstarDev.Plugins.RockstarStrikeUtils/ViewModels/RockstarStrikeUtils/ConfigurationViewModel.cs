@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.RockstarStrikeUtils;
 
-public class DashboardViewModel
+public class ConfigurationViewModel
 {
     [Required]
     public string StrikeApiKey { get; set; }

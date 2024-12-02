@@ -69,7 +69,19 @@ public class RockstarStrikeUtilsController(RockstarStrikeDbContextFactory strike
     [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
     {
-        var model = new ReceiveRequestsViewModel();
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        var requests = await client.ReceiveRequests.GetRequests();
+        var model = new ReceiveRequestsViewModel
+        {
+            ReceiveRequests = requests.Items.ToList(),
+            TotalCount = requests.Count
+        };
+        
+        return View(model);
+    }
         
         return View(model);
     }

@@ -51,9 +51,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <!-- Need to see how Strike.Client DLLs are copied -->    
-        <PackageReference Include="StrikeWallet.Client" Version="1.2.3">
-            <Private>true</Private>
-        </PackageReference>
+        <!-- TODO: Need to see how Strike.Client DLLs are copied -->    
+        <PackageReference Include="StrikeWallet.Client" Version="1.2.3" PrivateAssets="all" />
     </ItemGroup>
 </Project>
