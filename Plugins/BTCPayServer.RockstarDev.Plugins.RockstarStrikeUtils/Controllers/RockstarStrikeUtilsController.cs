@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Strike.Client;
 using Strike.Client.CurrencyExchanges;
 using Strike.Client.Models;
@@ -151,7 +152,7 @@ public class RockstarStrikeUtilsController(
     
     //  Exchanges
     [HttpGet("~/plugins/rockstarstrikeutils/CurrencyExchanges")]
-    public async Task<IActionResult> CurrencyExchanges()
+    public async Task<IActionResult> CurrencyExchanges(string operation, decimal amount)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
@@ -160,49 +161,49 @@ public class RockstarStrikeUtilsController(
         var resp = await client.Balances.GetBalances();
         var model = new CurrencyExchangesViewModel()
         {
-            Balances = resp.ToList()
+            Balances = resp.ToList(),
+            Operation = operation,
+            Amount = amount
         };
+
+        if (!string.IsNullOrEmpty(operation))
+        {
+            CurrencyExchangeQuoteReq req = null;
+            if (operation == "BuyBitcoin")
+            {
+                req = new CurrencyExchangeQuoteReq
+                {
+                    Buy = Currency.Btc, Sell = Currency.Usd,
+                    Amount = new MoneyWithFee
+                    {
+                        Currency = Currency.Usd, Amount = amount, FeePolicy = FeePolicy.Inclusive
+                    }
+                };
+            }
+            else if (operation == "SellBitcoin")
+            {
+                req = new CurrencyExchangeQuoteReq
+                {
+                    Buy = Currency.Usd, Sell = Currency.Btc,
+                    Amount = new MoneyWithFee
+                    {
+                        Currency = Currency.Btc, Amount = amount, FeePolicy = FeePolicy.Exclusive
+                    }
+                };
+            }
+            else
+                throw new InvalidOperationException("Invalid operation");
+
+            var exchangeResp = await client.CurrencyExchanges.CreateQuote(req);
+            model.Quote = exchangeResp;
+        }
         
         return View(model);
     }
     
-    [HttpPost("~/plugins/rockstarstrikeutils/CurrencyExchangesCreate")]
-    public async Task<IActionResult> CurrencyExchangesCreate(CurrencyExchangesViewModel model)
+    [HttpGet("~/plugins/rockstarstrikeutils/CurrencyExchangesProcess")]
+    public async Task<IActionResult> CurrencyExchangesProcess(string quoteId)
     {
-        var client = await strikeClientFactory.ClientCreateAsync();
-        if (client == null)
-            return RedirectToAction(nameof(Configuration));
-        
-        var resp = await client.Balances.GetBalances();
-        if (resp.Single(a=>a.Currency == Currency.Usd).Available < model.UsdAmount)
-        {
-            ModelState.AddModelError(nameof(model.UsdAmount), "Insufficient funds.");
-            return View(nameof(CurrencyExchanges), model);
-        }
-
-        var req = new CurrencyExchangeQuoteReq
-        {
-            Buy = Currency.Btc,
-            Sell = Currency.Usd,
-            Amount = new MoneyWithFee
-            {
-                Currency = Currency.Usd,
-                Amount = model.UsdAmount,
-                FeePolicy = FeePolicy.Exclusive
-            }
-        };
-        var exchangeResp = await client.CurrencyExchanges.CreateQuote(req);
-        
-        var newModel = new CurrencyExchangesCreateViewModel()
-        {
-            Quote = exchangeResp,
-            Sell = exchangeResp.Source.Currency.ToString(),
-            SellAmount = exchangeResp.Source.Amount,
-            Buy = exchangeResp.Target.Currency.ToString(),
-            BuyAmount = exchangeResp.Target.Amount,
-            ExchangeRate = exchangeResp.ConversionRate.Amount
-        };
-        
-        return View(newModel);
+        return RedirectToAction(nameof(CurrencyExchanges));
     }
 }

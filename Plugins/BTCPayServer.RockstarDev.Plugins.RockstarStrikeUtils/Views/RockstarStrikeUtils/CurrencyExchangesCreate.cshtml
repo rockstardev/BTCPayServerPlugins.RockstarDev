@@ -7,7 +7,7 @@
 <form method="post">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
-        <input type="submit" value="Create" class="btn btn-primary" id="Create" />
+        <input type="submit" value="Confirm and Process" class="btn btn-primary" />
     </div>
 
     <partial name="_StatusMessage" />
@@ -17,9 +17,9 @@
             <div class="form-group">
                 <label asp-for="Sell" class="form-label"></label>
                 <select asp-for="Sell" class="form-control">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="BTC">BTC</option>
+                    <option value="Usd">USD</option>
+                    <option value="Eur">EUR</option>
+                    <option value="Btc">BTC</option>
                 </select>
                 <span asp-validation-for="Sell" class="text-danger"></span>
             </div>
@@ -31,15 +31,15 @@
             <div class="form-group">
                 <label asp-for="Buy" class="form-label"></label>
                 <select asp-for="Buy" class="form-control">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="BTC">BTC</option>
+                    <option value="Usd">USD</option>
+                    <option value="Eur">EUR</option>
+                    <option value="Btc">BTC</option>
                 </select>
                 <span asp-validation-for="Buy" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="BuyAmount" class="form-label"></label>
-                <input asp-for="BuyAmount" class="form-control" />
+                <input asp-for="BuyAmount" class="form-control" value="@Model.BuyAmount.ToString("G")" />
                 <span asp-validation-for="BuyAmount" class="text-danger"></span>
             </div>
             <div class="form-group">
