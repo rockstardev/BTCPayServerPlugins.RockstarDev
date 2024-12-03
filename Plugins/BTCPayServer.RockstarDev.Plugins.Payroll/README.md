@@ -10,17 +10,16 @@ This plugin enables administrators to manage payroll users, inspect invoices, an
 ![Payroll Plugin](https://github.com/btcpayserver/btcpayserver/assets/47084273/a918ff08-7444-4b69-a2ca-b75e38f19bcc)
 
 - Once done, you'll see the Payroll plugin listed under plugins in the left sidebar of BTCPay Server
-- You can create a payroll user for each person that needs access to the system. It is recommended that you generate strong passwords and share the login link with the respective users
-
+- You can create a payroll user for each person that needs access to the system. It is recommended that you generate strong passwords and share the Invoice Upload Link (under the Options button) with the respective users
 - To do that click on the manage users button on the top right, then click on the create user button.
 
 ![Manage User](https://github.com/btcpayserver/btcpayserver/assets/47084273/629e0d3d-db67-489a-baa1-c7b2eb11932a)
 
 ![Create User](https://github.com/btcpayserver/btcpayserver/assets/47084273/9d27aa5e-f187-4b58-b758-320125be277f)
 
-- Do well to fill in the form with the appropriate information, and also with a strong password.
-- As an admin, you can go ahead and upload invoices manually for users by going to the Payroll Invoice section and clicking on admin upload invoice.
-- The admin can share links to the invoice page with users, allowing users to log in and manually upload their invoice.
+- In addition to Name and Email, be sure to supply a strong password.
+- As an admin, you can upload invoices manually on behalf of users by going to the Payroll Invoice section and clicking on admin upload invoice.
+- To allow users to log in and upload their own invoice, the admin MUST supply the Invoice Upload Link.  Users do NOT receive automated emails, and CANNOT log into the main BTCPay site (only to the aforementioned plugin link).
 
 ![Share Invoice upload link](https://github.com/btcpayserver/btcpayserver/assets/47084273/f654d1f7-4114-4b46-8f3e-b9410cec95ed)
 
@@ -36,7 +35,9 @@ This plugin enables administrators to manage payroll users, inspect invoices, an
 
 ## Contributing to plugin development
 This documentation is a work in progress. You can contribute by improving it.
+
 Also, a list of open issues is maintained on: https://github.com/rockstardev/BTCPayServerPlugins.RockstarDev/issues?q=is%3Aissue+is%3Aopen+label%3Apayroll
+
 If the issue is not assigned to anyone, feel free to pick it up and open a PR
 
 ## License
