@@ -215,9 +215,42 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
-    [HttpGet("~/plugins/rockstarstrikeutils/CurrencyExchangesProcess")]
-    public async Task<IActionResult> CurrencyExchangesProcess(string quoteId)
+    [HttpPost("~/plugins/rockstarstrikeutils/CurrencyExchangesProcess")]
+    public async Task<IActionResult> CurrencyExchangesProcess(Guid quoteId)
     {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        var resp = await client.CurrencyExchanges.GetQuote(quoteId);
+        if (!resp.IsSuccessStatusCode || resp.State != CurrencyExchangeState.New)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Failed to get pending quote: {resp.Error}",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(CurrencyExchanges));
+        }
+
+        var executeQuote = await client.CurrencyExchanges.ExecuteQuote(quoteId);
+        if (executeQuote.IsSuccessStatusCode)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Quote executed successfully.",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+        }
+        else
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Failed to execute quote: {executeQuote.Error}",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+        }
+
         return RedirectToAction(nameof(CurrencyExchanges));
     }
 }
