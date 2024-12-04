@@ -54,15 +54,15 @@
         <div class="col-md-6">
             <div class="form-group">
                 <label asp-for="Operation" class="form-label"></label>
-                <select asp-for="Operation" class="form-control">
+                <select asp-for="Operation" class="form-control" id="OperationSelect">
                     <option value="BuyBitcoin">Buy Bitcoin</option>
                     <option value="SellBitcoin">Sell Bitcoin</option>
                 </select>
                 <span asp-validation-for="Operation" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Amount" class="form-label"></label>
-                <input asp-for="Amount" class="form-control" placeholder="Amount in USD" />
+                <label asp-for="Amount" class="form-label" id="AmountLabel"></label>
+                <input asp-for="Amount" class="form-control" placeholder="Amount" />
                 <span asp-validation-for="Amount" class="text-danger"></span>
             </div>
             <div class="form-group mt-4">
@@ -70,6 +70,24 @@
             </div>
         </div>
     </div>
+    @using System.Text.Json
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const operationSelect = document.querySelector('#OperationSelect');
+            const amountLabel = document.querySelector('#AmountLabel');
+
+            function updateAmountLabel() {
+                if (operationSelect.value === 'BuyBitcoin') {
+                    amountLabel.textContent = 'Amount (USD)';
+                } else if (operationSelect.value === 'SellBitcoin') {
+                    amountLabel.textContent = 'Amount (BTC)';
+                }
+            }
+
+            operationSelect.addEventListener('change', updateAmountLabel);
+            updateAmountLabel(); // Initial call to set the label based on the initial value
+        });
+    </script>
 </form>
 
 @if (Model.Quote != null)
