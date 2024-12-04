@@ -171,6 +171,11 @@ public class RockstarStrikeUtilsController(
             CurrencyExchangeQuoteReq req = null;
             if (operation == "BuyBitcoin")
             {
+                if (resp.Single(a=>a.Currency == Currency.Usd).Available < amount)
+                {
+                    ModelState.AddModelError(nameof(model.Amount), "Insufficient USD funds.");
+                    return View(nameof(CurrencyExchanges), model);
+                }
                 req = new CurrencyExchangeQuoteReq
                 {
                     Buy = Currency.Btc, Sell = Currency.Usd,
@@ -182,6 +187,11 @@ public class RockstarStrikeUtilsController(
             }
             else if (operation == "SellBitcoin")
             {
+                if (resp.Single(a=>a.Currency == Currency.Btc).Available < amount)
+                {
+                    ModelState.AddModelError(nameof(model.Amount), "Insufficient BTC funds.");
+                    return View(nameof(CurrencyExchanges), model);
+                }
                 req = new CurrencyExchangeQuoteReq
                 {
                     Buy = Currency.Usd, Sell = Currency.Btc,
@@ -195,6 +205,10 @@ public class RockstarStrikeUtilsController(
                 throw new InvalidOperationException("Invalid operation");
 
             var exchangeResp = await client.CurrencyExchanges.CreateQuote(req);
+            if (!exchangeResp.IsSuccessStatusCode)
+            {
+                ModelState.AddModelError(nameof(model.Amount), "Quote not generated: " + exchangeResp.Error);
+            }
             model.Quote = exchangeResp;
         }
         
