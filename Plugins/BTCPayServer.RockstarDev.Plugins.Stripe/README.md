@@ -1,4 +1,4 @@
-﻿# BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
+﻿# BTCPayServer.RockstarDev.Plugins.Stripe
 
 This plugin contains collection of Strike utilities created by Rockstar.
 
