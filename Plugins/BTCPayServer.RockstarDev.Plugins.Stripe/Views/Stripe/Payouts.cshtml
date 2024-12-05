@@ -1,0 +1,49 @@
+﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.Stripe
+@model BTCPayServer.RockstarDev.Plugins.Stripe.Controllers.PayoutsViewModel
+@{
+    ViewData.SetActivePage(StripePlugin.PluginNavKey, "Stripe Payouts", "StripePayouts");
+}
+
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+</div>
+
+@if (Model.Payouts.Any())
+{
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th scope="col">Payout ID</th>
+                <th scope="col">Created</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Currency</th>
+                <th scope="col">Status</th>
+                <th scope="col">Method</th>
+                <th scope="col">Description</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var payout in Model.Payouts)
+            {
+                <tr>
+                    <td>@payout.PayoutId</td>
+                    <td>@payout.Created</td>
+                    <td>@payout.Amount.ToString("N2")</td>
+                    <td>@payout.Currency</td>
+                    <td>@payout.Status</td>
+                    <td>@payout.Method</td>
+                    <td>@payout.Description</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        No payouts available at this time.
+    </p>
+}
