@@ -1,9 +1,8 @@
 ﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Controllers;
+using BTCPayServer.RockstarDev.Plugins.Stripe.Data;
 using Microsoft.Extensions.DependencyInjection;
-using Strike.Client;
-using Stripe;
 
 namespace BTCPayServer.RockstarDev.Plugins.Stripe
 {
@@ -19,10 +18,16 @@ namespace BTCPayServer.RockstarDev.Plugins.Stripe
         {
             serviceCollection.AddUIExtension("store-integrations-nav", PluginNavKey);
             
-            // stripe registrations
-            StripeConfiguration.ApiKey =
-                "xxx";
-            serviceCollection.AddSingleton<StripeService>();
+            // Add the database related registrations
+            serviceCollection.AddSingleton<StripeDbContextFactory>();
+            serviceCollection.AddDbContext<StripeDbContext>((provider, o) =>
+            {
+                var factory = provider.GetRequiredService<StripeDbContextFactory>();
+                factory.ConfigureBuilder(o);
+            });
+            
+            // this initializes the stripe api key from database as well
+            serviceCollection.AddHostedService<StripeMigrationRunner>();
 
             base.Execute(serviceCollection);
         }
