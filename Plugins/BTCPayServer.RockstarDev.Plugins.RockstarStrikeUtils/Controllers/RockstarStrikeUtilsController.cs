@@ -44,7 +44,7 @@ public class RockstarStrikeUtilsController(
 
         var model = new ConfigurationViewModel
         {
-            StrikeApiKey = db.Settings.SingleOrDefault(a => a.Key == "StrikeApiKey")?.Value
+            StrikeApiKey = db.Settings.SingleOrDefault(a => a.Key == DbSetting.StrikeApiKey)?.Value
         };
         
         return View(model);
