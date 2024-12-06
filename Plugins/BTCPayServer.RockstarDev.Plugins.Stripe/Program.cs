@@ -23,10 +23,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Stripe
             StripeConfiguration.ApiKey =
                 "xxx";
             serviceCollection.AddSingleton<StripeService>();
-            
-            // strike registrations
-            serviceCollection.AddStrikeHttpClient();
-            serviceCollection.AddStrikeClient();
 
             base.Execute(serviceCollection);
         }
