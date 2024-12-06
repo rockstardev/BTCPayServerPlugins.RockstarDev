@@ -2,6 +2,7 @@
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Controllers;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Data;
+using BTCPayServer.RockstarDev.Plugins.Stripe.Logic;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.Stripe
@@ -28,6 +29,8 @@ namespace BTCPayServer.RockstarDev.Plugins.Stripe
             
             // this initializes the stripe api key from database as well
             serviceCollection.AddHostedService<StripeMigrationRunner>();
+            
+            serviceCollection.AddSingleton<StripeClientFactory>();
 
             base.Execute(serviceCollection);
         }
