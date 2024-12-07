@@ -1,7 +1,5 @@
-﻿using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+﻿using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 

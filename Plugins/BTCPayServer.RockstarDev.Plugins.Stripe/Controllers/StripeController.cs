@@ -12,7 +12,6 @@ using BTCPayServer.RockstarDev.Plugins.Stripe.Logic;
 using BTCPayServer.RockstarDev.Plugins.Stripe.ViewModels.Stripe;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Stripe;
 
 namespace BTCPayServer.RockstarDev.Plugins.Stripe.Controllers;
 

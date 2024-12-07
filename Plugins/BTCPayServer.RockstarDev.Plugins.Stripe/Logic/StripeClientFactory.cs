@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Data;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Data.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Stripe;
 

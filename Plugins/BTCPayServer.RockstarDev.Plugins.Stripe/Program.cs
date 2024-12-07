@@ -1,6 +1,5 @@
 ﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.RockstarDev.Plugins.Stripe.Controllers;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Data;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Logic;
 using Microsoft.Extensions.DependencyInjection;
