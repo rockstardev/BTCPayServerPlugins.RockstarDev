@@ -68,7 +68,7 @@ public class StripeController(StripeClientFactory stripeClientFactory,
         var payouts = await stripeClientFactory.GetAllPayoutsAsync();
         var model = new PayoutsViewModel
         {
-            Payouts = payouts.Select(p => new PayoutViewModel
+            Payouts = payouts.Select(p => new PayoutsViewModel.Item
             {
                 PayoutId = p.Id,
                 Created = p.Created,
@@ -86,16 +86,16 @@ public class StripeController(StripeClientFactory stripeClientFactory,
 
 public class PayoutsViewModel
 {
-    public List<PayoutViewModel> Payouts { get; set; } = new List<PayoutViewModel>();
-}
+    public List<Item> Payouts { get; set; } = new List<Item>();
 
-public class PayoutViewModel
-{
-    public string PayoutId { get; set; }
-    public DateTime Created { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; }
-    public string Status { get; set; }
-    public string Method { get; set; }
-    public string Description { get; set; }
+    public class Item
+    {
+        public string PayoutId { get; set; }
+        public DateTime Created { get; set; }
+        public decimal Amount { get; set; }
+        public string Currency { get; set; }
+        public string Status { get; set; }
+        public string Method { get; set; }
+        public string Description { get; set; }
+    }
 }
