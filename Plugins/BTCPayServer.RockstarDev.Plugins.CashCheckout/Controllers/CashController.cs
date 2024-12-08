@@ -21,17 +21,17 @@ public class CashController(
     StoreRepository storeRepository,
     InvoiceRepository invoiceRepository,
     PaymentMethodHandlerDictionary handlers,
-    CashCheckoutConfigurationItem cashMethod) : Controller
+    CashCheckoutConfigurationItem cashMethod,
+    CashStatusProvider cashStatusProvider) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
     
     [HttpGet]
     public async Task<IActionResult> StoreConfig()
     {
-        var excludeFilters = StoreData.GetStoreBlob().GetExcludedPaymentMethods();
         var model = new CashStoreViewModel
         {
-            Enabled = !excludeFilters.Match(cashMethod.GetPaymentMethodId())
+            Enabled = await cashStatusProvider.CashEnabled(StoreData.Id)
         };
         
         return View(model);

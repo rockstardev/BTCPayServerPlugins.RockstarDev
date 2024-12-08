@@ -82,7 +82,9 @@ public class CashStatusProvider(StoreRepository storeRepository,
             var storeData = await storeRepository.FindStore(storeId);
             var currentPaymentMethodConfig =
                 storeData.GetPaymentMethodConfig<CashPaymentMethodConfig>(cashMethod.GetPaymentMethodId(), handlers);
-
+            if (currentPaymentMethodConfig == null)
+                return false;
+            
             var excludeFilters = storeData.GetStoreBlob().GetExcludedPaymentMethods();
             var enabled = !excludeFilters.Match(cashMethod.GetPaymentMethodId());
 
