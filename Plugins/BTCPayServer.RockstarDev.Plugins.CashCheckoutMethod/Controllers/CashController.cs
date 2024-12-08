@@ -6,6 +6,7 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.PaymentHandlers;
@@ -14,6 +15,7 @@ using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StoreData = BTCPayServer.Data.StoreData;
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.Controllers;
 
@@ -21,6 +23,7 @@ namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.Controllers;
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class CashController(
     StoreRepository storeRepository,
+    InvoiceRepository invoiceRepository,
     PaymentMethodHandlerDictionary handlers,
     CashCheckoutConfigurationItem cashMethod) : Controller
 {
@@ -65,5 +68,26 @@ public class CashController(
 
 
         return RedirectToAction("StoreConfig", new { storeId = store.Id, paymentMethodId });
+    }
+
+
+    [HttpGet("MarkAsPaid")]
+    public async Task<IActionResult> MarkAsPaid(string invoiceId, string returnUrl)
+    {
+        var invoice = await invoiceRepository.GetInvoice(invoiceId, true);
+
+        if (invoice.StoreId != StoreData.Id)
+        {
+            return Redirect(returnUrl);
+            //return InvoiceNotFound();
+        }
+
+        if (!await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled))
+        {
+            //ModelState.AddModelError(nameof(request.Status),
+            //    "Status can only be marked to invalid or settled within certain conditions.");
+        }
+        
+        return Redirect(returnUrl);
     }
 }

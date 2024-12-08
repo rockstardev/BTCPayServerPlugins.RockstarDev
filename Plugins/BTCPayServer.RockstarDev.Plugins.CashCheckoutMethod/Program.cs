@@ -42,8 +42,6 @@ namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod
 
             services.AddSingleton(provider => (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(CashPaymentMethodHandler),
                 cashMethodConfigItem));
-            services.AddSingleton<IPaymentLinkExtension>(provider =>
-                (IPaymentLinkExtension)ActivatorUtilities.CreateInstance(provider, typeof(CashPaymentLinkExtension), cashPaymentMethodId));
             services.AddSingleton(provider =>
                 (ICheckoutModelExtension)ActivatorUtilities.CreateInstance(provider, typeof(CashCheckoutModelExtension)));
         
