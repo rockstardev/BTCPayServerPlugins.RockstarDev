@@ -49,6 +49,8 @@ namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod
             
             //
             services.AddUIExtension("store-wallets-nav", "CashStoreNav");
+            services.AddUIExtension("checkout-payment", "CashLikeMethodCheckout");
+            //services.AddUIExtension("checkout-bitcoin-post-content", "Dammit");
             
             base.Execute(services);
         }

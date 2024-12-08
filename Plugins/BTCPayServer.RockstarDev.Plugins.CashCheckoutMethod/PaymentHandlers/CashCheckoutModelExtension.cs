@@ -7,6 +7,8 @@ using BTCPayServer.Payments.Bitcoin;
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.PaymentHandlers;
 public class CashCheckoutModelExtension(CashCheckoutConfigurationItem configurationItem) : ICheckoutModelExtension
 {
+    public const string CheckoutBodyComponentName = "CASHCheckout";
+    
     public PaymentMethodId PaymentMethodId { get; } = configurationItem.GetPaymentMethodId();
     public string Image => "";
     public string Badge => "";
@@ -16,10 +18,11 @@ public class CashCheckoutModelExtension(CashCheckoutConfigurationItem configurat
         if (context is not { Handler: CashPaymentMethodHandler handler })
             return;
         
-        context.Model.CheckoutBodyComponentName = BitcoinCheckoutModelExtension.CheckoutBodyComponentName;
+        context.Model.CheckoutBodyComponentName = CheckoutBodyComponentName;
 
         context.Model.InvoiceBitcoinUrlQR = null;
         context.Model.ExpirationSeconds = int.MaxValue;
+        context.Model.Activated = true;
         
         context.Model.InvoiceBitcoinUrl = $"/stores/{context.Model.StoreId}/cash/MarkAsPaid?"+
                                           $"invoiceId={context.Model.InvoiceId}&"+
