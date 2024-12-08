@@ -1,23 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Extensions;
-using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
-using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.PaymentHandlers;
-using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
+using BTCPayServer.RockstarDev.Plugins.CashCheckout.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StoreData = BTCPayServer.Data.StoreData;
 
-namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.Controllers;
 
 [Route("stores/{storeId}/cash")]
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]

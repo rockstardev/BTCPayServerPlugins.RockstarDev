@@ -1,10 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Encodings.Web;
 using BTCPayServer.Payments;
-using BTCPayServer.Payments.Bitcoin;
+using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 
-namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.PaymentHandlers;
+namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 public class CashCheckoutModelExtension(CashCheckoutConfigurationItem configurationItem) : ICheckoutModelExtension
 {
     public const string CheckoutBodyComponentName = "CASHCheckout";

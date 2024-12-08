@@ -1,9 +1,9 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod
+@using BTCPayServer.RockstarDev.Plugins.CashCheckout
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model CashStoreViewModel
+@model BTCPayServer.RockstarDev.Plugins.CashCheckout.ViewModels.CashStoreViewModel
 @{
-    ViewData.SetActivePage(CashCheckoutMethodPlugin.PluginNavKey, "Cash Configuration", "Configuration");
+    ViewData.SetActivePage(CashCheckoutPlugin.PluginNavKey, "Cash Configuration", "Configuration");
 }
 
 <form method="post">

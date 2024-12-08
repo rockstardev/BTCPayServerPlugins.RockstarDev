@@ -8,8 +8,8 @@
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Rockstar Strike Utils</Product>
-        <Description>Collection of tools on top of Strike API. Do not install if you don't know what you're doing.</Description>
+        <Product>Cash Checkout</Product>
+        <Description>This plugin enables merchants to have CASH payment method in checkout</Description>
         <Version>0.0.1</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->

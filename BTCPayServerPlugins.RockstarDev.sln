@@ -40,7 +40,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Pl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.Stripe", "Plugins\BTCPayServer.RockstarDev.Plugins.Stripe\BTCPayServer.RockstarDev.Plugins.Stripe.csproj", "{6FB27598-242C-4406-A270-3FAA5B271242}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod", "Plugins\BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod\BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.csproj", "{77341648-BB4A-4287-90CE-2D310A51A997}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.CashCheckout", "Plugins\BTCPayServer.RockstarDev.Plugins.CashCheckout\BTCPayServer.RockstarDev.Plugins.CashCheckout.csproj", "{77341648-BB4A-4287-90CE-2D310A51A997}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

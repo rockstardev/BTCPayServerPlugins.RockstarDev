@@ -2,12 +2,13 @@ using System;
 using System.Threading.Tasks;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
+using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.PaymentHandlers;
+namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 
 public class CashPaymentMethodHandler(
     CashCheckoutConfigurationItem configurationItem,

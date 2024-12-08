@@ -1,4 +1,4 @@
-namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.ViewModels;
+namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.ViewModels;
 
 public class CashStoreViewModel
 {
