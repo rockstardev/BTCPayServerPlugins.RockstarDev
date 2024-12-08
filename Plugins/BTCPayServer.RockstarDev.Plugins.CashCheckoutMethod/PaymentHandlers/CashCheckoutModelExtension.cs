@@ -26,7 +26,7 @@ public class CashCheckoutModelExtension(CashCheckoutConfigurationItem configurat
         
         context.Model.InvoiceBitcoinUrl = $"/stores/{context.Model.StoreId}/cash/MarkAsPaid?"+
                                           $"invoiceId={context.Model.InvoiceId}&"+
-                                          $"returnUrl={UrlEncoder.Default.Encode(context.Model.MerchantRefLink)}";
+                                          $"returnUrl=/i/{context.Model.InvoiceId}";
         context.Model.ShowPayInWalletButton = true;
     }
 }
