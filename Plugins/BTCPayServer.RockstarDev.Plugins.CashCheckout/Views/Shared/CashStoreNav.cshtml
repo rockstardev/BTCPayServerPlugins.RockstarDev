@@ -2,31 +2,29 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Data
 @using BTCPayServer.Payments
+@using BTCPayServer.RockstarDev.Plugins.CashCheckout
+@using BTCPayServer.RockstarDev.Plugins.CashCheckout.Controllers
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject SignInManager<ApplicationUser> SignInManager;
 @inject IScopeProvider ScopeProvider
+@inject CashStatusProvider CashStatusProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
-@if (SignInManager.IsSignedIn(User))
+@if (SignInManager.IsSignedIn(User) && !string.IsNullOrEmpty(storeId))
 {
-    var store = Context.GetStoreData();
-    //var result = UITronUSDtLikeStore.GetVM(store);
-
-    // foreach (var item in result.Items)
-    // {
-    var isAvailable = true;//TronUSDtRPCProvider.IsAvailable(item.PaymentMethodId);
-    var isActive = true;
+    var isEnabled = await CashStatusProvider.CashEnabled(storeId);
+    var isActive = Context.Request.Path.Value?.Contains("/cash?") == true;
+    
     <li class="nav-item">
         <a class="nav-link @(isActive ? "active" : "")"
            asp-route-paymentMethodId="CASH"
            asp-route-storeId="@storeId"
            asp-action="StoreConfig"
            asp-controller="Cash">
-            <span class="me-2 btcpay-status btcpay-status--@(false ? isAvailable ? "enabled" : "disabled" : "pending")"></span>
+            <span class="me-2 btcpay-status btcpay-status--@(isEnabled ? "enabled" : "disabled")"></span>
             <span>Cash</span>
         </a>
     </li>
-    //}
 }

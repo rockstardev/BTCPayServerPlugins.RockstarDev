@@ -1,12 +1,16 @@
 using System;
+using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.Data;
 using BTCPayServer.Hosting;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins;
 using BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 using BTCPayServer.Services;
+using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NBXplorer;
@@ -48,6 +52,9 @@ public class CashCheckoutPlugin : BaseBTCPayServerPlugin
         services.AddDefaultPrettyName(cashPaymentMethodId, cashMethodConfigItem.DisplayName);
             
         //
+        services.AddSingleton<CashStatusProvider>();
+        
+        //
         services.AddUIExtension("store-wallets-nav", "CashStoreNav");
         services.AddUIExtension("checkout-payment", "CashLikeMethodCheckout");
         //services.AddUIExtension("checkout-bitcoin-post-content", "Dammit");
@@ -61,5 +68,29 @@ internal class CashTransactionLinkProvider(string blockExplorerLink) : DefaultTr
     public override string? GetTransactionLink(string paymentId)
     {
         return null;
+    }
+}
+
+public class CashStatusProvider(StoreRepository storeRepository,
+    CashCheckoutConfigurationItem cashMethod,
+    PaymentMethodHandlerDictionary handlers)
+{
+    public async Task<bool> CashEnabled(string? storeId)
+    {
+        try
+        {
+            var storeData = await storeRepository.FindStore(storeId);
+            var currentPaymentMethodConfig =
+                storeData.GetPaymentMethodConfig<CashPaymentMethodConfig>(cashMethod.GetPaymentMethodId(), handlers);
+
+            var excludeFilters = storeData.GetStoreBlob().GetExcludedPaymentMethods();
+            var enabled = !excludeFilters.Match(cashMethod.GetPaymentMethodId());
+
+            return enabled;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
