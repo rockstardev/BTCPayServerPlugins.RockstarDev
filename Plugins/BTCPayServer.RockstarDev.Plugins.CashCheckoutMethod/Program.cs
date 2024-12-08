@@ -6,6 +6,7 @@ using BTCPayServer.Hosting;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins;
 using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.PaymentHandlers;
+using BTCPayServer.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NBXplorer;
@@ -30,11 +31,14 @@ namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod
                                      throw new InvalidOperationException("serviceProvider.GetService<ISettingsRepository>()");
 
             // initialize configuration
-            var cashMethodConfigItem = new CashCheckoutConfigurationItem();
+            var cashMethodConfigItem = new CashCheckoutConfigurationItem
+            {
+                Divisibility = 2
+            };
             services.AddSingleton(cashMethodConfigItem);
             
             var cashPaymentMethodId = cashMethodConfigItem.GetPaymentMethodId();
-            //services.AddTransactionLinkProvider(tronUSDtPaymentMethodId, new TronUSDtTransactionLinkProvider(tronUSDtConfiguration.BlockExplorerLink));
+            services.AddTransactionLinkProvider(cashPaymentMethodId, new CashTransactionLinkProvider("cash"));
 
             services.AddSingleton(provider => (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(CashPaymentMethodHandler),
                 cashMethodConfigItem));
@@ -45,7 +49,18 @@ namespace BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod
         
             services.AddDefaultPrettyName(cashPaymentMethodId, cashMethodConfigItem.DisplayName);
             
+            //
+            services.AddUIExtension("store-wallets-nav", "CashStoreNav");
+            
             base.Execute(services);
+        }
+    }
+    
+    internal class CashTransactionLinkProvider(string blockExplorerLink) : DefaultTransactionLinkProvider(blockExplorerLink)
+    {
+        public override string? GetTransactionLink(string paymentId)
+        {
+            return null;
         }
     }
 }

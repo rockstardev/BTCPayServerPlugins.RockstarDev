@@ -1,0 +1,33 @@
+@using BTCPayServer
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Data
+@using BTCPayServer.Payments
+@using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.Controllers
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@inject SignInManager<ApplicationUser> SignInManager;
+@inject IScopeProvider ScopeProvider
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+}
+@if (SignInManager.IsSignedIn(User))
+{
+    var store = Context.GetStoreData();
+    //var result = UITronUSDtLikeStore.GetVM(store);
+
+    // foreach (var item in result.Items)
+    // {
+    var isAvailable = true;//TronUSDtRPCProvider.IsAvailable(item.PaymentMethodId);
+    var isActive = true;
+    <li class="nav-item">
+        <a class="nav-link @(isActive ? "active" : "")"
+           asp-route-paymentMethodId="CASH"
+           asp-route-storeId="@storeId"
+           asp-action="StoreConfig"
+           asp-controller="Cash">
+            <span class="me-2 btcpay-status btcpay-status--@(false ? isAvailable ? "enabled" : "disabled" : "pending")"></span>
+            <span>Cash</span>
+        </a>
+    </li>
+    //}
+}
