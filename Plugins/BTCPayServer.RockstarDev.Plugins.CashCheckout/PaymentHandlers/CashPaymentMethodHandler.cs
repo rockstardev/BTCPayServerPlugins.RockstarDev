@@ -34,7 +34,7 @@ public class CashPaymentMethodHandler(
 
     public Task BeforeFetchingRates(PaymentMethodContext context)
     {
-        context.Prompt.Currency = configurationItem.Currency;
+        context.Prompt.Currency = context.StoreBlob.DefaultCurrency;
         context.Prompt.Divisibility = configurationItem.Divisibility;
         context.Prompt.RateDivisibility = currencyNameTable.GetCurrencyData(context.Prompt.Currency, false).Divisibility;
         return Task.CompletedTask;

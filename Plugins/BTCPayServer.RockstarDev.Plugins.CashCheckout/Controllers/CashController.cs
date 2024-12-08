@@ -78,6 +78,8 @@ public class CashController(
             //return InvoiceNotFound();
         }
 
+        // TODO: Add Payment in Cash to invoice
+        
         if (!await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled))
         {
             //ModelState.AddModelError(nameof(request.Status),
