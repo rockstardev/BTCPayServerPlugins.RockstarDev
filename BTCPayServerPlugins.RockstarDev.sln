@@ -40,6 +40,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Pl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.Stripe", "Plugins\BTCPayServer.RockstarDev.Plugins.Stripe\BTCPayServer.RockstarDev.Plugins.Stripe.csproj", "{6FB27598-242C-4406-A270-3FAA5B271242}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod", "Plugins\BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod\BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod.csproj", "{77341648-BB4A-4287-90CE-2D310A51A997}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Altcoins-Debug|Any CPU = Altcoins-Debug|Any CPU
@@ -176,6 +178,14 @@ Global
 		{6FB27598-242C-4406-A270-3FAA5B271242}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FB27598-242C-4406-A270-3FAA5B271242}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6FB27598-242C-4406-A270-3FAA5B271242}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Altcoins-Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Altcoins-Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Altcoins-Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Altcoins-Release|Any CPU.Build.0 = Debug|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77341648-BB4A-4287-90CE-2D310A51A997}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
