@@ -69,11 +69,11 @@ public class CashController(
 
     [HttpGet("MarkAsPaid")]
     [AllowAnonymous]
-    public async Task<IActionResult> MarkAsPaid(string invoiceId, string returnUrl)
+    public async Task<IActionResult> MarkAsPaid(string invoiceId, string storeId, string returnUrl)
     {
         var invoice = await invoiceRepository.GetInvoice(invoiceId, true);
 
-        if (invoice.StoreId != StoreData.Id ||
+        if (invoice.StoreId != storeId ||
             invoice.Status != InvoiceStatus.New)
         {
             return Redirect(returnUrl);
