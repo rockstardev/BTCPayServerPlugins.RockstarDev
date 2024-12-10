@@ -26,10 +26,7 @@ public class CashCheckoutPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection services)
     {
-        var cashMethodConfigItem = new CashCheckoutConfigurationItem
-        {
-            Divisibility = 2
-        };
+        var cashMethodConfigItem = new CashCheckoutConfigurationItem();
         services.AddSingleton(cashMethodConfigItem);
             
         var cashPaymentMethodId = cashMethodConfigItem.GetPaymentMethodId();

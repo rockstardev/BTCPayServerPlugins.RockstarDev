@@ -22,9 +22,11 @@ public class CashPaymentMethodHandler(
 
     public Task BeforeFetchingRates(PaymentMethodContext context)
     {
-        context.Prompt.Currency = context.StoreBlob.DefaultCurrency;
-        context.Prompt.Divisibility = configurationItem.Divisibility;
-        context.Prompt.RateDivisibility = currencyNameTable.GetCurrencyData(context.Prompt.Currency, false).Divisibility;
+        var currency = currencyNameTable.GetCurrencyData(context.InvoiceEntity.Currency, false);
+     
+        context.Prompt.Currency = currency.Code;
+        context.Prompt.Divisibility = currency.Divisibility;
+        context.Prompt.RateDivisibility = currency.Divisibility;
         return Task.CompletedTask;
     }
 
