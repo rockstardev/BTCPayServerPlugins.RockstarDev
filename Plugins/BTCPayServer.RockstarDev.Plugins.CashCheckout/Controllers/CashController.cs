@@ -6,7 +6,6 @@ using BTCPayServer.Data;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 using BTCPayServer.RockstarDev.Plugins.CashCheckout.ViewModels;
-using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
@@ -46,16 +45,6 @@ public class CashController(
         var currentPaymentMethodConfig = StoreData.GetPaymentMethodConfig<CashPaymentMethodConfig>(paymentMethodId, handlers);
         currentPaymentMethodConfig ??= new CashPaymentMethodConfig();
         
-        // else if (viewModel.Enabled == blob.IsExcluded(paymentMethodId))
-        // {
-        //     blob.SetExcluded(paymentMethodId, !viewModel.Enabled);
-        //
-        //     TempData.SetStatusMessageModel(new StatusMessageModel
-        //     {
-        //         Message = $"{paymentMethodId} is now {(viewModel.Enabled ? "enabled" : "disabled")}",
-        //         Severity = StatusMessageModel.StatusSeverity.Success
-        //     });
-        // }
         blob.SetExcluded(paymentMethodId, !viewModel.Enabled);
 
         StoreData.SetPaymentMethodConfig(handlers[paymentMethodId], currentPaymentMethodConfig);

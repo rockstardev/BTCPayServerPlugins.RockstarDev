@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
-using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
 using Newtonsoft.Json;
@@ -18,17 +17,6 @@ public class CashPaymentMethodHandler(
     public PaymentMethodId PaymentMethodId { get; } = configurationItem.GetPaymentMethodId();
     public Task ConfigurePrompt(PaymentMethodContext context)
     {
-        // if (!tronUSDtRpcProvider.IsAvailable(configurationItem.GetPaymentMethodId()))
-        //     throw new PaymentMethodUnavailableException("Node or wallet not available");
-        //
-        // var details = new TronUSDtLikeOnChainPaymentMethodDetails();
-        // var availableAddress = await ParsePaymentMethodConfig(context.PaymentMethodConfig)
-        //                            .GetOneNotReservedAddress(context.PaymentMethodId, invoiceRepository) ??
-        //                        throw new PaymentMethodUnavailableException("All your TRON addresses are currently waiting payment");
-        // context.Prompt.Destination = availableAddress;
-        // context.Prompt.PaymentMethodFee = 0; 
-        // context.Prompt.Details = JObject.FromObject(details, Serializer);
-
         return Task.CompletedTask;
     }
 

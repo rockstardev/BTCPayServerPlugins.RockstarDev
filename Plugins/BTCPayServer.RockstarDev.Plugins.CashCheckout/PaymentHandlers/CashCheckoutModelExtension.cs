@@ -1,5 +1,4 @@
 using BTCPayServer.Payments;
-using BTCPayServer.RockstarDev.Plugins.CashCheckoutMethod;
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 public class CashCheckoutModelExtension(CashCheckoutConfigurationItem configurationItem) : ICheckoutModelExtension
