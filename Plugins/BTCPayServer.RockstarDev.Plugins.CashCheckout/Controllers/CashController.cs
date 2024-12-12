@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
@@ -21,6 +22,7 @@ public class CashController(
     InvoiceRepository invoiceRepository,
     PaymentMethodHandlerDictionary handlers,
     CashCheckoutConfigurationItem cashMethod,
+    PaymentService paymentService,
     CashStatusProvider cashStatusProvider) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
@@ -37,8 +39,7 @@ public class CashController(
     }
     
     [HttpPost]
-    public async Task<IActionResult> StoreConfig(CashStoreViewModel viewModel,
-        PaymentMethodId paymentMethodId)
+    public async Task<IActionResult> StoreConfig(CashStoreViewModel viewModel, PaymentMethodId paymentMethodId)
     {
         var store = StoreData;
         var blob = StoreData.GetStoreBlob();
@@ -50,7 +51,6 @@ public class CashController(
         StoreData.SetPaymentMethodConfig(handlers[paymentMethodId], currentPaymentMethodConfig);
         store.SetStoreBlob(blob);
         await storeRepository.UpdateStore(store);
-
 
         return RedirectToAction("StoreConfig", new { storeId = store.Id, paymentMethodId });
     }
@@ -70,13 +70,28 @@ public class CashController(
         }
 
         // TODO: Add Payment in Cash to invoice
-        
-        if (!await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled))
+        var handler = handlers[new PaymentMethodId("CASH")];
+        var paymentData = new PaymentData
         {
-            //ModelState.AddModelError(nameof(request.Status),
-            //    "Status can only be marked to invalid or settled within certain conditions.");
-        }
+            Id = Guid.NewGuid().ToString(),
+            Created = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Settled,
+            Currency = invoice.Currency,
+            InvoiceDataId = invoiceId,
+            Amount = invoice.Price,
+            PaymentMethodId = "CASH"
+        }.Set(invoice, handler, new object());
         
+        var payment = await paymentService.AddPayment(paymentData);
+        if (payment != null)
+        {
+            if (!await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled))
+            {
+                //ModelState.AddModelError(nameof(request.Status),
+                //    "Status can only be marked to invalid or settled within certain conditions.");
+            }
+        }
+
         return Redirect(returnUrl);
     }
 }
