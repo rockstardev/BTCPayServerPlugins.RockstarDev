@@ -1,11 +1,11 @@
 using BTCPayServer.Payments;
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
-public class CashCheckoutModelExtension(CashCheckoutConfigurationItem configurationItem) : ICheckoutModelExtension
+public class CashCheckoutModelExtension() : ICheckoutModelExtension
 {
     public const string CheckoutBodyComponentName = "CASHCheckout";
     
-    public PaymentMethodId PaymentMethodId { get; } = configurationItem.GetPaymentMethodId();
+    public PaymentMethodId PaymentMethodId => CashCheckoutPlugin.CashPmid;
     public string Image => "";
     public string Badge => "";
 

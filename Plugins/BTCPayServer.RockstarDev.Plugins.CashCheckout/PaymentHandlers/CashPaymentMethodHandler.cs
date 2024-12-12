@@ -2,19 +2,16 @@ using System;
 using System.Threading.Tasks;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
-using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 
-public class CashPaymentMethodHandler(
-    CashCheckoutConfigurationItem configurationItem,
-    CurrencyNameTable currencyNameTable,
-    InvoiceRepository invoiceRepository) : IPaymentMethodHandler
+public class CashPaymentMethodHandler(CurrencyNameTable currencyNameTable) : IPaymentMethodHandler
 {
-    public PaymentMethodId PaymentMethodId { get; } = configurationItem.GetPaymentMethodId();
+    public PaymentMethodId PaymentMethodId => CashCheckoutPlugin.CashPmid;
+
     public Task ConfigurePrompt(PaymentMethodContext context)
     {
         return Task.CompletedTask;

@@ -24,20 +24,19 @@ public class CashCheckoutPlugin : BaseBTCPayServerPlugin
         new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
     };
 
+    internal static PaymentMethodId CashPmid = new PaymentMethodId("CASH");
+    internal static string CashDisplayName = "Cash";
+
     public override void Execute(IServiceCollection services)
     {
-        var cashMethodConfigItem = new CashCheckoutConfigurationItem();
-        services.AddSingleton(cashMethodConfigItem);
-            
-        var cashPaymentMethodId = cashMethodConfigItem.GetPaymentMethodId();
-        services.AddTransactionLinkProvider(cashPaymentMethodId, new CashTransactionLinkProvider("cash"));
+        services.AddTransactionLinkProvider(CashPmid, new CashTransactionLinkProvider("cash"));
 
         services.AddSingleton(provider => 
-            (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(CashPaymentMethodHandler), cashMethodConfigItem));
+            (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(CashPaymentMethodHandler)));
         services.AddSingleton(provider =>
             (ICheckoutModelExtension)ActivatorUtilities.CreateInstance(provider, typeof(CashCheckoutModelExtension)));
         
-        services.AddDefaultPrettyName(cashPaymentMethodId, cashMethodConfigItem.DisplayName);
+        services.AddDefaultPrettyName(CashPmid, CashDisplayName);
             
         //
         services.AddSingleton<CashStatusProvider>();

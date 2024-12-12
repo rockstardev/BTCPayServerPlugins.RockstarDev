@@ -21,7 +21,6 @@ public class CashController(
     StoreRepository storeRepository,
     InvoiceRepository invoiceRepository,
     PaymentMethodHandlerDictionary handlers,
-    CashCheckoutConfigurationItem cashMethod,
     PaymentService paymentService,
     CashStatusProvider cashStatusProvider) : Controller
 {
@@ -66,11 +65,10 @@ public class CashController(
             invoice.Status != InvoiceStatus.New)
         {
             return Redirect(returnUrl);
-            //return InvoiceNotFound();
         }
 
-        // TODO: Add Payment in Cash to invoice
-        var handler = handlers[new PaymentMethodId("CASH")];
+        // Add Payment in Cash to Invoice
+        var handler = handlers[CashCheckoutPlugin.CashPmid];
         var paymentData = new PaymentData
         {
             Id = Guid.NewGuid().ToString(),
@@ -79,7 +77,7 @@ public class CashController(
             Currency = invoice.Currency,
             InvoiceDataId = invoiceId,
             Amount = invoice.Price,
-            PaymentMethodId = "CASH"
+            PaymentMethodId = handler.PaymentMethodId.ToString()
         }.Set(invoice, handler, new object());
         
         var payment = await paymentService.AddPayment(paymentData);
