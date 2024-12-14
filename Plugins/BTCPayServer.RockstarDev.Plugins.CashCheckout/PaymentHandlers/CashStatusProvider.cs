@@ -8,7 +8,7 @@ namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 public class CashStatusProvider(StoreRepository storeRepository,
     PaymentMethodHandlerDictionary handlers)
 {
-    public async Task<bool> CashEnabled(string? storeId)
+    public async Task<bool> CashEnabled(string storeId)
     {
         try
         {

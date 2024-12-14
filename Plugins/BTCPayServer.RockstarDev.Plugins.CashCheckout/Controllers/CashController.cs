@@ -38,10 +38,11 @@ public class CashController(
     }
     
     [HttpPost]
-    public async Task<IActionResult> StoreConfig(CashStoreViewModel viewModel, PaymentMethodId paymentMethodId)
+    public async Task<IActionResult> StoreConfig(CashStoreViewModel viewModel)
     {
         var store = StoreData;
         var blob = StoreData.GetStoreBlob();
+        var paymentMethodId = CashCheckoutPlugin.CashPmid;
         var currentPaymentMethodConfig = StoreData.GetPaymentMethodConfig<CashPaymentMethodConfig>(paymentMethodId, handlers);
         currentPaymentMethodConfig ??= new CashPaymentMethodConfig();
         

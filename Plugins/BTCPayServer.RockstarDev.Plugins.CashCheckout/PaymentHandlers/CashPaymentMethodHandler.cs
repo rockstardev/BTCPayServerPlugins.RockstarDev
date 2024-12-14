@@ -5,6 +5,7 @@ using BTCPayServer.Payments;
 using BTCPayServer.Services.Rates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+#pragma warning disable CS8603 // Possible null reference return.
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 
