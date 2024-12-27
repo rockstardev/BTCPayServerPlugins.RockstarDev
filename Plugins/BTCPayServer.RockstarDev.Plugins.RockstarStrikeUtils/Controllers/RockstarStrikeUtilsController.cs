@@ -18,18 +18,19 @@ using Strike.Client.ReceiveRequests.Requests;
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Route("~/plugins/rockstarstrikeutils")]
 public class RockstarStrikeUtilsController(
     RockstarStrikeDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
 {
-    [HttpGet("~/plugins/rockstarstrikeutils/index")]
+    [HttpGet("index")]
     public async Task<IActionResult> Index()
     {
         var isSetup = await strikeClientFactory.ClientExistsAsync();
         return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration));
     }
 
-    [HttpGet("~/plugins/rockstarstrikeutils/Configuration")]
+    [HttpGet("Configuration")]
     public async Task<IActionResult> Configuration()
     {
         await using var db = strikeDbContextFactory.CreateContext();
@@ -42,7 +43,7 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
 
-    [HttpPost("~/plugins/rockstarstrikeutils/Configuration")]
+    [HttpPost("Configuration")]
     public async Task<IActionResult> Configuration(ConfigurationViewModel model)
     {
         if (!ModelState.IsValid)
@@ -66,7 +67,7 @@ public class RockstarStrikeUtilsController(
     }
     
     //  Receive Requests
-    [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests")]
+    [HttpGet("ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
     {
         var client = await strikeClientFactory.ClientCreateAsync();
@@ -83,7 +84,7 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
-    [HttpGet("~/plugins/rockstarstrikeutils/ReceiveRequests/create")]
+    [HttpGet("ReceiveRequests/create")]
     public async Task<IActionResult> ReceiveRequestsCreate()
     {
         var client = await strikeClientFactory.ClientCreateAsync();
@@ -98,7 +99,7 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
-    [HttpPost("~/plugins/rockstarstrikeutils/ReceiveRequests/create")]
+    [HttpPost("ReceiveRequests/create")]
     public async Task<IActionResult> ReceiveRequestsCreate(ReceiveRequestsCreateViewModel model)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
@@ -143,7 +144,7 @@ public class RockstarStrikeUtilsController(
     }
     
     //  Exchanges
-    [HttpGet("~/plugins/rockstarstrikeutils/CurrencyExchanges")]
+    [HttpGet("CurrencyExchanges")]
     public async Task<IActionResult> CurrencyExchanges(string operation, decimal amount)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
@@ -207,7 +208,7 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
-    [HttpPost("~/plugins/rockstarstrikeutils/CurrencyExchangesProcess")]
+    [HttpPost("CurrencyExchangesProcess")]
     public async Task<IActionResult> CurrencyExchangesProcess(Guid quoteId)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
