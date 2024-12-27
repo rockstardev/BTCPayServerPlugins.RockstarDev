@@ -444,35 +444,44 @@ public class PayrollInvoiceController(
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        var transactionIds = invoices.Select(a => a.TxnId).Distinct().ToList();
-        var walletTxnInfo = await GetWalletTransactions(transactionIds);
+        var transactionIds = invoices.Where(a => a.BtcPaid != null).Select(a => a.TxnId).Distinct().ToList();
+        var walletTxnInfo = transactionIds.Any() ? await GetWalletTransactions(transactionIds) : null;
         var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
 
         var csvData = new StringBuilder();
-        csvData.AppendLine("Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate, BTCJPY Rate,Balance,TransactionId");
+        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate, BTCJPY Rate,Balance,TransactionId,PaidInWallet");
         string emptyStr = string.Empty;
+        decimal usdRate = 0;
         foreach (var invoice in invoices)
         {
-            var txn = walletTxnInfo.Transactions.SingleOrDefault(a => a.Id == invoice.TxnId);
-            //string balance = string.IsNullOrEmpty(transaction.Balance) ? "" : transaction.Balance;
-
-            decimal usdRate = 0;
-            var btcPaid = Convert.ToDecimal(invoice.BtcPaid);
-            if (btcPaid > 0)
+            if (invoice.BtcPaid == null)
             {
-                usdRate = Math.Floor(Convert.ToDecimal(invoice.Amount) / btcPaid);
-                usdRate = Math.Abs(usdRate);
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{emptyStr},{invoice.User.Name},{invoice.Id}," +
+                                   $"{invoice.Destination},{invoice.Currency},{invoice.Amount},{usdRate},{emptyStr}" +
+                                   $",{usdRate},{emptyStr},{emptyStr},false");
             }
+            else
+            {
+                var txn = walletTxnInfo?.Transactions.SingleOrDefault(a => a.Id == invoice.TxnId);
+                //string balance = string.IsNullOrEmpty(transaction.Balance) ? "" : transaction.Balance;
 
-            csvData.AppendLine($"{txn?.Timestamp.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{emptyStr}" +
-                               $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
-                               $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId}");
+                var btcPaid = Convert.ToDecimal(invoice.BtcPaid);
+                if (btcPaid > 0)
+                {
+                    usdRate = Math.Floor(Convert.ToDecimal(invoice.Amount) / btcPaid);
+                    usdRate = Math.Abs(usdRate);
+                }
+
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{txn?.Timestamp.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{emptyStr}" +
+                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
+                                   $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId},true");
+            }
         }
         
         byte[] fileBytes = Encoding.UTF8.GetBytes(csvData.ToString());
         return File(fileBytes, "text/csv", fileName);
     }
-    
+
     private async Task<ListTransactionsViewModel> GetWalletTransactions(List<string> transactionIds)
     {
         var  model = new ListTransactionsViewModel();
