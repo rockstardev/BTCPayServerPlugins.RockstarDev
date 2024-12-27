@@ -16,52 +16,48 @@ using Microsoft.AspNetCore.Mvc;
 namespace BTCPayServer.RockstarDev.Plugins.Stripe.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class StripeController(StripeClientFactory stripeClientFactory,
-    StripeDbContextFactory stripeDbContextFactory) : Controller
+public class StripeController(StripeClientFactory stripeClientFactory, StripeDbContextFactory stripeDbContextFactory)
+    : Controller
 {
-        [HttpGet("~/plugins/stripe/index")]
-        public async Task<IActionResult> Index()
+    [HttpGet("~/plugins/stripe/index")]
+    public async Task<IActionResult> Index()
+    {
+        var isSetup = await stripeClientFactory.ClientExistsAsync();
+        return RedirectToAction(isSetup ? nameof(Payouts) : nameof(Configuration));
+    }
+
+    [HttpGet("~/plugins/stripe/Configuration")]
+    public async Task<IActionResult> Configuration()
+    {
+        await using var db = stripeDbContextFactory.CreateContext();
+        var model = new ConfigurationViewModel
         {
-            var isSetup = await stripeClientFactory.ClientExistsAsync();
-            return RedirectToAction(isSetup ? nameof(Payouts) : nameof(Configuration));
+            StripeApiKey = db.Settings.SingleOrDefault(a => a.Key == DbSetting.StripeApiKey)?.Value
+        };
+        return View(model);
+    }
+
+    [HttpPost("~/plugins/stripe/Configuration")]
+    public async Task<IActionResult> Configuration(ConfigurationViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        var validKey = await stripeClientFactory.TestAndSaveApiKeyAsync(model.StripeApiKey);
+        if (!validKey)
+        {
+            ModelState.AddModelError(nameof(model.StripeApiKey), "Invalid API key.");
+        }
+        else
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Strike API key saved successfully.",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
         }
 
-        [HttpGet("~/plugins/stripe/Configuration")]
-        public async Task<IActionResult> Configuration()
-        {
-            await using var db = stripeDbContextFactory.CreateContext();
+        return View(model);
+    }
 
-            var model = new ConfigurationViewModel
-            {
-                StripeApiKey = db.Settings.SingleOrDefault(a => a.Key == DbSetting.StripeApiKey)?.Value
-            };
-        
-            return View(model);
-        }
-
-        [HttpPost("~/plugins/stripe/Configuration")]
-        public async Task<IActionResult> Configuration(ConfigurationViewModel model)
-        {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var validKey = await stripeClientFactory.TestAndSaveApiKeyAsync(model.StripeApiKey);
-            if (!validKey)
-            {
-                ModelState.AddModelError(nameof(model.StripeApiKey), "Invalid API key.");
-            }
-            else
-            {
-                TempData.SetStatusMessageModel(new StatusMessageModel()
-                {
-                    Message = $"Strike API key saved successfully.",
-                    Severity = StatusMessageModel.StatusSeverity.Success
-                });
-            }
-
-            return View(model);
-        }
-        
     [HttpGet("~/plugins/stripe/payouts")]
     public async Task<IActionResult> Payouts()
     {
@@ -79,7 +75,6 @@ public class StripeController(StripeClientFactory stripeClientFactory,
                 Description = p.Description
             }).ToList()
         };
-
         return View(model);
     }
 }
