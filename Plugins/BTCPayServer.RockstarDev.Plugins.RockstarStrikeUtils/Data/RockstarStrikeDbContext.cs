@@ -10,6 +10,10 @@ public class RockstarStrikeDbContext(DbContextOptions<RockstarStrikeDbContext> o
     
     public DbSet<DbSetting> Settings { get; set; }
     
+    // For supporting exchange orders
+    public DbSet<DbExchangeOrder> ExchangeOrders { get; set; }
+    public DbSet<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

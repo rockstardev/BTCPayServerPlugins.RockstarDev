@@ -1,0 +1,54 @@
+﻿@using BTCPayServer.Abstractions.Extensions
+@model BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder.IndexViewModel
+@{
+    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginNavKey, "Exchange Orders", "Exchange Orders");
+}
+
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+</div>
+
+
+
+@if (Model.List.Any())
+{
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th scope="col">Order ID</th>
+                <th scope="col">Created</th>
+                <th scope="col">Operation</th>
+                <th scope="col">Amount</th>
+                <th scope="col">State</th>
+                <th scope="col">Created By</th>
+                <th scope="col">Delay Until</th>
+                <th scope="col">Executed</th>
+                <th scope="col">Cost Basis</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var payout in Model.List)
+            {
+                <tr>
+                    <td>@payout.Id</td>
+                    <td>@payout.Created</td>
+                    <td>@payout.Operation</td>
+                    <td>@payout.Amount.ToString("N8")</td>
+                    <td>@payout.State</td>
+                    <td>@payout.CreatedBy</td>
+                    <td>@payout.DelayUntil</td>
+                    <td>@payout.Executed</td>
+                    <td>@payout.CostBasis</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        No payouts available at this time.
+    </p>
+}
