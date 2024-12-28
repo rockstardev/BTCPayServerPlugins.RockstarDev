@@ -1,0 +1,1 @@
+﻿dotnet ef migrations add AddingExchangeOrderEntities -p Plugins/BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils -c RockstarStrikeDbContext -o Data/Migrations
