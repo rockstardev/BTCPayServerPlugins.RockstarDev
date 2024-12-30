@@ -1,14 +1,20 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
 @model BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder.IndexViewModel
 @{
-    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginNavKey, "Exchange Orders", "Exchange Orders");
+    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginExchangeOrderNavKey, "Exchange Orders", "ExchangeOrder");
 }
 
-<div class="sticky-header d-sm-flex align-items-center justify-content-between">
-    <h2 class="mb-0">@ViewData["Title"]</h2>
-</div>
+<form method="post">
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a asp-controller="ExchangeOrder" asp-action="Index" class="btn btn-primary">Create Exchange Order</a>
+        </div>
+    </div>
+</form>
 
-
+<partial name="_StatusMessage" />
 
 @if (Model.List.Any())
 {
@@ -49,6 +55,6 @@
 else
 {
     <p class="text-secondary mt-4">
-        No payouts available at this time.
+        No exchange orders available at this time.
     </p>
 }
