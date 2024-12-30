@@ -238,9 +238,6 @@ public class PublicController(
         }
 
         // TODO: Make saving of the file and entry in the database atomic
-        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
-
         var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount; // this will remove .00 from the amount
         var dbPayrollInvoice = new PayrollInvoice
         {
@@ -250,10 +247,15 @@ public class PublicController(
             Destination = model.Destination,
             PurchaseOrder = model.PurchaseOrder,
             Description = model.Description,
-            InvoiceFilename = uploaded.Id,
             UserId = vali.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
+        if (!settings.MakeInvoiceFilesOptional && model.Invoice != null)
+        {
+            var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+            var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
+            dbPayrollInvoice.InvoiceFilename = uploaded.Id;
+        }
 
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
