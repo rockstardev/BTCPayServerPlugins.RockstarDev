@@ -20,6 +20,8 @@ using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoice
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [AllowAnonymous]
+[Route("~/plugins/{storeId}/vendorpay/public/", Order = 0)]
+[Route("~/plugins/{storeId}/payroll/public/", Order = 1)]
 public class PublicController(
     ApplicationDbContextFactory dbContextFactory,
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -34,7 +36,7 @@ public class PublicController(
     private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
 
 
-    [HttpGet("~/plugins/{storeId}/payroll/public/login")]
+    [HttpGet("login")]
     public async Task<IActionResult> Login(string storeId)
     {
         var vali = await validateStoreAndUser(storeId, false);
@@ -50,7 +52,7 @@ public class PublicController(
         return View(model);
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/public/login")]
+    [HttpPost("login")]
     public async Task<IActionResult> Login(string storeId, PublicLoginViewModel model)
     {
         var vali = await validateStoreAndUser(storeId, false);
@@ -81,7 +83,7 @@ public class PublicController(
 
     //
 
-    [HttpGet("~/plugins/{storeId}/payroll/public/logout")]
+    [HttpGet("logout")]
     public IActionResult Logout(string storeId)
     {
         httpContextAccessor.HttpContext?.Session.Remove(PAYROLL_AUTH_USER_ID);
@@ -93,7 +95,7 @@ public class PublicController(
         return RedirectToAction(nameof(Login), new { storeId });
     }
 
-    [HttpGet("~/plugins/{storeId}/payroll/public/listinvoices")]
+    [HttpGet("listinvoices")]
     public async Task<IActionResult> ListInvoices(string storeId)
     {
         var vali = await validateStoreAndUser(storeId, true);
@@ -164,7 +166,7 @@ public class PublicController(
 
 
     // upload
-    [HttpGet("~/plugins/{storeId}/payroll/public/upload")]
+    [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)
     {
         var vali = await validateStoreAndUser(storeId, true);
@@ -185,7 +187,7 @@ public class PublicController(
         return View(model);
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/public/upload")]
+    [HttpPost("upload")]
 
     public async Task<IActionResult> Upload(string storeId, PublicPayrollInvoiceUploadViewModel model)
     {
@@ -267,7 +269,7 @@ public class PublicController(
 
     // change password
 
-    [HttpGet("~/plugins/{storeId}/payroll/public/changepassword")]
+    [HttpGet("changepassword")]
     public async Task<IActionResult> ChangePassword(string storeId)
     {
         var vali = await validateStoreAndUser(storeId, true);
@@ -284,7 +286,7 @@ public class PublicController(
         return View(model);
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/public/changepassword")]
+    [HttpPost("changepassword")]
     public async Task<IActionResult> ChangePassword(string storeId, PublicChangePasswordViewModel model)
     {
         var vali = await validateStoreAndUser(storeId, true);
