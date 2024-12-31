@@ -1,5 +1,8 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Components.TruncateCenter
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
+@using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PublicListInvoicesViewModel
 @{
     Layout = "_PayrollPublicLayout";
@@ -90,7 +93,24 @@
                                         }
                                     </td>
                                     <td class="text-end">
-                                        <a href="/Storage/@pp.InvoiceUrl">Invoice</a>
+                                        @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
+                                        {
+                                            <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
+                                        }
+                                        @if (pp.State == PayrollInvoiceState.AwaitingApproval)
+                                        {
+                                            @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
+                                            {
+                                                <span>-</span>
+                                            }
+                                            <a asp-controller="Public"
+                                               asp-action="Delete"
+                                               asp-route-storeId="@Model.StoreId"
+                                               asp-route-id="@pp.Id"
+                                               class="text-danger">
+                                                Delete
+                                            </a>
+                                        }
                                     </td>
                                 </tr>
                             }

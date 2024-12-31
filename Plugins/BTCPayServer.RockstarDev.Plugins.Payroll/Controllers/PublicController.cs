@@ -328,4 +328,65 @@ public class PublicController(
         });
         return RedirectToAction(nameof(ListInvoices), new { storeId });
     }
+    
+    //
+    
+
+    [HttpGet("delete/{id}")]
+    public async Task<IActionResult> Delete(string storeId, string id)
+    {
+        var vali = await validateStoreAndUser(storeId, true);
+        if (vali.ErrorActionResult != null)
+            return vali.ErrorActionResult;
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        PayrollInvoice invoice = ctx.PayrollInvoices.Include(c => c.User)
+            .SingleOrDefault(a => a.Id == id);
+
+        if (invoice == null)
+            return NotFound();
+
+        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = $"Invoice cannot be deleted as it has been actioned upon",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(ListInvoices), new { storeId = vali.Store.Id });
+        }
+        return View("Confirm", new ConfirmModel($"Delete Invoice", $"Do you really want to delete the invoice for {invoice.Amount} {invoice.Currency} from {invoice.User.Name}?", "Delete"));
+    }
+
+    [HttpPost("delete/{id}")]
+    public async Task<IActionResult> DeletePost(string storeId, string id)
+    {
+        var vali = await validateStoreAndUser(storeId, true);
+        if (vali.ErrorActionResult != null)
+            return vali.ErrorActionResult;
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+
+        var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
+
+        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = $"Invoice cannot be deleted as it has been actioned upon",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
+        }
+
+        ctx.Remove(invoice);
+        await ctx.SaveChangesAsync();
+
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"Invoice deleted successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
+    } 
 }
