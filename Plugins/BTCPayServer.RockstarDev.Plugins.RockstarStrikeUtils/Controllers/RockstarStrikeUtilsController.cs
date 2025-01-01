@@ -5,6 +5,7 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
@@ -18,16 +19,19 @@ using Strike.Client.ReceiveRequests.Requests;
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-[Route("~/plugins/rockstarstrikeutils")]
+[Route("~/plugins/{storeId}/rockstarstrikeutils")]
 public class RockstarStrikeUtilsController(
     RockstarStrikeDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
 {
+    [FromRoute]
+    public string StoreId { get; set; }
+    
     [HttpGet("index")]
     public async Task<IActionResult> Index()
     {
         var isSetup = await strikeClientFactory.ClientExistsAsync();
-        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration));
+        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration), new { StoreId});
     }
 
     [HttpGet("Configuration")]

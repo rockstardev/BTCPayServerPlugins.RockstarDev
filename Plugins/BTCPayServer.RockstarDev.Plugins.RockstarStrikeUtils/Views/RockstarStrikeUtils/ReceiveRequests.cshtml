@@ -1,8 +1,11 @@
 ﻿@using System.Text.Json
+@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model ReceiveRequestsViewModel
+@inject IScopeProvider ScopeProvider
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Receive Requests", "ReceiveRequests");
 }
 
@@ -11,7 +14,8 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequestsCreate" class="btn btn-primary">Create Receive Request</a>
+            <a asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequestsCreate" asp-route-storeId="@storeId"
+               class="btn btn-primary">Create Receive Request</a>
         </div>
     </div>
 </form>
