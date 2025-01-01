@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
+using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
@@ -14,11 +15,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-[Route("~/plugins/rockstarstrike/exchangeorder")]
+[Route("~/plugins/{storeId}/rockstarstrike/exchangeorder")]
 public class ExchangeOrderController(
     RockstarStrikeDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
 {
+    [FromRoute]
+    public string StoreId { get; set; }
+    
     [HttpGet("index")]
     public async Task<IActionResult> Index()
     {
