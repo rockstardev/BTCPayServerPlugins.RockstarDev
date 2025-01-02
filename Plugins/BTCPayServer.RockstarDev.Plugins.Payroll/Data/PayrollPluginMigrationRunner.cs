@@ -10,7 +10,6 @@ internal class PayrollPluginMigrationRunner(PayrollPluginDbContextFactory dbCont
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await using var ctx = dbContextFactory.CreateContext();
-        await using var dbContext = dbContextFactory.CreateContext();
         await ctx.Database.MigrateAsync(cancellationToken);
     }
 
