@@ -27,7 +27,7 @@ public class ExchangeOrderController(
     public async Task<IActionResult> Index()
     {
         await using var db = strikeDbContextFactory.CreateContext();
-        var list = db.ExchangeOrders.ToList();
+        var list = db.ExchangeOrders.Where(a=>a.StoreId == StoreId).ToList();
         var viewModel = new IndexViewModel
         {
             List = list
@@ -54,6 +54,7 @@ public class ExchangeOrderController(
         await using var db = strikeDbContextFactory.CreateContext();
         var exchangeOrder = new DbExchangeOrder
         {
+            StoreId = StoreId,
             Operation = model.Operation,
             Amount = model.Amount,
             DelayUntil = model.DelayUntil,

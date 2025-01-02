@@ -1,10 +1,14 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 
 public class DbExchangeOrder
 {
     public Guid Id { get; set; }
+    [StringLength(50)]
+    [Required]
+    public string StoreId { get; set; }
     public Operations Operation { get; set; }
     public decimal Amount { get; set; }
     public DateTimeOffset Created { get; set; }
