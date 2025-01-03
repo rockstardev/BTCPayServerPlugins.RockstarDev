@@ -11,6 +11,8 @@ using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
 
@@ -63,6 +65,62 @@ public class ExchangeOrderController(
             CreatedBy = "Manual"
         };
         db.ExchangeOrders.Add(exchangeOrder);
+        await db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+
+    [HttpGet("settings")]
+    public async Task<IActionResult> Settings()
+    {
+        await using var db = strikeDbContextFactory.CreateContext();
+        var dbSetting = await db.Settings.FirstOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+
+        SettingsViewModel viewModel = null;
+        if (dbSetting != null)
+        {
+            viewModel = JsonConvert.DeserializeObject<SettingsViewModel>(dbSetting.Value);
+        }
+        else
+        {
+            viewModel = new SettingsViewModel
+            {
+                MinutesHeartbeatInterval = 60,
+                NumberOfBuysToGroupForDeposit = 3,
+                PercentageOfPayouts = 10,
+                StartDateExchangeOrders = DateTimeOffset.UtcNow
+            };
+        }
+        
+        return View(viewModel);
+    }
+
+    [HttpPost("settings")]
+    public async Task<IActionResult> Settings([FromForm] SettingsViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        await using var db = strikeDbContextFactory.CreateContext();
+        var dbSetting = await db.Settings.FirstOrDefaultAsync(a =>
+            a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+        if (dbSetting != null)
+        {
+            dbSetting.Value = JsonConvert.SerializeObject(model);
+        }
+        else
+        {
+            // Add a new setting since it does not exist
+            var newSetting = new DbSetting
+            {
+                Key = DbSettingKeys.ExchangeOrderSettings.ToString(),
+                StoreId = StoreId,
+                Value = JsonConvert.SerializeObject(model)
+            };
+            db.Settings.Add(newSetting);
+        }
+
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Index), new { StoreId });
     }

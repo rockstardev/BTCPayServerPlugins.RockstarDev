@@ -12,6 +12,16 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <div class="dropdown">
+                <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span>Options</span>
+                </button>
+                <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
+                    <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
+                        Settings
+                    </a>
+                </div>
+            </div>
             <a asp-controller="ExchangeOrder" asp-action="Create" asp-route-storeId="@storeId"
                class="btn btn-primary">Create Exchange Order</a>
         </div>
