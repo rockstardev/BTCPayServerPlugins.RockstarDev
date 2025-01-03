@@ -42,12 +42,12 @@
             {
                 <tr>
                     <td>@payout.Id</td>
-                    <td>@payout.Created</td>
+                    <td>@payout.Created.ToBrowserDate()</td>
                     <td>@payout.Operation</td>
-                    <td>@payout.Amount.ToString("N8")</td>
+                    <td>@payout.Amount.ToString("0.########")</td>
                     <td>@payout.State</td>
                     <td>@payout.CreatedBy</td>
-                    <td>@payout.DelayUntil</td>
+                    <td>@payout.DelayUntil?.ToBrowserDate()</td>
                     <td>@payout.Executed</td>
                     <td>@payout.CostBasis</td>
                 </tr>

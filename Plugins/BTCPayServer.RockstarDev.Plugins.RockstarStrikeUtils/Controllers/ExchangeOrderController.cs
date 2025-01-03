@@ -22,23 +22,23 @@ public class ExchangeOrderController(
 {
     [FromRoute]
     public string StoreId { get; set; }
-    
+
     [HttpGet("index")]
     public async Task<IActionResult> Index()
     {
         await using var db = strikeDbContextFactory.CreateContext();
-        var list = db.ExchangeOrders.Where(a=>a.StoreId == StoreId).ToList();
-        var viewModel = new IndexViewModel
-        {
-            List = list
-        };
+        var list = db.ExchangeOrders
+            .Where(a => a.StoreId == StoreId)
+            .OrderBy(a => a.DelayUntil)
+            .ThenBy(a => a.Created)
+            .ToList();
+        var viewModel = new IndexViewModel { List = list };
         return View(viewModel);
     }
 
     [HttpGet("create")]
     public IActionResult Create()
     {
-        // Return a blank CreateExchangeOrderViewModel for the form
         var viewModel = new CreateExchangeOrderViewModel();
         return View(viewModel);
     }
@@ -48,7 +48,7 @@ public class ExchangeOrderController(
     {
         if (!ModelState.IsValid)
         {
-            return View(model); // Return the same view with validation errors
+            return View(model);
         }
 
         await using var db = strikeDbContextFactory.CreateContext();
@@ -57,15 +57,13 @@ public class ExchangeOrderController(
             StoreId = StoreId,
             Operation = model.Operation,
             Amount = model.Amount,
-            DelayUntil = model.DelayUntil,
-            Created = DateTime.UtcNow,
+            DelayUntil = model.DelayUntil?.UtcDateTime,
+            Created = DateTimeOffset.UtcNow,
             State = DbExchangeOrder.States.Created,
             CreatedBy = "Manual"
         };
-            
         db.ExchangeOrders.Add(exchangeOrder);
         await db.SaveChangesAsync();
-
-        return RedirectToAction("Index");
+        return RedirectToAction(nameof(Index), new { StoreId });
     }
 }
