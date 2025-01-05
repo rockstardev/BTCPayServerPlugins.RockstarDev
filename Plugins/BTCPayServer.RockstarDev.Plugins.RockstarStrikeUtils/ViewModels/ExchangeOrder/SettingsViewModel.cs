@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder;
 
@@ -13,4 +14,22 @@ public class SettingsViewModel
     
     // heartbeat settings
     public int MinutesHeartbeatInterval { get; set; }
+    
+    public static SettingsViewModel FromDbSettings(DbSetting dbSetting)
+    {
+        if (dbSetting != null)
+        {
+            return JsonConvert.DeserializeObject<SettingsViewModel>(dbSetting.Value);
+        }
+        else
+        {
+            return new SettingsViewModel
+            {
+                MinutesHeartbeatInterval = 60,
+                NumberOfBuysToGroupForDeposit = 3,
+                PercentageOfPayouts = 10,
+                StartDateExchangeOrders = DateTimeOffset.UtcNow
+            };
+        }
+    }
 }

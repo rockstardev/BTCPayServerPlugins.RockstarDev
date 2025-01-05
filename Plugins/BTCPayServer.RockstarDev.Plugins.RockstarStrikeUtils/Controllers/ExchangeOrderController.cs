@@ -75,22 +75,7 @@ public class ExchangeOrderController(
         await using var db = strikeDbContextFactory.CreateContext();
         var dbSetting = await db.Settings.FirstOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
 
-        SettingsViewModel viewModel = null;
-        if (dbSetting != null)
-        {
-            viewModel = JsonConvert.DeserializeObject<SettingsViewModel>(dbSetting.Value);
-        }
-        else
-        {
-            viewModel = new SettingsViewModel
-            {
-                MinutesHeartbeatInterval = 60,
-                NumberOfBuysToGroupForDeposit = 3,
-                PercentageOfPayouts = 10,
-                StartDateExchangeOrders = DateTimeOffset.UtcNow
-            };
-        }
-        
+        var viewModel = SettingsViewModel.FromDbSettings(dbSetting);
         return View(viewModel);
     }
 
