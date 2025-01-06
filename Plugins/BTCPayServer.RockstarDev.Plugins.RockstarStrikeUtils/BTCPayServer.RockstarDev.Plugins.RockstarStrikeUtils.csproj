@@ -55,4 +55,10 @@
         <PackageReference Include="StrikeWallet.Client" Version="1.2.3" PrivateAssets="all" />
         <PackageReference Include="Stripe.net" Version="47.1.0" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Views\ExchangeOrder\Create.cshtml" />
+      <UpToDateCheckInput Remove="Views\ExchangeOrder\Index.cshtml" />
+      <UpToDateCheckInput Remove="Views\ExchangeOrder\Settings.cshtml" />
+    </ItemGroup>
 </Project>

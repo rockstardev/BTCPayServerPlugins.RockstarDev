@@ -1,9 +1,10 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.BitcoinStacker
 @using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder.CreateExchangeOrderViewModel
+@model BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder.CreateExchangeOrderViewModel
 @{
-    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Create Exchange Order", "ExchangeOrders");
+    ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, "Create Exchange Order", "ExchangeOrders");
 }
 
 <form method="post">

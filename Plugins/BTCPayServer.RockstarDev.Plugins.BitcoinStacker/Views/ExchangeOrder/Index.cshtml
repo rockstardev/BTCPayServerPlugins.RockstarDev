@@ -1,10 +1,10 @@
 ﻿@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
-@model BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder.IndexViewModel
+@model IndexViewModel
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginExchangeOrderNavKey, "Exchange Orders", "ExchangeOrder");
+    ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, "Exchange Orders", "ExchangeOrder");
 }
 
 <form method="post">

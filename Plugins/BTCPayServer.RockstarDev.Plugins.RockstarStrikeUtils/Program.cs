@@ -3,12 +3,12 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Strike.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class RockstarStrikeUtilsPlugin : BaseBTCPayServerPlugin
     {
         public const string PluginStrikeNavKey = "RockstarStrikeUtilsNav";
@@ -36,10 +36,6 @@ namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
                 factory.ConfigureBuilder(o);
             });
             serviceCollection.AddHostedService<RockstarStrikeMigrationRunner>();
-            
-            // register heartbeat service and have it run every minute to catch periodic timer
-            serviceCollection.AddSingleton<ExchangeOrderHeartbeatService>();
-            serviceCollection.AddScheduledTask<ExchangeOrderHeartbeatService>(TimeSpan.FromMinutes(1));
 
             base.Execute(serviceCollection);
         }

@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 using Newtonsoft.Json;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder;
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 
 public class SettingsViewModel
 {

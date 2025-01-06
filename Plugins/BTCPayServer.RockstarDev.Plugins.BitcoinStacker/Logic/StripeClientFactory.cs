@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Stripe;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 
 public class StripeClientFactory
 {

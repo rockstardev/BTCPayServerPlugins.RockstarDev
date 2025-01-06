@@ -5,17 +5,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Services;
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Services;
 
 public class ExchangeOrderHeartbeatService(
     EventAggregator eventAggregator,
     Logs logs,
-    RockstarStrikeDbContextFactory strikeDbContextFactory,
+    PluginDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory,
     StripeClientFactory stripeClientFactory) : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {

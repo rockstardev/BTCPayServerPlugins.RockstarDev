@@ -1,25 +1,23 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
-using BTCPayServer.Data;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.ExchangeOrder;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Route("~/plugins/{storeId}/rockstarstrike/exchangeorder")]
 public class ExchangeOrderController(
-    RockstarStrikeDbContextFactory strikeDbContextFactory,
+    PluginDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
 {
     [FromRoute]

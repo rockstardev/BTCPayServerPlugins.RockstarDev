@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
+    <!-- -->
+    <!-- Plugin specific properties -->
+    <PropertyGroup>
+        <Product>Bitcoin Stacker</Product>
+        <Description>Automatically stack sats on Strike depending on your sales on Stripe **Do not install this if you’re unsure of what you’re doing.**</Description>
+        <Version>0.0.1</Version>
+    </PropertyGroup>
+    <!-- Plugin development properties -->
+    <PropertyGroup>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <PreserveCompilationContext>false</PreserveCompilationContext>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    </PropertyGroup>
+
+    <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
+    <ItemDefinitionGroup>
+        <ProjectReference>
+            <Properties>StaticWebAssetsEnabled=false</Properties>
+            <Private>false</Private>
+            <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
+        </ProjectReference>
+    </ItemDefinitionGroup>
+
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+        <ProjectReference Include="..\..\submodules\strike-client\src\Strike.Client\Strike.Client.csproj" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <AdditionalFiles Include="Views\ExchangeOrder\Create.cshtml" />
+      <AdditionalFiles Include="Views\ExchangeOrder\Index.cshtml" />
+      <AdditionalFiles Include="Views\ExchangeOrder\Settings.cshtml" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Views\AdminPassReset\Create.cshtml" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <PackageReference Include="Stripe.net" Version="47.1.0" />
+    </ItemGroup>
+</Project>

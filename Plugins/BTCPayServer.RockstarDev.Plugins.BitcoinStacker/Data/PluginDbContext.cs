@@ -1,0 +1,24 @@
+﻿using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
+
+public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool designTime = false)
+    : DbContext(options)
+{
+    public const string DefaultPluginSchema = "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils";
+    
+    public DbSet<DbSetting> Settings { get; set; }
+    
+    // For supporting exchange orders
+    public DbSet<DbExchangeOrder> ExchangeOrders { get; set; }
+    public DbSet<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema(DefaultPluginSchema);
+
+        DbSetting.OnModelCreating(modelBuilder);
+    }
+}
