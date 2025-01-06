@@ -21,4 +21,17 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
 
         DbSetting.OnModelCreating(modelBuilder);
     }
+
+    public void AddExchangeOrderLogs(Guid exchangeOrderId, DbExchangeOrderLog.Events evt, object content, string parameter = null)
+    {
+        var log = new DbExchangeOrderLog
+        {
+            ExchangeOrderId = exchangeOrderId,
+            Created = DateTimeOffset.UtcNow,
+            Event = evt,
+            Content = JsonConvert.SerializeObject(content),
+            Parameter = parameter
+        };
+        ExchangeOrderLogs.Add(log);
+    }
 }

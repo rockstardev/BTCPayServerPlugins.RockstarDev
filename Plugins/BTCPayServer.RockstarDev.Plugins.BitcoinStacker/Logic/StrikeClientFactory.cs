@@ -12,14 +12,11 @@ using Strike.Client;
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 
 public class StrikeClientFactory(
-    PluginDbContextFactory strikeDbContextFactory,
     IServiceProvider serviceProvider,
     ILoggerFactory loggerFactory,
     IScopeProvider scopeProvider)
 {
-    private string StoreId => scopeProvider.GetCurrentStoreId();
-    
-    public async Task<bool> TestAndSaveApiKeyAsync(string apiKey)
+    public async Task<bool> IsApiKeyValid(string apiKey)
     {
         var client = InitClient(apiKey);
         var storeId = scopeProvider.GetCurrentStoreId();
@@ -33,43 +30,13 @@ public class StrikeClientFactory(
                 logger.LogInformation($"The connection failed, check API key. Error: {balances.Error?.Data?.Code} {balances.Error?.Data?.Message}");
                 return false;
             }
-
-            await using var db = strikeDbContextFactory.CreateContext();
-            var setting = await db.Settings.SingleOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey);
-
-            if (setting is null)
-                db.Settings.Add(new DbSetting { Key = DbSetting.StrikeApiKey, StoreId = StoreId, Value = apiKey });
-            else
-                setting.Value = apiKey;
-
-            await db.SaveChangesAsync();
+            
             return true;
         }
         catch
         {
             return false;
         }
-    }
-
-    public async Task<bool> ClientExistsAsync()
-    {
-        await using var db = strikeDbContextFactory.CreateContext();
-        var apiKey = db.Settings.SingleOrDefault(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey)?.Value;
-
-        return apiKey != null;
-    }
-
-
-    public async Task<StrikeClient> ClientCreateAsync()
-    {
-        await using var db = strikeDbContextFactory.CreateContext();
-        var apiKey = db.Settings.SingleOrDefault(a =>  a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey)?.Value;
-        if (apiKey is null)
-        {
-            throw new InvalidOperationException("API key not found in the database.");
-        }
-
-        return InitClient(apiKey);
     }
 
     public StrikeClient InitClient(string apiKey)

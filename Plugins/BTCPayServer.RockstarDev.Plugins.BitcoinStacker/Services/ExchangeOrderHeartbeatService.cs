@@ -37,6 +37,9 @@ public class ExchangeOrderHeartbeatService(
             }
 
             var setting = SettingsViewModel.FromDbSettings(store);
+            if (!setting.AutoEnabled)
+                continue;
+            
             if (lastRun.AddMinutes(setting.MinutesHeartbeatInterval) < DateTimeOffset.UtcNow)
             {
                 lastRun = DateTimeOffset.UtcNow;
@@ -101,7 +104,26 @@ public class ExchangeOrderHeartbeatService(
             var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
             foreach (var order in orders)
             {
-                // TODO: push deposits and record them on the exchange order
+                var req = new DepositReq
+                {
+                    PaymentMethodId = settings.StrikePaymentMethodId,
+                    Amount = order.Amount.ToString()
+                };
+                db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, req);
+                await db.SaveChangesAsync(cancellationToken);
+                
+                var resp = await strikeClient.Deposits.Create(req);
+                if (resp.IsSuccessStatusCode)
+                {
+                    order.State = DbExchangeOrder.States.DepositWaiting;
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, resp, resp.Id.ToString());
+                }
+                else
+                {
+                    order.State = DbExchangeOrder.States.Error;
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+                }
+                await db.SaveChangesAsync(cancellationToken);
             }
         }
     }

@@ -20,8 +20,6 @@ public class DbExchangeOrder
     // have reference for which date order was created for
     public DateTimeOffset? CreatedForDate { get; set; }
     public States State { get; set; }
-    public DateTimeOffset? Executed { get; set; }
-    public decimal? CostBasis { get; set; }
     
     public enum Operations
     {
@@ -35,7 +33,8 @@ public class DbExchangeOrder
         Null,
         Created,
         DepositWaiting,
-        Completed
+        Completed,
+        Error
     }
     
     public enum CreateByTypes
@@ -49,7 +48,16 @@ public class DbExchangeOrderLog
 {
     public Guid Id { get; set; }
     public Guid ExchangeOrderId { get; set; }
+    public Events Event { get; set; }
     public string Content { get; set; }
     public DateTimeOffset Created { get; set; }
-    public string Parameters { get; set; }
+    [StringLength(50)]
+    public string Parameter { get; set; }
+    
+    public enum Events
+    {
+        CreatingDeposit,
+        DepositCreated,
+        Error
+    }
 }

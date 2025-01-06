@@ -17,12 +17,9 @@ public class DbSetting
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
     }
-    
-    public static string StrikeApiKey => DbSettingKeys.StrikeApiKey.ToString();
 }
 
 public enum DbSettingKeys
 {
-    StrikeApiKey,
     ExchangeOrderSettings
 }
