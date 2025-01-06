@@ -22,7 +22,7 @@ public class StripeClientFactory(StripeDbContextFactory dbContextFactory,
             // Test the client with a simple request
             try
             {
-                var res = await GetAllPayoutsAsync();
+                var res = await PayoutsAllAsync();
             }
             catch (Exception ex)
             {
@@ -57,7 +57,7 @@ public class StripeClientFactory(StripeDbContextFactory dbContextFactory,
         return apiKey != null;
     }
 
-    public async Task<List<Payout>> GetAllPayoutsAsync()
+    public async Task<List<Payout>> PayoutsAllAsync()
     {
         var payouts = new PayoutService();
         var allPayouts = await payouts.ListAsync();

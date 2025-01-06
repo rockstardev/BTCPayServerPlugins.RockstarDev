@@ -61,7 +61,7 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
     [HttpGet("~/plugins/stripe/payouts")]
     public async Task<IActionResult> Payouts()
     {
-        var payouts = await stripeClientFactory.GetAllPayoutsAsync();
+        var payouts = await stripeClientFactory.PayoutsAllAsync();
         var model = new PayoutsViewModel
         {
             Payouts = payouts.Select(p => new PayoutsViewModel.Item
