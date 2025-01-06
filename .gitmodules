@@ -4,3 +4,4 @@
 [submodule "submodules/strike-client"]
 	path = submodules/strike-client
 	url = https://github.com/rockstardev/strike-client
+	branch = prerelease
