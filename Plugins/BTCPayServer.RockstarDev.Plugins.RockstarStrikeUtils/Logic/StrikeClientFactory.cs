@@ -72,7 +72,7 @@ public class StrikeClientFactory(
         return InitClient(apiKey);
     }
 
-    private StrikeClient InitClient(string apiKey)
+    public StrikeClient InitClient(string apiKey)
     {
         var client = serviceProvider.GetRequiredService<StrikeClient>();
         client.ApiKey = apiKey;

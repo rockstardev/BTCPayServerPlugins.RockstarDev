@@ -12,6 +12,10 @@ public class SettingsViewModel
     public int NumberOfBuysToGroupForDeposit { get; set; }
     public DateTimeOffset? StartDateExchangeOrders { get; set; }
     
+    //
+    public string StrikeApiKey { get; set; }
+    public string StripeApiKey { get; set; }
+    
     // heartbeat settings
     public int MinutesHeartbeatInterval { get; set; }
     

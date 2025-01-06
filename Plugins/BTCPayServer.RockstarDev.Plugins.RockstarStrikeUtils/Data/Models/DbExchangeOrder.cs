@@ -13,7 +13,12 @@ public class DbExchangeOrder
     public decimal Amount { get; set; }
     public DateTimeOffset Created { get; set; }
     public DateTimeOffset? DelayUntil { get; set; }
+    
+    // differentiate manual and automatic stacking order creations
+    [StringLength(50)]
     public string CreatedBy { get; set; }
+    // have reference for which date order was created for
+    public DateTimeOffset? CreatedForDate { get; set; }
     public States State { get; set; }
     public DateTimeOffset? Executed { get; set; }
     public decimal? CostBasis { get; set; }
@@ -29,9 +34,14 @@ public class DbExchangeOrder
     {
         Null,
         Created,
-        Processing,
         DepositWaiting,
         Completed
+    }
+    
+    public enum CreateByTypes
+    {
+        Manual,
+        Automatic
     }
 }
 
