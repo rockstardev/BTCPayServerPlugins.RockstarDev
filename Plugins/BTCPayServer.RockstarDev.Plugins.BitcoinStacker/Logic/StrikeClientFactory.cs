@@ -7,6 +7,7 @@ using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Strike.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 
