@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 
 public class DbExchangeOrder
 {

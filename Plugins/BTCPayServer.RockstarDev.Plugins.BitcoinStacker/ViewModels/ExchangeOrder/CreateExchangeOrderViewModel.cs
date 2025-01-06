@@ -1,6 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

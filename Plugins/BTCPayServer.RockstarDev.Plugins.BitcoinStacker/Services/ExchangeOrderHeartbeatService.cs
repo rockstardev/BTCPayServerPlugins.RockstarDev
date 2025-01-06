@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using Strike.Client.Deposits;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Services;
 

@@ -1,5 +1,8 @@
-﻿using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+﻿using System;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Strike.Client.Deposits;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 

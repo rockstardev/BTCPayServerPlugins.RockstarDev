@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 
 public class DbSetting
 {

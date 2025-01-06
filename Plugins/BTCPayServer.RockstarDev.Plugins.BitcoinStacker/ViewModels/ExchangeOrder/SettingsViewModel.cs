@@ -1,5 +1,5 @@
 using System;
-using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
