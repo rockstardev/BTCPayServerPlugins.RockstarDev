@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
@@ -20,6 +21,8 @@ public class DbExchangeOrder
     // have reference for which date order was created for
     public DateTimeOffset? CreatedForDate { get; set; }
     public States State { get; set; }
+    
+    public List<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
     
     public enum Operations
     {
@@ -48,6 +51,7 @@ public class DbExchangeOrderLog
 {
     public Guid Id { get; set; }
     public Guid ExchangeOrderId { get; set; }
+    public DbExchangeOrder ExchangeOrder { get; set; }
     public Events Event { get; set; }
     public string Content { get; set; }
     public DateTimeOffset Created { get; set; }
@@ -58,6 +62,8 @@ public class DbExchangeOrderLog
     {
         CreatingDeposit,
         DepositCreated,
+        ExecutingExchange,
+        ExchangeExecuted,
         Error
     }
 }

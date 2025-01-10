@@ -43,8 +43,6 @@
                 <th scope="col">State</th>
                 <th scope="col">Created By</th>
                 <th scope="col">Delay Until</th>
-                <th scope="col">Executed</th>
-                <th scope="col">Cost Basis</th>
             </tr>
             </thead>
             <tbody>
@@ -58,8 +56,6 @@
                     <td>@payout.State</td>
                     <td>@payout.CreatedBy</td>
                     <td>@payout.DelayUntil?.ToBrowserDate()</td>
-                    <td>@payout.Executed</td>
-                    <td>@payout.CostBasis</td>
                 </tr>
             }
             </tbody>
