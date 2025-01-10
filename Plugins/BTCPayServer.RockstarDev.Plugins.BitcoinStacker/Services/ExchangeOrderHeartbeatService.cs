@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +10,11 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
+using Strike.Client.CurrencyExchanges;
 using Strike.Client.Deposits;
+using Strike.Client.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Services;
 
@@ -108,7 +113,7 @@ public class ExchangeOrderHeartbeatService(
                 var req = new DepositReq
                 {
                     PaymentMethodId = settings.StrikePaymentMethodId,
-                    Amount = order.Amount.ToString()
+                    Amount = order.Amount.ToString(CultureInfo.InvariantCulture)
                 };
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, req);
                 await db.SaveChangesAsync(cancellationToken);
@@ -117,7 +122,7 @@ public class ExchangeOrderHeartbeatService(
                 if (resp.IsSuccessStatusCode)
                 {
                     order.State = DbExchangeOrder.States.DepositWaiting;
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, resp, resp.Id.ToString());
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.DepositCreated, resp, resp.Id.ToString());
                 }
                 else
                 {
@@ -125,6 +130,72 @@ public class ExchangeOrderHeartbeatService(
                     db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
                 }
                 await db.SaveChangesAsync(cancellationToken);
+            }
+            
+            // 
+            var waitingOrders = db.ExchangeOrders
+                .Include(order => 
+                    order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
+                .Where(order => order.StoreId == ppe.StoreId 
+                                && order.State == DbExchangeOrder.States.DepositWaiting)
+                .OrderBy(order => order.Created)
+                .ToList();
+            
+            foreach (var order in orders)
+            {
+                var depositingId = Guid.Parse(order.ExchangeOrderLogs.First().Parameter);
+                var resp = await strikeClient.Deposits.FindDeposit(depositingId);
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    order.State = DbExchangeOrder.States.Error;
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+                    
+                    // exiting the loop
+                    continue;
+                }
+                    
+                if (resp.State == DepositState.Completed)
+                {
+                    var req = new CurrencyExchangeQuoteReq
+                    {
+                        Buy = Currency.Btc, Sell = Currency.Usd,
+                        Amount = new MoneyWithFee
+                        {
+                            Currency = Currency.Usd, Amount = order.Amount, FeePolicy = FeePolicy.Inclusive
+                        }
+                    };
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, req);
+                    await db.SaveChangesAsync(cancellationToken);
+                    
+                    //
+                    var exchangeResp = await strikeClient.CurrencyExchanges.CreateQuote(req);
+                    if (!exchangeResp.IsSuccessStatusCode)
+                    {
+                        order.State = DbExchangeOrder.States.Error;
+                        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, exchangeResp);
+                        
+                        // exiting the loop
+                        continue;
+                    }
+                    
+                    var executeQuoteResp = await strikeClient.CurrencyExchanges.ExecuteQuote(exchangeResp.Id);
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+                else if (resp.State == DepositState.Pending)
+                {
+                    // Do nothing
+                }
+                else
+                {
+                    // Failed and Reversed deposits will also end up here
+                    
+                    // TODO: If deposit failed, initiate it again
+                    
+                    order.State = DbExchangeOrder.States.Error;
+                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+                }
             }
         }
     }
