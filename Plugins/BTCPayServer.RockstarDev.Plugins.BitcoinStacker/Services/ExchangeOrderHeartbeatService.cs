@@ -180,6 +180,15 @@ public class ExchangeOrderHeartbeatService(
                     }
                     
                     var executeQuoteResp = await strikeClient.CurrencyExchanges.ExecuteQuote(exchangeResp.Id);
+                    if (!executeQuoteResp.IsSuccessStatusCode)
+                    {
+                        order.State = DbExchangeOrder.States.Error;
+                        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, executeQuoteResp);
+                        
+                        // exiting the loop
+                        continue;
+                    }
+                    
                     db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
                     await db.SaveChangesAsync(cancellationToken);
                 }
