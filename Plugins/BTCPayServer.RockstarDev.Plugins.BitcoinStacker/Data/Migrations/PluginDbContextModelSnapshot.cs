@@ -17,7 +17,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils")
+                .HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.BitcoinStacker")
                 .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -58,7 +58,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ExchangeOrders", "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                    b.ToTable("ExchangeOrders", "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
                 });
 
             modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models.DbExchangeOrderLog", b =>
@@ -87,7 +87,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 
                     b.HasIndex("ExchangeOrderId");
 
-                    b.ToTable("ExchangeOrderLogs", "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                    b.ToTable("ExchangeOrderLogs", "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
                 });
 
             modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models.DbSetting", b =>
@@ -106,7 +106,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 
                     b.HasKey("Key");
 
-                    b.ToTable("Settings", "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                    b.ToTable("Settings", "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
                 });
 
             modelBuilder.Entity("BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models.DbExchangeOrderLog", b =>

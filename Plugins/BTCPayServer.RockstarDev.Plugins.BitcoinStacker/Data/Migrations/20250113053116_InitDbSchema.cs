@@ -6,17 +6,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class RefactorDbExchangeOrder : Migration
+    public partial class InitDbSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                name: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
 
             migrationBuilder.CreateTable(
                 name: "ExchangeOrders",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils",
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -36,7 +36,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Settings",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils",
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker",
                 columns: table => new
                 {
                     Key = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
@@ -50,7 +50,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ExchangeOrderLogs",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils",
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -66,7 +66,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
                     table.ForeignKey(
                         name: "FK_ExchangeOrderLogs_ExchangeOrders_ExchangeOrderId",
                         column: x => x.ExchangeOrderId,
-                        principalSchema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils",
+                        principalSchema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker",
                         principalTable: "ExchangeOrders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -74,7 +74,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ExchangeOrderLogs_ExchangeOrderId",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils",
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker",
                 table: "ExchangeOrderLogs",
                 column: "ExchangeOrderId");
         }
@@ -84,15 +84,15 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
         {
             migrationBuilder.DropTable(
                 name: "ExchangeOrderLogs",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
 
             migrationBuilder.DropTable(
                 name: "Settings",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
 
             migrationBuilder.DropTable(
                 name: "ExchangeOrders",
-                schema: "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils");
+                schema: "BTCPayServer.RockstarDev.Plugins.BitcoinStacker");
         }
     }
 }
