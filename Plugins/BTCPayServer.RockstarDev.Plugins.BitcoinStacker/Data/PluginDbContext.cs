@@ -9,7 +9,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool designTime = false)
     : DbContext(options)
 {
-    public const string DefaultPluginSchema = "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils";
+    public const string DefaultPluginSchema = "BTCPayServer.RockstarDev.Plugins.BitcoinStacker";
     
     public DbSet<DbSetting> Settings { get; set; }
     

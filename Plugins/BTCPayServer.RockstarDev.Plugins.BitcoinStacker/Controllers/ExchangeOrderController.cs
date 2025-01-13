@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Controllers;
 
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-[Route("~/plugins/{storeId}/rockstarstrike/exchangeorder")]
+[Route("~/plugins/{storeId}/exchangeorder")]
 public class ExchangeOrderController(
     PluginDbContextFactory strikeDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
