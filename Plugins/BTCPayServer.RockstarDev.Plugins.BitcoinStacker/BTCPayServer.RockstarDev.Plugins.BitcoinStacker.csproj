@@ -49,23 +49,18 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
-        <ProjectReference Include="..\..\submodules\strike-client\src\Strike.Client\Strike.Client.csproj" />
+        <ProjectReference Include="..\..\submodules\strike-client\src\Strike.Client\Strike.Client.csproj" Private="true" />
     </ItemGroup>
 
 
     <ItemGroup>
-      <AdditionalFiles Include="Views\ExchangeOrder\Create.cshtml" />
-      <AdditionalFiles Include="Views\ExchangeOrder\Index.cshtml" />
-      <AdditionalFiles Include="Views\ExchangeOrder\Settings.cshtml" />
+        <PackageReference Include="Stripe.net" Version="47.1.0" />
     </ItemGroup>
-
-
-    <ItemGroup>
-      <UpToDateCheckInput Remove="Views\AdminPassReset\Create.cshtml" />
-    </ItemGroup>
-
-
-    <ItemGroup>
-      <PackageReference Include="Stripe.net" Version="47.1.0" />
-    </ItemGroup>
+    <!-- Copy all files from the net8.0 folder -->
+    <Target Name="CopyStripeNetFiles" BeforeTargets="AfterBuild">
+        <ItemGroup>
+            <StripeNetFiles Include="$(NuGetPackageRoot)stripe.net\47.1.0\lib\net8.0\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(StripeNetFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
 </Project>
