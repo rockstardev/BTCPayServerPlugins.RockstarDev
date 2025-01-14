@@ -14,24 +14,24 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker;
 public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
 {
     public const string PluginNavKey = nameof(BitcoinStackerPlugin) + "Nav";
+
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
-        new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.0.0" }
     ];
 
     public override void Execute(IServiceCollection serviceCollection)
     {
         serviceCollection.AddUIExtension("store-integrations-nav", PluginNavKey);
-        
+
         // strike registrations
         serviceCollection.AddStrikeHttpClient();
         serviceCollection.AddStrikeClient();
-
         serviceCollection.AddSingleton<StrikeClientFactory>();
-        
+
         // stripe registrations
         serviceCollection.AddSingleton<StripeClientFactory>();
-            
+
         // Add the database related registrations
         serviceCollection.AddSingleton<PluginDbContextFactory>();
         serviceCollection.AddDbContext<PluginDbContext>((provider, o) =>
@@ -40,11 +40,12 @@ public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
             factory.ConfigureBuilder(o);
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
-        
+
         // heartbeat service
-        serviceCollection.AddSingleton<IHostedService, ExchangeOrderHeartbeatService>();
+        //serviceCollection.AddSingleton<IHostedService, ExchangeOrderHeartbeatService>();
+        serviceCollection.AddSingleton<IHostedService>(provider =>
+            provider.GetService<ExchangeOrderHeartbeatService>());
         serviceCollection.AddScheduledTask<ExchangeOrderHeartbeatService>(TimeSpan.FromMinutes(1));
-        
         base.Execute(serviceCollection);
     }
 }

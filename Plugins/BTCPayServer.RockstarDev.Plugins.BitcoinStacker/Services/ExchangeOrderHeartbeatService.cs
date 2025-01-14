@@ -62,8 +62,13 @@ public class ExchangeOrderHeartbeatService(
     {
         public string StoreId { get; set; }
         public SettingsViewModel Setting { get; set; }
-    } 
-    
+    }
+
+    public override Task StartAsync(CancellationToken cancellationToken)
+    {
+        return base.StartAsync(cancellationToken);
+    }
+
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
     {
         if (evt is PeriodProcessEvent ppe)
@@ -90,7 +95,7 @@ public class ExchangeOrderHeartbeatService(
                 {
                     StoreId = ppe.StoreId,
                     Operation = DbExchangeOrder.Operations.BuyBitcoin,
-                    Amount = payout.Amount / 100.0m * settings.PercentageOfPayouts, // Stripe uses cents
+                    Amount = payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), // Stripe uses cents
                     Created = DateTimeOffset.UtcNow,
                     CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
                     CreatedForDate = payout.Created,
@@ -138,7 +143,8 @@ public class ExchangeOrderHeartbeatService(
                 .Include(order => 
                     order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
                 .Where(order => order.StoreId == ppe.StoreId 
-                                && order.State == DbExchangeOrder.States.DepositWaiting)
+                                && order.State == DbExchangeOrder.States.DepositWaiting
+                                && order.DelayUntil < DateTimeOffset.UtcNow)
                 .OrderBy(order => order.Created)
                 .ToList();
             
