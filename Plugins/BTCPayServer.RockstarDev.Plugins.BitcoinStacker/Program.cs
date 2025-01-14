@@ -18,7 +18,7 @@ public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddUIExtension("store-integrations-nav", "PluginNav");
+        serviceCollection.AddUIExtension("store-integrations-nav", PluginNavKey);
         
         // strike registrations
         serviceCollection.AddStrikeHttpClient();
