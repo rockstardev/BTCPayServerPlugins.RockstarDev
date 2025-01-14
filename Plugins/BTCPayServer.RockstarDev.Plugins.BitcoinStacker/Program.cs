@@ -1,8 +1,11 @@
-﻿using BTCPayServer.Abstractions.Contracts;
+﻿using System;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Strike.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker;
@@ -37,6 +40,10 @@ public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
             factory.ConfigureBuilder(o);
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
+        
+        // heartbeat service
+        serviceCollection.AddSingleton<IHostedService, ExchangeOrderHeartbeatService>();
+        serviceCollection.AddScheduledTask<ExchangeOrderHeartbeatService>(TimeSpan.FromMinutes(1));
         
         base.Execute(serviceCollection);
     }

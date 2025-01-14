@@ -28,6 +28,7 @@ public class ExchangeOrderHeartbeatService(
     private Dictionary<string, DateTimeOffset> _lastRunForStore = new();
     protected override void SubscribeToEvents()
     {
+        Subscribe<PeriodProcessEvent>();
         base.SubscribeToEvents();
     }
 
@@ -57,7 +58,7 @@ public class ExchangeOrderHeartbeatService(
         return Task.CompletedTask;
     }
 
-    private class PeriodProcessEvent
+    public class PeriodProcessEvent
     {
         public string StoreId { get; set; }
         public SettingsViewModel Setting { get; set; }
