@@ -4,5 +4,6 @@ public enum PayrollUserState
 {
     Disabled,
     Active,
-    Archived
+    Archived,
+    Pending
 }
