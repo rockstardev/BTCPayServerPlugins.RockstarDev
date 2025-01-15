@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
@@ -35,6 +36,35 @@ public class ExchangeOrderController(
         var viewModel = new IndexViewModel { List = list };
         return View(viewModel);
     }
+    
+    
+
+    [HttpGet("ClearDelayUntil")]
+    public ActionResult ClearDelayUntil(string id)
+    {
+        return View("Confirm", new ConfirmModel
+        {
+            Title = "Clear Delay?",
+            Description = "Are you sure you want to clear the delay on this Exchange Order?",
+            Action = "Yes"
+        });
+    }
+
+    [HttpPost("ClearDelayUntil")]
+    public async Task<IActionResult> ClearDelayUntilPost(Guid id)
+    {
+        var db = strikeDbContextFactory.CreateContext();
+
+        var order = db.ExchangeOrders.Single(a => a.Id == id);
+        order.DelayUntil = null;
+        await db.SaveChangesAsync();
+
+        TempData[WellKnownTempData.SuccessMessage] =
+            $"Delay on Exchange Order {id} has been cleared.";
+
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+    
 
     [HttpGet("create")]
     public IActionResult Create()

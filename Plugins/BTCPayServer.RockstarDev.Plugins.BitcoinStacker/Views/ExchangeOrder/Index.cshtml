@@ -1,5 +1,7 @@
 ﻿@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IndexViewModel
 @inject IScopeProvider ScopeProvider
 @{
@@ -57,12 +59,25 @@
                     <td>@payout.Amount.ToString("N2")</td>
                     <td>@payout.State</td>
                     <td>@payout.CreatedBy</td>
-                    <td>@payout.DelayUntil?.ToBrowserDate()</td>
+                    <td>
+                        @if (payout.DelayUntil.HasValue)
+                        {
+                            <a asp-controller="ExchangeOrder"
+                               asp-action="ClearDelayUntil"
+                               asp-route-id="@payout.Id"
+                               asp-route-storeId="@storeId"
+                               class="text-danger">
+                                @payout.DelayUntil.Value.ToBrowserDate()
+                            </a>
+                        }
+                    </td>
                 </tr>
             }
             </tbody>
         </table>
     </div>
+    
+    <partial name="_Confirm" model="@(new ConfirmModel("Clear Delay?", "Are you sure you want to clear the delay on this Exchange Order?", "Confirm"))" />
 }
 else
 {
