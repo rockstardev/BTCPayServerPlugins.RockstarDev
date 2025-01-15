@@ -91,6 +91,9 @@ public class ExchangeOrderHeartbeatService(
             payouts = payouts.OrderBy(a=>a.Created).ToList();
             foreach (var payout in payouts)
             {
+                if (payout.Status != "paid")
+                    continue; // only process paid payouts
+                
                 var exchangeOrder = new DbExchangeOrder
                 {
                     StoreId = ppe.StoreId,
