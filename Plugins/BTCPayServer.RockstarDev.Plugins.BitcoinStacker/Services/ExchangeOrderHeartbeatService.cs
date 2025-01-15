@@ -108,13 +108,17 @@ public class ExchangeOrderHeartbeatService(
                 db.ExchangeOrders.Add(exchangeOrder);
             }
             await db.SaveChangesAsync(cancellationToken);
+
+            if (String.IsNullOrEmpty(settings.StrikeApiKey))
+                return;
             
             // get the list of orders in created mode and initiate deposits
             var orders = db.ExchangeOrders
                 .Where(a => a.StoreId == ppe.StoreId && a.Operation == DbExchangeOrder.Operations.BuyBitcoin
                              && a.State == DbExchangeOrder.States.Created
                              && a.DelayUntil < DateTimeOffset.UtcNow)
-                .OrderBy(a => a.Created)
+                .OrderBy(a => a.CreatedForDate)
+                .ThenBy(a=> a.Created)
                 .ToList();
             var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
             foreach (var order in orders)
@@ -148,7 +152,8 @@ public class ExchangeOrderHeartbeatService(
                 .Where(order => order.StoreId == ppe.StoreId 
                                 && order.State == DbExchangeOrder.States.DepositWaiting
                                 && order.DelayUntil < DateTimeOffset.UtcNow)
-                .OrderBy(order => order.Created)
+                .OrderBy(a => a.CreatedForDate)
+                .ThenBy(a=> a.Created)
                 .ToList();
             
             foreach (var order in orders)

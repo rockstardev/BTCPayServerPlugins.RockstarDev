@@ -29,8 +29,8 @@ public class ExchangeOrderController(
         await using var db = strikeDbContextFactory.CreateContext();
         var list = db.ExchangeOrders
             .Where(a => a.StoreId == StoreId)
-            .OrderBy(a => a.DelayUntil)
-            .ThenBy(a => a.Created)
+            .OrderByDescending(a => a.CreatedForDate)
+            .ThenByDescending(a => a.Created)
             .ToList();
         var viewModel = new IndexViewModel { List = list };
         return View(viewModel);
