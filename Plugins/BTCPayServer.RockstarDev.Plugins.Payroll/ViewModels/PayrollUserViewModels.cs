@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
@@ -30,6 +31,9 @@ public class PayrollUserCreateViewModel
     [Display(Name = "Confirm Password")]
     [Compare("Password", ErrorMessage = "Password fields don't match")]
     public string ConfirmPassword { get; set; }
+
+    [JsonIgnore]
+    public string StoreId { get; set; }
 }
 
 public class PayrollUserResetPasswordViewModel

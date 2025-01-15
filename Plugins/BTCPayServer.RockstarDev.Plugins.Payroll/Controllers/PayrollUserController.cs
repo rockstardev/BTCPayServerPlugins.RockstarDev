@@ -58,7 +58,7 @@ public class PayrollUserController(
     [HttpGet("~/plugins/{storeId}/payroll/users/create")]
     public IActionResult Create()
     {
-        return View(new PayrollUserCreateViewModel());
+        return View(new PayrollUserCreateViewModel { StoreId = CurrentStore.Id });
     }
 
     [HttpPost("~/plugins/{storeId}/payroll/users/create")]

@@ -275,6 +275,7 @@ public class PayrollInvoiceController(
 
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
         model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
+        model.StoreId = CurrentStore.Id;
         if (!model.PayrollUsers.Any())
         {
             return NoUserResult(storeId);

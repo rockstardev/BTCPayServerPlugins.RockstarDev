@@ -6,6 +6,7 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
@@ -39,9 +40,12 @@ public class PayrollInvoiceUploadViewModel
     public string UserId { get; set; }
 
     public SelectList PayrollUsers { get; set; }
-        
-        
-        
+
+    [JsonIgnore]
+    public string StoreId { get; set; }
+
+
+
     [Required]
     public string Destination { get; set; }
     [Required]

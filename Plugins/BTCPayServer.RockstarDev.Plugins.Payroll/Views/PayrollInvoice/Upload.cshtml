@@ -7,7 +7,15 @@
 
 <form method="post" asp-action="Upload" enctype="multipart/form-data">
     <div class="sticky-header d-flex align-items-center justify-content-between">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a asp-action="List" asp-route-storeId="@Model.StoreId">Invoices</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page" text-translate="true">Upload Invoice</li>
+            </ol>
+            <h2 text-translate="true">@ViewData["Title"]</h2>
+        </nav>
         <input type="submit" value="Upload" class="btn btn-primary" id="Upload" />
     </div>
 
