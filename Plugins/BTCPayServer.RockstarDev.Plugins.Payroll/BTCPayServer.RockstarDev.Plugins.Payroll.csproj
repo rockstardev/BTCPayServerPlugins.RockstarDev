@@ -29,6 +29,12 @@
 		</ProjectReference>
 	</ItemDefinitionGroup>
 	<ItemGroup>
+	  <Content Remove="Templates\InvitationEmail.cshtml" />
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="Templates\InvitationEmail.cshtml" />
+	</ItemGroup>
+	<ItemGroup>
 		<ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
 	</ItemGroup>
 
