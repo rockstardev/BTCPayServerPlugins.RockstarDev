@@ -7,9 +7,9 @@
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Bitcoin Stacker</Product>
-        <Description>Automatically stack sats on Strike depending on your sales on Stripe **Do not install this if you’re unsure of what you’re doing.**</Description>
-        <Version>0.0.1</Version>
+        <Product>zzz - Bitcoin Stacker</Product>
+        <Description>**Do not install this if you’re unsure of what you’re doing.** Automatically stack sats on Strike depending on your sales on Stripe</Description>
+        <Version>0.0.12</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
@@ -28,39 +28,44 @@
     </ItemDefinitionGroup>
 
     <!-- This is all so that we can generate entity framework migrations in design mode -->
-<Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
-    <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
-          DestinationFolder="$(OutputPath)"
-          Condition="'$(Configuration)' == 'Debug'" />
-    <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer.Abstractions\bin\Debug\net8.0\BTCPayServer.Abstractions.dll"
-          DestinationFolder="$(OutputPath)"
-          Condition="'$(Configuration)' == 'Debug'" />
-</Target>
+    <Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
+        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
+              DestinationFolder="$(OutputPath)"
+              Condition="'$(Configuration)' == 'Debug'"/>
+        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer.Abstractions\bin\Debug\net8.0\BTCPayServer.Abstractions.dll"
+              DestinationFolder="$(OutputPath)"
+              Condition="'$(Configuration)' == 'Debug'"/>
+    </Target>
 
 
     <ItemGroup Condition="'$(Configuration)' != 'Release'">
-        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11"/>
     </ItemGroup>
 
 
     <ItemGroup>
-        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
-        <ProjectReference Include="..\..\submodules\strike-client\src\Strike.Client\Strike.Client.csproj" Private="true" />
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
+        <ProjectReference Include="..\..\submodules\strike-client\src\Strike.Client\Strike.Client.csproj" Private="true"/>
     </ItemGroup>
 
 
     <ItemGroup>
-        <PackageReference Include="Stripe.net" Version="47.1.0" />
+        <PackageReference Include="Stripe.net" Version="47.1.0"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <EditorConfigFiles Remove=".editorconfig" />
     </ItemGroup>
     <!-- Copy all files from the net8.0 folder -->
     <Target Name="CopyStripeNetFiles" BeforeTargets="AfterBuild">
         <ItemGroup>
-            <StripeNetFiles Include="$(NuGetPackageRoot)stripe.net\47.1.0\lib\net8.0\*" />
+            <StripeNetFiles Include="$(NuGetPackageRoot)stripe.net\47.1.0\lib\net8.0\*"/>
         </ItemGroup>
-        <Copy SourceFiles="@(StripeNetFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(StripeNetFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"/>
     </Target>
 </Project>

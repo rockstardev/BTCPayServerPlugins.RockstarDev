@@ -4,17 +4,23 @@ using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Stores;
+using Microsoft.EntityFrameworkCore;
+using MimeKit;
 using NBitcoin;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static BTCPayServer.RockstarDev.Plugins.Payroll.Services.EmailService;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
 public class VendorPayPaidHostedService(
-    PaymentMethodHandlerDictionary handlers,
+    EmailService emailService,
     EventAggregator eventAggregator,
+    PaymentMethodHandlerDictionary handlers,
     PayrollPluginDbContextFactory pluginDbContextFactory,
     Logs logs)
     : EventHostedServiceBase(eventAggregator, logs)
@@ -62,19 +68,23 @@ public class VendorPayPaidHostedService(
                     }
 
                     await using var dbPlugin = pluginDbContextFactory.CreateContext();
+
                     var invoicesToBePaid = dbPlugin.PayrollInvoices
-                        .Where(a => a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
+                        .Where(a => (a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
+                                    && matchedObjects.Contains(a.Destination))
+                        .Include(c => c.User)
                         .ToList();
 
-                    foreach (var invoice in invoicesToBePaid.Where(invoice => matchedObjects.Contains(invoice.Destination)))
+                    foreach (var invoice in invoicesToBePaid)
                     {
                         invoice.TxnId = txHash;
                         invoice.State = PayrollInvoiceState.Completed;
                         invoice.BtcPaid = amountPaid[invoice.Destination];
+                        invoice.PaidAt = DateTimeOffset.UtcNow;
                     }
 
                     await dbPlugin.SaveChangesAsync(cancellationToken);
-
+                    await emailService.SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == PayrollInvoiceState.Completed).ToList());
                     break;
                 }
         }

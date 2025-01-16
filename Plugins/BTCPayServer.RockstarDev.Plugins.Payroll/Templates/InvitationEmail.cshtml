@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Our Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 5px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h2>You're Invited!</h2>
+
+            <p>Hello @Model.UserName,</p>
+
+            <p>You've been invited to join @Model.Store - BTCPay Server store. We're excited to have you on board!</p>
+
+            <p>To get started, please click the button below to complete your registration:</p>
+
+            <div style="text-align: center;">
+                <a href="@Model.RegistrationLink" class="button">Create Your Account</a>
+            </div>
+
+            <p style="font-size: 13px; color: #666666; font-style: italic;">
+                This invitation link will expire in 7 days.
+            </p>
+
+            <p> 
+                Best regards,<br>
+                The @Model.Store Store
+            </p>
+        </div>
+    </div>
+</body>
+</html>

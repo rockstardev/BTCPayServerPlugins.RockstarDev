@@ -57,7 +57,7 @@
 
 @if (Model.PayrollInvoices.Any())
 {
-    <form method="post" asp-action="MassAction">
+    <form method="post" asp-action="MassAction" asp-route-storeId="@storeId">
         <div class="table-responsive">
             <table class="table table-hover mass-action">
                 <thead class="mass-action-head">
@@ -74,7 +74,6 @@
                         <th scope="col">User</th>
                         <th scope="col">Destination</th>
                         <th scope="col">Amount</th>
-                        <th scope="col">Currency</th>
                         <th scope="col">State</th>
                         @if (Model.PurchaseOrdersRequired)
                         {
@@ -99,6 +98,10 @@
                                     selected
                                 </div>
                                 <div class="d-inline-flex align-items-center gap-3">
+                                    <button type="submit" name="command" value="emailconfirmation" id="emailconfirmation" class="btn btn-link">
+                                        <vc:icon symbol="actions-email" />
+                                        Email Confirmation
+                                    </button>
                                     <button type="submit" name="command" value="payinvoices" id="payinvoices" class="btn btn-link">
                                         <vc:icon symbol="actions-send" />
                                         Pay Invoices
@@ -143,11 +146,9 @@
                                 </div>
 
                             </td>
-                            <td>@pp.Amount</td>
-                            <td>@pp.Currency</td>
+                            <td>@pp.Amount @pp.Currency</td>
                             <td>
-                                @if (pp.State == PayrollInvoiceState.Completed &&
-                               !string.IsNullOrEmpty(pp.TxnId))
+                                @if (pp.State == PayrollInvoiceState.Completed && !string.IsNullOrEmpty(pp.TxnId))
                                 {
                                     <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
                                         @pp.State.ToString()
@@ -157,20 +158,25 @@
                                 {
                                     @pp.State.ToString()
                                 }
+                                @if (pp.State == PayrollInvoiceState.Completed && pp.PaidAt.HasValue)
+                                {
+                                    <div>@pp.PaidAt?.ToBrowserDate()</div>
+                                }
                             </td>
                             <td>
                                 @if (Model.PurchaseOrdersRequired)
                                 {
                                     <span style="max-width: 250px;">@pp.PurchaseOrder</span>
                                 }
-                                else
+                                @if (!string.IsNullOrEmpty(pp.Description))
                                 {
-                                    @if (!string.IsNullOrEmpty(pp.Description))
+                                    @if (!String.IsNullOrEmpty(pp.PurchaseOrder))
                                     {
-                                        <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
-                                            <span style="max-width: 250px;">@pp.Description</span>
-                                        </span>
+                                        <span> - </span>
                                     }
+                                    <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
+                                        <span style="max-width: 250px;">@pp.Description</span>
+                                    </span>
                                 }
                             </td>
                             <td class="text-end">
@@ -243,18 +249,21 @@
             }
 
             function toggleButtons() {
+                const emailConfirmation = document.getElementById('emailconfirmation') instanceof HTMLElement;
                 const markPaidButton = document.getElementById('markpaid') instanceof HTMLElement;
                 const payInvoicesButton = document.getElementById('payinvoices') instanceof HTMLElement;
                 const downloadButton = document.getElementById('download') instanceof HTMLElement;
                 const exportInvoicesButton = document.getElementById('export') instanceof HTMLElement;
 
                 const allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
-                if (allCheckedItems.length > 0) {                
+                if (allCheckedItems.length > 0) {
+                    emailConfirmation.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
                     markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
                     payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
                     downloadButton.style.display = 'inline-block';
                     exportInvoicesButton.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
                 } else {
+                    emailConfirmation.style.display = 'none';
                     markPaidButton.style.display = 'none';
                     payInvoicesButton.style.display = 'none';
                     downloadButton.style.display = 'none';

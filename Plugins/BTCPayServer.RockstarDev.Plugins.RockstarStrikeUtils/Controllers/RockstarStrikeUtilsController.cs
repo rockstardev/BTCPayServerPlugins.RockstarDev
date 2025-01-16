@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -13,6 +14,7 @@ using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.RockstarSt
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Strike.Client.CurrencyExchanges;
+using Strike.Client.Deposits;
 using Strike.Client.Models;
 using Strike.Client.ReceiveRequests.Requests;
 
@@ -31,7 +33,7 @@ public class RockstarStrikeUtilsController(
     public async Task<IActionResult> Index()
     {
         var isSetup = await strikeClientFactory.ClientExistsAsync();
-        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration), new { StoreId});
+        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration), new { StoreId });
     }
 
     [HttpGet("Configuration")]
@@ -70,13 +72,31 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
+    // Payment Methods
+    [HttpGet("PaymentMethods")]
+    public async Task<IActionResult> PaymentMethods()
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration), new { StoreId });
+        
+        var resp = await client.PaymentMethods.GetPaymentMethods();
+        var model = new PaymentMethodsViewModel
+        {
+            List = resp.Items.ToList(),
+            TotalCount = resp.Count
+        };
+        
+        return View(model);
+    }
+    
     //  Receive Requests
     [HttpGet("ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var requests = await client.ReceiveRequests.GetRequests();
         var model = new ReceiveRequestsViewModel
@@ -93,7 +113,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
 
         var model = new ReceiveRequestsCreateViewModel
         {
@@ -108,7 +128,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         if (!ModelState.IsValid)
             return View(model);
@@ -144,7 +164,84 @@ public class RockstarStrikeUtilsController(
             });
         }
 
-        return RedirectToAction(nameof(ReceiveRequests));
+        return RedirectToAction(nameof(ReceiveRequests), new { StoreId });
+    }
+    
+    
+    // Deposits
+    [HttpGet("Deposits")]
+    public async Task<IActionResult> Deposits()
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration), new { StoreId });
+        
+        var requests = await client.Deposits.GetDeposits();
+        var model = new DepositsViewModel
+        {
+            Deposits = requests.Items.ToList(),
+            TotalCount = requests.Count
+        };
+        
+        return View(model);
+    }
+    
+    
+    [HttpGet("Deposits/create")]
+    public async Task<IActionResult> DepositsCreate(string pmid)
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration), new { StoreId });
+
+        var model = new DepositsCreateViewModel
+        {
+            StrikePaymentMethodId = Guid.Empty,
+            Amount = "10",
+            FeePolicy = FeePolicy.Exclusive
+        };
+        if (!String.IsNullOrEmpty(pmid) && Guid.TryParse(pmid, out var guid))
+            model.StrikePaymentMethodId = guid;
+        
+        return View(model);
+    }
+    
+    [HttpPost("Deposits/create")]
+    public async Task<IActionResult> DepositsCreate(DepositsCreateViewModel model)
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration), new { StoreId });
+        
+        if (!ModelState.IsValid)
+            return View(model);
+
+        
+        var req = new DepositReq
+        {
+            PaymentMethodId = model.StrikePaymentMethodId,
+            Amount = model.Amount,
+            Fee = model.FeePolicy
+        };
+        var resp = await client.Deposits.Create(req);
+        if (resp.IsSuccessStatusCode)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Created Deposit {resp.Id}",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+        }
+        else
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Deposit creation failed: {resp.Error}",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+        }
+
+        return RedirectToAction(nameof(Deposits), new { StoreId });
     }
     
     //  Exchanges
@@ -153,7 +250,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var resp = await client.Balances.GetBalances();
         var model = new CurrencyExchangesViewModel()
@@ -217,7 +314,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var resp = await client.CurrencyExchanges.GetQuote(quoteId);
         if (!resp.IsSuccessStatusCode || resp.State != CurrencyExchangeState.New)
@@ -227,7 +324,7 @@ public class RockstarStrikeUtilsController(
                 Message = $"Failed to get pending quote: {resp.Error}",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
-            return RedirectToAction(nameof(CurrencyExchanges));
+            return RedirectToAction(nameof(CurrencyExchanges), new { StoreId });
         }
 
         var executeQuote = await client.CurrencyExchanges.ExecuteQuote(quoteId);
@@ -248,6 +345,6 @@ public class RockstarStrikeUtilsController(
             });
         }
 
-        return RedirectToAction(nameof(CurrencyExchanges));
+        return RedirectToAction(nameof(CurrencyExchanges), new { StoreId });
     }
 }

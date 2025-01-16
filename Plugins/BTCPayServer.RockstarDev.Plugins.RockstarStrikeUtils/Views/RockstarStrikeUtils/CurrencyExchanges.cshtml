@@ -1,8 +1,11 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @using Strike.Client.Models
 @model CurrencyExchangesViewModel
+@inject IScopeProvider ScopeProvider
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Currency Exchanges", "CurrencyExchanges");
 }
 
@@ -65,7 +68,7 @@
                 <span asp-validation-for="Amount" class="text-danger"></span>
             </div>
             <div class="form-group mt-4">
-                <input type="submit" class="btn btn-primary" id="Submit" value="Request Quote" />
+                <input type="submit" class="btn btn-primary" id="Submit" asp-route-storeId="@storeId" value="Request Quote" />
             </div>
         </div>
     </div>
@@ -119,7 +122,7 @@
                 <input type="hidden" name="QuoteId" value="@quote.Id" />
                 
                 <div class="form-group mt-4">
-                    <input type="submit" class="btn btn-primary" value="Execute Conversion"/>
+                    <input type="submit" class="btn btn-primary" asp-route-storeId="@storeId" value="Execute Conversion"/>
                 </div>
             </div>
         </div>

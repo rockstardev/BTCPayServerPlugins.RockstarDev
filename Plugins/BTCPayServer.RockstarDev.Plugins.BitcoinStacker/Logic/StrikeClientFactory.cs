@@ -2,12 +2,10 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
-using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Strike.Client;
+using Strike.Client.PaymentMethods;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 
@@ -27,15 +25,44 @@ public class StrikeClientFactory(
             if (!balances.IsSuccessStatusCode)
             {
                 var logger = loggerFactory.CreateLogger<StrikeClientFactory>();
-                logger.LogInformation($"The connection failed, check API key. Error: {balances.Error?.Data?.Code} {balances.Error?.Data?.Message}");
+                logger.LogInformation(
+                    $"The connection failed, check API key. Error: {balances.Error?.Data?.Code} {balances.Error?.Data?.Message}");
                 return false;
             }
-            
+
             return true;
         }
         catch
         {
             return false;
+        }
+    }
+
+
+    public async Task<string> IsApiKeyValidAch(string apiKey)
+    {
+        var client = InitClient(apiKey);
+        var storeId = scopeProvider.GetCurrentStoreId();
+        try
+        {
+            // Test the client with a simple request
+            var resp = await client.PaymentMethods.GetPaymentMethods();
+            if (!resp.IsSuccessStatusCode)
+            {
+                var logger = loggerFactory.CreateLogger<StrikeClientFactory>();
+                logger.LogInformation(
+                    $"The connection failed, check API key. Error: {resp.Error?.Data?.Code} {resp.Error?.Data?.Message}");
+                return null;
+            }
+
+            var first = resp.Items.FirstOrDefault(a => a.TransferType == PaymentMethodTransferTypes.ACH);
+            if (first == null)
+                return Guid.Empty.ToString();
+            return first.Id.ToString();
+        }
+        catch
+        {
+            return null;
         }
     }
 

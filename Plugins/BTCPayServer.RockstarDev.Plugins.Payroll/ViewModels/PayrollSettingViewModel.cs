@@ -9,4 +9,12 @@ public class PayrollSettingViewModel
     
     [Display(Name = "Require Purchase Orders (PO)")]
     public bool PurchaseOrdersRequired { get; set; }
+
+    [Display(Name = "Email vendor once invoice is paid")]
+    public bool EmailOnInvoicePaid { get; set; }
+    public string EmailOnInvoicePaidSubject { get; set; }
+    public string EmailOnInvoicePaidBody { get; set; }
+
+    [Display(Name = "Enable Email Invite for User registration")]
+    public bool EmailInviteForUsers { get; set; }
 }

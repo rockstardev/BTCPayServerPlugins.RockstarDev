@@ -28,12 +28,14 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Configuration;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using Microsoft.Extensions.Options;
 using BTCPayServer.Services.Invoices;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
+[Route("~/plugins/{storeId}/payroll/")]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController(
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -48,12 +50,13 @@ public class PayrollInvoiceController(
     HttpClient httpClient,
     BTCPayWalletProvider walletProvider,
     WalletRepository walletRepository,
-    LabelService labelService)
+    LabelService labelService,
+    EmailService emailService)
     : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
-    [HttpGet("~/plugins/{storeId}/payroll/list")]
+    [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all)
     {
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
@@ -94,7 +97,8 @@ public class PayrollInvoiceController(
                 TxnId = tuple.TxnId,
                 PurchaseOrder = tuple.PurchaseOrder,
                 Description = tuple.Description,
-                InvoiceUrl = tuple.InvoiceFilename
+                InvoiceUrl = tuple.InvoiceFilename,
+                PaidAt = tuple.PaidAt
             }).ToList()
         };
         return View(model);
@@ -119,12 +123,27 @@ public class PayrollInvoiceController(
 
         switch (command)
         {
+            case "emailconfirmation":
+                await emailService.SendSuccessfulInvoicePaymentEmail(invoices);
+                TempData.SetStatusMessageModel(new StatusMessageModel()
+                {
+                    Message = $"Email Notifications executed on selected invoices per existing settings",
+                    Severity = StatusMessageModel.StatusSeverity.Success
+                });
+                break;
+            
             case "payinvoices":
                 return await payInvoices(selectedItems);
 
             case "markpaid":
-                invoices.ForEach(c => c.State = PayrollInvoiceState.Completed);
-                ctx.SaveChanges();
+                invoices.ForEach(c =>
+                {
+                    c.State = PayrollInvoiceState.Completed;
+                    c.PaidAt = DateTimeOffset.UtcNow;
+                });
+                await ctx.SaveChangesAsync();
+                
+                // Mark Paid doesn't trigger "paid" email sending, it's something we can add in future versions
                 TempData.SetStatusMessageModel(new StatusMessageModel()
                 {
                     Message = $"Invoices successfully marked as paid",
@@ -262,7 +281,7 @@ public class PayrollInvoiceController(
             });
     }
 
-    [HttpGet("~/plugins/{storeId}/payroll/upload")]
+    [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)
     {
         var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
@@ -294,7 +313,7 @@ public class PayrollInvoiceController(
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/upload")]
+    [HttpPost("upload")]
 
     public async Task<IActionResult> Upload(string storeId, PayrollInvoiceUploadViewModel model)
     {
@@ -373,7 +392,7 @@ public class PayrollInvoiceController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet("~/plugins/payroll/delete/{id}")]
+    [HttpGet("delete/{id}")]
     public async Task<IActionResult> Delete(string id)
     {
         if (CurrentStore is null)
@@ -398,7 +417,7 @@ public class PayrollInvoiceController(
         return View("Confirm", new ConfirmModel($"Delete Invoice", $"Do you really want to delete the invoice for {invoice.Amount} {invoice.Currency} from {invoice.User.Name}?", "Delete"));
     }
 
-    [HttpPost("~/plugins/payroll/delete/{id}")]
+    [HttpPost("delete/{id}")]
     public async Task<IActionResult> DeletePost(string id)
     {
         if (CurrentStore is null)
@@ -449,15 +468,16 @@ public class PayrollInvoiceController(
         var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
 
         var csvData = new StringBuilder();
-        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate, BTCJPY Rate,Balance,TransactionId,PaidInWallet");
+        // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
+        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
         string emptyStr = string.Empty;
         decimal usdRate = 0;
         foreach (var invoice in invoices)
         {
             if (invoice.BtcPaid == null)
             {
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{emptyStr},{invoice.User.Name},{invoice.Id}," +
-                                   $"{invoice.Destination},{invoice.Currency},{invoice.Amount},{usdRate},{emptyStr}" +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Description}," +
+                                   $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
                                    $",{usdRate},{emptyStr},{emptyStr},false");
             }
             else
@@ -472,7 +492,7 @@ public class PayrollInvoiceController(
                     usdRate = Math.Abs(usdRate);
                 }
 
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{txn?.Timestamp.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{emptyStr}" +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? emptyStr)},{invoice.User.Name},{invoice.Description}" +
                                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
                                    $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId},true");
             }

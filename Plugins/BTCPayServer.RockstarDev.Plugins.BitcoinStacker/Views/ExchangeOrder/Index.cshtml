@@ -15,12 +15,16 @@
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
             <div class="dropdown">
-                <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <span>Options</span>
                 </button>
                 <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
                     <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
                         Settings
+                    </a>
+                    <a asp-action="RunHeartbeatNow" asp-route-storeId="@storeId" class="dropdown-item">
+                        Run Heartbeat Now
                     </a>
                 </div>
             </div>
@@ -30,7 +34,14 @@
     </div>
 </form>
 
-<partial name="_StatusMessage" />
+<partial name="_StatusMessage"/>
+
+@if (Model.BTCBalance != null && Model.USDBalance != null)
+{
+    <div>Balances: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD
+        @* <a href="#">Withdraw</a> *@
+    </div>
+}
 
 @if (Model.List.Any())
 {
@@ -52,7 +63,8 @@
             @foreach (var payout in Model.List)
             {
                 <tr>
-                    <td>@payout.Id</td>
+                    <td><a asp-action="IndexLogs" asp-route-id="@payout.Id" asp-route-storeId="@storeId">@payout.Id</a>
+                    </td>
                     <td>@payout.Created.ToBrowserDate()</td>
                     <td>@payout.CreatedForDate?.ToBrowserDate()</td>
                     <td>@payout.Operation</td>
@@ -76,8 +88,9 @@
             </tbody>
         </table>
     </div>
-    
-    <partial name="_Confirm" model="@(new ConfirmModel("Clear Delay?", "Are you sure you want to clear the delay on this Exchange Order?", "Confirm"))" />
+
+    <partial name="_Confirm"
+             model="@(new ConfirmModel("Clear Delay?", "Are you sure you want to clear the delay on this Exchange Order?", "Confirm"))"/>
 }
 else
 {

@@ -11,7 +11,7 @@
 		<Description>
 			Accept invoices from various sources and easily pay them out from Bitcoin wallet. Pay all your vendors using Bitcoin.
 		</Description>
-		<Version>0.3.2</Version>
+		<Version>0.4.4</Version>
 	</PropertyGroup>
 	<!-- Plugin development properties -->
 	<PropertyGroup>
@@ -28,6 +28,12 @@
 			<ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
 		</ProjectReference>
 	</ItemDefinitionGroup>
+	<ItemGroup>
+	  <Content Remove="Templates\InvitationEmail.cshtml" />
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="Templates\InvitationEmail.cshtml" />
+	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
 	</ItemGroup>

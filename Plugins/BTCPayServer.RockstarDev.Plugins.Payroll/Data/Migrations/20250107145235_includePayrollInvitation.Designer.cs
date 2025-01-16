@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     [DbContext(typeof(PayrollPluginDbContext))]
-    partial class PayrollPluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250107145235_includePayrollInvitation")]
+    partial class includePayrollInvitation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -82,9 +85,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 
                     b.Property<bool>("IsArchived")
                         .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PurchaseOrder")
                         .HasMaxLength(20)

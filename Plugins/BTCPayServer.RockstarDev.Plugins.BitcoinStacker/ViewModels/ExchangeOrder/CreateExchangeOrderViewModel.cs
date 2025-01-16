@@ -6,8 +6,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrd
 
 public class CreateExchangeOrderViewModel
 {
-    [Required]
-    public DbExchangeOrder.Operations Operation { get; set; } // Enum for operations
+    [Required] public DbExchangeOrder.Operations Operation { get; set; } // Enum for operations
 
     [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero.")]
     public decimal Amount { get; set; } // Required amount with range validation

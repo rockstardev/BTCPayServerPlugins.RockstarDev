@@ -7,9 +7,9 @@
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Rockstar Strike Utils</Product>
-        <Description>Collection of tools on top of Strike API. Do not install if you don't know what you're doing.</Description>
-        <Version>0.0.1</Version>
+        <Product>zzz - Rockstar Strike Utils</Product>
+        <Description>**Do not install this if you’re unsure of what you’re doing.** Collection of tools on top of Strike API.</Description>
+        <Version>0.0.3</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
@@ -49,12 +49,28 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     </ItemGroup>
-    
+
+    <!-- Strike reference -->
     <ItemGroup>
-        <!-- TODO: Need to see how Strike.Client DLLs are copied -->    
-        <PackageReference Include="StrikeWallet.Client" Version="1.2.3" PrivateAssets="all" />
+        <PackageReference Include="StrikeWallet.Client" Version="1.3.0" />
+    </ItemGroup>
+    <Target Name="CopyStrikeFiles" BeforeTargets="AfterBuild">
+        <ItemGroup>
+            <StrikeFiles Include="$(NuGetPackageRoot)StrikeWallet.Client\1.3.0\lib\net8.0\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(StrikeFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
+    
+    <!-- Stripe reference -->
+    <ItemGroup>
         <PackageReference Include="Stripe.net" Version="47.1.0" />
     </ItemGroup>
+    <Target Name="CopyStripeNetFiles" BeforeTargets="AfterBuild">
+        <ItemGroup>
+            <StripeNetFiles Include="$(NuGetPackageRoot)stripe.net\47.1.0\lib\net8.0\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(StripeNetFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
     
     <ItemGroup>
       <UpToDateCheckInput Remove="Views\ExchangeOrder\Create.cshtml" />
