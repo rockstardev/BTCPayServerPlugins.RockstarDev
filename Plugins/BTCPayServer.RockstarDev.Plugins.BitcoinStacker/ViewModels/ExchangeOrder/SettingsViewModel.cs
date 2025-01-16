@@ -11,7 +11,6 @@ public class SettingsViewModel
     
     // exchange related settings
     public decimal PercentageOfPayouts { get; set; }
-    public int NumberOfBuysToGroupForDeposit { get; set; }
     public DateTimeOffset? StartDateExchangeOrders { get; set; }
     
     // strike
@@ -36,7 +35,6 @@ public class SettingsViewModel
             return new SettingsViewModel
             {
                 MinutesHeartbeatInterval = 60,
-                NumberOfBuysToGroupForDeposit = 3,
                 PercentageOfPayouts = 10,
                 StartDateExchangeOrders = DateTimeOffset.UtcNow
             };
