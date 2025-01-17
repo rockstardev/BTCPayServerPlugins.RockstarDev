@@ -1,0 +1,48 @@
+﻿@using BTCPayServer.Abstractions.Extensions
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Newtonsoft.Json
+@using Strike.Client.Models
+@model PaymentMethodsViewModel
+@{
+    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Payment Methods", "PaymentMethods");
+}
+
+<form method="post">
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        @* <div class="d-flex gap-3 mt-3 mt-sm-0"> *@
+        @*     <a asp-controller="RockstarStrikeUtils" asp-action="ReceiveRequestsCreate" class="btn btn-primary">Create Receive Request</a> *@
+        @* </div> *@
+    </div>
+</form>
+
+<partial name="_StatusMessage" />
+
+<div class="table-responsive-md">
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Created</th>
+            <th scope="col">TransferType</th>
+            <th scope="col">AccountType</th>
+            <th scope="col" class="text-end"></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.List)
+        {
+            <tr class="mass-action-row">
+                <td>@item.Id</td>
+                <td>@item.Created</td>
+                <td>@item.TransferType</td>
+                <td>@item.AccountType</td>
+                <td class="text-end">
+                    @JsonConvert.SerializeObject(item)
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

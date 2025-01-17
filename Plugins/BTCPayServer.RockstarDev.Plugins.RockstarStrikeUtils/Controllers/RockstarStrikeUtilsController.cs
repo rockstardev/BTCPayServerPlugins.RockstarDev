@@ -70,6 +70,24 @@ public class RockstarStrikeUtilsController(
         return View(model);
     }
     
+    // Payment Methods
+    [HttpGet("PaymentMethods")]
+    public async Task<IActionResult> PaymentMethods()
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        var resp = await client.PaymentMethods.GetPaymentMethods();
+        var model = new PaymentMethodsViewModel
+        {
+            List = resp.Items.ToList(),
+            TotalCount = resp.Count
+        };
+        
+        return View(model);
+    }
+    
     //  Receive Requests
     [HttpGet("ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
