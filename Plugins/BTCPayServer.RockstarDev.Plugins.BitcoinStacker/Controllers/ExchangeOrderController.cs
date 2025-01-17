@@ -18,7 +18,7 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Controllers;
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Route("~/plugins/{storeId}/exchangeorder")]
 public class ExchangeOrderController(
-    PluginDbContextFactory strikeDbContextFactory,
+    PluginDbContextFactory pluginDbContextFactory,
     StrikeClientFactory strikeClientFactory) : Controller
 {
     [FromRoute]
@@ -27,7 +27,7 @@ public class ExchangeOrderController(
     [HttpGet("index")]
     public async Task<IActionResult> Index()
     {
-        await using var db = strikeDbContextFactory.CreateContext();
+        await using var db = pluginDbContextFactory.CreateContext();
         var list = db.ExchangeOrders
             .Where(a => a.StoreId == StoreId)
             .OrderByDescending(a => a.CreatedForDate)
@@ -53,7 +53,7 @@ public class ExchangeOrderController(
     [HttpPost("ClearDelayUntil")]
     public async Task<IActionResult> ClearDelayUntilPost(Guid id)
     {
-        var db = strikeDbContextFactory.CreateContext();
+        var db = pluginDbContextFactory.CreateContext();
 
         var order = db.ExchangeOrders.Single(a => a.Id == id);
         order.DelayUntil = null;
@@ -81,7 +81,7 @@ public class ExchangeOrderController(
             return View(model);
         }
 
-        await using var db = strikeDbContextFactory.CreateContext();
+        await using var db = pluginDbContextFactory.CreateContext();
         var exchangeOrder = new DbExchangeOrder
         {
             StoreId = StoreId,
@@ -100,7 +100,7 @@ public class ExchangeOrderController(
     [HttpGet("settings")]
     public async Task<IActionResult> Settings()
     {
-        await using var db = strikeDbContextFactory.CreateContext();
+        await using var db = pluginDbContextFactory.CreateContext();
         var dbSetting = await db.Settings.FirstOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
 
         var viewModel = SettingsViewModel.FromDbSettings(dbSetting);
@@ -115,7 +115,20 @@ public class ExchangeOrderController(
             return View(model);
         }
 
-        await using var db = strikeDbContextFactory.CreateContext();
+        // automatically set up ACH deposit method
+        if (!String.IsNullOrEmpty(model.StrikeApiKey) && model.StrikePaymentMethodId == Guid.Empty)
+        {
+            var paymentMethodAch = await strikeClientFactory.IsApiKeyValidAch(model.StrikeApiKey);
+            if (paymentMethodAch == null)
+            {
+                ModelState.AddModelError(nameof(model.StrikeApiKey), "Invalid API key.");
+                return View(model);
+            }
+
+            model.StrikePaymentMethodId = Guid.Parse(paymentMethodAch);
+        }
+
+        await using var db = pluginDbContextFactory.CreateContext();
         var dbSetting = await db.Settings.FirstOrDefaultAsync(a =>
             a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
         if (dbSetting != null)

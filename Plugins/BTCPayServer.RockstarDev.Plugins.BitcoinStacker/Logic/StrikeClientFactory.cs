@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Strike.Client;
+using Strike.Client.PaymentMethods;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 
@@ -36,6 +37,34 @@ public class StrikeClientFactory(
         catch
         {
             return false;
+        }
+    }
+    
+    
+    public async Task<string> IsApiKeyValidAch(string apiKey)
+    {
+        var client = InitClient(apiKey);
+        var storeId = scopeProvider.GetCurrentStoreId();
+        try
+        {
+            // Test the client with a simple request
+            var resp = await client.PaymentMethods.GetPaymentMethods();
+            if (!resp.IsSuccessStatusCode)
+            {
+                var logger = loggerFactory.CreateLogger<StrikeClientFactory>();
+                logger.LogInformation($"The connection failed, check API key. Error: {resp.Error?.Data?.Code} {resp.Error?.Data?.Message}");
+                return null;
+            }
+            
+            var first = resp.Items.FirstOrDefault(a=>a.TransferType == PaymentMethodTransferTypes.ACH);
+            if (first == null)
+                return Guid.Empty.ToString();
+            else
+                return first.Id.ToString();
+        }
+        catch
+        {
+            return null;
         }
     }
 
