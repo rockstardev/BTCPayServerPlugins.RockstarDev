@@ -49,12 +49,28 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     </ItemGroup>
-    
+
+    <!-- Strike reference -->
     <ItemGroup>
-        <!-- TODO: Need to see how Strike.Client DLLs are copied -->    
-        <PackageReference Include="StrikeWallet.Client" Version="1.2.3" PrivateAssets="all" />
+        <PackageReference Include="StrikeWallet.Client" Version="1.3.0" />
+    </ItemGroup>
+    <Target Name="CopyStrikeFiles" BeforeTargets="AfterBuild">
+        <ItemGroup>
+            <StrikeFiles Include="$(NuGetPackageRoot)StrikeWallet.Client\1.3.0\lib\net8.0\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(StrikeFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
+    
+    <!-- Stripe reference -->
+    <ItemGroup>
         <PackageReference Include="Stripe.net" Version="47.1.0" />
     </ItemGroup>
+    <Target Name="CopyStripeNetFiles" BeforeTargets="AfterBuild">
+        <ItemGroup>
+            <StripeNetFiles Include="$(NuGetPackageRoot)stripe.net\47.1.0\lib\net8.0\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(StripeNetFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
     
     <ItemGroup>
       <UpToDateCheckInput Remove="Views\ExchangeOrder\Create.cshtml" />
