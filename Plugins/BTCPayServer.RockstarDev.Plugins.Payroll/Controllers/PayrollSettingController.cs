@@ -1,5 +1,4 @@
 ﻿using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -24,7 +23,8 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
         var model = new PayrollSettingViewModel
         {
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
-            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
+            StoreId = CurrentStore.Id
         };
         return View(model);
     }
