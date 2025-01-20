@@ -32,8 +32,15 @@ public class ExchangeOrderHeartbeatService(
         base.SubscribeToEvents();
     }
 
+    private bool _isItFirstRun = true;
     public Task Do(CancellationToken cancellationToken)
     {
+        if (_isItFirstRun)
+        {
+            _isItFirstRun = false;
+            return Task.CompletedTask; // do not run the service when server is starting
+        }
+
         using var db = strikeDbContextFactory.CreateContext();
         var stores = db.Settings.Where(a=>a.Key == DbSettingKeys.ExchangeOrderSettings.ToString()).ToList();
         foreach (var store in stores)

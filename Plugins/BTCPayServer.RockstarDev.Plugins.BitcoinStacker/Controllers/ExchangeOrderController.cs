@@ -34,6 +34,10 @@ public class ExchangeOrderController(
             .ThenByDescending(a => a.Created)
             .ToList();
         var viewModel = new IndexViewModel { List = list };
+        
+        // TODO: Have the BTC balance on Strike in the database ready to fetch
+        // viewModel.BitcoinBalance = "6.15";
+        
         return View(viewModel);
     }
     

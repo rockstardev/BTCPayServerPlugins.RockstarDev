@@ -32,6 +32,13 @@
 
 <partial name="_StatusMessage" />
 
+@if (Model.BitcoinBalance != null)
+{
+    <div>Bitcoin Balance: <b>@Model.BitcoinBalance</b> BTC
+        <a href="#">Withdraw</a>
+    </div>
+}
+
 @if (Model.List.Any())
 {
     <div class="table-responsive-md">
