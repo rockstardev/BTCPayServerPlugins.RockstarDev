@@ -36,7 +36,12 @@
 
             <div class="form-group">
                 <label asp-for="StrikeApiKey" class="form-label"></label>
-                <input asp-for="StrikeApiKey" class="form-control" />
+                <div class="input-group">
+                    <input asp-for="StrikeApiKey" class="form-control" type="password" id="StrikeApiKey" value="@Model.StrikeApiKey" />
+                    <button type="button" class="btn btn-secondary px-3 only-for-js" data-toggle-password="#StrikeApiKey">
+                        <vc:icon symbol="actions-show" />
+                    </button>
+                </div>
                 <span asp-validation-for="StrikeApiKey" class="text-danger"></span>
             </div>
             
@@ -48,7 +53,12 @@
 
             <div class="form-group">
                 <label asp-for="StripeApiKey" class="form-label"></label>
-                <input asp-for="StripeApiKey" class="form-control" />
+                <div class="input-group">
+                    <input asp-for="StripeApiKey" class="form-control" type="password" id="StripeApiKey" value="@Model.StripeApiKey" />
+                    <button type="button" class="btn btn-secondary px-3 only-for-js" data-toggle-password="#StripeApiKey">
+                        <vc:icon symbol="actions-show" />
+                    </button>
+                </div>
                 <span asp-validation-for="StripeApiKey" class="text-danger"></span>
             </div>
 
