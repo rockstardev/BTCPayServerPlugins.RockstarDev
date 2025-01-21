@@ -49,9 +49,15 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     </ItemGroup>
-    
+
     <ItemGroup>
-        <!-- TODO: Need to see how Strike.Client DLLs are copied -->    
         <PackageReference Include="Stripe.net" Version="47.1.0" />
     </ItemGroup>
+    <!-- Copy all files from the net8.0 folder -->
+    <Target Name="CopyStripeNetFiles" BeforeTargets="AfterBuild">
+        <ItemGroup>
+            <StripeNetFiles Include="$(NuGetPackageRoot)stripe.net\47.1.0\lib\net8.0\*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(StripeNetFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
 </Project>
