@@ -7,8 +7,8 @@
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Rockstar Strike Utils</Product>
-        <Description>Collection of tools on top of Strike API. Do not install if you don't know what you're doing.</Description>
+        <Product>Stripe</Product>
+        <Description>**Do not install this if you’re unsure of what you’re doing.** Collection of tools on top of Stripe API.</Description>
         <Version>0.0.1</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
