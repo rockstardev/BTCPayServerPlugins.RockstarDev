@@ -21,7 +21,8 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 
         serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
         serviceCollection.AddSingleton<VendorPayPassHasher>();
-        
+        serviceCollection.AddSingleton<EmailService>();
+
         // Add the database related registrations
         serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();
         serviceCollection.AddDbContext<PayrollPluginDbContext>((provider, o) =>
