@@ -59,7 +59,7 @@
             @foreach (var payout in Model.List)
             {
                 <tr>
-                    <td>@payout.Id</td>
+                    <td><a asp-action="IndexLogs" asp-route-id="@payout.Id" asp-route-storeId="@storeId">@payout.Id</a></td>
                     <td>@payout.Created.ToBrowserDate()</td>
                     <td>@payout.CreatedForDate?.ToBrowserDate()</td>
                     <td>@payout.Operation</td>

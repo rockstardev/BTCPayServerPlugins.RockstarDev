@@ -7,6 +7,7 @@ using BTCPayServer.Client;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
+using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Services;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,7 +42,7 @@ public class ExchangeOrderController(
         return View(viewModel);
     }
 
-    [HttpGet("IndexLogs/{id}")]
+    [HttpGet("IndexLogs")]
     public async Task<IActionResult> IndexLogs(string id)
     {
         if (!Guid.TryParse(id, out var guid))
@@ -83,6 +84,21 @@ public class ExchangeOrderController(
 
         TempData[WellKnownTempData.SuccessMessage] =
             $"Delay on Exchange Order {id} has been cleared.";
+
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+
+    [HttpGet("AddDelay")]
+    public async Task<IActionResult> AddDelay(Guid id)
+    {
+        var db = pluginDbContextFactory.CreateContext();
+
+        var order = db.ExchangeOrders.Single(a => a.Id == id);
+        order.DelayUntil = ExchangeOrderHeartbeatService.DELAY_UNTIL;
+        await db.SaveChangesAsync();
+
+        TempData[WellKnownTempData.SuccessMessage] =
+            $"Delay on Exchange Order {id} has been added";
 
         return RedirectToAction(nameof(Index), new { StoreId });
     }

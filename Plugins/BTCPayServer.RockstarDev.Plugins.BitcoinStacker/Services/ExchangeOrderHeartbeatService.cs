@@ -76,6 +76,9 @@ public class ExchangeOrderHeartbeatService(
         return base.StartAsync(cancellationToken);
     }
 
+
+    public static readonly DateTimeOffset DELAY_UNTIL = new(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset);
+
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
     {
         if (evt is PeriodProcessEvent ppe)
@@ -110,7 +113,7 @@ public class ExchangeOrderHeartbeatService(
                     CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
                     CreatedForDate = payout.Created,
                     State = DbExchangeOrder.States.Created,
-                    DelayUntil = new DateTimeOffset(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset)
+                    DelayUntil = DELAY_UNTIL
                 };
                 db.ExchangeOrders.Add(exchangeOrder);
             }
