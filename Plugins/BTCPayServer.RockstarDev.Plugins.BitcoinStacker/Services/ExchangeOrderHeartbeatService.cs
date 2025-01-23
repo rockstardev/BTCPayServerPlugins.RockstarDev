@@ -12,6 +12,7 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.Extensions.Logging;
 using Strike.Client.CurrencyExchanges;
 using Strike.Client.Deposits;
 using Strike.Client.Models;
@@ -130,6 +131,8 @@ public class ExchangeOrderHeartbeatService(
                 .OrderBy(a => a.CreatedForDate)
                 .ThenBy(a=> a.Created)
                 .ToList();
+            Logs.Events.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders", orders.Count);
+            
             var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
             foreach (var order in orders)
             {
@@ -165,8 +168,9 @@ public class ExchangeOrderHeartbeatService(
                 .OrderBy(a => a.CreatedForDate)
                 .ThenBy(a=> a.Created)
                 .ToList();
+            Logs.Events.LogInformation("ExchangeOrderHeartbeatService: Deposits ready and converting {0} orders on Strike", waitingOrders.Count);
             
-            foreach (var order in orders)
+            foreach (var order in waitingOrders)
             {
                 var depositingId = Guid.Parse(order.ExchangeOrderLogs.First().Parameter);
                 var resp = await strikeClient.Deposits.FindDeposit(depositingId);
