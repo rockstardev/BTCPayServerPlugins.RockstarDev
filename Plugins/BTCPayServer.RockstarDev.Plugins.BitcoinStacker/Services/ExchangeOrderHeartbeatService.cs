@@ -84,6 +84,7 @@ public class ExchangeOrderHeartbeatService(
     {
         if (evt is PeriodProcessEvent ppe)
         {
+            Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Executing");
             await using var db = strikeDbContextFactory.CreateContext();
 
             var lastOrder = db.ExchangeOrders
@@ -127,11 +128,11 @@ public class ExchangeOrderHeartbeatService(
             var orders = db.ExchangeOrders
                 .Where(a => a.StoreId == ppe.StoreId && a.Operation == DbExchangeOrder.Operations.BuyBitcoin
                              && a.State == DbExchangeOrder.States.Created
-                             && a.DelayUntil < DateTimeOffset.UtcNow)
+                             && (a.DelayUntil == null || a.DelayUntil < DateTimeOffset.UtcNow))
                 .OrderBy(a => a.CreatedForDate)
                 .ThenBy(a=> a.Created)
                 .ToList();
-            Logs.Events.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders", orders.Count);
+            Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders", orders.Count);
             
             var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
             foreach (var order in orders)
@@ -164,11 +165,11 @@ public class ExchangeOrderHeartbeatService(
                     order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
                 .Where(order => order.StoreId == ppe.StoreId 
                                 && order.State == DbExchangeOrder.States.DepositWaiting
-                                && order.DelayUntil < DateTimeOffset.UtcNow)
+                                && (order.DelayUntil == null || order.DelayUntil < DateTimeOffset.UtcNow))
                 .OrderBy(a => a.CreatedForDate)
                 .ThenBy(a=> a.Created)
                 .ToList();
-            Logs.Events.LogInformation("ExchangeOrderHeartbeatService: Deposits ready and converting {0} orders on Strike", waitingOrders.Count);
+            Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: {0} orders waiting on deposit on Strike", waitingOrders.Count);
             
             foreach (var order in waitingOrders)
             {
@@ -186,6 +187,7 @@ public class ExchangeOrderHeartbeatService(
                     
                 if (resp.State == DepositState.Completed)
                 {
+                    Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
                     var req = new CurrencyExchangeQuoteReq
                     {
                         Buy = Currency.Btc, Sell = Currency.Usd,
