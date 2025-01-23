@@ -40,6 +40,24 @@ public class ExchangeOrderController(
         
         return View(viewModel);
     }
+
+    [HttpGet("IndexLogs/{id}")]
+    public async Task<IActionResult> IndexLogs(string id)
+    {
+        if (!Guid.TryParse(id, out var guid))
+            return RedirectToAction(nameof(Index));
+        
+        await using var db = pluginDbContextFactory.CreateContext();
+        var item = db.ExchangeOrders
+            .Include(a => a.ExchangeOrderLogs)
+            .SingleOrDefault(a => a.StoreId == StoreId && a.Id == guid);
+        
+        if (item == null)
+            return NotFound();
+        
+        var viewModel = new IndexLogsViewModel { Item = item };
+        return View(viewModel);
+    }
     
     
 
