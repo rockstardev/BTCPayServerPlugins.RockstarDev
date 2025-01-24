@@ -13,6 +13,7 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
+using Strike.Client;
 using Strike.Client.CurrencyExchanges;
 using Strike.Client.Deposits;
 using Strike.Client.Models;
@@ -135,8 +136,12 @@ public class ExchangeOrderHeartbeatService(
             Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders", orders.Count);
             
             var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
+
             foreach (var order in orders)
             {
+                var balanceResp = await strikeClient.Balances.GetBalances();
+                var usdBalance = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
+                
                 var req = new DepositReq
                 {
                     PaymentMethodId = settings.StrikePaymentMethodId,
@@ -157,6 +162,17 @@ public class ExchangeOrderHeartbeatService(
                     db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
                 }
                 await db.SaveChangesAsync(cancellationToken);
+                
+                // check balance and if it increased execute purchase immediately
+                await Task.Delay(1000, cancellationToken).WaitAsync(cancellationToken);
+
+                balanceResp = await strikeClient.Balances.GetBalances();
+                var usdBalanceAfter = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
+                
+                if (usdBalanceAfter >= usdBalance + order.Amount)
+                {
+                    await executeConversionOrder(cancellationToken, order, db, strikeClient);
+                }
             }
             
             // 
@@ -187,41 +203,7 @@ public class ExchangeOrderHeartbeatService(
                     
                 if (resp.State == DepositState.Completed)
                 {
-                    Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
-                    var req = new CurrencyExchangeQuoteReq
-                    {
-                        Buy = Currency.Btc, Sell = Currency.Usd,
-                        Amount = new MoneyWithFee
-                        {
-                            Currency = Currency.Usd, Amount = order.Amount, FeePolicy = FeePolicy.Inclusive
-                        }
-                    };
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, req);
-                    await db.SaveChangesAsync(cancellationToken);
-                    
-                    //
-                    var exchangeResp = await strikeClient.CurrencyExchanges.CreateQuote(req);
-                    if (!exchangeResp.IsSuccessStatusCode)
-                    {
-                        order.State = DbExchangeOrder.States.Error;
-                        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, exchangeResp);
-                        
-                        // exiting the loop
-                        continue;
-                    }
-                    
-                    var executeQuoteResp = await strikeClient.CurrencyExchanges.ExecuteQuote(exchangeResp.Id);
-                    if (!executeQuoteResp.IsSuccessStatusCode)
-                    {
-                        order.State = DbExchangeOrder.States.Error;
-                        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, executeQuoteResp);
-                        
-                        // exiting the loop
-                        continue;
-                    }
-                    
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
-                    await db.SaveChangesAsync(cancellationToken);
+                    await executeConversionOrder(cancellationToken, order, db, strikeClient);
                 }
                 else if (resp.State == DepositState.Pending)
                 {
@@ -238,5 +220,45 @@ public class ExchangeOrderHeartbeatService(
                 }
             }
         }
+    }
+
+    private async Task executeConversionOrder(CancellationToken cancellationToken, DbExchangeOrder order,
+        PluginDbContext db, StrikeClient strikeClient)
+    {
+        Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
+        var req = new CurrencyExchangeQuoteReq
+        {
+            Buy = Currency.Btc, Sell = Currency.Usd,
+            Amount = new MoneyWithFee
+            {
+                Currency = Currency.Usd, Amount = order.Amount, FeePolicy = FeePolicy.Inclusive
+            }
+        };
+        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, req);
+        await db.SaveChangesAsync(cancellationToken);
+                    
+        //
+        var exchangeResp = await strikeClient.CurrencyExchanges.CreateQuote(req);
+        if (!exchangeResp.IsSuccessStatusCode)
+        {
+            order.State = DbExchangeOrder.States.Error;
+            db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, exchangeResp);
+                        
+            // exiting the loop
+            return;
+        }
+                    
+        var executeQuoteResp = await strikeClient.CurrencyExchanges.ExecuteQuote(exchangeResp.Id);
+        if (!executeQuoteResp.IsSuccessStatusCode)
+        {
+            order.State = DbExchangeOrder.States.Error;
+            db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, executeQuoteResp);
+                        
+            // exiting the loop
+            return;
+        }
+                    
+        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
+        await db.SaveChangesAsync(cancellationToken);
     }
 }
