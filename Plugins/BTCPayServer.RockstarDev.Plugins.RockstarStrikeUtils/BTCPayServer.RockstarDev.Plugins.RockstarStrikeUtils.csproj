@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>zzz - Rockstar Strike Utils</Product>
         <Description>**Do not install this if you’re unsure of what you’re doing.** Collection of tools on top of Strike API.</Description>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
