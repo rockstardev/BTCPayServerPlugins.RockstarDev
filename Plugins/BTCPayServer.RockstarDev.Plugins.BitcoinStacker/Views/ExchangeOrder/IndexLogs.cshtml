@@ -28,7 +28,7 @@
             <a asp-controller="ExchangeOrder" asp-action="AddDelay" asp-route-storeId="@storeId" asp-route-id="@Model.Item.Id" class="btn btn-primary">
                 Delay
             </a>
-            @if (Model.Item.State == DbExchangeOrder.States.DepositWaiting)
+            @if (Model.Item.State != DbExchangeOrder.States.Completed)
             {
                 <a asp-controller="ExchangeOrder" asp-action="ForceConversion" asp-route-storeId="@storeId" asp-route-id="@Model.Item.Id" class="btn btn-primary">
                     Force Conversion

@@ -109,8 +109,6 @@ public class ExchangeOrderController(
     {
         var db = pluginDbContextFactory.CreateContext();
         var order = db.ExchangeOrders.Single(a => a.Id == id);
-        if (order.State != DbExchangeOrder.States.DepositWaiting)
-            throw new Exception("Only can force conversion for DepositWaiting orders");
         
         var store = db.Settings.Single(a=>a.StoreId == StoreId && 
                                           a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
