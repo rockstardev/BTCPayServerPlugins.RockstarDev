@@ -58,8 +58,7 @@ public class ExchangeOrderHeartbeatService(
             
             if (lastRun.AddMinutes(setting.MinutesHeartbeatInterval) < DateTimeOffset.UtcNow)
             {
-                lastRun = DateTimeOffset.UtcNow;
-                _lastRunForStore[store.StoreId] = lastRun;
+                _lastRunForStore[store.StoreId] = DateTimeOffset.UtcNow;
                 PushEvent(new PeriodProcessEvent { StoreId = store.StoreId, Setting = setting});
             }
         }
@@ -85,6 +84,8 @@ public class ExchangeOrderHeartbeatService(
     {
         if (evt is PeriodProcessEvent ppe)
         {
+            _lastRunForStore[ppe.StoreId] = DateTimeOffset.UtcNow;
+            
             Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Executing");
             await using var db = strikeDbContextFactory.CreateContext();
 
@@ -145,7 +146,8 @@ public class ExchangeOrderHeartbeatService(
                 var req = new DepositReq
                 {
                     PaymentMethodId = settings.StrikePaymentMethodId,
-                    Amount = order.Amount.ToString(CultureInfo.InvariantCulture)
+                    Amount = order.Amount.ToString(CultureInfo.InvariantCulture),
+                    Fee = FeePolicy.Exclusive
                 };
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, req);
                 await db.SaveChangesAsync(cancellationToken);
@@ -169,7 +171,11 @@ public class ExchangeOrderHeartbeatService(
                 balanceResp = await strikeClient.Balances.GetBalances();
                 var usdBalanceAfter = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
                 
-                if (usdBalanceAfter >= usdBalance + order.Amount)
+                // sometimes Strike deposits are 0.01 less than requested
+                if (usdBalanceAfter - usdBalance == order.Amount - 0.01m)
+                    order.Amount = order.Amount - 0.01m;
+                
+                if (usdBalanceAfter - usdBalance >= order.Amount)
                 {
                     Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
                     await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
