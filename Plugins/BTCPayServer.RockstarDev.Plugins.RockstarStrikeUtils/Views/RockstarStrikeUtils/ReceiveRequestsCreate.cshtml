@@ -1,13 +1,17 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model ReceiveRequestsCreateViewModel
+@inject IScopeProvider ScopeProvider
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Create Receive Request", "ReceiveRequests");
 }
 
 <form method="post">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
-        <input type="submit" value="Create" class="btn btn-primary" id="Create" />
+        <input type="submit" value="Create" class="btn btn-primary" asp-route-storeId="@storeId" id="Create" />
     </div>
 
     <partial name="_StatusMessage" />
