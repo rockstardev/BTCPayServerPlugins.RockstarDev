@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -13,6 +14,7 @@ using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.RockstarSt
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Strike.Client.CurrencyExchanges;
+using Strike.Client.Deposits;
 using Strike.Client.Models;
 using Strike.Client.ReceiveRequests.Requests;
 
@@ -163,6 +165,83 @@ public class RockstarStrikeUtilsController(
         }
 
         return RedirectToAction(nameof(ReceiveRequests));
+    }
+    
+    
+    // Deposits
+    [HttpGet("Deposits")]
+    public async Task<IActionResult> Deposits()
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        var requests = await client.Deposits.GetDeposits();
+        var model = new DepositsViewModel
+        {
+            Deposits = requests.Items.ToList(),
+            TotalCount = requests.Count
+        };
+        
+        return View(model);
+    }
+    
+    
+    [HttpGet("Deposits/create")]
+    public async Task<IActionResult> DepositsCreate(string strikePaymentMethodId)
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+
+        var model = new DepositsCreateViewModel
+        {
+            StrikePaymentMethodId = Guid.Empty,
+            Amount = "10",
+            FeePolicy = FeePolicy.Exclusive
+        };
+        if (!String.IsNullOrEmpty(strikePaymentMethodId) && Guid.TryParse(strikePaymentMethodId, out var guid))
+            model.StrikePaymentMethodId = guid;
+        
+        return View(model);
+    }
+    
+    [HttpPost("Deposits/create")]
+    public async Task<IActionResult> DepositsCreate(DepositsCreateViewModel model)
+    {
+        var client = await strikeClientFactory.ClientCreateAsync();
+        if (client == null)
+            return RedirectToAction(nameof(Configuration));
+        
+        if (!ModelState.IsValid)
+            return View(model);
+
+        
+        var req = new DepositReq
+        {
+            PaymentMethodId = model.StrikePaymentMethodId,
+            Amount = model.Amount,
+            Fee = model.FeePolicy
+        };
+        var resp = await client.Deposits.Create(req);
+        if (resp.IsSuccessStatusCode)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Created Deposit {resp.Id}",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+        }
+        else
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Deposit creation failed: {resp.Error}",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+        }
+
+        return RedirectToAction(nameof(Deposits));
     }
     
     //  Exchanges

@@ -1,0 +1,63 @@
+﻿@using System.Text.Json
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model DepositsViewModel
+@inject IScopeProvider ScopeProvider
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Deposits", "Deposits");
+}
+
+<form method="post">
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a asp-controller="RockstarStrikeUtils" asp-action="DepositsCreate" asp-route-storeId="@storeId"
+               class="btn btn-primary">Create Deposit</a>
+        </div>
+    </div>
+</form>
+
+<partial name="_StatusMessage" />
+
+@if (Model.Deposits.Any())
+{
+    <div class="table-responsive-md">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Deposit ID</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Fee</th>
+                <th scope="col">Total Amount</th>
+                <th scope="col">State</th>
+                <th scope="col">Failure Reason</th>
+                <th scope="col" class="text-end"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var deposit in Model.Deposits)
+            {
+                <tr class="mass-action-row">
+                    <td>@deposit.Id</td>
+                    <td>@deposit.Amount?.Amount @deposit.Amount?.Currency</td>
+                    <td>@deposit.Fee?.Amount @deposit.Fee?.Currency</td>
+                    <td>@deposit.TotalAmount?.Amount @deposit.TotalAmount?.Currency</td>
+                    <td>@deposit.State</td>
+                    <td>@deposit.FailureReason</td>
+                    <td class="text-end">
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        There are no receive requests available.
+    </p>
+}

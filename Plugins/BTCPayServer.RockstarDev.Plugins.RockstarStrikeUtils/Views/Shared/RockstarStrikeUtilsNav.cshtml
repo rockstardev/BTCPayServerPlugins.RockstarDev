@@ -43,6 +43,11 @@
         </li>
         <li class="nav-item nav-item-sub">
             <a permission="@Policies.CanModifyServerSettings" 
+               asp-controller="RockstarStrikeUtils" asp-action="Deposits" asp-route-storeId="@storeId" 
+               class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, null, "Deposits")">Deposits</a>
+        </li>
+        <li class="nav-item nav-item-sub">
+            <a permission="@Policies.CanModifyServerSettings" 
                asp-controller="RockstarStrikeUtils" asp-action="Configuration" asp-route-storeId="@storeId" 
                class="nav-link @ViewData.ActivePageClass(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, null, "Configuration")">Configuration</a>
         </li>
