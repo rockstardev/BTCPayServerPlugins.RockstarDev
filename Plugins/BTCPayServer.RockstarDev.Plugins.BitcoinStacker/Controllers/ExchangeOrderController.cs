@@ -21,7 +21,8 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Controllers;
 [Route("~/plugins/{storeId}/exchangeorder")]
 public class ExchangeOrderController(
     PluginDbContextFactory pluginDbContextFactory,
-    StrikeClientFactory strikeClientFactory) : Controller
+    StrikeClientFactory strikeClientFactory,
+    EventAggregator eventAggregator) : Controller
 {
     [FromRoute]
     public string StoreId { get; set; }
@@ -118,6 +119,24 @@ public class ExchangeOrderController(
         
         TempData[WellKnownTempData.SuccessMessage] =
             $"Exchange Order {id} has been forced";
+
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+
+    [HttpGet("RunHeartbeatNow")]
+    public async Task<IActionResult> RunHeartbeatNow()
+    {
+        var db = pluginDbContextFactory.CreateContext();
+        var store = await db.Settings.SingleAsync(a=>a.StoreId == StoreId && 
+                                          a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+        var settings = SettingsViewModel.FromDbSettings(store);
+        
+        eventAggregator.Publish(new ExchangeOrderHeartbeatService.PeriodProcessEvent
+        {
+            StoreId = StoreId,
+            Setting = settings
+        });
+        TempData[WellKnownTempData.SuccessMessage] = $"Heartbeat run in progress";
 
         return RedirectToAction(nameof(Index), new { StoreId });
     }

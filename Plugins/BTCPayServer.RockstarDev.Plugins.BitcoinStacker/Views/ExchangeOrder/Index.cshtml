@@ -22,6 +22,9 @@
                     <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
                         Settings
                     </a>
+                    <a asp-action="RunHeartbeatNow" asp-route-storeId="@storeId" class="dropdown-item">
+                        Run Heartbeat Now
+                    </a>
                 </div>
             </div>
             <a asp-controller="ExchangeOrder" asp-action="Create" asp-route-storeId="@storeId"
