@@ -188,7 +188,7 @@ public class RockstarStrikeUtilsController(
     
     
     [HttpGet("Deposits/create")]
-    public async Task<IActionResult> DepositsCreate(string strikePaymentMethodId)
+    public async Task<IActionResult> DepositsCreate(string pmid)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
@@ -200,7 +200,7 @@ public class RockstarStrikeUtilsController(
             Amount = "10",
             FeePolicy = FeePolicy.Exclusive
         };
-        if (!String.IsNullOrEmpty(strikePaymentMethodId) && Guid.TryParse(strikePaymentMethodId, out var guid))
+        if (!String.IsNullOrEmpty(pmid) && Guid.TryParse(pmid, out var guid))
             model.StrikePaymentMethodId = guid;
         
         return View(model);

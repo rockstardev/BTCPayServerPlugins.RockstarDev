@@ -1,9 +1,11 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @using Newtonsoft.Json
-@using Strike.Client.Models
 @model PaymentMethodsViewModel
+@inject IScopeProvider ScopeProvider
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage(RockstarStrikeUtilsPlugin.PluginStrikeNavKey, "Payment Methods", "PaymentMethods");
 }
 
@@ -34,11 +36,12 @@
         @foreach (var item in Model.List)
         {
             <tr class="mass-action-row">
-                <td>@item.Id</td>
+                <td><a asp-controller="RockstarStrikeUtils" asp-action="DepositsCreate" 
+                       asp-route-storeId="@storeId" asp-route-pmid="@item.Id">@item.Id</a></td>
                 <td>@item.Created</td>
                 <td>@item.TransferType</td>
                 <td>@item.AccountType</td>
-                <td class="text-end">
+                <td class="text-end" style="word-break: break-all;">
                     @JsonConvert.SerializeObject(item)
                 </td>
             </tr>
