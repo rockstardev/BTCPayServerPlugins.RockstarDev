@@ -171,7 +171,8 @@ public class ExchangeOrderHeartbeatService(
                 
                 if (usdBalanceAfter >= usdBalance + order.Amount)
                 {
-                    await executeConversionOrder(cancellationToken, order, db, strikeClient);
+                    Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
+                    await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
                 }
             }
             
@@ -203,7 +204,8 @@ public class ExchangeOrderHeartbeatService(
                     
                 if (resp.State == DepositState.Completed)
                 {
-                    await executeConversionOrder(cancellationToken, order, db, strikeClient);
+                    Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
+                    await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
                 }
                 else if (resp.State == DepositState.Pending)
                 {
@@ -222,10 +224,9 @@ public class ExchangeOrderHeartbeatService(
         }
     }
 
-    private async Task executeConversionOrder(CancellationToken cancellationToken, DbExchangeOrder order,
+    public static async Task ExecuteConversionOrder(CancellationToken cancellationToken, DbExchangeOrder order,
         PluginDbContext db, StrikeClient strikeClient)
     {
-        Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
         var req = new CurrencyExchangeQuoteReq
         {
             Buy = Currency.Btc, Sell = Currency.Usd,

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Models;
@@ -99,6 +100,26 @@ public class ExchangeOrderController(
 
         TempData[WellKnownTempData.SuccessMessage] =
             $"Delay on Exchange Order {id} has been added";
+
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+
+    [HttpGet("ForceConversion")]
+    public async Task<IActionResult> ForceConversion(Guid id)
+    {
+        var db = pluginDbContextFactory.CreateContext();
+        var order = db.ExchangeOrders.Single(a => a.Id == id);
+        if (order.State != DbExchangeOrder.States.DepositWaiting)
+            throw new Exception("Only can force conversion for DepositWaiting orders");
+        
+        var store = db.Settings.Single(a=>a.StoreId == StoreId && 
+                                          a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+        var settings = SettingsViewModel.FromDbSettings(store);
+        var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
+        await ExchangeOrderHeartbeatService.ExecuteConversionOrder(CancellationToken.None, order, db, strikeClient);
+        
+        TempData[WellKnownTempData.SuccessMessage] =
+            $"Exchange Order {id} has been forced";
 
         return RedirectToAction(nameof(Index), new { StoreId });
     }

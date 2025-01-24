@@ -1,6 +1,7 @@
 ﻿@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IndexLogsViewModel
 @inject IScopeProvider ScopeProvider
@@ -27,6 +28,12 @@
             <a asp-controller="ExchangeOrder" asp-action="AddDelay" asp-route-storeId="@storeId" asp-route-id="@Model.Item.Id" class="btn btn-primary">
                 Delay
             </a>
+            @if (Model.Item.State == DbExchangeOrder.States.DepositWaiting)
+            {
+                <a asp-controller="ExchangeOrder" asp-action="ForceConversion" asp-route-storeId="@storeId" asp-route-id="@Model.Item.Id" class="btn btn-primary">
+                    Force Conversion
+                </a>
+            }
         </div>
     </div>
 </form>
