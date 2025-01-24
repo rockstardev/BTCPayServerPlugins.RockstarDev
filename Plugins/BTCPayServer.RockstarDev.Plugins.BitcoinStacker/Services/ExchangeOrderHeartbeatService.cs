@@ -107,12 +107,14 @@ public class ExchangeOrderHeartbeatService(
             {
                 if (payout.Status != "paid")
                     continue; // only process paid payouts
-                
+
+                // Stripe uses cents
+                var amt = Math.Round(payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), 2);
                 var exchangeOrder = new DbExchangeOrder
                 {
                     StoreId = ppe.StoreId,
                     Operation = DbExchangeOrder.Operations.BuyBitcoin,
-                    Amount = payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), // Stripe uses cents
+                    Amount = amt, 
                     Created = DateTimeOffset.UtcNow,
                     CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
                     CreatedForDate = payout.Created,
@@ -166,14 +168,10 @@ public class ExchangeOrderHeartbeatService(
                 await db.SaveChangesAsync(cancellationToken);
                 
                 // check balance and if it increased execute purchase immediately
-                await Task.Delay(1000, cancellationToken).WaitAsync(cancellationToken);
+                await Task.Delay(5000, cancellationToken).WaitAsync(cancellationToken);
 
                 balanceResp = await strikeClient.Balances.GetBalances();
                 var usdBalanceAfter = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
-                
-                // sometimes Strike deposits are 0.01 less than requested
-                if (usdBalanceAfter - usdBalance == order.Amount - 0.01m)
-                    order.Amount = order.Amount - 0.01m;
                 
                 if (usdBalanceAfter - usdBalance >= order.Amount)
                 {

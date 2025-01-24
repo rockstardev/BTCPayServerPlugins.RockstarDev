@@ -111,7 +111,10 @@ public class ExchangeOrderController(
         var db = pluginDbContextFactory.CreateContext();
         var order = db.ExchangeOrders.Single(a => a.Id == id);
         
-        var store = db.Settings.Single(a=>a.StoreId == StoreId && 
+        // trimming to 2 decimal places
+        order.Amount = Math.Truncate(order.Amount * 100) / 100;
+        
+        var store = db.Settings.Single(a=> a.StoreId == StoreId && 
                                           a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
         var settings = SettingsViewModel.FromDbSettings(store);
         var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
