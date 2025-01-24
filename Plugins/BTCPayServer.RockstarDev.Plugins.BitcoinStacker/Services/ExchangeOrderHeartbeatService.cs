@@ -258,7 +258,8 @@ public class ExchangeOrderHeartbeatService(
             // exiting the loop
             return;
         }
-                    
+        
+        order.State = DbExchangeOrder.States.Completed;
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
         await db.SaveChangesAsync(cancellationToken);
     }
