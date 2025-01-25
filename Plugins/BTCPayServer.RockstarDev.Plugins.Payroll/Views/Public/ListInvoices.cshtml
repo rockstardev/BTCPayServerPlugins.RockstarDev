@@ -49,7 +49,6 @@
                                 <th scope="col">User</th>
                                 <th scope="col">Destination</th>
                                 <th scope="col">Amount</th>
-                                <th scope="col">Currency</th>
                                 <th scope="col">State</th>
                                 @if (Model.PurchaseOrdersRequired)
                                 {
@@ -74,22 +73,37 @@
                                     <td>
                                         <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
                                     </td>
-                                    <td>@pp.Amount</td>
-                                    <td>@pp.Currency</td>
-                                    <td>@pp.State.ToString()</td>
+                                    <td>@pp.Amount @pp.Currency</td>
                                     <td>
-                                        @if (Model.PurchaseOrdersRequired)
+                                        @if (pp.State == PayrollInvoiceState.Completed && !string.IsNullOrEmpty(pp.TxnId))
                                         {
-                                        <span style="max-width: 250px;">@pp.PurchaseOrder</span>
+                                            <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
+                                                @pp.State.ToString()
+                                            </a>
                                         }
                                         else
                                         {
+                                            @pp.State.ToString()
+                                        }
+                                        @if (pp.State == PayrollInvoiceState.Completed && pp.PaidAt.HasValue)
+                                        {
+                                            <div>@pp.PaidAt?.ToBrowserDate()</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (Model.PurchaseOrdersRequired)
+                                        {
+                                            <span style="max-width: 250px;">@pp.PurchaseOrder</span>
+                                        }
                                         @if (!string.IsNullOrEmpty(pp.Description))
                                         {
-                                        <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
-                                            <span style="max-width: 250px;">@pp.Description</span>
-                                        </span>
-                                        }
+                                            @if (!String.IsNullOrEmpty(pp.PurchaseOrder))
+                                            {
+                                                <span> - </span>
+                                            }
+                                            <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
+                                                <span style="max-width: 250px;">@pp.Description</span>
+                                            </span>
                                         }
                                     </td>
                                     <td class="text-end">

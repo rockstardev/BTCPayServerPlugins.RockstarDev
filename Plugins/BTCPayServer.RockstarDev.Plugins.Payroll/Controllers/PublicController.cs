@@ -128,7 +128,8 @@ public class PublicController(
                 TxnId = tuple.TxnId,
                 PurchaseOrder = tuple.PurchaseOrder,
                 Description = tuple.Description,
-                InvoiceUrl = tuple.InvoiceFilename
+                InvoiceUrl = tuple.InvoiceFilename,
+                PaidAt = tuple.PaidAt
             }).ToList()
         };
 
