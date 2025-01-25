@@ -4,17 +4,24 @@ using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Stores;
+using Microsoft.EntityFrameworkCore;
+using MimeKit;
 using NBitcoin;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static BTCPayServer.RockstarDev.Plugins.Payroll.Services.EmailService;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
 public class VendorPayPaidHostedService(
-    PaymentMethodHandlerDictionary handlers,
+    EmailService emailService,
+    StoreRepository _storeRepo,
     EventAggregator eventAggregator,
+    PaymentMethodHandlerDictionary handlers,
     PayrollPluginDbContextFactory pluginDbContextFactory,
     Logs logs)
     : EventHostedServiceBase(eventAggregator, logs)
@@ -62,21 +69,63 @@ public class VendorPayPaidHostedService(
                     }
 
                     await using var dbPlugin = pluginDbContextFactory.CreateContext();
+
                     var invoicesToBePaid = dbPlugin.PayrollInvoices
-                        .Where(a => a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
+                        .Where(a => (a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
+                                    && matchedObjects.Contains(a.Destination))
+                        .Include(c => c.User)
                         .ToList();
 
-                    foreach (var invoice in invoicesToBePaid.Where(invoice => matchedObjects.Contains(invoice.Destination)))
+                    foreach (var invoice in invoicesToBePaid)
                     {
                         invoice.TxnId = txHash;
                         invoice.State = PayrollInvoiceState.Completed;
                         invoice.BtcPaid = amountPaid[invoice.Destination];
+                        invoice.PaidAt = DateTimeOffset.UtcNow;
                     }
 
                     await dbPlugin.SaveChangesAsync(cancellationToken);
-
+                    await SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == PayrollInvoiceState.Completed).ToList());
                     break;
                 }
+        }
+    }
+
+    private async Task SendSuccessfulInvoicePaymentEmail(List<PayrollInvoice> invoices)
+    {
+        if (!invoices.Any())
+            return;
+
+        var invoicesByStore = invoices.GroupBy(i => i.User.StoreId);
+        var emailRecipients = new List<EmailRecipient>();
+        const string subject = "Invoice payment completed successfully";
+
+        foreach (var storeGroup in invoicesByStore)
+        {
+            var setting = await pluginDbContextFactory.GetSettingAsync(storeGroup.Key);
+            if (setting?.EmailVendorOnInvoicePaid != true)
+                continue;
+
+            foreach (var invoice in storeGroup)
+            {
+                var storeName = (await _storeRepo.FindStore(invoice.User.StoreId))?.StoreName;
+                emailRecipients.Add(new EmailRecipient
+                {
+                    Address = InternetAddress.Parse(invoice.User.Email),
+                    Subject = subject,
+                    MessageText = setting.EmailTemplate
+                        .Replace("{Name}", invoice.User.Name)
+                        .Replace("{StoreName}", storeName)
+                        .Replace("{CreatedDate}", invoice.CreatedAt.ToString("D"))
+                        .Replace("{DatePaid}", invoice.PaidAt?.ToString("D"))
+                        .Replace("{VendorPayLink}", $"{setting.VendorPayPublicLink}")
+                });
+            }
+        }
+
+        if (emailRecipients.Any())
+        {
+            await emailService.SendBulkEmail(emailRecipients);
         }
     }
 }
