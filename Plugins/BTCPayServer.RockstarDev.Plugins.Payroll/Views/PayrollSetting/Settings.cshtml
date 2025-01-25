@@ -1,9 +1,13 @@
-﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.Services
-@using BTCPayServer.Services.Mails
-@inject SettingsRepository _SettingsRepository
+﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.TagHelpers
+@using BTCPayServer.TagHelpers
+BTCPayServer.TagHelpers;ils
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollSettingViewModel
+@inject IScopeProvider ScopeProvider
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     Layout = "_Layout";
     ViewData.SetActivePage("VendorPay", "Update Plugin Settings", "VendorPay");
 }
@@ -32,19 +36,17 @@
             <h3>Emails</h3>
             <div class="form-group d-flex align-items-center">
                 @{
-                    var emailSettings = (await _SettingsRepository.GetSettingAsync<EmailSettings>()) ?? new EmailSettings();
-                    var requiresConfirmedEmail = (bool)ViewData["RequiresConfirmedEmail"];
-                    var isEmailConfigured = emailSettings.IsComplete() || requiresConfirmedEmail;
+                    var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
                 }
-                <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(isEmailConfigured ? null : "disabled")" />
+                <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
                 <div>
                     <label asp-for="EmailOnInvoicePaid" class="form-check-label"></label>
                     <span asp-validation-for="EmailOnInvoicePaid" class="text-danger"></span> 
-                    @if (!isEmailConfigured)
+                    @if (!storeEmailSettingsConfigured)
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmails" text-translate="true">Please configure it first.</a>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
                         </div>
                     }
                 </div>

@@ -11,13 +11,14 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using BTCPayServer.Services;
 using System;
 using BTCPayServer.Abstractions.Extensions;
+using BTCPayServer.Services.Mails;
 using Microsoft.AspNetCore.Routing;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollSettingController(PayrollPluginDbContextFactory payrollPluginDbContextFactory, 
-    PoliciesSettings policiesSettings, LinkGenerator linkGenerator) : Controller
+    EmailSenderFactory emailSenderFactory, LinkGenerator linkGenerator) : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -44,7 +45,7 @@ Thank you,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? DefaultEmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? DefaultEmailOnInvoicePaidBody
         };
-        ViewData["RequiresConfirmedEmail"] = policiesSettings.RequiresConfirmedEmail;
+        ViewData["StoreEmailSettingsConfigured"] = await emailSenderFactory.IsComplete(storeId);
         return View(model);
     }
 
