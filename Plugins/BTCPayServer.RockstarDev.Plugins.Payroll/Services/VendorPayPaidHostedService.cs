@@ -81,8 +81,8 @@ public class VendorPayPaidHostedService(
                         invoice.TxnId = txHash;
                         invoice.State = PayrollInvoiceState.Completed;
                         invoice.BtcPaid = amountPaid[invoice.Destination];
+                        invoice.PaidAt = DateTimeOffset.UtcNow;
                     }
-
 
                     await dbPlugin.SaveChangesAsync(cancellationToken);
                     await SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == PayrollInvoiceState.Completed).ToList());
