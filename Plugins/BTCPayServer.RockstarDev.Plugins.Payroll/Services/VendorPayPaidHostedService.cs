@@ -97,8 +97,7 @@ public class VendorPayPaidHostedService(
             return;
 
         var invoicesByStore = invoices.GroupBy(i => i.User.StoreId);
-        List<EmailRecipient> emailRecipients = new List<EmailRecipient>();
-        var now = DateTimeOffset.UtcNow;
+        var emailRecipients = new List<EmailRecipient>();
         const string subject = "Invoice payment completed successfully";
 
         foreach (var storeGroup in invoicesByStore)
@@ -109,7 +108,7 @@ public class VendorPayPaidHostedService(
 
             foreach (var invoice in storeGroup)
             {
-                var storeName = (await _storeRepo.FindStore(invoice.User.StoreId)).StoreName;
+                var storeName = (await _storeRepo.FindStore(invoice.User.StoreId))?.StoreName;
                 emailRecipients.Add(new EmailRecipient
                 {
                     Address = InternetAddress.Parse(invoice.User.Email),
@@ -118,7 +117,8 @@ public class VendorPayPaidHostedService(
                         .Replace("{Name}", invoice.User.Name)
                         .Replace("{StoreName}", storeName)
                         .Replace("{CreatedDate}", invoice.CreatedAt.ToString("D"))
-                        .Replace("{DatePaid}", now.ToString("G"))
+                        .Replace("{DatePaid}", invoice.PaidAt?.ToString("D"))
+                        .Replace("{VendorPayLink}", $"{setting.VendorPayPublicLink}")
                 });
             }
         }

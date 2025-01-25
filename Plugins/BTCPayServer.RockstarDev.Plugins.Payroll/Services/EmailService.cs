@@ -1,22 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using BTCPayServer.Logging;
 using BTCPayServer.Services.Mails;
 using BTCPayServer.Services;
+using Microsoft.Extensions.Logging;
 using MimeKit;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class EmailService
+public class EmailService(SettingsRepository settingsRepository, Logs logs)
 {
-    private readonly SettingsRepository _settingsRepository;
-    public EmailService(SettingsRepository settingsRepository)
-    {
-        _settingsRepository = settingsRepository;
-    }
-
     public async Task SendEmail(IEnumerable<InternetAddress> toList, string subject, string messageText)
     {
-        var settings = await _settingsRepository.GetSettingAsync<EmailSettings>();
+        var settings = await settingsRepository.GetSettingAsync<EmailSettings>();
         if (!settings.IsComplete())
             return;
         var client = await settings.CreateSmtpClient();
@@ -31,7 +28,7 @@ public class EmailService
 
     public async Task SendBulkEmail(IEnumerable<EmailRecipient> recipients)
     {
-        var settings = await _settingsRepository.GetSettingAsync<EmailSettings>();
+        var settings = await settingsRepository.GetSettingAsync<EmailSettings>();
         if (!settings.IsComplete())
             return;
         var client = await settings.CreateSmtpClient();
@@ -48,7 +45,10 @@ public class EmailService
                     message.Body = new TextPart("plain") { Text = recipient.MessageText };
                     await client.SendAsync(message);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    logs.PayServer.LogError(ex, $"Error sending email to: {recipient.Address}");
+                }
             }
         }
         finally

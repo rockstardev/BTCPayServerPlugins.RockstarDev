@@ -4,6 +4,7 @@
 @inject SettingsRepository _SettingsRepository
 @model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollSettingViewModel
 @{
+    Layout = "_Layout";
     ViewData.SetActivePage("VendorPay", "Update Plugin Settings", "VendorPay");
 }
 
@@ -50,7 +51,7 @@
             </div>
             <div class="form-group" id="emailTemplateGroup" style="display: none;">
                 <label asp-for="EmailTemplate" class="form-label">Customize Email Template</label>
-                <textarea asp-for="EmailTemplate" class="form-control" rows="3"></textarea>
+                <textarea asp-for="EmailTemplate" class="form-control" rows="8"></textarea>
                 <span asp-validation-for="EmailTemplate" class="text-danger"></span>
             </div>
 
