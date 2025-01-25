@@ -98,12 +98,11 @@ public class VendorPayPaidHostedService(
 
         var invoicesByStore = invoices.GroupBy(i => i.User.StoreId);
         var emailRecipients = new List<EmailRecipient>();
-        const string subject = "Invoice payment completed successfully";
 
         foreach (var storeGroup in invoicesByStore)
         {
             var setting = await pluginDbContextFactory.GetSettingAsync(storeGroup.Key);
-            if (setting?.EmailVendorOnInvoicePaid != true)
+            if (setting?.EmailOnInvoicePaid != true)
                 continue;
 
             foreach (var invoice in storeGroup)
@@ -112,13 +111,13 @@ public class VendorPayPaidHostedService(
                 emailRecipients.Add(new EmailRecipient
                 {
                     Address = InternetAddress.Parse(invoice.User.Email),
-                    Subject = subject,
-                    MessageText = setting.EmailTemplate
+                    Subject = setting.EmailOnInvoicePaidSubject,
+                    MessageText = setting.EmailOnInvoicePaidBody
                         .Replace("{Name}", invoice.User.Name)
                         .Replace("{StoreName}", storeName)
-                        .Replace("{CreatedDate}", invoice.CreatedAt.ToString("D"))
-                        .Replace("{DatePaid}", invoice.PaidAt?.ToString("D"))
-                        .Replace("{VendorPayLink}", $"{setting.VendorPayPublicLink}")
+                        .Replace("{CreatedAt}", invoice.CreatedAt.ToString("MMM dd, yyyy h:mm tt zzz"))
+                        .Replace("{PaidAt}", invoice.PaidAt?.ToString("MMM dd, yyyy h:mm tt zzz"))
+                        .Replace("{VendorPayPublicLink}", $"{setting.VendorPayPublicLink}")
                 });
             }
         }

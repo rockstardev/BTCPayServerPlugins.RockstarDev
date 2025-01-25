@@ -36,10 +36,10 @@
                     var requiresConfirmedEmail = (bool)ViewData["RequiresConfirmedEmail"];
                     var isEmailConfigured = emailSettings.IsComplete() || requiresConfirmedEmail;
                 }
-                <input asp-for="EmailVendorOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(isEmailConfigured ? null : "disabled")" />
+                <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(isEmailConfigured ? null : "disabled")" />
                 <div>
-                    <label asp-for="EmailVendorOnInvoicePaid" class="form-check-label"></label>
-                    <span asp-validation-for="EmailVendorOnInvoicePaid" class="text-danger"></span> 
+                    <label asp-for="EmailOnInvoicePaid" class="form-check-label"></label>
+                    <span asp-validation-for="EmailOnInvoicePaid" class="text-danger"></span> 
                     @if (!isEmailConfigured)
                     {
                         <div class="text-secondary">
@@ -49,10 +49,17 @@
                     }
                 </div>
             </div>
-            <div class="form-group" id="emailTemplateGroup" style="display: none;">
-                <label asp-for="EmailTemplate" class="form-label">Customize Email Template</label>
-                <textarea asp-for="EmailTemplate" class="form-control" rows="8"></textarea>
-                <span asp-validation-for="EmailTemplate" class="text-danger"></span>
+            <div id="emailTemplateGroup" style="display: none;">
+            <div class="form-group">
+                <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Customize Subject</label>
+                <input asp-for="EmailOnInvoicePaidSubject" class="form-control"></input>
+                <span asp-validation-for="EmailOnInvoicePaidSubject" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EmailOnInvoicePaidBody" class="form-label">Customize Email Template</label>
+                <textarea asp-for="EmailOnInvoicePaidBody" class="form-control" rows="8"></textarea>
+                <span asp-validation-for="EmailOnInvoicePaidBody" class="text-danger"></span>
+            </div>
             </div>
 
         </div>

@@ -7,8 +7,10 @@ public class PayrollStoreSetting
 {
     public bool MakeInvoiceFilesOptional { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
-    public bool EmailVendorOnInvoicePaid { get; set; }
-    public string EmailTemplate { get; set; }
+    
+    public bool EmailOnInvoicePaid { get; set; }
+    public string EmailOnInvoicePaidSubject { get; set; }
+    public string EmailOnInvoicePaidBody { get; set; }
     
     // automatically set to be referenced in different places
     public string VendorPayPublicLink { get; set; }

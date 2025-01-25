@@ -20,9 +20,11 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
     PoliciesSettings policiesSettings, LinkGenerator linkGenerator) : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
-    private const string DefaultEmailTemplate = @"Hello {Name},
 
-Your invoice submitted on {CreatedDate} has been paid on {DatePaid}.
+    private const string DefaultEmailOnInvoicePaidSubject = @"Your invoice has been paid";
+    private const string DefaultEmailOnInvoicePaidBody = @"Hello {Name},
+
+Your invoice submitted on {CreatedAt} has been paid on {PaidAt}.
 
 See all your invoices on: {VendorPayPublicLink}
 
@@ -36,10 +38,11 @@ Thank you,
         var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollSettingViewModel
         {
-            EmailVendorOnInvoicePaid = settings.EmailVendorOnInvoicePaid,
-            EmailTemplate = settings.EmailTemplate ?? DefaultEmailTemplate,
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
-            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
+            EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
+            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? DefaultEmailOnInvoicePaidSubject,
+            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? DefaultEmailOnInvoicePaidBody
         };
         ViewData["RequiresConfirmedEmail"] = policiesSettings.RequiresConfirmedEmail;
         return View(model);
@@ -60,10 +63,11 @@ Thank you,
             host: HttpContext.Request.Host);
         var settings = new PayrollStoreSetting
         {
-            EmailTemplate = model.EmailTemplate,
-            EmailVendorOnInvoicePaid = model.EmailVendorOnInvoicePaid,
             MakeInvoiceFilesOptional = model.MakeInvoiceFileOptional,
             PurchaseOrdersRequired = model.PurchaseOrdersRequired,
+            EmailOnInvoicePaid = model.EmailOnInvoicePaid,
+            EmailOnInvoicePaidSubject = model.EmailOnInvoicePaidSubject,
+            EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
             VendorPayPublicLink = link
         };
         

@@ -11,6 +11,7 @@ public class PayrollSettingViewModel
     public bool PurchaseOrdersRequired { get; set; }
 
     [Display(Name = "Email vendor once invoice is paid")]
-    public bool EmailVendorOnInvoicePaid { get; set; }
-    public string EmailTemplate { get; set; }
+    public bool EmailOnInvoicePaid { get; set; }
+    public string EmailOnInvoicePaidSubject { get; set; }
+    public string EmailOnInvoicePaidBody { get; set; }
 }
