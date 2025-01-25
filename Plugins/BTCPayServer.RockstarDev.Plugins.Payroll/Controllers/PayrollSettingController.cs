@@ -45,7 +45,8 @@ Thank you,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? DefaultEmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? DefaultEmailOnInvoicePaidBody
         };
-        ViewData["StoreEmailSettingsConfigured"] = await emailSenderFactory.IsComplete(storeId);
+        var emailSender = await emailSenderFactory.GetEmailSender(storeId);
+        ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
         return View(model);
     }
 
