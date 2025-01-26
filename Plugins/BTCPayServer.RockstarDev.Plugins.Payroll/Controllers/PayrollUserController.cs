@@ -21,6 +21,7 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
+[Route("~/plugins/{storeId}/payroll/users/")]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController(
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -34,7 +35,7 @@ public class PayrollUserController(
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
 
-    [HttpGet("~/plugins/{storeId}/payroll/users")]
+    [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all)
     {
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
@@ -55,13 +56,13 @@ public class PayrollUserController(
         return View(payrollUserListViewModel);
     }
 
-    [HttpGet("~/plugins/{storeId}/payroll/users/create")]
+    [HttpGet("create")]
     public IActionResult Create()
     {
         return View(new PayrollUserCreateViewModel());
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/users/create")]
+    [HttpPost("create")]
 
     public async Task<IActionResult> Create(PayrollUserCreateViewModel model)
     {
@@ -98,7 +99,7 @@ public class PayrollUserController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet("~/plugins/payroll/users/edit/{userId}")]
+    [HttpGet("edit/{userId}")]
     public async Task<IActionResult> Edit(string userId)
     {
         if (CurrentStore is null)
@@ -111,7 +112,7 @@ public class PayrollUserController(
         return View(model);
     }
 
-    [HttpPost("~/plugins/payroll/users/edit/{userId}")]
+    [HttpPost("edit/{userId}")]
     public async Task<IActionResult> Edit(string userId, PayrollUserCreateViewModel model)
     {
         if (CurrentStore is null)
@@ -132,7 +133,7 @@ public class PayrollUserController(
     }
 
 
-    [HttpGet("~/plugins/payroll/users/resetpassword/{userId}")]
+    [HttpGet("resetpassword/{userId}")]
     public async Task<IActionResult> ResetPassword(string userId)
     {
         if (CurrentStore is null)
@@ -145,7 +146,7 @@ public class PayrollUserController(
         return View(model);
     }
 
-    [HttpPost("~/plugins/payroll/users/resetpassword/{userId}")]
+    [HttpPost("resetpassword/{userId}")]
     public async Task<IActionResult> ResetPassword(string userId, PayrollUserResetPasswordViewModel model)
     {
         if (CurrentStore is null)
@@ -168,7 +169,7 @@ public class PayrollUserController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet("~/plugins/payroll/users/toggle/{userId}")]
+    [HttpGet("toggle/{userId}")]
     public async Task<IActionResult> ToggleUserStatus(string userId, bool enable)
     {
         if (CurrentStore is null)
@@ -184,7 +185,7 @@ public class PayrollUserController(
     }
 
 
-    [HttpPost("~/plugins/payroll/users/toggle/{userId}")]
+    [HttpPost("toggle/{userId}")]
     public async Task<IActionResult> ToggleUserStatusPost(string userId, bool enable)
     {
         if (CurrentStore is null)
@@ -215,7 +216,7 @@ public class PayrollUserController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet("~/plugins/payroll/users/downloadinvoices/{userId}")]
+    [HttpGet("downloadinvoices/{userId}")]
     public async Task<IActionResult> DownloadInvoices(string userId)
     {
         if (CurrentStore is null)
@@ -276,7 +277,7 @@ public class PayrollUserController(
         });
     }
 
-    [HttpGet("~/plugins/payroll/users/delete/{userId}")]
+    [HttpGet("delete/{userId}")]
     public async Task<IActionResult> Delete(string userId)
     {
         if (CurrentStore is null)
@@ -303,7 +304,7 @@ public class PayrollUserController(
     }
 
 
-    [HttpPost("~/plugins/payroll/users/delete/{userId}")]
+    [HttpPost("delete/{userId}")]
     public async Task<IActionResult> DeletePost(string userId)
     {
         if (CurrentStore is null)

@@ -77,7 +77,8 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-userId="@pp.Id">Edit</a>
+                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit"
+                                                   asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Edit</a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item"
@@ -88,13 +89,15 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-userId="@pp.Id">Download all invoices</a>
+                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices"
+                                                   asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Download all invoices</a>
                                             </li>
                                             <li class="dropdown-divider"></li>
                                             <li>
                                                 <a asp-controller="PayrollUser"
                                                    asp-action="Delete"
                                                    asp-route-userId="@pp.Id"
+                                                   asp-route-storeId="@storeId"
                                                    class="dropdown-item text-danger">
                                                     Delete
                                                 </a>

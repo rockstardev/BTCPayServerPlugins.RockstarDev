@@ -34,6 +34,7 @@ using BTCPayServer.Services.Invoices;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
+[Route("~/plugins/{storeId}/payroll/")]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController(
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
@@ -53,7 +54,7 @@ public class PayrollInvoiceController(
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
-    [HttpGet("~/plugins/{storeId}/payroll/list")]
+    [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all)
     {
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
@@ -263,7 +264,7 @@ public class PayrollInvoiceController(
             });
     }
 
-    [HttpGet("~/plugins/{storeId}/payroll/upload")]
+    [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)
     {
         var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
@@ -295,7 +296,7 @@ public class PayrollInvoiceController(
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/upload")]
+    [HttpPost("upload")]
 
     public async Task<IActionResult> Upload(string storeId, PayrollInvoiceUploadViewModel model)
     {
@@ -374,7 +375,7 @@ public class PayrollInvoiceController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpGet("~/plugins/payroll/delete/{id}")]
+    [HttpGet("delete/{id}")]
     public async Task<IActionResult> Delete(string id)
     {
         if (CurrentStore is null)
@@ -399,7 +400,7 @@ public class PayrollInvoiceController(
         return View("Confirm", new ConfirmModel($"Delete Invoice", $"Do you really want to delete the invoice for {invoice.Amount} {invoice.Currency} from {invoice.User.Name}?", "Delete"));
     }
 
-    [HttpPost("~/plugins/payroll/delete/{id}")]
+    [HttpPost("delete/{id}")]
     public async Task<IActionResult> DeletePost(string id)
     {
         if (CurrentStore is null)

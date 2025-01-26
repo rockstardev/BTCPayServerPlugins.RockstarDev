@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
+[Route("~/plugins/{storeId}/payroll/")]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollSettingController(PayrollPluginDbContextFactory payrollPluginDbContextFactory, 
     EmailSenderFactory emailSenderFactory, LinkGenerator linkGenerator) : Controller
@@ -33,7 +34,7 @@ Thank you,
 {StoreName}";
 
 
-    [HttpGet("~/plugins/{storeId}/payroll/settings")]
+    [HttpGet("settings")]
     public async Task<IActionResult> Settings(string storeId)
     {
         var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
@@ -50,7 +51,7 @@ Thank you,
         return View(model);
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/settings")]
+    [HttpPost("settings")]
 
     public async Task<IActionResult> Settings(string storeId, PayrollSettingViewModel model)
     {
