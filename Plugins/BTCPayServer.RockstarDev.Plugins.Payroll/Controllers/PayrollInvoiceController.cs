@@ -125,7 +125,11 @@ public class PayrollInvoiceController(
                 return await payInvoices(selectedItems);
 
             case "markpaid":
-                invoices.ForEach(c => c.State = PayrollInvoiceState.Completed);
+                invoices.ForEach(c =>
+                {
+                    c.State = PayrollInvoiceState.Completed;
+                    c.PaidAt = DateTime.Now;
+                });
                 ctx.SaveChanges();
                 TempData.SetStatusMessageModel(new StatusMessageModel()
                 {
@@ -458,7 +462,7 @@ public class PayrollInvoiceController(
         {
             if (invoice.BtcPaid == null)
             {
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{emptyStr},{invoice.User.Name},{invoice.Id}," +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Id}," +
                                    $"{invoice.Destination},{invoice.Currency},{invoice.Amount},{usdRate},{emptyStr}" +
                                    $",{usdRate},{emptyStr},{emptyStr},false");
             }
