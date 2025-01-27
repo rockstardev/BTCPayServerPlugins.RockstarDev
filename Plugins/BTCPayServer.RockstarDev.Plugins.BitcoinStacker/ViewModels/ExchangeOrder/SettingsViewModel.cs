@@ -30,7 +30,10 @@ public class SettingsViewModel
     {
         if (dbSetting != null)
         {
-            return JsonConvert.DeserializeObject<SettingsViewModel>(dbSetting.Value);
+            var json = JsonConvert.DeserializeObject<SettingsViewModel>(dbSetting.Value);
+            json.DelayOrderDays ??= 365;
+
+            return json;
         }
         else
         {
