@@ -5,7 +5,6 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 
 public class DbSetting
 {
-    [Key]
     [MaxLength(50)]
     public string Key { get; set; }
     [StringLength(50)]
@@ -16,6 +15,8 @@ public class DbSetting
 
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<DbSetting>()
+            .HasKey(c => new { c.StoreId, c.Key });
     }
 }
 
