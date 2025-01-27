@@ -128,7 +128,7 @@ public class PayrollInvoiceController(
                 invoices.ForEach(c =>
                 {
                     c.State = PayrollInvoiceState.Completed;
-                    c.PaidAt = DateTime.Now;
+                    c.PaidAt = DateTimeOffset.UtcNow;
                 });
                 ctx.SaveChanges();
                 TempData.SetStatusMessageModel(new StatusMessageModel()
@@ -455,7 +455,7 @@ public class PayrollInvoiceController(
         var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
 
         var csvData = new StringBuilder();
-        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate, BTCJPY Rate,Balance,TransactionId,PaidInWallet");
+        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,BTCUSD Rate, BTCJPY Rate,TransactionId,PaidInWallet");
         string emptyStr = string.Empty;
         decimal usdRate = 0;
         foreach (var invoice in invoices)
@@ -463,8 +463,8 @@ public class PayrollInvoiceController(
             if (invoice.BtcPaid == null)
             {
                 csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Id}," +
-                                   $"{invoice.Destination},{invoice.Currency},{invoice.Amount},{usdRate},{emptyStr}" +
-                                   $",{usdRate},{emptyStr},{emptyStr},false");
+                                   $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{emptyStr},{emptyStr}," +
+                                   $"{emptyStr},false");
             }
             else
             {
@@ -478,9 +478,9 @@ public class PayrollInvoiceController(
                     usdRate = Math.Abs(usdRate);
                 }
 
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{txn?.Timestamp.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{emptyStr}" +
-                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
-                                   $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId},true");
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt.Value.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{invoice.Id}" +
+                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}," +
+                                   $"{invoice.TxnId},true");
             }
         }
         
