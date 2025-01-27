@@ -43,15 +43,11 @@ public class PayrollUserController(
             .Where(a => a.StoreId == storeId)
             .OrderByDescending(data => data.Name).ToListAsync();
 
-        if (!all)
-        {
-            payrollUsers = payrollUsers.Where(a => a.State == PayrollUserState.Active).ToList();
-        }
-
         var payrollUserListViewModel = new PayrollUserListViewModel
         {
             All = all,
-            PayrollUsers = payrollUsers
+            AllPayrollUsers = payrollUsers,
+            DisplayedPayrollUsers = all ? payrollUsers : payrollUsers.Where(a => a.State == PayrollUserState.Active).ToList()
         };
         return View(payrollUserListViewModel);
     }
