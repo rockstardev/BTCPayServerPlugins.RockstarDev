@@ -9,6 +9,8 @@ public class SettingsViewModel
     // is automatic processing enabled
     public bool AutoEnabled { get; set; }
     
+    public int? DelayOrderDays { get; set; }
+    
     // exchange related settings
     public decimal PercentageOfPayouts { get; set; }
     public DateTimeOffset? StartDateExchangeOrders { get; set; }
@@ -36,7 +38,8 @@ public class SettingsViewModel
             {
                 MinutesHeartbeatInterval = 60,
                 PercentageOfPayouts = 10,
-                StartDateExchangeOrders = DateTimeOffset.UtcNow
+                StartDateExchangeOrders = DateTimeOffset.UtcNow,
+                DelayOrderDays = 365
             };
         }
     }

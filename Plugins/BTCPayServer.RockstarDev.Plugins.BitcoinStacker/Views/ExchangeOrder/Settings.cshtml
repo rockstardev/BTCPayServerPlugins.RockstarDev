@@ -19,6 +19,12 @@
                 <input asp-for="AutoEnabled" type="checkbox" class="btcpay-toggle me-3"/>
                 <label asp-for="AutoEnabled" class="form-check-label"></label>
             </div>
+
+            <div class="form-group">
+                <label asp-for="DelayOrderDays" class="form-label"></label>
+                <input asp-for="DelayOrderDays" type="number" step="1" class="form-control" />
+                <span asp-validation-for="DelayOrderDays" class="text-danger"></span>
+            </div>
             
             <div class="form-group">
                 <label asp-for="PercentageOfPayouts" class="form-label"></label>

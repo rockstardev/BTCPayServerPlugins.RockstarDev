@@ -108,6 +108,11 @@ public class ExchangeOrderHeartbeatService(
                 if (payout.Status != "paid")
                     continue; // only process paid payouts
 
+                DateTimeOffset? delayUntil = null; 
+                var delay = settings.DelayOrderDays ?? 0;
+                if (delay > 0)
+                    delayUntil = DateTimeOffset.UtcNow.AddDays(delay);
+                
                 // Stripe uses cents
                 var amt = Math.Round(payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), 2);
                 var exchangeOrder = new DbExchangeOrder
@@ -119,7 +124,7 @@ public class ExchangeOrderHeartbeatService(
                     CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
                     CreatedForDate = payout.Created,
                     State = DbExchangeOrder.States.Created,
-                    DelayUntil = DELAY_UNTIL
+                    DelayUntil = delayUntil
                 };
                 db.ExchangeOrders.Add(exchangeOrder);
             }
