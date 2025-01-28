@@ -33,7 +33,7 @@ public class RockstarStrikeUtilsController(
     public async Task<IActionResult> Index()
     {
         var isSetup = await strikeClientFactory.ClientExistsAsync();
-        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration), new { StoreId});
+        return RedirectToAction(isSetup ? nameof(ReceiveRequests) : nameof(Configuration), new { StoreId });
     }
 
     [HttpGet("Configuration")]
@@ -78,7 +78,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var resp = await client.PaymentMethods.GetPaymentMethods();
         var model = new PaymentMethodsViewModel
@@ -96,7 +96,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var requests = await client.ReceiveRequests.GetRequests();
         var model = new ReceiveRequestsViewModel
@@ -113,7 +113,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
 
         var model = new ReceiveRequestsCreateViewModel
         {
@@ -128,7 +128,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         if (!ModelState.IsValid)
             return View(model);
@@ -164,7 +164,7 @@ public class RockstarStrikeUtilsController(
             });
         }
 
-        return RedirectToAction(nameof(ReceiveRequests));
+        return RedirectToAction(nameof(ReceiveRequests), new { StoreId });
     }
     
     
@@ -174,7 +174,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var requests = await client.Deposits.GetDeposits();
         var model = new DepositsViewModel
@@ -192,7 +192,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
 
         var model = new DepositsCreateViewModel
         {
@@ -211,7 +211,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         if (!ModelState.IsValid)
             return View(model);
@@ -241,7 +241,7 @@ public class RockstarStrikeUtilsController(
             });
         }
 
-        return RedirectToAction(nameof(Deposits));
+        return RedirectToAction(nameof(Deposits), new { StoreId });
     }
     
     //  Exchanges
@@ -250,7 +250,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var resp = await client.Balances.GetBalances();
         var model = new CurrencyExchangesViewModel()
@@ -314,7 +314,7 @@ public class RockstarStrikeUtilsController(
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
-            return RedirectToAction(nameof(Configuration));
+            return RedirectToAction(nameof(Configuration), new { StoreId });
         
         var resp = await client.CurrencyExchanges.GetQuote(quoteId);
         if (!resp.IsSuccessStatusCode || resp.State != CurrencyExchangeState.New)
@@ -324,7 +324,7 @@ public class RockstarStrikeUtilsController(
                 Message = $"Failed to get pending quote: {resp.Error}",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
-            return RedirectToAction(nameof(CurrencyExchanges));
+            return RedirectToAction(nameof(CurrencyExchanges), new { StoreId });
         }
 
         var executeQuote = await client.CurrencyExchanges.ExecuteQuote(quoteId);
@@ -345,6 +345,6 @@ public class RockstarStrikeUtilsController(
             });
         }
 
-        return RedirectToAction(nameof(CurrencyExchanges));
+        return RedirectToAction(nameof(CurrencyExchanges), new { StoreId });
     }
 }
