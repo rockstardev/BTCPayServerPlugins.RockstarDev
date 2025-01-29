@@ -109,7 +109,7 @@ public class ExchangeOrderHeartbeatService(
                     continue; // only process paid payouts
 
                 DateTimeOffset? delayUntil = null; 
-                var delay = settings.DelayOrderDays ?? 0;
+                var delay = settings.DelayOrderDays ?? 365;
                 if (delay > 0)
                     delayUntil = DateTimeOffset.UtcNow.AddDays(delay);
                 
