@@ -57,7 +57,7 @@
 
 @if (Model.PayrollInvoices.Any())
 {
-    <form method="post" asp-action="MassAction">
+    <form method="post" asp-action="MassAction" asp-route-storeId="@storeId">
         <div class="table-responsive">
             <table class="table table-hover mass-action">
                 <thead class="mass-action-head">
