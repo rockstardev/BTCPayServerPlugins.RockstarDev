@@ -35,19 +35,19 @@
                        asp-action="List"
                        asp-route-storeId="@storeId"
                        class="nav-link @(!Model.All ? "active" : "")"
-                       role="tab">@state</a>
+                       role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
                 }
             }
             <a id="all-view"
                asp-action="List"
-               asp-route-storeId="@storeId"
+               asp-route-storeId="@storeId"    
                asp-route-all="true"
                class="nav-link @(Model.All ? "active" : "")"
-               role="tab">All</a>
+               role="tab">All (@Model.AllPayrollUsers.Count)</a>
         </div>
     </nav>
 
-    @if (Model.PayrollUsers.Any())
+    @if (Model.DisplayedPayrollUsers.Any())
     {
         <div class="table-responsive-md">
             <table class="table table-hover">
@@ -60,7 +60,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var pp in Model.PayrollUsers)
+                    @foreach (var pp in Model.DisplayedPayrollUsers)
                     {
                         <tr class="mass-action-row">
                             <td>@pp.Name</td>
@@ -82,8 +82,10 @@
                                             </li>
                                             <li>
                                                 <a class="dropdown-item"
+                                                   asp-controller="PayrollUser"
                                                    asp-action="ToggleUserStatus"
                                                    asp-route-userId="@pp.Id"
+                                                   asp-route-storeId="@storeId"
                                                    asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
                                                     @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
                                                 </a>
