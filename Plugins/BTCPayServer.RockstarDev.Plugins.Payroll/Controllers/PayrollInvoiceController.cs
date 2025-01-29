@@ -130,7 +130,9 @@ public class PayrollInvoiceController(
                     c.State = PayrollInvoiceState.Completed;
                     c.PaidAt = DateTimeOffset.UtcNow;
                 });
-                ctx.SaveChanges();
+                await ctx.SaveChangesAsync();
+                
+                // Mark Paid doesn't trigger "paid" email sending, it's something we can add in future versions
                 TempData.SetStatusMessageModel(new StatusMessageModel()
                 {
                     Message = $"Invoices successfully marked as paid",
@@ -455,16 +457,17 @@ public class PayrollInvoiceController(
         var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
 
         var csvData = new StringBuilder();
-        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,BTCUSD Rate, BTCJPY Rate,TransactionId,PaidInWallet");
+        // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
+        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
         string emptyStr = string.Empty;
         decimal usdRate = 0;
         foreach (var invoice in invoices)
         {
             if (invoice.BtcPaid == null)
             {
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Id}," +
-                                   $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{emptyStr},{emptyStr}," +
-                                   $"{emptyStr},false");
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Description}," +
+                                   $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
+                                   $",{usdRate},{emptyStr},{emptyStr},false");
             }
             else
             {
@@ -478,9 +481,9 @@ public class PayrollInvoiceController(
                     usdRate = Math.Abs(usdRate);
                 }
 
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt.Value.ToString("MM/dd/yy HH:mm")},{invoice.User.Name},{invoice.Id}" +
-                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}," +
-                                   $"{invoice.TxnId},true");
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? emptyStr)},{invoice.User.Name},{invoice.Description}" +
+                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
+                                   $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId},true");
             }
         }
         
