@@ -7,7 +7,7 @@
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, $"Exchange Order {Model.Item.Id}", "ExchangeOrder");
+    ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, $"Exchange Order Logs", "ExchangeOrder");
 }
 
 <form method="post">
@@ -15,16 +15,22 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-            @* <div class="dropdown"> *@
-            @*     <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false"> *@
-            @*         <span>Options</span> *@
-            @*     </button> *@
-            @*     <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle"> *@
-            @*         <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item"> *@
-            @*             Settings *@
-            @*         </a> *@
-            @*     </div> *@
-            @* </div> *@
+            @if (@Model.Item.State != DbExchangeOrder.States.Completed)
+            {
+                <div class="dropdown">
+                    <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span>Switch State</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
+                        @foreach (var item in Enum.GetNames(typeof(DbExchangeOrder.States)))
+                        {
+                            <a asp-action="SwitchState" asp-route-state="@item" asp-route-id="@Model.Item.Id" asp-route-storeId="@storeId" class="dropdown-item">
+                                @item
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
             <a asp-controller="ExchangeOrder" asp-action="AddDelay" asp-route-storeId="@storeId" asp-route-id="@Model.Item.Id" class="btn btn-primary">
                 Delay
             </a>
@@ -73,16 +79,13 @@
 <div class="table-responsive-md">
     <table class="table table-hover">
         <thead>
-        <tr>
-            <th scope="col">Order ID</th>
-            <th scope="col">Created</th>
-            <th scope="col">For Date</th>
-            <th scope="col">Operation</th>
-            <th scope="col">Amount</th>
-            <th scope="col">State</th>
-            <th scope="col">Created By</th>
-            <th scope="col">Delay Until</th>
-        </tr>
+            <tr>
+                <th scope="col">Order ID</th>
+                <th scope="col">Created</th>
+                <th scope="col">Content</th>
+                <th scope="col">Parameter</th>
+                <th scope="col">Event</th>
+            </tr>
         </thead>
         <tbody>
         @foreach (var payout in Model.Item.ExchangeOrderLogs)

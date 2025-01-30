@@ -90,6 +90,25 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
 
+    // IndexLogs
+    // TODO: Switch to HTTPPOST
+    [HttpGet("SwitchState")]
+    public async Task<IActionResult> SwitchState(Guid id, DbExchangeOrder.States state)
+    {
+        var db = pluginDbContextFactory.CreateContext();
+
+        var order = db.ExchangeOrders.Single(a => a.Id == id);
+        order.State = state;
+        await db.SaveChangesAsync();
+
+        TempData[WellKnownTempData.SuccessMessage] =
+            $"State of Exchange Order {id} has been updated to {state}";
+
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+    
+    
+    // TODO: Switch to HTTPPOST
     [HttpGet("AddDelay")]
     public async Task<IActionResult> AddDelay(Guid id)
     {
@@ -105,6 +124,7 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
 
+    // TODO: Switch to HTTPPOST
     [HttpGet("ForceConversion")]
     public async Task<IActionResult> ForceConversion(Guid id)
     {
@@ -126,6 +146,7 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
 
+    // TODO: Switch to HTTPPOST
     [HttpGet("RunHeartbeatNow")]
     public async Task<IActionResult> RunHeartbeatNow()
     {
@@ -144,7 +165,8 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
     
-
+    //
+    
     [HttpGet("create")]
     public IActionResult Create()
     {
