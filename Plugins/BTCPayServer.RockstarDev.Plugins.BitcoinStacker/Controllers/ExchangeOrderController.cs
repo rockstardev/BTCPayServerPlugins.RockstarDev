@@ -14,6 +14,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Strike.Client;
+using Strike.Client.Balances;
+using Strike.Client.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Controllers;
 
@@ -38,8 +41,14 @@ public class ExchangeOrderController(
             .ToList();
         var viewModel = new IndexViewModel { List = list };
         
-        // TODO: Have the BTC balance on Strike in the database ready to fetch
-        // viewModel.BitcoinBalance = "6.15";
+        // Have the BTC balance on Strike in the database ready to fetch
+        var balances = db.Settings.SingleOrDefault(a=>a.StoreId == StoreId && a.Key == DbSettingKeys.StrikeBalances.ToString());
+        if (balances != null)
+        {
+            var balancesViewModel = JsonConvert.DeserializeObject<ResponseCollection<Balance>>(balances.Value);
+            viewModel.BTCBalance = balancesViewModel.FirstOrDefault(a => a.Currency == Currency.Btc)?.Total.ToString("N8");
+            viewModel.USDBalance = balancesViewModel.FirstOrDefault(a => a.Currency == Currency.Usd)?.Total.ToString("N2");
+        }
         
         return View(viewModel);
     }
@@ -230,24 +239,8 @@ public class ExchangeOrderController(
         }
 
         await using var db = pluginDbContextFactory.CreateContext();
-        var dbSetting = await db.Settings.FirstOrDefaultAsync(a =>
-            a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
-        if (dbSetting != null)
-        {
-            dbSetting.Value = JsonConvert.SerializeObject(model);
-        }
-        else
-        {
-            // Add a new setting since it does not exist
-            var newSetting = new DbSetting
-            {
-                Key = DbSettingKeys.ExchangeOrderSettings.ToString(),
-                StoreId = StoreId,
-                Value = JsonConvert.SerializeObject(model)
-            };
-            db.Settings.Add(newSetting);
-        }
-
+        var _ = db.AddOrUpdateSetting(StoreId, DbSettingKeys.ExchangeOrderSettings, model);
+        
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Index), new { StoreId });
     }

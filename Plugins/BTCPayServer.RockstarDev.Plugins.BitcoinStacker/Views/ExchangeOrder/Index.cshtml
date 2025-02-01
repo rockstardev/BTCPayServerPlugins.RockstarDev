@@ -35,10 +35,10 @@
 
 <partial name="_StatusMessage" />
 
-@if (Model.BitcoinBalance != null)
+@if (Model.BTCBalance != null && Model.USDBalance != null)
 {
-    <div>Bitcoin Balance: <b>@Model.BitcoinBalance</b> BTC
-        <a href="#">Withdraw</a>
+    <div>Balances: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD
+        @* <a href="#">Withdraw</a> *@
     </div>
 }
 

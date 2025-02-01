@@ -84,152 +84,173 @@ public class ExchangeOrderHeartbeatService(
     {
         if (evt is PeriodProcessEvent ppe)
         {
-            _lastRunForStore[ppe.StoreId] = DateTimeOffset.UtcNow;
-            
-            Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Executing");
-            await using var db = strikeDbContextFactory.CreateContext();
+            await PeriodProcessEventWork(ppe, cancellationToken);
+        }
+    }
 
-            var lastOrder = db.ExchangeOrders
-                .Where(a => a.StoreId == ppe.StoreId && a.Operation == DbExchangeOrder.Operations.BuyBitcoin
-                                                     && a.CreatedBy ==
-                                                     DbExchangeOrder.CreateByTypes.Automatic.ToString())
-                .OrderByDescending(a => a.CreatedForDate)
-                .FirstOrDefault();
+    private async Task PeriodProcessEventWork(PeriodProcessEvent ppe, CancellationToken cancellationToken)
+    {
+        _lastRunForStore[ppe.StoreId] = DateTimeOffset.UtcNow;
 
-            var settings = ppe.Setting;
+        Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Executing");
+        await using var db = strikeDbContextFactory.CreateContext();
 
-            DateTimeOffset dateToFetch = lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
+        var lastOrder = db.ExchangeOrders
+            .Where(a => a.StoreId == ppe.StoreId && a.Operation == DbExchangeOrder.Operations.BuyBitcoin
+                                                 && a.CreatedBy ==
+                                                 DbExchangeOrder.CreateByTypes.Automatic.ToString())
+            .OrderByDescending(a => a.CreatedForDate)
+            .FirstOrDefault();
 
-            // create list of orders to execute from payouts
-            var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
-            payouts = payouts.OrderBy(a=>a.Created).ToList();
-            foreach (var payout in payouts)
+        var settings = ppe.Setting;
+
+        DateTimeOffset dateToFetch =
+            lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
+
+        // create list of orders to execute from payouts
+        var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
+        payouts = payouts.OrderBy(a => a.Created).ToList();
+        foreach (var payout in payouts)
+        {
+            if (payout.Status != "paid")
+                continue; // only process paid payouts
+
+            DateTimeOffset? delayUntil = null;
+            var delay = settings.DelayOrderDays ?? 365;
+            if (delay > 0)
+                delayUntil = DateTimeOffset.UtcNow.AddDays(delay);
+
+            // Stripe uses cents
+            var amt = Math.Round(payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), 2);
+            var exchangeOrder = new DbExchangeOrder
             {
-                if (payout.Status != "paid")
-                    continue; // only process paid payouts
+                StoreId = ppe.StoreId,
+                Operation = DbExchangeOrder.Operations.BuyBitcoin,
+                Amount = amt,
+                Created = DateTimeOffset.UtcNow,
+                CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
+                CreatedForDate = payout.Created,
+                State = DbExchangeOrder.States.Created,
+                DelayUntil = delayUntil
+            };
+            db.ExchangeOrders.Add(exchangeOrder);
+        }
 
-                DateTimeOffset? delayUntil = null; 
-                var delay = settings.DelayOrderDays ?? 365;
-                if (delay > 0)
-                    delayUntil = DateTimeOffset.UtcNow.AddDays(delay);
-                
-                // Stripe uses cents
-                var amt = Math.Round(payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), 2);
-                var exchangeOrder = new DbExchangeOrder
-                {
-                    StoreId = ppe.StoreId,
-                    Operation = DbExchangeOrder.Operations.BuyBitcoin,
-                    Amount = amt, 
-                    Created = DateTimeOffset.UtcNow,
-                    CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
-                    CreatedForDate = payout.Created,
-                    State = DbExchangeOrder.States.Created,
-                    DelayUntil = delayUntil
-                };
-                db.ExchangeOrders.Add(exchangeOrder);
-            }
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (String.IsNullOrEmpty(settings.StrikeApiKey))
+            return;
+
+        // get the list of orders in created mode and initiate deposits
+        var orders = db.ExchangeOrders
+            .Where(a => a.StoreId == ppe.StoreId && a.Operation == DbExchangeOrder.Operations.BuyBitcoin
+                                                 && a.State == DbExchangeOrder.States.Created
+                                                 && (a.DelayUntil == null || a.DelayUntil < DateTimeOffset.UtcNow))
+            .OrderBy(a => a.CreatedForDate)
+            .ThenBy(a => a.Created)
+            .ToList();
+        Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders",
+            orders.Count);
+
+        var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
+
+        foreach (var order in orders)
+        {
+            var balanceResp = await strikeClient.Balances.GetBalances();
+            var usdBalance = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
+
+            var req = new DepositReq
+            {
+                PaymentMethodId = settings.StrikePaymentMethodId,
+                Amount = order.Amount.ToString(CultureInfo.InvariantCulture),
+                Fee = FeePolicy.Exclusive
+            };
+            db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, req);
             await db.SaveChangesAsync(cancellationToken);
 
-            if (String.IsNullOrEmpty(settings.StrikeApiKey))
-                return;
-            
-            // get the list of orders in created mode and initiate deposits
-            var orders = db.ExchangeOrders
-                .Where(a => a.StoreId == ppe.StoreId && a.Operation == DbExchangeOrder.Operations.BuyBitcoin
-                             && a.State == DbExchangeOrder.States.Created
-                             && (a.DelayUntil == null || a.DelayUntil < DateTimeOffset.UtcNow))
-                .OrderBy(a => a.CreatedForDate)
-                .ThenBy(a=> a.Created)
-                .ToList();
-            Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders", orders.Count);
-            
-            var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
-
-            foreach (var order in orders)
+            var resp = await strikeClient.Deposits.Create(req);
+            if (resp.IsSuccessStatusCode)
             {
-                var balanceResp = await strikeClient.Balances.GetBalances();
-                var usdBalance = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
-                
-                var req = new DepositReq
-                {
-                    PaymentMethodId = settings.StrikePaymentMethodId,
-                    Amount = order.Amount.ToString(CultureInfo.InvariantCulture),
-                    Fee = FeePolicy.Exclusive
-                };
-                db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.CreatingDeposit, req);
-                await db.SaveChangesAsync(cancellationToken);
-                
-                var resp = await strikeClient.Deposits.Create(req);
-                if (resp.IsSuccessStatusCode)
-                {
-                    order.State = DbExchangeOrder.States.DepositWaiting;
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.DepositCreated, resp, resp.Id.ToString());
-                }
-                else
-                {
-                    order.State = DbExchangeOrder.States.Error;
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
-                }
-                await db.SaveChangesAsync(cancellationToken);
-                
-                // check balance and if it increased execute purchase immediately
-                await Task.Delay(5000, cancellationToken).WaitAsync(cancellationToken);
-
-                balanceResp = await strikeClient.Balances.GetBalances();
-                var usdBalanceAfter = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
-                
-                if (usdBalanceAfter - usdBalance >= order.Amount)
-                {
-                    Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
-                    await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
-                }
+                order.State = DbExchangeOrder.States.DepositWaiting;
+                db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.DepositCreated, resp, resp.Id.ToString());
             }
-            
-            // 
-            var waitingOrders = db.ExchangeOrders
-                .Include(order => 
-                    order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
-                .Where(order => order.StoreId == ppe.StoreId 
-                                && order.State == DbExchangeOrder.States.DepositWaiting
-                                && (order.DelayUntil == null || order.DelayUntil < DateTimeOffset.UtcNow))
-                .OrderBy(a => a.CreatedForDate)
-                .ThenBy(a=> a.Created)
-                .ToList();
-            Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: {0} orders waiting on deposit on Strike", waitingOrders.Count);
-            
-            foreach (var order in waitingOrders)
+            else
             {
-                var depositingId = Guid.Parse(order.ExchangeOrderLogs.First().Parameter);
-                var resp = await strikeClient.Deposits.FindDeposit(depositingId);
-
-                if (!resp.IsSuccessStatusCode)
-                {
-                    order.State = DbExchangeOrder.States.Error;
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
-                    
-                    // exiting the loop
-                    continue;
-                }
-                    
-                if (resp.State == DepositState.Completed)
-                {
-                    Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing", order.Id);
-                    await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
-                }
-                else if (resp.State == DepositState.Pending)
-                {
-                    // Do nothing
-                }
-                else
-                {
-                    // Failed and Reversed deposits will also end up here
-                    
-                    // TODO: If deposit failed, initiate it again
-                    
-                    order.State = DbExchangeOrder.States.Error;
-                    db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
-                }
+                order.State = DbExchangeOrder.States.Error;
+                db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
             }
+
+            await db.SaveChangesAsync(cancellationToken);
+
+            // check balance and if it increased execute purchase immediately
+            await Task.Delay(5000, cancellationToken).WaitAsync(cancellationToken);
+
+            balanceResp = await strikeClient.Balances.GetBalances();
+            var usdBalanceAfter = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
+
+            if (usdBalanceAfter - usdBalance >= order.Amount)
+            {
+                Logs.PayServer.LogInformation(
+                    "ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing",
+                    order.Id);
+                await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
+            }
+        }
+
+        // 
+        var waitingOrders = db.ExchangeOrders
+            .Include(order =>
+                order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
+            .Where(order => order.StoreId == ppe.StoreId
+                            && order.State == DbExchangeOrder.States.DepositWaiting
+                            && (order.DelayUntil == null || order.DelayUntil < DateTimeOffset.UtcNow))
+            .OrderBy(a => a.CreatedForDate)
+            .ThenBy(a => a.Created)
+            .ToList();
+        Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: {0} orders waiting on deposit on Strike",
+            waitingOrders.Count);
+
+        foreach (var order in waitingOrders)
+        {
+            var depositingId = Guid.Parse(order.ExchangeOrderLogs.First().Parameter);
+            var resp = await strikeClient.Deposits.FindDeposit(depositingId);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                order.State = DbExchangeOrder.States.Error;
+                db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+
+                // exiting the loop
+                continue;
+            }
+
+            if (resp.State == DepositState.Completed)
+            {
+                Logs.PayServer.LogInformation(
+                    "ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing",
+                    order.Id);
+                await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
+            }
+            else if (resp.State == DepositState.Pending)
+            {
+                // Do nothing
+            }
+            else
+            {
+                // Failed and Reversed deposits will also end up here
+
+                // TODO: If deposit failed, initiate it again
+
+                order.State = DbExchangeOrder.States.Error;
+                db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+            }
+        }
+        
+        var strikeBalances = await strikeClient.Balances.GetBalances();
+        if (strikeBalances.IsSuccessStatusCode)
+        {
+            db.AddOrUpdateSetting(ppe.StoreId, DbSettingKeys.StrikeBalances, strikeBalances);
+            await db.SaveChangesAsync(cancellationToken);
         }
     }
 

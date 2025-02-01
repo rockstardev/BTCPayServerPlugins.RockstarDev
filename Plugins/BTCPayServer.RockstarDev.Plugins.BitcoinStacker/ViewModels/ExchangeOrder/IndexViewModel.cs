@@ -6,5 +6,6 @@ namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrd
 public class IndexViewModel
 {
     public List<DbExchangeOrder> List { get; set; }
-    public string BitcoinBalance { get; set; }
+    public string BTCBalance { get; set; }
+    public string USDBalance { get; set; }
 }

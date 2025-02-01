@@ -2,6 +2,8 @@
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Strike.Client;
+using Strike.Client.Balances;
 using Strike.Client.Deposits;
 
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
@@ -36,5 +38,31 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
             Parameter = parameter
         };
         ExchangeOrderLogs.Add(log);
+    }
+
+    public DbSetting AddOrUpdateSetting(string storeId, DbSettingKeys key, object modelToSave)
+    {
+        var setting = Settings.Find(storeId, key);
+        if (setting == null)
+        {
+            setting = new DbSetting
+            {
+                StoreId = storeId,
+                Key = key.ToString(),
+                Value = JsonConvert.SerializeObject(modelToSave)
+            };
+            Settings.Add(setting);
+        }
+        else
+        {
+            setting.Value = JsonConvert.SerializeObject(modelToSave);
+        }
+
+        return setting;
+    }
+    
+    public DbSetting FetchSetting(string storeId, DbSettingKeys key)
+    {
+        return Settings.Find(storeId, key.ToString());
     }
 }
