@@ -42,7 +42,7 @@ public class ExchangeOrderController(
         var viewModel = new IndexViewModel { List = list };
         
         // Have the BTC balance on Strike in the database ready to fetch
-        var balances = db.Settings.SingleOrDefault(a=>a.StoreId == StoreId && a.Key == DbSettingKeys.StrikeBalances.ToString());
+        var balances = db.FetchSetting(StoreId, DbSettingKeys.StrikeBalances);
         if (balances != null)
         {
             var balancesViewModel = JsonConvert.DeserializeObject<ResponseCollection<Balance>>(balances.Value);
@@ -137,21 +137,20 @@ public class ExchangeOrderController(
     [HttpGet("ForceConversion")]
     public async Task<IActionResult> ForceConversion(Guid id)
     {
-        var db = pluginDbContextFactory.CreateContext();
+        await using var db = pluginDbContextFactory.CreateContext();
         var order = db.ExchangeOrders.Single(a => a.Id == id);
         
         // trimming to 2 decimal places
         order.Amount = Math.Truncate(order.Amount * 100) / 100;
-        
-        var store = db.Settings.Single(a=> a.StoreId == StoreId && 
-                                          a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+
+        var store = db.FetchSetting(StoreId, DbSettingKeys.ExchangeOrderSettings);
         var settings = SettingsViewModel.FromDbSettings(store);
+        
         var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
         await ExchangeOrderHeartbeatService.ExecuteConversionOrder(db, order, strikeClient, CancellationToken.None);
         await ExchangeOrderHeartbeatService.UpdateStrikeBalanceCache(db, order.StoreId, strikeClient, CancellationToken.None);
         
-        TempData[WellKnownTempData.SuccessMessage] =
-            $"Exchange Order {id} has been forced";
+        TempData[WellKnownTempData.SuccessMessage] = $"Exchange Order {id} has been forced";
 
         return RedirectToAction(nameof(Index), new { StoreId });
     }
@@ -160,9 +159,8 @@ public class ExchangeOrderController(
     [HttpGet("RunHeartbeatNow")]
     public async Task<IActionResult> RunHeartbeatNow()
     {
-        var db = pluginDbContextFactory.CreateContext();
-        var store = await db.Settings.SingleAsync(a=>a.StoreId == StoreId && 
-                                          a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+        await using var db = pluginDbContextFactory.CreateContext();
+        var store = db.FetchSetting(StoreId, DbSettingKeys.ExchangeOrderSettings);
         var settings = SettingsViewModel.FromDbSettings(store);
         
         eventAggregator.Publish(new ExchangeOrderHeartbeatService.PeriodProcessEvent
@@ -212,7 +210,7 @@ public class ExchangeOrderController(
     public async Task<IActionResult> Settings()
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        var dbSetting = await db.Settings.FirstOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
+        var dbSetting = db.FetchSetting(StoreId, DbSettingKeys.ExchangeOrderSettings);
 
         var viewModel = SettingsViewModel.FromDbSettings(dbSetting);
         return View(viewModel);

@@ -72,12 +72,6 @@ public class ExchangeOrderHeartbeatService(
         public SettingsViewModel Setting { get; set; }
     }
 
-    public override Task StartAsync(CancellationToken cancellationToken)
-    {
-        return base.StartAsync(cancellationToken);
-    }
-
-
     public static readonly DateTimeOffset DELAY_UNTIL = new(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset);
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
