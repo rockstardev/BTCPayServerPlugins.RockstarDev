@@ -108,35 +108,38 @@ public class ExchangeOrderHeartbeatService(
             lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
 
         // create list of orders to execute from payouts
-        var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
-        payouts = payouts.OrderBy(a => a.Created).ToList();
-        foreach (var payout in payouts)
+        if (!String.IsNullOrEmpty(settings.StripeApiKey))
         {
-            if (payout.Status != "paid")
-                continue; // only process paid payouts
-
-            DateTimeOffset? delayUntil = null;
-            var delay = settings.DelayOrderDays ?? 365;
-            if (delay > 0)
-                delayUntil = DateTimeOffset.UtcNow.AddDays(delay);
-
-            // Stripe uses cents
-            var amt = Math.Round(payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), 2);
-            var exchangeOrder = new DbExchangeOrder
+            var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
+            payouts = payouts.OrderBy(a => a.Created).ToList();
+            foreach (var payout in payouts)
             {
-                StoreId = ppe.StoreId,
-                Operation = DbExchangeOrder.Operations.BuyBitcoin,
-                Amount = amt,
-                Created = DateTimeOffset.UtcNow,
-                CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
-                CreatedForDate = payout.Created,
-                State = DbExchangeOrder.States.Created,
-                DelayUntil = delayUntil
-            };
-            db.ExchangeOrders.Add(exchangeOrder);
-        }
+                if (payout.Status != "paid")
+                    continue; // only process paid payouts
 
-        await db.SaveChangesAsync(cancellationToken);
+                DateTimeOffset? delayUntil = null;
+                var delay = settings.DelayOrderDays ?? 365;
+                if (delay > 0)
+                    delayUntil = DateTimeOffset.UtcNow.AddDays(delay);
+
+                // Stripe uses cents
+                var amt = Math.Round(payout.Amount / 100.0m * (settings.PercentageOfPayouts / 100), 2);
+                var exchangeOrder = new DbExchangeOrder
+                {
+                    StoreId = ppe.StoreId,
+                    Operation = DbExchangeOrder.Operations.BuyBitcoin,
+                    Amount = amt,
+                    Created = DateTimeOffset.UtcNow,
+                    CreatedBy = DbExchangeOrder.CreateByTypes.Automatic.ToString(),
+                    CreatedForDate = payout.Created,
+                    State = DbExchangeOrder.States.Created,
+                    DelayUntil = delayUntil
+                };
+                db.ExchangeOrders.Add(exchangeOrder);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         if (String.IsNullOrEmpty(settings.StrikeApiKey))
             return;
@@ -193,7 +196,7 @@ public class ExchangeOrderHeartbeatService(
                 Logs.PayServer.LogInformation(
                     "ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing",
                     order.Id);
-                await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
+                await ExecuteConversionOrder(db, order, strikeClient, cancellationToken);
             }
         }
 
@@ -229,7 +232,7 @@ public class ExchangeOrderHeartbeatService(
                 Logs.PayServer.LogInformation(
                     "ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing",
                     order.Id);
-                await ExecuteConversionOrder(cancellationToken, order, db, strikeClient);
+                await ExecuteConversionOrder(db, order, strikeClient, cancellationToken);
             }
             else if (resp.State == DepositState.Pending)
             {
@@ -246,16 +249,22 @@ public class ExchangeOrderHeartbeatService(
             }
         }
         
+        await UpdateStrikeBalanceCache(db, ppe.StoreId, strikeClient, cancellationToken);
+    }
+
+    public static async Task UpdateStrikeBalanceCache(PluginDbContext db, string storeId, StrikeClient strikeClient, 
+        CancellationToken cancellationToken)
+    {
         var strikeBalances = await strikeClient.Balances.GetBalances();
         if (strikeBalances.IsSuccessStatusCode)
         {
-            db.AddOrUpdateSetting(ppe.StoreId, DbSettingKeys.StrikeBalances, strikeBalances);
+            db.AddOrUpdateSetting(storeId, DbSettingKeys.StrikeBalances, strikeBalances);
             await db.SaveChangesAsync(cancellationToken);
         }
     }
 
-    public static async Task ExecuteConversionOrder(CancellationToken cancellationToken, DbExchangeOrder order,
-        PluginDbContext db, StrikeClient strikeClient)
+    public static async Task ExecuteConversionOrder(PluginDbContext db, DbExchangeOrder order,
+         StrikeClient strikeClient, CancellationToken cancellationToken)
     {
         var req = new CurrencyExchangeQuoteReq
         {

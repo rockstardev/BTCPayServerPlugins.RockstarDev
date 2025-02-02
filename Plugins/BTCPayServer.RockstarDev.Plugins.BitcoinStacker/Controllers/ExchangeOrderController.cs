@@ -147,7 +147,8 @@ public class ExchangeOrderController(
                                           a.Key == DbSettingKeys.ExchangeOrderSettings.ToString());
         var settings = SettingsViewModel.FromDbSettings(store);
         var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
-        await ExchangeOrderHeartbeatService.ExecuteConversionOrder(CancellationToken.None, order, db, strikeClient);
+        await ExchangeOrderHeartbeatService.ExecuteConversionOrder(db, order, strikeClient, CancellationToken.None);
+        await ExchangeOrderHeartbeatService.UpdateStrikeBalanceCache(db, order.StoreId, strikeClient, CancellationToken.None);
         
         TempData[WellKnownTempData.SuccessMessage] =
             $"Exchange Order {id} has been forced";
