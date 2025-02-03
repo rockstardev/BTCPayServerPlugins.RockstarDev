@@ -252,7 +252,7 @@ public class ExchangeOrderHeartbeatService(
         var strikeBalances = await strikeClient.Balances.GetBalances();
         if (strikeBalances.IsSuccessStatusCode)
         {
-            db.AddOrUpdateSetting(storeId, DbSettingKeys.StrikeBalances, strikeBalances);
+            db.SettingAddOrUpdate(storeId, DbSettingKeys.StrikeBalances, strikeBalances);
             await db.SaveChangesAsync(cancellationToken);
         }
     }

@@ -42,7 +42,7 @@ public class ExchangeOrderController(
         var viewModel = new IndexViewModel { List = list };
         
         // Have the BTC balance on Strike in the database ready to fetch
-        var balances = db.FetchSetting(StoreId, DbSettingKeys.StrikeBalances);
+        var balances = db.SettingFetch(StoreId, DbSettingKeys.StrikeBalances);
         if (balances != null)
         {
             var balancesViewModel = JsonConvert.DeserializeObject<ResponseCollection<Balance>>(balances.Value);
@@ -143,7 +143,7 @@ public class ExchangeOrderController(
         // trimming to 2 decimal places
         order.Amount = Math.Truncate(order.Amount * 100) / 100;
 
-        var store = db.FetchSetting(StoreId, DbSettingKeys.ExchangeOrderSettings);
+        var store = db.SettingFetch(StoreId, DbSettingKeys.ExchangeOrderSettings);
         var settings = SettingsViewModel.FromDbSettings(store);
         
         var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
@@ -160,7 +160,7 @@ public class ExchangeOrderController(
     public async Task<IActionResult> RunHeartbeatNow()
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        var store = db.FetchSetting(StoreId, DbSettingKeys.ExchangeOrderSettings);
+        var store = db.SettingFetch(StoreId, DbSettingKeys.ExchangeOrderSettings);
         var settings = SettingsViewModel.FromDbSettings(store);
         
         eventAggregator.Publish(new ExchangeOrderHeartbeatService.PeriodProcessEvent
@@ -210,7 +210,7 @@ public class ExchangeOrderController(
     public async Task<IActionResult> Settings()
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        var dbSetting = db.FetchSetting(StoreId, DbSettingKeys.ExchangeOrderSettings);
+        var dbSetting = db.SettingFetch(StoreId, DbSettingKeys.ExchangeOrderSettings);
 
         var viewModel = SettingsViewModel.FromDbSettings(dbSetting);
         return View(viewModel);
@@ -238,7 +238,7 @@ public class ExchangeOrderController(
         }
 
         await using var db = pluginDbContextFactory.CreateContext();
-        var _ = db.AddOrUpdateSetting(StoreId, DbSettingKeys.ExchangeOrderSettings, model);
+        var _ = db.SettingAddOrUpdate(StoreId, DbSettingKeys.ExchangeOrderSettings, model);
         
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Index), new { StoreId });

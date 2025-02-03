@@ -40,7 +40,7 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
         ExchangeOrderLogs.Add(log);
     }
 
-    public DbSetting AddOrUpdateSetting(string storeId, DbSettingKeys key, object modelToSave)
+    public DbSetting SettingAddOrUpdate(string storeId, DbSettingKeys key, object modelToSave)
     {
         var setting = Settings.Find(storeId, key);
         if (setting == null)
@@ -61,7 +61,7 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
         return setting;
     }
     
-    public DbSetting FetchSetting(string storeId, DbSettingKeys key)
+    public DbSetting SettingFetch(string storeId, DbSettingKeys key)
     {
         return Settings.Find(storeId, key.ToString());
     }
