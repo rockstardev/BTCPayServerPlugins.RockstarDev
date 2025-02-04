@@ -9,13 +9,14 @@ using MimeKit;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class EmailService(SettingsRepository settingsRepository, Logs logs)
+public class EmailService(EmailSenderFactory emailSender, Logs logs)
 {
     public async Task SendEmail(IEnumerable<InternetAddress> toList, string subject, string messageText)
     {
-        var settings = await settingsRepository.GetSettingAsync<EmailSettings>();
+        var settings = await (await emailSender.GetEmailSender()).GetEmailSettings();
         if (!settings.IsComplete())
             return;
+        
         var client = await settings.CreateSmtpClient();
         var message = new MimeMessage();
         message.From.Add(MailboxAddress.Parse(settings.From));
@@ -28,9 +29,10 @@ public class EmailService(SettingsRepository settingsRepository, Logs logs)
 
     public async Task SendBulkEmail(IEnumerable<EmailRecipient> recipients)
     {
-        var settings = await settingsRepository.GetSettingAsync<EmailSettings>();
+        var settings = await (await emailSender.GetEmailSender()).GetEmailSettings();
         if (!settings.IsComplete())
             return;
+        
         var client = await settings.CreateSmtpClient();
         try
         {
