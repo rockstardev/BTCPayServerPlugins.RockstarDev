@@ -28,6 +28,7 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Configuration;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using Microsoft.Extensions.Options;
 using BTCPayServer.Services.Invoices;
@@ -49,7 +50,8 @@ public class PayrollInvoiceController(
     HttpClient httpClient,
     BTCPayWalletProvider walletProvider,
     WalletRepository walletRepository,
-    LabelService labelService)
+    LabelService labelService,
+    EmailService emailService)
     : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
@@ -121,6 +123,15 @@ public class PayrollInvoiceController(
 
         switch (command)
         {
+            case "emailconfirmation":
+                await emailService.SendSuccessfulInvoicePaymentEmail(invoices);
+                TempData.SetStatusMessageModel(new StatusMessageModel()
+                {
+                    Message = $"Email Notifications executed on selected invoices per existing settings",
+                    Severity = StatusMessageModel.StatusSeverity.Success
+                });
+                break;
+            
             case "payinvoices":
                 return await payInvoices(selectedItems);
 

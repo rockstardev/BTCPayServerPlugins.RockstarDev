@@ -19,7 +19,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
 public class VendorPayPaidHostedService(
     EmailService emailService,
-    StoreRepository _storeRepo,
     EventAggregator eventAggregator,
     PaymentMethodHandlerDictionary handlers,
     PayrollPluginDbContextFactory pluginDbContextFactory,
@@ -85,46 +84,9 @@ public class VendorPayPaidHostedService(
                     }
 
                     await dbPlugin.SaveChangesAsync(cancellationToken);
-                    await SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == PayrollInvoiceState.Completed).ToList());
+                    await emailService.SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == PayrollInvoiceState.Completed).ToList());
                     break;
                 }
-        }
-    }
-
-    private async Task SendSuccessfulInvoicePaymentEmail(List<PayrollInvoice> invoices)
-    {
-        if (!invoices.Any())
-            return;
-
-        var invoicesByStore = invoices.GroupBy(i => i.User.StoreId);
-        var emailRecipients = new List<EmailRecipient>();
-
-        foreach (var storeGroup in invoicesByStore)
-        {
-            var setting = await pluginDbContextFactory.GetSettingAsync(storeGroup.Key);
-            if (setting?.EmailOnInvoicePaid != true)
-                continue;
-
-            foreach (var invoice in storeGroup)
-            {
-                var storeName = (await _storeRepo.FindStore(invoice.User.StoreId))?.StoreName;
-                emailRecipients.Add(new EmailRecipient
-                {
-                    Address = InternetAddress.Parse(invoice.User.Email),
-                    Subject = setting.EmailOnInvoicePaidSubject,
-                    MessageText = setting.EmailOnInvoicePaidBody
-                        .Replace("{Name}", invoice.User.Name)
-                        .Replace("{StoreName}", storeName)
-                        .Replace("{CreatedAt}", invoice.CreatedAt.ToString("MMM dd, yyyy h:mm tt zzz"))
-                        .Replace("{PaidAt}", invoice.PaidAt?.ToString("MMM dd, yyyy h:mm tt zzz"))
-                        .Replace("{VendorPayPublicLink}", $"{setting.VendorPayPublicLink}")
-                });
-            }
-        }
-
-        if (emailRecipients.Any())
-        {
-            await emailService.SendBulkEmail(emailRecipients);
         }
     }
 }

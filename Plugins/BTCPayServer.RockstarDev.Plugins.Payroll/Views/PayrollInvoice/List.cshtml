@@ -98,6 +98,10 @@
                                     selected
                                 </div>
                                 <div class="d-inline-flex align-items-center gap-3">
+                                    <button type="submit" name="command" value="emailconfirmation" id="emailconfirmation" class="btn btn-link">
+                                        <vc:icon symbol="actions-email" />
+                                        Email Confirmation
+                                    </button>
                                     <button type="submit" name="command" value="payinvoices" id="payinvoices" class="btn btn-link">
                                         <vc:icon symbol="actions-send" />
                                         Pay Invoices
@@ -245,18 +249,21 @@
             }
 
             function toggleButtons() {
+                const emailConfirmation = document.getElementById('emailconfirmation') instanceof HTMLElement;
                 const markPaidButton = document.getElementById('markpaid') instanceof HTMLElement;
                 const payInvoicesButton = document.getElementById('payinvoices') instanceof HTMLElement;
                 const downloadButton = document.getElementById('download') instanceof HTMLElement;
                 const exportInvoicesButton = document.getElementById('export') instanceof HTMLElement;
 
                 const allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
-                if (allCheckedItems.length > 0) {                
+                if (allCheckedItems.length > 0) {
+                    emailConfirmation.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
                     markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
                     payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
                     downloadButton.style.display = 'inline-block';
                     exportInvoicesButton.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
                 } else {
+                    emailConfirmation.style.display = 'none';
                     markPaidButton.style.display = 'none';
                     payInvoicesButton.style.display = 'none';
                     downloadButton.style.display = 'none';
