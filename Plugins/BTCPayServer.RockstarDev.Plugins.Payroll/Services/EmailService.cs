@@ -16,9 +16,9 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 public class EmailService(EmailSenderFactory emailSender, Logs logs, 
     StoreRepository storeRepo, PayrollPluginDbContextFactory pluginDbContextFactory)
 {
-    public async Task SendBulkEmail(IEnumerable<EmailRecipient> recipients)
+    private async Task SendBulkEmail(string storeId, IEnumerable<EmailRecipient> recipients)
     {
-        var settings = await (await emailSender.GetEmailSender()).GetEmailSettings();
+        var settings = await (await emailSender.GetEmailSender(storeId)).GetEmailSettings();
         if (!settings.IsComplete())
             return;
         
@@ -54,17 +54,19 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
             return;
 
         var invoicesByStore = invoices.GroupBy(i => i.User.StoreId);
-        var emailRecipients = new List<EmailRecipient>();
 
         foreach (var storeGroup in invoicesByStore)
         {
+            var emailRecipients = new List<EmailRecipient>();
+            
             var setting = await pluginDbContextFactory.GetSettingAsync(storeGroup.Key);
             if (setting?.EmailOnInvoicePaid != true)
                 continue;
+            
+            var storeName = (await storeRepo.FindStore(storeGroup.Key))?.StoreName;
 
             foreach (var invoice in storeGroup)
             {
-                var storeName = (await storeRepo.FindStore(invoice.User.StoreId))?.StoreName;
                 emailRecipients.Add(new EmailRecipient
                 {
                     Address = InternetAddress.Parse(invoice.User.Email),
@@ -77,11 +79,11 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
                         .Replace("{VendorPayPublicLink}", $"{setting.VendorPayPublicLink}")
                 });
             }
-        }
 
-        if (emailRecipients.Any())
-        {
-            await SendBulkEmail(emailRecipients);
+            if (emailRecipients.Any())
+            {
+                await SendBulkEmail(storeGroup.Key, emailRecipients);
+            }
         }
     }
 
