@@ -11,7 +11,6 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using Strike.Client;
 using Strike.Client.CurrencyExchanges;
@@ -27,14 +26,11 @@ public class ExchangeOrderHeartbeatService(
     StrikeClientFactory strikeClientFactory,
     StripeClientFactory stripeClientFactory) : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {
-    private Dictionary<string, DateTimeOffset> _lastRunForStore = new();
-    protected override void SubscribeToEvents()
-    {
-        Subscribe<PeriodProcessEvent>();
-        base.SubscribeToEvents();
-    }
+    public static readonly DateTimeOffset DELAY_UNTIL = new(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset);
+    private readonly Dictionary<string, DateTimeOffset> _lastRunForStore = new();
 
     private bool _isItFirstRun = true;
+
     public Task Do(CancellationToken cancellationToken)
     {
         if (_isItFirstRun)
@@ -44,42 +40,34 @@ public class ExchangeOrderHeartbeatService(
         }
 
         using var db = strikeDbContextFactory.CreateContext();
-        var stores = db.Settings.Where(a=>a.Key == DbSettingKeys.ExchangeOrderSettings.ToString()).ToList();
+        var stores = db.Settings.Where(a => a.Key == DbSettingKeys.ExchangeOrderSettings.ToString()).ToList();
         foreach (var store in stores)
         {
-            if (!_lastRunForStore.TryGetValue(store.StoreId, out var lastRun))
-            {
-                lastRun = DateTimeOffset.MinValue;
-            }
+            if (!_lastRunForStore.TryGetValue(store.StoreId, out var lastRun)) lastRun = DateTimeOffset.MinValue;
 
             var setting = SettingsViewModel.FromDbSettings(store);
             if (!setting.AutoEnabled)
                 continue;
-            
+
             if (lastRun.AddMinutes(setting.MinutesHeartbeatInterval) < DateTimeOffset.UtcNow)
             {
                 _lastRunForStore[store.StoreId] = DateTimeOffset.UtcNow;
-                PushEvent(new PeriodProcessEvent { StoreId = store.StoreId, Setting = setting});
+                PushEvent(new PeriodProcessEvent { StoreId = store.StoreId, Setting = setting });
             }
         }
-        
+
         return Task.CompletedTask;
     }
 
-    public class PeriodProcessEvent
+    protected override void SubscribeToEvents()
     {
-        public string StoreId { get; set; }
-        public SettingsViewModel Setting { get; set; }
+        Subscribe<PeriodProcessEvent>();
+        base.SubscribeToEvents();
     }
-
-    public static readonly DateTimeOffset DELAY_UNTIL = new(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset);
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
     {
-        if (evt is PeriodProcessEvent ppe)
-        {
-            await PeriodProcessEventWork(ppe, cancellationToken);
-        }
+        if (evt is PeriodProcessEvent ppe) await PeriodProcessEventWork(ppe, cancellationToken);
     }
 
     private async Task PeriodProcessEventWork(PeriodProcessEvent ppe, CancellationToken cancellationToken)
@@ -98,11 +86,11 @@ public class ExchangeOrderHeartbeatService(
 
         var settings = ppe.Setting;
 
-        DateTimeOffset dateToFetch =
+        var dateToFetch =
             lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
 
         // create list of orders to execute from payouts
-        if (!String.IsNullOrEmpty(settings.StripeApiKey))
+        if (!string.IsNullOrEmpty(settings.StripeApiKey))
         {
             var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
             payouts = payouts.OrderBy(a => a.Created).ToList();
@@ -135,7 +123,7 @@ public class ExchangeOrderHeartbeatService(
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        if (String.IsNullOrEmpty(settings.StrikeApiKey))
+        if (string.IsNullOrEmpty(settings.StrikeApiKey))
             return;
 
         // get the list of orders in created mode and initiate deposits
@@ -242,11 +230,11 @@ public class ExchangeOrderHeartbeatService(
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
             }
         }
-        
+
         await UpdateStrikeBalanceCache(db, ppe.StoreId, strikeClient, cancellationToken);
     }
 
-    public static async Task UpdateStrikeBalanceCache(PluginDbContext db, string storeId, StrikeClient strikeClient, 
+    public static async Task UpdateStrikeBalanceCache(PluginDbContext db, string storeId, StrikeClient strikeClient,
         CancellationToken cancellationToken)
     {
         var strikeBalances = await strikeClient.Balances.GetBalances();
@@ -258,7 +246,7 @@ public class ExchangeOrderHeartbeatService(
     }
 
     public static async Task ExecuteConversionOrder(PluginDbContext db, DbExchangeOrder order,
-         StrikeClient strikeClient, CancellationToken cancellationToken)
+        StrikeClient strikeClient, CancellationToken cancellationToken)
     {
         var req = new CurrencyExchangeQuoteReq
         {
@@ -270,30 +258,36 @@ public class ExchangeOrderHeartbeatService(
         };
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, req);
         await db.SaveChangesAsync(cancellationToken);
-                    
+
         //
         var exchangeResp = await strikeClient.CurrencyExchanges.CreateQuote(req);
         if (!exchangeResp.IsSuccessStatusCode)
         {
             order.State = DbExchangeOrder.States.Error;
             db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, exchangeResp);
-                        
+
             // exiting the loop
             return;
         }
-                    
+
         var executeQuoteResp = await strikeClient.CurrencyExchanges.ExecuteQuote(exchangeResp.Id);
         if (!executeQuoteResp.IsSuccessStatusCode)
         {
             order.State = DbExchangeOrder.States.Error;
             db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, executeQuoteResp);
-                        
+
             // exiting the loop
             return;
         }
-        
+
         order.State = DbExchangeOrder.States.Completed;
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public class PeriodProcessEvent
+    {
+        public string StoreId { get; set; }
+        public SettingsViewModel Setting { get; set; }
     }
 }

@@ -5,7 +5,7 @@
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    var activeClass = @ViewData.ActivePageClass(BitcoinStackerPlugin.PluginNavKey);
+    var activeClass = ViewData.ActivePageClass(BitcoinStackerPlugin.PluginNavKey);
     var isActive = !string.IsNullOrWhiteSpace(activeClass);
 }
 @if (!string.IsNullOrEmpty(storeId))
@@ -15,8 +15,10 @@
            asp-controller="ExchangeOrder" asp-action="Index" asp-route-storeId="@storeId"
            class="nav-link @ViewData.ActivePageClass(BitcoinStackerPlugin.PluginNavKey, null, "Index")">
 
-            <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 1024 1024" fill="currentColor">
-                <path d="M512 0c-282.77 0-512 229.23-512 512s229.23 512 512 512 512-229.23 512-512S794.77 0 512 0zm0 944C287.39 944 80 736.61 80 512S287.39 80 512 80s432 207.39 432 432-207.39 432-432 432zm0-336c-53.02 0-96-42.98-96-96s42.98-96 96-96 96 42.98 96 96-42.98 96-96 96zm96-336H416V208c0-48.6 39.4-88 88-88h96c48.6 0 88 39.4 88 88v64zm-64 0V208c0-13.26-10.74-24-24-24h-96c-13.26 0-24 10.74-24 24v64h144z"/>
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 1024 1024"
+                 fill="currentColor">
+                <path
+                    d="M512 0c-282.77 0-512 229.23-512 512s229.23 512 512 512 512-229.23 512-512S794.77 0 512 0zm0 944C287.39 944 80 736.61 80 512S287.39 80 512 80s432 207.39 432 432-207.39 432-432 432zm0-336c-53.02 0-96-42.98-96-96s42.98-96 96-96 96 42.98 96 96-42.98 96-96 96zm96-336H416V208c0-48.6 39.4-88 88-88h96c48.6 0 88 39.4 88 88v64zm-64 0V208c0-13.26-10.74-24-24-24h-96c-13.26 0-24 10.74-24 24v64h144z"/>
             </svg>
 
             <span>Bitcoin Stacker</span>
