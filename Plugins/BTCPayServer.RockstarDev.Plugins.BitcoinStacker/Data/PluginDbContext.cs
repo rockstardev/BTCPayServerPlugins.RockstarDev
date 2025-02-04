@@ -42,7 +42,7 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
 
     public DbSetting SettingAddOrUpdate(string storeId, DbSettingKeys key, object modelToSave)
     {
-        var setting = Settings.Find(storeId, key);
+        var setting = Settings.Find(storeId, key.ToString());
         if (setting == null)
         {
             setting = new DbSetting
