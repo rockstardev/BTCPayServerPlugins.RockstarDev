@@ -286,8 +286,8 @@ public class PayrollUserController(
         if (user == null)
             return NotFound();
 
-        var userHasInvoice = ctx.PayrollInvoices.Any(a => a.UserId == user.Id);
-        if (userHasInvoice)
+        if (ctx.PayrollInvoices.Any(a => a.UserId == user.Id &&
+            (a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled)))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
@@ -297,7 +297,7 @@ public class PayrollUserController(
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        return View("Confirm", new ConfirmModel($"Delete user", $"The user: {user.Name} will be deleted. Are you sure?", "Delete"));
+        return View("Confirm", new ConfirmModel($"Delete user", $"The user: {user.Name} will be deleted alongside all its invoices. Are you sure?", "Delete"));
     }
 
 
@@ -311,9 +311,8 @@ public class PayrollUserController(
         var payrollUser = ctx.PayrollUsers
             .SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
-        var userHasInvoice = ctx.PayrollInvoices.Any(a =>
-        a.UserId == payrollUser.Id);
-        if (userHasInvoice)
+        var userInvoices = ctx.PayrollInvoices.AsNoTracking().Where(a => a.UserId == payrollUser.Id).ToList();
+        if (userInvoices.Any(a => a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
@@ -324,6 +323,7 @@ public class PayrollUserController(
         }
 
         ctx.Remove(payrollUser);
+        ctx.RemoveRange(userInvoices);
         await ctx.SaveChangesAsync();
 
         TempData.SetStatusMessageModel(new StatusMessageModel()
