@@ -35,7 +35,7 @@
                        asp-action="List"
                        asp-route-storeId="@storeId"
                        class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
-                       role="tab">@state</a>
+                       role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
                 }
                 @if (state == PayrollUserState.Pending)
                 {
@@ -44,19 +44,19 @@
                        asp-route-storeId="@storeId"
                        asp-route-pending="true"
                        class="nav-link @(Model.Pending ? "active" : "")"
-                       role="tab">@state</a>
+                       role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
                 }
             }
             <a id="all-view"
                asp-action="List"
-               asp-route-storeId="@storeId"
+               asp-route-storeId="@storeId"    
                asp-route-all="true"
                class="nav-link @(Model.All ? "active" : "")"
-               role="tab">All</a>
+               role="tab">All (@Model.AllPayrollUsers.Count)</a>
         </div>
     </nav>
 
-    @if (Model.PayrollUsers.Any())
+    @if (Model.DisplayedPayrollUsers.Any())
     {
         <div class="table-responsive-md">
             <table class="table table-hover">
@@ -69,7 +69,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var pp in Model.PayrollUsers)
+                    @foreach (var pp in Model.DisplayedPayrollUsers)
                     {
                         <tr class="mass-action-row">
                             <td>@pp.Name</td>
@@ -85,6 +85,7 @@
                                             <vc:icon symbol="dots" />
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
+
                                             @if (pp.State == PayrollUserState.Pending)
                                             {
                                                 <li>
@@ -94,18 +95,20 @@
                                             else
                                             {
                                                 <li>
-                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-userId="@pp.Id">Edit</a>
+                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Edit</a>
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item"
+                                                       asp-controller="PayrollUser"
                                                        asp-action="ToggleUserStatus"
                                                        asp-route-userId="@pp.Id"
+                                                       asp-route-storeId="@storeId"
                                                        asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
                                                         @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-userId="@pp.Id">Download all invoices</a>
+                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Download all invoices</a>
                                                 </li>
                                             }
                                             <li class="dropdown-divider"></li>
@@ -113,6 +116,7 @@
                                                 <a asp-controller="PayrollUser"
                                                    asp-action="Delete"
                                                    asp-route-userId="@pp.Id"
+                                                   asp-route-storeId="@storeId"
                                                    class="dropdown-item text-danger">
                                                     Delete
                                                 </a>
@@ -148,13 +152,9 @@
             {
                 <span>There are no users created yet. Why don't you create one?</span>
             }
-            else if (Model.Pending)
-            {
-                <span>No pending user invitations at the moment.</span>
-            }
             else
             {
-                <span>There are no Active users found.</span>
+                <span>There are no users found</span>
             }
         </p>
     }

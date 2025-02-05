@@ -1,30 +1,31 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using System.Text.Json.Serialization;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 public class PayrollUserListViewModel
 {
-    public List<PayrollUser> PayrollUsers { get; set; }
-    public bool All { get; set; }
+    public List<Data.Models.PayrollUser> DisplayedPayrollUsers { get; set; }
+    public List<Data.Models.PayrollUser> AllPayrollUsers { get; set; }
     public bool Pending { get; set; }
+    public bool All { get; set; }
 }
 
 public class PayrollUserCreateViewModel
 {
     public string Id { get; set; }
+
     [MaxLength(50)]
     [Required]
-
     public string Name { get; set; }
 
     [Required]
     [EmailAddress]
     public string Email { get; set; }
-    
+    public bool EmailInviteForUsers { get; set; }
+
     [MinLength(6)]
-    [Display(Name = "Password (leave blank to generate invite-link)")]
     [DataType(DataType.Password)]
     public string Password { get; set; }
 
@@ -32,6 +33,8 @@ public class PayrollUserCreateViewModel
     [Display(Name = "Confirm Password")]
     [Compare("Password", ErrorMessage = "Password fields don't match")]
     public string ConfirmPassword { get; set; }
+    [JsonIgnore]
+    public string StoreId { get; set; }
 }
 
 public class PayrollUserResetPasswordViewModel
@@ -70,7 +73,11 @@ public class AcceptInvitationRequestViewModel : BasePayrollPublicViewModel
 
 public class InvitationEmailModel
 {
-    public string Store { get; set; }
-    public string RegistrationLink { get; set; }
+    public string StoreId { get; set; }
+    public string StoreName { get; set; }
+    public string VendorPayRegisterLink { get; set; }
     public string UserName { get; set; }
+    public string UserEmail { get; set; }
+    public string Subject { get; set; }
+
 }

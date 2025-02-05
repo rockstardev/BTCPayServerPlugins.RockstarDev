@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Our Application</title>
+    <title>Vendor Pay Portal Invitation</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,11 +19,6 @@
             padding: 20px;
         }
 
-        .header {
-            text-align: center;
-            padding: 20px 0;
-        }
-
         .content {
             background-color: #ffffff;
             padding: 30px;
@@ -33,11 +28,12 @@
         .button {
             display: inline-block;
             padding: 12px 24px;
-            background-color: #007bff;
+            background-color: #3c6b46;
             color: #ffffff !important;
             text-decoration: none;
             border-radius: 5px;
             margin: 20px 0;
+            font-weight: bold;
         }
 
         .footer {
@@ -51,26 +47,28 @@
 <body>
     <div class="container">
         <div class="content">
-            <h2>You're Invited!</h2>
+            <h2>You're Invited to Join Vendor Pay</h2>
 
-            <p>Hello @Model.UserName,</p>
+            <p>Hello @Model.Name,</p>
 
-            <p>You've been invited to join @Model.Store - BTCPay Server store. We're excited to have you on board!</p>
-
-            <p>To get started, please click the button below to complete your registration:</p>
+            <p>You are invited to create an account on <strong>@Model.StoreName</strong>'s Vendor Pay portal by visiting the link below:</p>
 
             <div style="text-align: center;">
-                <a href="@Model.RegistrationLink" class="button">Create Your Account</a>
+                <a href="@Model.VendorPayRegisterLink" class="button">Create Your Account</a>
             </div>
 
-            <p style="font-size: 13px; color: #666666; font-style: italic;">
-                This invitation link will expire in 7 days.
-            </p>
+            <p>Once your account is created and you log in, you will be able to:</p>
+            <ul>
+                <li>View your invoices and submit new ones.</li>
+                <li>Click 'Upload Invoice' to add a payable invoice. Fill out the information accurately.</li>
+                <li>By using the Vendor Pay portal, you are solely responsible for providing an accurate Bitcoin address and assume all liability for any incorrect or inaccessible address.</li>
+                <li>Describe what the payment is related to; be as descriptive as possible to avoid delays.</li>
+                <li>Upload the corresponding invoice file.</li>
+            </ul>
 
-            <p> 
-                Best regards,<br>
-                The @Model.Store Store
-            </p>
+            <p>Payments will be issued in accordance with the terms of the contracted payment and purchase order.</p>
+
+            <p>Thank you,<br><strong>@Model.StoreName</strong></p>
         </div>
     </div>
 </body>
