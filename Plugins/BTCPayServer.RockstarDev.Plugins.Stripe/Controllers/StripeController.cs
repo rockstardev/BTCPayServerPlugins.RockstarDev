@@ -11,6 +11,7 @@ using BTCPayServer.RockstarDev.Plugins.Stripe.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Logic;
 using BTCPayServer.RockstarDev.Plugins.Stripe.ViewModels.Stripe;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BTCPayServer.RockstarDev.Plugins.Stripe.Controllers;
@@ -59,12 +60,31 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
     }
 
     [HttpGet("~/plugins/stripe/payouts")]
-    public async Task<IActionResult> Payouts()
+    public async Task<IActionResult> Payouts(string startingAfter)
     {
-        var payouts = await stripeClientFactory.PayoutsAllAsync();
+        const string cookieKey = "PayoutsHistory";
+    
+        // Retrieve history from cookies
+        var history = Request.Cookies[cookieKey] != null
+            ? Request.Cookies[cookieKey].Split(',').ToList()
+            : new List<string>();
+        if (string.IsNullOrEmpty(startingAfter))
+            history = new List<string>();
+
+        bool isGoingBack = !string.IsNullOrEmpty(startingAfter) && history.Any(a=>a == startingAfter);
+
+        if (isGoingBack)
+        {
+            // Remove the last entry when going back
+            history.RemoveAt(history.Count - 1);
+            startingAfter = history.LastOrDefault(); // Get the previous startingAfter
+        }
+
+        var payouts = await stripeClientFactory.PayoutsAllAsync(50, startingAfter);
+
         var model = new PayoutsViewModel
         {
-            Payouts = payouts.Select(p => new PayoutsViewModel.Item
+            Payouts = payouts.Payouts.Select(p => new PayoutsViewModel.Item
             {
                 PayoutId = p.Id,
                 Created = p.Created,
@@ -73,15 +93,37 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
                 Status = p.Status,
                 Method = p.Method,
                 Description = p.Description
-            }).ToList()
+            }).ToList(),
+            HasPrev = history.Any() ? history.LastOrDefault() : null,
+            HasNext = payouts.HasNext ? payouts.Payouts.Last().Id : null
         };
+
+        if (!isGoingBack && startingAfter != null)
+        {
+            // Append current startingAfter to history only if moving forward
+            history.Add(startingAfter);
+            if (history.Count == 1)
+                model.HasPrev = "";
+        }
+
+        // Store updated history back in cookies
+        Response.Cookies.Append(cookieKey, string.Join(",", history), new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,  // Ensure secure transmission
+            Expires = DateTime.UtcNow.AddHours(1) // Adjust expiration as needed
+        });
+
         return View(model);
     }
+
 }
 
 public class PayoutsViewModel
 {
     public List<Item> Payouts { get; set; } = new List<Item>();
+    public string HasPrev { get; set; }
+    public string HasNext { get; set; }
 
     public class Item
     {
