@@ -170,8 +170,6 @@ public class PayrollUserController(
             return BadRequest("Invalid model data");
         }
 
-        Console.WriteLine("Gotten here");
-
         var storeData = await storeRepo.FindStore(CurrentStore.Id);
         var invitationLink = Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, token = Guid.NewGuid().ToString() }, Request.Scheme);
         var templateContent = emailService.GetEmbeddedResourceContent("Templates.InvitationEmail.cshtml");
