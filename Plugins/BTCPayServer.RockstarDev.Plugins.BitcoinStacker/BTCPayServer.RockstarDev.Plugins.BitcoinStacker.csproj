@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>zzz - Bitcoin Stacker</Product>
         <Description>**Do not install this if you’re unsure of what you’re doing.** Automatically stack sats on Strike depending on your sales on Stripe</Description>
-        <Version>0.0.12</Version>
+        <Version>0.0.13</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
