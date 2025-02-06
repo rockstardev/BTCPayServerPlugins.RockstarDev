@@ -96,8 +96,8 @@ public class ExchangeOrderHeartbeatService(
             payouts = payouts.OrderBy(a => a.Created).ToList();
             foreach (var payout in payouts)
             {
-                if (payout.Status != "paid")
-                    continue; // only process paid payouts
+                if (payout.Status != "paid" || payout.Amount <= 10000)
+                    continue; // only process paid payouts larger than $100.00
 
                 DateTimeOffset? delayUntil = null;
                 var delay = settings.DelayOrderDays ?? 365;
