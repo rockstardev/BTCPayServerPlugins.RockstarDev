@@ -98,7 +98,8 @@ public class PayrollInvoiceController(
                 PurchaseOrder = tuple.PurchaseOrder,
                 Description = tuple.Description,
                 InvoiceUrl = tuple.InvoiceFilename,
-                PaidAt = tuple.PaidAt
+                PaidAt = tuple.PaidAt,
+                AdminNote = tuple.AdminNote
             }).ToList()
         };
         return View(model);
@@ -548,4 +549,42 @@ public class PayrollInvoiceController(
         });
         return RedirectToAction(nameof(List), new { storeId });
     }
+
+    [HttpGet("adminnote/{id}")]
+    public async Task<IActionResult> AdminNote(string id)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        var invoice = ctx.PayrollInvoices.Include(c => c.User)
+            .SingleOrDefault(a => a.Id == id);
+
+        if (invoice == null)
+            return NotFound();
+
+        var model = new AdminNoteViewModel
+        {
+            Id = invoice.Id,
+            AdminNote = invoice.AdminNote
+        };
+
+        return View(model);
+    }
+
+    [HttpPost("adminnote/{id}")]
+    public async Task<IActionResult> AdminNote(AdminNoteViewModel model)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+
+        var invoice = ctx.PayrollInvoices.Single(a => a.Id == model.Id);
+        invoice.AdminNote = model.AdminNote;
+        
+        await ctx.SaveChangesAsync();
+
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    } 
 }
