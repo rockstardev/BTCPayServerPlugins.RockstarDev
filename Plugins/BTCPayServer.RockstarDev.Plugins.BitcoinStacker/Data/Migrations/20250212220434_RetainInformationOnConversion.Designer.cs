@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Migrations
 {
     [DbContext(typeof(PluginDbContext))]
-    partial class PluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250212220434_RetainInformationOnConversion")]
+    partial class RetainInformationOnConversion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

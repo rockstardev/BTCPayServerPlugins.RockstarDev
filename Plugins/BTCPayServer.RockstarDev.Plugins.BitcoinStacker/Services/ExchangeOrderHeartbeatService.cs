@@ -265,6 +265,7 @@ public class ExchangeOrderHeartbeatService(
         {
             order.State = DbExchangeOrder.States.Error;
             db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, exchangeResp);
+            await db.SaveChangesAsync(cancellationToken);
 
             // exiting the loop
             return;
@@ -275,11 +276,14 @@ public class ExchangeOrderHeartbeatService(
         {
             order.State = DbExchangeOrder.States.Error;
             db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, executeQuoteResp);
+            await db.SaveChangesAsync(cancellationToken);
 
             // exiting the loop
             return;
         }
 
+        order.TargetAmount = exchangeResp.Target.Amount;
+        order.ConversionRate = exchangeResp.ConversionRate.Amount;
         order.State = DbExchangeOrder.States.Completed;
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
         await db.SaveChangesAsync(cancellationToken);
