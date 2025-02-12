@@ -1,1 +1,1 @@
-﻿dotnet ef migrations add RetainInformationOnConversion -p Plugins/BTCPayServer.RockstarDev.Plugins.BitcoinStacker -c PluginDbContext -o Data/Migrations
+﻿dotnet ef migrations add DepositIdOnExchangeOrder -p Plugins/BTCPayServer.RockstarDev.Plugins.BitcoinStacker -c PluginDbContext -o Data/Migrations

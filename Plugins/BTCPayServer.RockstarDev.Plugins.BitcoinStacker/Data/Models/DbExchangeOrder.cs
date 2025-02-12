@@ -46,6 +46,7 @@ public class DbExchangeOrder
     
     public decimal? TargetAmount { get; set; }
     public decimal? ConversionRate { get; set; }
+    [StringLength(50)] public string DepositId { get; set; }
 
     public List<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
 }
