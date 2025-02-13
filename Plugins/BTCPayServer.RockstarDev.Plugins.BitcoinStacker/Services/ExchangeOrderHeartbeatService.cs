@@ -157,6 +157,7 @@ public class ExchangeOrderHeartbeatService(
             if (resp.IsSuccessStatusCode)
             {
                 order.State = DbExchangeOrder.States.DepositWaiting;
+                order.DepositId = resp.Id.ToString();
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.DepositCreated, resp, resp.Id.ToString());
             }
             else
@@ -184,8 +185,6 @@ public class ExchangeOrderHeartbeatService(
 
         // 
         var waitingOrders = db.ExchangeOrders
-            .Include(order =>
-                order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
             .Where(order => order.StoreId == ppe.StoreId
                             && order.State == DbExchangeOrder.States.DepositWaiting
                             && (order.DelayUntil == null || order.DelayUntil < DateTimeOffset.UtcNow))
@@ -197,7 +196,7 @@ public class ExchangeOrderHeartbeatService(
 
         foreach (var order in waitingOrders)
         {
-            var depositingId = Guid.Parse(order.ExchangeOrderLogs.First().Parameter);
+            var depositingId = Guid.Parse(order.DepositId);
             var resp = await strikeClient.Deposits.FindDeposit(depositingId);
 
             if (!resp.IsSuccessStatusCode)
