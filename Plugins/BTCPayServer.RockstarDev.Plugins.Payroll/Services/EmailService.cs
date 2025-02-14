@@ -6,10 +6,12 @@ using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services.Mails;
-using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Logging;
 using MimeKit;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using System.IO;
+using System.Reflection;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
@@ -85,6 +87,56 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
                 await SendBulkEmail(storeGroup.Key, emailRecipients);
             }
         }
+
+    }
+
+    public async Task SendUserInvitationEmailEmail(InvitationEmailModel model)
+    {
+        var settings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
+        if (!settings.IsComplete())
+            return;
+        
+        var templateContent = GetEmbeddedResourceContent("Templates.InvitationEmail.cshtml");
+        string emailBody = templateContent
+                            .Replace("@Model.Name", model.UserName)
+                            .Replace("@Model.StoreName", model.StoreName)
+                            .Replace("@Model.VendorPayRegisterLink", model.VendorPayRegisterLink);
+        var client = await settings.CreateSmtpClient();
+        var clientMessage = new MimeMessage
+        {
+            Subject = model.Subject,
+            Body = new BodyBuilder
+            {
+                HtmlBody = emailBody,
+                TextBody = StripHtml(emailBody)
+            }.ToMessageBody()
+        };
+        clientMessage.From.Add(MailboxAddress.Parse(settings.From));
+        clientMessage.To.Add(InternetAddress.Parse(model.UserEmail));
+        await client.SendAsync(clientMessage);
+        await client.DisconnectAsync(true);
+    }
+
+    private string StripHtml(string html)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(html, "<.*?>", string.Empty)
+            .Replace("&nbsp;", " ")
+            .Trim();
+    }
+
+    public string GetEmbeddedResourceContent(string resourceName)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var fullResourceName = assembly.GetManifestResourceNames()
+                                       .FirstOrDefault(r => r.EndsWith(resourceName, StringComparison.OrdinalIgnoreCase));
+
+        if (fullResourceName == null)
+        {
+            throw new FileNotFoundException($"Resource '{resourceName}' not found in assembly.");
+        }
+        using var stream = assembly.GetManifestResourceStream(fullResourceName);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     public class EmailRecipient

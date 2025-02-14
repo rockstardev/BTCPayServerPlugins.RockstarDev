@@ -34,7 +34,16 @@
                     <a id="@state-view"
                        asp-action="List"
                        asp-route-storeId="@storeId"
-                       class="nav-link @(!Model.All ? "active" : "")"
+                       class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
+                       role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
+                }
+                @if (state == PayrollUserState.Pending)
+                {
+                    <a id="@state-view"
+                       asp-action="List"
+                       asp-route-storeId="@storeId"
+                       asp-route-pending="true"
+                       class="nav-link @(Model.Pending ? "active" : "")"
                        role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
                 }
             }
@@ -76,24 +85,32 @@
                                             <vc:icon symbol="dots" />
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit"
-                                                   asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Edit</a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item"
-                                                   asp-controller="PayrollUser"
-                                                   asp-action="ToggleUserStatus"
-                                                   asp-route-userId="@pp.Id"
-                                                   asp-route-storeId="@storeId"
-                                                   asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
-                                                    @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices"
-                                                   asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Download all invoices</a>
-                                            </li>
+
+                                            @if (pp.State == PayrollUserState.Pending)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-userId="@pp.Id">Resend Invitation</a>
+                                                </li>
+                                            }
+                                            else
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Edit</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item"
+                                                       asp-controller="PayrollUser"
+                                                       asp-action="ToggleUserStatus"
+                                                       asp-route-userId="@pp.Id"
+                                                       asp-route-storeId="@storeId"
+                                                       asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
+                                                        @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Download all invoices</a>
+                                                </li>
+                                            }
                                             <li class="dropdown-divider"></li>
                                             <li>
                                                 <a asp-controller="PayrollUser"
@@ -137,7 +154,7 @@
             }
             else
             {
-                <span>There are no Active users found.</span>
+                <span>There are no users found</span>
             }
         </p>
     }

@@ -15,7 +15,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
-using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -81,7 +81,65 @@ public class PublicController(
         return View(model);
     }
 
-    //
+    [HttpGet("~/plugins/{storeId}/payroll/users/{token}/accept")]
+    public async Task<IActionResult> AcceptInvitation(string storeId, string token)
+    {
+        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+
+        var invitation = dbPlugins.PayrollInvitations
+            .SingleOrDefault(i => i.Token == token && !i.AcceptedAt.HasValue &&
+                        i.CreatedAt.AddDays(7) >= DateTime.UtcNow);
+        if (invitation == null)
+        {
+            ModelState.AddModelError("NewPassword", "Invalid or expired invitation");
+            return View(new AcceptInvitationRequestViewModel { Email = "", Token = token });
+        }
+        var dbUser = dbPlugins.PayrollUsers.SingleOrDefault(a => a.StoreId == invitation.StoreId && a.Email == invitation.Email.ToLowerInvariant());
+        return View(new AcceptInvitationRequestViewModel
+        {
+            Email = dbUser?.Email,
+            Token = token,
+            Name = dbUser?.Name
+        });
+    }
+
+    [HttpPost("~/plugins/{storeId}/payroll/users/{token}/accept")]
+    public async Task<IActionResult> AcceptInvitation(AcceptInvitationRequestViewModel model)
+    {
+        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+        var invitation = dbPlugins.PayrollInvitations.SingleOrDefault(i => i.Token == model.Token && !i.AcceptedAt.HasValue && i.CreatedAt.AddDays(7) >= DateTime.UtcNow);
+        if (invitation == null)
+        {
+            ModelState.AddModelError(nameof(model.NewPassword), "Invalid or expired invitation");
+            return View(model);
+        }
+        var dbUser = dbPlugins.PayrollUsers.SingleOrDefault(a => a.StoreId == invitation.StoreId && a.Email == invitation.Email.ToLowerInvariant());
+        if (dbUser == null)
+        {
+            ModelState.AddModelError(nameof(model.NewPassword), "User record does not exist. Kindly reach out to the BTCPay Server instance admin");
+            return View(model);
+        }
+        if (dbUser.State != PayrollUserState.Pending)
+        {
+            ModelState.AddModelError(nameof(model.NewPassword), "User with the same email already exists. Kindly reach out to the BTCPay Server instance admin");
+            return View(model);
+        }
+        if (!ModelState.IsValid)
+            return View(model);
+
+        dbUser.Password = hasher.HashPassword(invitation.Id, model.NewPassword);
+        dbUser.State = PayrollUserState.Active;
+        invitation.AcceptedAt = DateTime.UtcNow;
+        dbPlugins.Update(dbUser);
+        dbPlugins.Update(invitation);
+        await dbPlugins.SaveChangesAsync();
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = "User created successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(Login), "Public", new { storeId = invitation.StoreId });
+    }
 
     [HttpGet("logout")]
     public IActionResult Logout(string storeId)

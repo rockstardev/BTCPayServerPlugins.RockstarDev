@@ -13,6 +13,7 @@ public class PayrollPluginDbContext(DbContextOptions<PayrollPluginDbContext> opt
     public DbSet<PayrollInvoice> PayrollInvoices { get; set; }
     public DbSet<PayrollUser> PayrollUsers { get; set; }
     public DbSet<PayrollSetting> PayrollSettings { get; set; }
+    public DbSet<PayrollInvitation> PayrollInvitations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
