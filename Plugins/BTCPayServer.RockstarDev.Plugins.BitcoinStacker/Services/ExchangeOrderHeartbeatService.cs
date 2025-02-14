@@ -273,6 +273,7 @@ public class ExchangeOrderHeartbeatService(
             return false;
         }
 
+        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, exchangeResp);
         order.TargetAmount = exchangeResp.Target.Amount;
         order.ConversionRate = exchangeResp.ConversionRate.Amount;
         order.State = DbExchangeOrder.States.Completed;
