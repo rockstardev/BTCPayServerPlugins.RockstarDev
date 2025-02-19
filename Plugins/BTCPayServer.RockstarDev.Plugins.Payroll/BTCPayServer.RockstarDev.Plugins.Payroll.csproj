@@ -11,7 +11,7 @@
 		<Description>
 			Accept invoices from various sources and easily pay them out from Bitcoin wallet. Pay all your vendors using Bitcoin.
 		</Description>
-		<Version>0.4.5</Version>
+		<Version>0.4.6</Version>
 	</PropertyGroup>
 	<!-- Plugin development properties -->
 	<PropertyGroup>

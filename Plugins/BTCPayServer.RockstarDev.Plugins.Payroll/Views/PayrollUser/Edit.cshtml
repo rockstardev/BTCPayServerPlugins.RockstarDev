@@ -1,7 +1,12 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@inject IScopeProvider ScopeProvider
 @model PayrollUserCreateViewModel
 @{
     ViewData.SetActivePage("VendorPay", "Edit Vendor Pay User", "VendorPay");
+    
+    var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
 <form method="post" asp-action="Edit">
@@ -29,7 +34,8 @@
                 <div class="input-group">
                     <input asp-for="Password" class="form-control" placeholder="***********" readonly />
                     <div class="input-group-append">
-                        <a asp-controller="PayrollUser" asp-action="ResetPassword" asp-route-userId="@Model.Id" class="btn btn-secondary">Reset Password</a>
+                        <a asp-controller="PayrollUser" asp-action="ResetPassword" asp-route-userId="@Model.Id"
+                           asp-route-storeId="@storeId" class="btn btn-secondary">Reset Password</a>
                     </div>
                 </div>
             </div>
