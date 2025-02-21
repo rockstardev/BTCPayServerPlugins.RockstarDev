@@ -43,6 +43,10 @@ public class DbExchangeOrder
     // have reference for which date order was created for
     public DateTimeOffset? CreatedForDate { get; set; }
     public States State { get; set; }
+    
+    public decimal? TargetAmount { get; set; }
+    public decimal? ConversionRate { get; set; }
+    [StringLength(50)] public string DepositId { get; set; }
 
     public List<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
 }

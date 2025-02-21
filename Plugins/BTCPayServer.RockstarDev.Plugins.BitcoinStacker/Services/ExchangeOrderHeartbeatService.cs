@@ -96,8 +96,8 @@ public class ExchangeOrderHeartbeatService(
             payouts = payouts.OrderBy(a => a.Created).ToList();
             foreach (var payout in payouts)
             {
-                if (payout.Status != "paid")
-                    continue; // only process paid payouts
+                if (payout.Status != "paid" || payout.Amount <= 10000)
+                    continue; // only process paid payouts larger than $100.00
 
                 DateTimeOffset? delayUntil = null;
                 var delay = settings.DelayOrderDays ?? 365;
@@ -141,9 +141,6 @@ public class ExchangeOrderHeartbeatService(
 
         foreach (var order in orders)
         {
-            var balanceResp = await strikeClient.Balances.GetBalances();
-            var usdBalance = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
-
             var req = new DepositReq
             {
                 PaymentMethodId = settings.StrikePaymentMethodId,
@@ -157,6 +154,7 @@ public class ExchangeOrderHeartbeatService(
             if (resp.IsSuccessStatusCode)
             {
                 order.State = DbExchangeOrder.States.DepositWaiting;
+                order.DepositId = resp.Id.ToString();
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.DepositCreated, resp, resp.Id.ToString());
             }
             else
@@ -166,26 +164,16 @@ public class ExchangeOrderHeartbeatService(
             }
 
             await db.SaveChangesAsync(cancellationToken);
-
-            // check balance and if it increased execute purchase immediately
-            await Task.Delay(5000, cancellationToken).WaitAsync(cancellationToken);
-
-            balanceResp = await strikeClient.Balances.GetBalances();
-            var usdBalanceAfter = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
-
-            if (usdBalanceAfter - usdBalance >= order.Amount)
-            {
-                Logs.PayServer.LogInformation(
-                    "ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing",
-                    order.Id);
-                await ExecuteConversionOrder(db, order, strikeClient, cancellationToken);
-            }
         }
+        
+        // check balance and if it increased execute purchase immediately
+        await Task.Delay(10000, cancellationToken).WaitAsync(cancellationToken);
 
+        var balanceResp = await strikeClient.Balances.GetBalances();
+        var usdBalanceOnStrike = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
+        
         // 
         var waitingOrders = db.ExchangeOrders
-            .Include(order =>
-                order.ExchangeOrderLogs.Where(log => log.Event == DbExchangeOrderLog.Events.DepositCreated))
             .Where(order => order.StoreId == ppe.StoreId
                             && order.State == DbExchangeOrder.States.DepositWaiting
                             && (order.DelayUntil == null || order.DelayUntil < DateTimeOffset.UtcNow))
@@ -197,13 +185,14 @@ public class ExchangeOrderHeartbeatService(
 
         foreach (var order in waitingOrders)
         {
-            var depositingId = Guid.Parse(order.ExchangeOrderLogs.First().Parameter);
+            var depositingId = Guid.Parse(order.DepositId);
             var resp = await strikeClient.Deposits.FindDeposit(depositingId);
 
             if (!resp.IsSuccessStatusCode)
             {
                 order.State = DbExchangeOrder.States.Error;
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+                await db.SaveChangesAsync(cancellationToken);
 
                 // exiting the loop
                 continue;
@@ -211,23 +200,25 @@ public class ExchangeOrderHeartbeatService(
 
             if (resp.State == DepositState.Completed)
             {
-                Logs.PayServer.LogInformation(
-                    "ExchangeOrderHeartbeatService: Exchange Order {0} deposit completed on Strike, executing",
-                    order.Id);
                 await ExecuteConversionOrder(db, order, strikeClient, cancellationToken);
             }
             else if (resp.State == DepositState.Pending)
             {
-                // Do nothing
+                // sometimes deposits are in pending state for a while, but there is available balance, proceed
+                if (usdBalanceOnStrike > order.Amount)
+                {
+                    if (await ExecuteConversionOrder(db, order, strikeClient, cancellationToken))
+                        usdBalanceOnStrike -= order.Amount;
+                }
             }
             else
             {
                 // Failed and Reversed deposits will also end up here
-
                 // TODO: If deposit failed, initiate it again
 
                 order.State = DbExchangeOrder.States.Error;
                 db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, resp);
+                await db.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -245,7 +236,7 @@ public class ExchangeOrderHeartbeatService(
         }
     }
 
-    public static async Task ExecuteConversionOrder(PluginDbContext db, DbExchangeOrder order,
+    public static async Task<bool> ExecuteConversionOrder(PluginDbContext db, DbExchangeOrder order,
         StrikeClient strikeClient, CancellationToken cancellationToken)
     {
         var req = new CurrencyExchangeQuoteReq
@@ -265,9 +256,10 @@ public class ExchangeOrderHeartbeatService(
         {
             order.State = DbExchangeOrder.States.Error;
             db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, exchangeResp);
+            await db.SaveChangesAsync(cancellationToken);
 
             // exiting the loop
-            return;
+            return false;
         }
 
         var executeQuoteResp = await strikeClient.CurrencyExchanges.ExecuteQuote(exchangeResp.Id);
@@ -275,14 +267,20 @@ public class ExchangeOrderHeartbeatService(
         {
             order.State = DbExchangeOrder.States.Error;
             db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.Error, executeQuoteResp);
+            await db.SaveChangesAsync(cancellationToken);
 
             // exiting the loop
-            return;
+            return false;
         }
 
+        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, exchangeResp);
+        order.TargetAmount = exchangeResp.Target.Amount;
+        order.ConversionRate = exchangeResp.ConversionRate.Amount;
         order.State = DbExchangeOrder.States.Completed;
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
         await db.SaveChangesAsync(cancellationToken);
+
+        return true;
     }
 
     public class PeriodProcessEvent

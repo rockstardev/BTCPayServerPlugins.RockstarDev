@@ -57,11 +57,28 @@ public class StripeClientFactory(StripeDbContextFactory dbContextFactory,
         return apiKey != null;
     }
 
-    public async Task<List<Payout>> PayoutsAllAsync()
+    public async Task<PayoutsAllResp> PayoutsAllAsync(int limit = 100, string startingAfter = null)
     {
         var payouts = new PayoutService();
-        var allPayouts = await payouts.ListAsync();
-        return allPayouts.Data;
+        var options = new PayoutListOptions
+        {
+            Limit = limit,
+            StartingAfter = startingAfter // Fetch from this ID onward
+        };
+
+        var allPayouts = await payouts.ListAsync(options);
+        var resp = new PayoutsAllResp
+        {
+            HasNext = allPayouts.HasMore,
+            Payouts = allPayouts.Data
+        };
+        return resp;
+    }
+
+    public class PayoutsAllResp
+    {
+        public List<Payout> Payouts { get; set; }
+        public bool HasNext { get; set; }
     }
     
 }

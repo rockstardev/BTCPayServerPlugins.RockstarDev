@@ -187,7 +187,8 @@ public class PublicController(
                 PurchaseOrder = tuple.PurchaseOrder,
                 Description = tuple.Description,
                 InvoiceUrl = tuple.InvoiceFilename,
-                PaidAt = tuple.PaidAt
+                PaidAt = tuple.PaidAt,
+                AdminNote = null // not displaying admin notes publicaly
             }).ToList()
         };
 

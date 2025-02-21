@@ -14,7 +14,8 @@ using BTCPayServer.Abstractions.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
-[Route("~/plugins/{storeId}/payroll/")]
+[Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
+[Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollSettingController(PayrollPluginDbContextFactory payrollPluginDbContextFactory, 
     EmailSenderFactory emailSenderFactory, LinkGenerator linkGenerator) : Controller

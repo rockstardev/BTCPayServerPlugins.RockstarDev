@@ -31,6 +31,7 @@ public class PayrollInvoiceViewModel
     public string Description { get; set; }
     public string InvoiceUrl { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
+    public string AdminNote { get; set; }
 }
 
 public class PayrollInvoiceUploadViewModel
