@@ -33,10 +33,11 @@
             </div>
 
             <h3>Emails</h3>
+            @{
+                var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
+            }
             <div class="form-group d-flex align-items-center">
-                @{
-                    var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
-                }
+                
                 <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
                 <div>
                     <label asp-for="EmailOnInvoicePaid" class="form-check-label"></label>
@@ -51,18 +52,24 @@
                 </div>
             </div>
             <div id="emailTemplateGroup" style="display: none;">
-            <div class="form-group">
-                <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Customize Subject</label>
-                <input asp-for="EmailOnInvoicePaidSubject" class="form-control"></input>
-                <span asp-validation-for="EmailOnInvoicePaidSubject" class="text-danger"></span>
+                <div class="form-group">
+                    <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Customize Subject</label>
+                    <input asp-for="EmailOnInvoicePaidSubject" class="form-control" />
+                    <span asp-validation-for="EmailOnInvoicePaidSubject" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EmailOnInvoicePaidBody" class="form-label">Customize Email Template</label>
+                    <textarea asp-for="EmailOnInvoicePaidBody" class="form-control" rows="8"></textarea>
+                    <span asp-validation-for="EmailOnInvoicePaidBody" class="text-danger"></span>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="EmailOnInvoicePaidBody" class="form-label">Customize Email Template</label>
-                <textarea asp-for="EmailOnInvoicePaidBody" class="form-control" rows="8"></textarea>
-                <span asp-validation-for="EmailOnInvoicePaidBody" class="text-danger"></span>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="EmailInviteForUsers" type="checkbox" class="btcpay-toggle me-3" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                <div>
+                    <label asp-for="EmailInviteForUsers" class="form-check-label"></label>
+                    <span asp-validation-for="EmailInviteForUsers" class="text-danger"></span>
+                </div>
             </div>
-            </div>
-
         </div>
     </div>
 </form>

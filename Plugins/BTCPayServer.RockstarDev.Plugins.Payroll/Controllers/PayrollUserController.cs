@@ -18,6 +18,9 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using BTCPayServer.Services.Stores;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+using System.Security.Cryptography;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -26,7 +29,9 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController(
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+    StoreRepository storeRepo,
     VendorPayPassHasher hasher,
+    EmailService emailService,
     IFileService fileService,
     HttpClient httpClient)
     : Controller
@@ -37,64 +42,180 @@ public class PayrollUserController(
 
 
     [HttpGet("list")]
-    public async Task<IActionResult> List(string storeId, bool all)
+    public async Task<IActionResult> List(string storeId, bool all, bool pending)
     {
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
-        List<PayrollUser> payrollUsers = await ctx.PayrollUsers
-            .Where(a => a.StoreId == storeId)
-            .OrderByDescending(data => data.Name).ToListAsync();
-
+        IQueryable<PayrollUser> query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
+        if (pending)
+        {
+            query = query.Where(a => a.State == PayrollUserState.Pending);
+        }
+        else if (!all)
+        {
+            query = query.Where(a => a.State == PayrollUserState.Active);
+        }
+        List<PayrollUser> payrollUsers = query.OrderByDescending(data => data.Name).ToList();
         var payrollUserListViewModel = new PayrollUserListViewModel
         {
             All = all,
-            AllPayrollUsers = payrollUsers,
-            DisplayedPayrollUsers = all ? payrollUsers : payrollUsers.Where(a => a.State == PayrollUserState.Active).ToList()
+            Pending = pending,
+            DisplayedPayrollUsers = payrollUsers,
+            AllPayrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId).ToList()
         };
         return View(payrollUserListViewModel);
     }
 
     [HttpGet("create")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        return View(new PayrollUserCreateViewModel());
+        if (CurrentStore is null)
+            return NotFound();
+
+        var settings = await payrollPluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
+        var vm = new PayrollUserCreateViewModel { EmailInviteForUsers = settings?.EmailInviteForUsers ?? false, StoreId = CurrentStore.Id };
+        return View(vm);
     }
 
     [HttpPost("create")]
-
     public async Task<IActionResult> Create(PayrollUserCreateViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
 
+        var settings = await payrollPluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
         await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
 
-        var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
-            a.StoreId == CurrentStore.Id && a.Email == model.Email.ToLowerInvariant());
-        if (userInDb != null)
+        var email = model.Email.ToLowerInvariant();
+
+        if (await dbPlugins.PayrollUsers
+            .AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email && a.State != PayrollUserState.Pending))
+        {
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
-
-        if (!ModelState.IsValid)
             return View(model);
+        }
 
+        bool emailUserInvite = settings?.EmailInviteForUsers ?? false;
         var uid = Guid.NewGuid().ToString();
-
-        var passHashed = hasher.HashPassword(uid, model.Password);
-
         var dbUser = new PayrollUser
         {
             Id = uid,
             Name = model.Name,
-            Email = model.Email.ToLowerInvariant(),
-            Password = passHashed,
+            Email = email,
             StoreId = CurrentStore.Id,
-            State = PayrollUserState.Active
+            State = emailUserInvite ? PayrollUserState.Pending : PayrollUserState.Active
         };
-
-        dbPlugins.Add(dbUser);
-        await dbPlugins.SaveChangesAsync();
-
+        if (emailUserInvite)
+        {
+            var existingInvitation = await dbPlugins.PayrollInvitations
+                .SingleOrDefaultAsync(i => i.Email == email && i.StoreId == CurrentStore.Id && !i.AcceptedAt.HasValue);
+            if (existingInvitation != null)
+            {
+                TempData.SetStatusMessageModel(new StatusMessageModel
+                {
+                    Message = "An invitation has already been sent to this user",
+                    Severity = StatusMessageModel.StatusSeverity.Warning
+                });
+                return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+            }
+            var invitation = new PayrollInvitation
+            {
+                Id = uid,
+                StoreId = CurrentStore.Id,
+                Email = email,
+                Name = model.Name,
+                Token = GenerateUniqueToken(),
+                CreatedAt = DateTime.UtcNow
+            };
+            dbPlugins.Add(dbUser);
+            dbPlugins.Add(invitation);
+            await dbPlugins.SaveChangesAsync();
+            try
+            {
+                await SendUserInvitationEmail(dbUser, invitation.Token);
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(nameof(model.Email), "To generate an invite link, Kindly setup a correct Email SMTP service on your admin setting");
+                return View(model);
+            }
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = "An invitation has been sent to the user",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(model.Password))
+            {
+                ModelState.AddModelError(nameof(model.Password), "Password cannot be empty");
+                return View(model);
+            }
+            dbUser.Password = hasher.HashPassword(uid, model.Password);
+            dbPlugins.Add(dbUser);
+            await dbPlugins.SaveChangesAsync();
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = "User created successfully",
+                Severity = StatusMessageModel.StatusSeverity.Success
+            });
+        }
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
+
+    [HttpPost]
+    public async Task<IActionResult> PreviewInvitationEmail([FromForm] PayrollUserCreateViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest("Invalid model data");
+        }
+
+        var storeData = await storeRepo.FindStore(CurrentStore.Id);
+        var invitationLink = Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, token = Guid.NewGuid().ToString() }, Request.Scheme);
+        var templateContent = emailService.GetEmbeddedResourceContent("Templates.InvitationEmail.cshtml");
+        string emailBody = templateContent
+                            .Replace("@Model.Name", model.Name)
+                            .Replace("@Model.StoreName", storeData.StoreName)
+                            .Replace("@Model.VendorPayRegisterLink", invitationLink);
+        return Content(emailBody, "text/html");
+    }
+
+    [HttpGet("~/plugins/payroll/users/resend-invitation/{userId}")]
+    public async Task<IActionResult> ResendInvitation(string userId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
+        var existingInvitation = ctx.PayrollInvitations.FirstOrDefault(i => i.Email == user.Email && i.StoreId == CurrentStore.Id);
+        existingInvitation.Token = GenerateUniqueToken();
+        existingInvitation.CreatedAt = DateTime.UtcNow;
+        ctx.Update(existingInvitation);
+        await ctx.SaveChangesAsync();
+        try
+        {
+            await SendUserInvitationEmail(user, existingInvitation.Token);
+        }
+        catch (Exception)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"To generate an invite link, Kindly setup a correct Email SMTP service on your admin setting",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"User invitation resent successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id, pending = true });
+    }
+
 
     [HttpGet("edit/{userId}")]
     public async Task<IActionResult> Edit(string userId)
@@ -105,6 +226,9 @@ public class PayrollUserController(
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
 
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        if (user.State == PayrollUserState.Pending)
+            return NotFound();
+
         var model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
         return View(model);
     }
@@ -139,6 +263,8 @@ public class PayrollUserController(
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
 
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        if (user.State == PayrollUserState.Pending)
+            return NotFound();
         PayrollUserResetPasswordViewModel model = new PayrollUserResetPasswordViewModel { Id = user.Id };
         return View(model);
     }
@@ -322,15 +448,44 @@ public class PayrollUserController(
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
-
+        var payrollUserInvite = ctx.PayrollInvitations.Where(c => c.Email == payrollUser.Email && c.StoreId == payrollUser.StoreId).ToList();
+        if (payrollUserInvite.Any())
+        {
+            ctx.RemoveRange(payrollUserInvite);
+        }
         ctx.Remove(payrollUser);
         await ctx.SaveChangesAsync();
 
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
-            Message = $"User deletion was successful",
+            Message = $"User deleted successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+    }
+
+    public string GenerateUniqueToken()
+    {
+        byte[] tokenData = new byte[32];
+        RandomNumberGenerator.Fill(tokenData);
+        return Convert.ToBase64String(tokenData)
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .TrimEnd('=');
+    }
+
+    private async Task SendUserInvitationEmail(PayrollUser model, string token)
+    {
+        var storeData = await storeRepo.FindStore(CurrentStore.Id);
+        var invitationLink = Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, token }, Request.Scheme);
+        await emailService.SendUserInvitationEmailEmail(new InvitationEmailModel
+        {
+            StoreId = CurrentStore.Id,
+            StoreName = storeData.StoreName,
+            Subject = "You are invited to create a Vendor Pay account",
+            UserEmail = model.Email,
+            UserName = model.Name,
+            VendorPayRegisterLink = invitationLink,
+        });
     }
 }

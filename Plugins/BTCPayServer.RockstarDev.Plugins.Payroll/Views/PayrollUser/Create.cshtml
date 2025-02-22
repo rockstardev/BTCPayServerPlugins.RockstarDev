@@ -7,7 +7,13 @@
 <form method="post" asp-action="Create">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
-        <input type="submit" value="Create" class="btn btn-primary" id="Create" />
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            @if (Model.EmailInviteForUsers is true)
+            {
+                <button type="button" class="btn btn-secondary me-2" id="previewButton">Preview Invite Email</button>
+            }
+            <input type="submit" value="Create" class="btn btn-primary" id="Create" />
+        </div>
     </div>
 
     <partial name="_StatusMessage" />
@@ -24,16 +30,65 @@
                 <input asp-for="Email" class="form-control" />
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" type="password" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ConfirmPassword" class="form-label"></label>
-                <input asp-for="ConfirmPassword" class="form-control" type="password" />
-                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            @if (Model.EmailInviteForUsers is false)
+            {
+                <div class="form-group">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" type="password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" type="password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+                
+            }
+        </div>
+    </div>
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">Email Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="emailPreviewContent">
+                    Loading preview...
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
+
 </form>
+
+@section PageFootContent {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const previewButton = document.getElementById('previewButton');
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+
+            previewButton.addEventListener('click', function () {
+                const form = document.querySelector('form');
+                const formData = new FormData(form);
+                const formParams = new URLSearchParams(formData).toString();
+                const previewUrl = '@Url.Action("PreviewInvitationEmail", "PayrollUser", new { storeId = Model.StoreId })';
+                fetch(previewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formParams
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('emailPreviewContent').innerHTML = html;
+                    previewModal.show();
+                });
+            });
+        });
+    </script>
+}
