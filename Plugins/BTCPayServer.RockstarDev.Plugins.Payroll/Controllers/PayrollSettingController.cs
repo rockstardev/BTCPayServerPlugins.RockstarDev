@@ -43,8 +43,7 @@ Thank you,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? DefaultEmailOnInvoicePaidSubject,
-            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? DefaultEmailOnInvoicePaidBody,
-            EmailInviteForUsers = settings.EmailInviteForUsers
+            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? DefaultEmailOnInvoicePaidBody
         };
         var emailSender = await emailSenderFactory.GetEmailSender(storeId);
         ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
@@ -71,7 +70,6 @@ Thank you,
             EmailOnInvoicePaid = model.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = model.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
-            EmailInviteForUsers = model.EmailInviteForUsers,
             VendorPayPublicLink = link
         };
         

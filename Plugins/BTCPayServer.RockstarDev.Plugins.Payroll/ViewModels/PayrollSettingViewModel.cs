@@ -14,7 +14,4 @@ public class PayrollSettingViewModel
     public bool EmailOnInvoicePaid { get; set; }
     public string EmailOnInvoicePaidSubject { get; set; }
     public string EmailOnInvoicePaidBody { get; set; }
-
-    [Display(Name = "Enable Email Invite for User registration")]
-    public bool EmailInviteForUsers { get; set; }
 }
