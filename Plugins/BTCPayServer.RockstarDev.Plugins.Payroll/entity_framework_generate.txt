@@ -1,1 +1,1 @@
-﻿dotnet ef migrations add RefactoringPayrollInvoiceMaxLengthAddingNote -p Plugins/BTCPayServer.RockstarDev.Plugins.Payroll -c PayrollPluginDbContext -o Data/Migrations
+﻿dotnet ef migrations add IncludeVendorPayInvitation -p Plugins/BTCPayServer.RockstarDev.Plugins.Payroll -c PayrollPluginDbContext -o Data/Migrations
