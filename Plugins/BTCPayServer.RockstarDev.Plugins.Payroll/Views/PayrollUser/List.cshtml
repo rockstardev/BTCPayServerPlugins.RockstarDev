@@ -89,7 +89,7 @@
                                             @if (pp.State == PayrollUserState.Pending)
                                             {
                                                 <li>
-                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-userId="@pp.Id">Resend Invitation</a>
+                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Resend Invitation</a>
                                                 </li>
                                             }
                                             else

@@ -81,7 +81,7 @@ public class PublicController(
         return View(model);
     }
 
-    [HttpGet("~/plugins/{storeId}/payroll/users/{token}/accept")]
+    [HttpGet("users/{token}/accept")]
     public async Task<IActionResult> AcceptInvitation(string storeId, string token)
     {
         await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
@@ -94,7 +94,7 @@ public class PublicController(
             ModelState.AddModelError("NewPassword", "Invalid or expired invitation");
             return View(new AcceptInvitationRequestViewModel { Email = "", Token = token });
         }
-        var dbUser = dbPlugins.PayrollUsers.SingleOrDefault(a => a.StoreId == invitation.StoreId && a.Email == invitation.Email.ToLowerInvariant());
+        var dbUser = dbPlugins.PayrollUsers.SingleOrDefault(a => a.StoreId == invitation.StoreId && a.Email == invitation.Email.ToLowerInvariant()); 
         return View(new AcceptInvitationRequestViewModel
         {
             Email = dbUser?.Email,
@@ -103,7 +103,7 @@ public class PublicController(
         });
     }
 
-    [HttpPost("~/plugins/{storeId}/payroll/users/{token}/accept")]
+    [HttpPost("users/{token}/accept")]
     public async Task<IActionResult> AcceptInvitation(AcceptInvitationRequestViewModel model)
     {
         await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();

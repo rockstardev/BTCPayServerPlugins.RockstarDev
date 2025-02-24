@@ -18,9 +18,9 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
-using BTCPayServer.Services.Stores;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using System.Security.Cryptography;
+using BTCPayServer.Services.Mails;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -29,7 +29,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController(
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-    StoreRepository storeRepo,
+    EmailSenderFactory emailSenderFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
     IFileService fileService,
@@ -39,6 +39,24 @@ public class PayrollUserController(
     private readonly HttpClient _httpClient = httpClient ?? new HttpClient();
 
     public StoreData CurrentStore => HttpContext.GetStoreData();
+    private const string UserInviteEmailSubject = "You are invited to create a Vendor Pay account";
+    private const string UserInviteEmailBody = @"Hello {Name},
+
+You are invited to create an account on {StoreName}'s Vendor Pay portal by visiting the following link:  
+{VendorPayRegisterLink}
+
+Once your account is created and you log in, you will be able to:
+- View your invoices and submit new ones.
+- Click 'Upload Invoice' to add a payable invoice. Fill out the information accurately. By using the Vendor Pay portal, you are solely responsible for providing an accurate Bitcoin address and assume all liability for any incorrect or inaccessible address.
+- Describe what the payment is related to; be as descriptive as possible to avoid delays.
+- Upload the corresponding invoice file.
+
+Payments will be issued in accordance with the terms of the contracted payment and purchase order.
+
+If you have any questions, please reach out to XXXXXX.
+
+Thank you,  
+{StoreName}";
 
 
     [HttpGet("list")]
@@ -71,8 +89,21 @@ public class PayrollUserController(
         if (CurrentStore is null)
             return NotFound();
 
-        var settings = await payrollPluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
-        var vm = new PayrollUserCreateViewModel { EmailInviteForUsers = settings?.EmailInviteForUsers ?? false, StoreId = CurrentStore.Id };
+        var isEmailSettingsConfigured = await IsEmailSettingsConfigured();
+        ViewData["StoreEmailSettingsConfigured"] = isEmailSettingsConfigured;
+        var vm = new PayrollUserCreateViewModel { 
+            StoreId = CurrentStore.Id, 
+            UserInviteEmailBody = UserInviteEmailBody, 
+            UserInviteEmailSubject = UserInviteEmailSubject
+        };
+        if (!isEmailSettingsConfigured)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Kindly configure Email SMTP in the admin settings to be able to invite user to Vendor Pay via email",
+                Severity = StatusMessageModel.StatusSeverity.Info
+            });
+        }
         return View(vm);
     }
 
@@ -82,19 +113,15 @@ public class PayrollUserController(
         if (CurrentStore is null)
             return NotFound();
 
-        var settings = await payrollPluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
         await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
 
         var email = model.Email.ToLowerInvariant();
-
-        if (await dbPlugins.PayrollUsers
-            .AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email && a.State != PayrollUserState.Pending))
+        ViewData["StoreEmailSettingsConfigured"] = await IsEmailSettingsConfigured();
+        if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
             return View(model);
         }
-
-        bool emailUserInvite = settings?.EmailInviteForUsers ?? false;
         var uid = Guid.NewGuid().ToString();
         var dbUser = new PayrollUser
         {
@@ -102,9 +129,9 @@ public class PayrollUserController(
             Name = model.Name,
             Email = email,
             StoreId = CurrentStore.Id,
-            State = emailUserInvite ? PayrollUserState.Pending : PayrollUserState.Active
+            State = model.SendRegistrationEmailInviteToUser ? PayrollUserState.Pending : PayrollUserState.Active
         };
-        if (emailUserInvite)
+        if (model.SendRegistrationEmailInviteToUser)
         {
             var existingInvitation = await dbPlugins.PayrollInvitations
                 .SingleOrDefaultAsync(i => i.Email == email && i.StoreId == CurrentStore.Id && !i.AcceptedAt.HasValue);
@@ -126,18 +153,19 @@ public class PayrollUserController(
                 Token = GenerateUniqueToken(),
                 CreatedAt = DateTime.UtcNow
             };
-            dbPlugins.Add(dbUser);
-            dbPlugins.Add(invitation);
-            await dbPlugins.SaveChangesAsync();
             try
             {
-                await SendUserInvitationEmail(dbUser, invitation.Token);
+                await emailService.SendUserInvitationEmailEmail(dbUser, model.UserInviteEmailSubject, model.UserInviteEmailBody, 
+                    Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, invitation.Token }, Request.Scheme));
             }
             catch (Exception)
             {
                 ModelState.AddModelError(nameof(model.Email), "To generate an invite link, Kindly setup a correct Email SMTP service on your admin setting");
                 return View(model);
             }
+            dbPlugins.Add(dbUser);
+            dbPlugins.Add(invitation);
+            await dbPlugins.SaveChangesAsync();
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
                 Message = "An invitation has been sent to the user",
@@ -163,41 +191,31 @@ public class PayrollUserController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    [HttpPost]
-    public async Task<IActionResult> PreviewInvitationEmail([FromForm] PayrollUserCreateViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest("Invalid model data");
-        }
-
-        var storeData = await storeRepo.FindStore(CurrentStore.Id);
-        var invitationLink = Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, token = Guid.NewGuid().ToString() }, Request.Scheme);
-        var templateContent = emailService.GetEmbeddedResourceContent("Templates.InvitationEmail.cshtml");
-        string emailBody = templateContent
-                            .Replace("@Model.Name", model.Name)
-                            .Replace("@Model.StoreName", storeData.StoreName)
-                            .Replace("@Model.VendorPayRegisterLink", invitationLink);
-        return Content(emailBody, "text/html");
-    }
-
-    [HttpGet("~/plugins/payroll/users/resend-invitation/{userId}")]
-    public async Task<IActionResult> ResendInvitation(string userId)
+    [HttpGet("resend-invitation/{userId}")]
+    public async Task<IActionResult> ResendInvitation(string storeId, string userId)
     {
         if (CurrentStore is null)
             return NotFound();
 
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == PayrollUserState.Pending);
+        if (user == null)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"Cannot send reminder to user. Invalid user state specified",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
 
+        }
         var existingInvitation = ctx.PayrollInvitations.FirstOrDefault(i => i.Email == user.Email && i.StoreId == CurrentStore.Id);
         existingInvitation.Token = GenerateUniqueToken();
         existingInvitation.CreatedAt = DateTime.UtcNow;
-        ctx.Update(existingInvitation);
-        await ctx.SaveChangesAsync();
         try
         {
-            await SendUserInvitationEmail(user, existingInvitation.Token);
+            await emailService.SendUserInvitationEmailEmail(user, UserInviteEmailSubject, UserInviteEmailBody,
+                Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, existingInvitation.Token }, Request.Scheme));
         }
         catch (Exception)
         {
@@ -208,6 +226,8 @@ public class PayrollUserController(
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
+        ctx.Update(existingInvitation);
+        await ctx.SaveChangesAsync();
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"User invitation resent successfully",
@@ -474,18 +494,9 @@ public class PayrollUserController(
             .TrimEnd('=');
     }
 
-    private async Task SendUserInvitationEmail(PayrollUser model, string token)
+    private async Task<bool> IsEmailSettingsConfigured()
     {
-        var storeData = await storeRepo.FindStore(CurrentStore.Id);
-        var invitationLink = Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, token }, Request.Scheme);
-        await emailService.SendUserInvitationEmailEmail(new InvitationEmailModel
-        {
-            StoreId = CurrentStore.Id,
-            StoreName = storeData.StoreName,
-            Subject = "You are invited to create a Vendor Pay account",
-            UserEmail = model.Email,
-            UserName = model.Name,
-            VendorPayRegisterLink = invitationLink,
-        });
+        var emailSender = await emailSenderFactory.GetEmailSender(CurrentStore.Id);
+        return (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
     }
 }

@@ -23,7 +23,15 @@ public class PayrollUserCreateViewModel
     [Required]
     [EmailAddress]
     public string Email { get; set; }
-    public bool EmailInviteForUsers { get; set; }
+
+    [Display(Name = "Invite user over email to create a password")]
+    public bool SendRegistrationEmailInviteToUser { get; set; }
+
+    [Display(Name = "Email Subject")]
+    public string UserInviteEmailSubject { get; set; }
+
+    [Display(Name = "Email Body")]
+    public string UserInviteEmailBody { get; set; }
 
     [MinLength(6)]
     [DataType(DataType.Password)]

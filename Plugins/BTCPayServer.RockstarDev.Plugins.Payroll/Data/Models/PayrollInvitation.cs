@@ -21,9 +21,6 @@ public class PayrollInvitation
     public DateTime CreatedAt { get; set; }
 
     public DateTime? AcceptedAt { get; set; }
-
-    public bool IsExpired => CreatedAt.AddDays(7) < DateTime.UtcNow;
-
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {
     }
