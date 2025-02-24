@@ -296,8 +296,13 @@ public class PayrollUserController(
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
+        var completedOrCancelledInvoices = ctx.PayrollInvoices.AsNoTracking()
+        .Where(a => a.UserId == user.Id && (a.State == PayrollInvoiceState.Completed || a.State == PayrollInvoiceState.Cancelled)).ToList();
 
-        return View("Confirm", new ConfirmModel($"Delete user", $"The user: {user.Name} will be deleted alongside all its invoices. Are you sure?", "Delete"));
+        string invoiceText = completedOrCancelledInvoices.Any()
+            ? $"{completedOrCancelledInvoices.Count} associated invoices would also be deleted." : string.Empty;
+
+        return View("Confirm", new ConfirmModel($"Delete user", $"The user: {user.Name} will be deleted. {invoiceText} Are you sure?", "Delete"));
     }
 
 
