@@ -7,6 +7,7 @@
 @inject BTCPayServerEnvironment Env
 @inject DisplayFormatter DisplayFormatter
 @using BTCPayServer.Components.QRCode
+@using BTCPayServer.Models
 @{
     Layout = null;
     ViewData["Title"] = Model.Name;
@@ -71,7 +72,7 @@
 
 <body class="m-0 p-0 bg-white">
     <center>
-        <partial name="_StoreHeader" model="(Model.Name, String.Empty)" />
+        <partial name="_StoreHeader" model="(Model.Name, new StoreBrandingViewModel())" />
 
         <div id="InvoiceSummary" style="max-width:600px">
             @if (!@Model.SupportsLNURL)

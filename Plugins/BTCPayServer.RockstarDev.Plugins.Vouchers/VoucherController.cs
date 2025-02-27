@@ -99,8 +99,8 @@ public class VoucherController : Controller
             //ShowSearch = settings.ShowSearch,
             //ShowCategories = settings.ShowCategories,
             //EnableTips = settings.EnableTips,
-            //CurrencyCode = settings.Currency,
-            //CurrencySymbol = numberFormatInfo.CurrencySymbol,
+            CurrencyCode = CURRENCY,
+            CurrencySymbol = numberFormatInfo.CurrencySymbol,
             CurrencyInfo = new ViewPointOfSaleViewModel.CurrencyInfoData
             {
                 CurrencySymbol = string.IsNullOrEmpty(numberFormatInfo.CurrencySymbol) ? settings.Currency : numberFormatInfo.CurrencySymbol,
@@ -110,7 +110,7 @@ public class VoucherController : Controller
                 Prefixed = new[] { 0, 2 }.Contains(numberFormatInfo.CurrencyPositivePattern),
                 SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
             },
-            //Items = AppService.Parse(settings.Template, false),
+            Items = AppService.Parse(settings.Template, false),
             //ButtonText = settings.ButtonText,
             //CustomButtonText = settings.CustomButtonText,
             //CustomTipText = settings.CustomTipText,
