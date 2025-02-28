@@ -6,10 +6,10 @@ using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services.Mails;
-using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Logging;
 using MimeKit;
+using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
@@ -58,7 +58,6 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
         foreach (var storeGroup in invoicesByStore)
         {
             var emailRecipients = new List<EmailRecipient>();
-            
             var setting = await pluginDbContextFactory.GetSettingAsync(storeGroup.Key);
             if (setting?.EmailOnInvoicePaid != true)
                 continue;
@@ -85,6 +84,26 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
                 await SendBulkEmail(storeGroup.Key, emailRecipients);
             }
         }
+    }
+
+    public async Task SendUserInvitationEmailEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
+    {
+        var settings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
+        if (!settings.IsComplete())
+            return;
+
+        var storeName = (await storeRepo.FindStore(model.StoreId))?.StoreName;
+        var recipient = new EmailRecipient
+        {
+            Address = InternetAddress.Parse(model.Email),
+            Subject = subject,
+            MessageText = body
+                    .Replace("{Name}", model.Name)
+                    .Replace("{StoreName}", storeName)
+                    .Replace("{VendorPayRegisterLink}", vendorPayRegisterationLink)
+        };
+        var emailRecipients = new List<EmailRecipient> { recipient };
+        await SendBulkEmail(model.StoreId, emailRecipients);
     }
 
     public class EmailRecipient

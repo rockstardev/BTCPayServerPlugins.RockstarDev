@@ -1,5 +1,4 @@
 ﻿using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
@@ -8,11 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
-using BTCPayServer.Services;
-using System;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Services.Mails;
 using Microsoft.AspNetCore.Routing;
+using BTCPayServer.Abstractions.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -65,6 +63,11 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
         };
         
         await payrollPluginDbContextFactory.SetSettingAsync(storeId, settings);
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Message = $"Vendor pay settings updated successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
         return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
 
     }
