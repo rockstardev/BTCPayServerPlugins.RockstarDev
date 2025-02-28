@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>Vouchers</Product>
         <Description>THIS IS PRE-RELEASE ALPHA! Do NOT install unless you know what you are doing and want to test!</Description>
-        <Version>1.0.9</Version>
+        <Version>1.0.10</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>

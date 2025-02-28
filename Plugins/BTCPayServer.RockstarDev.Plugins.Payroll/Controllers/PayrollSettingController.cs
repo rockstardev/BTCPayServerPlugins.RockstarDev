@@ -22,17 +22,6 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
-    private const string DefaultEmailOnInvoicePaidSubject = @"Your invoice has been paid";
-    private const string DefaultEmailOnInvoicePaidBody = @"Hello {Name},
-
-Your invoice submitted on {CreatedAt} has been paid on {PaidAt}.
-
-See all your invoices on: {VendorPayPublicLink}
-
-Thank you,  
-{StoreName}";
-
-
     [HttpGet("settings")]
     public async Task<IActionResult> Settings(string storeId)
     {
@@ -42,8 +31,8 @@ Thank you,
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
-            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? DefaultEmailOnInvoicePaidSubject,
-            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? DefaultEmailOnInvoicePaidBody
+            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
+            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody
         };
         var emailSender = await emailSenderFactory.GetEmailSender(storeId);
         ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();

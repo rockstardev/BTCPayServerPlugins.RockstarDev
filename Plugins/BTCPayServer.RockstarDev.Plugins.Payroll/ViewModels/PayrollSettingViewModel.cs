@@ -14,4 +14,17 @@ public class PayrollSettingViewModel
     public bool EmailOnInvoicePaid { get; set; }
     public string EmailOnInvoicePaidSubject { get; set; }
     public string EmailOnInvoicePaidBody { get; set; }
+
+    public record Defaults
+    {
+        public const string EmailOnInvoicePaidSubject = @"Your invoice has been paid";
+        public const string EmailOnInvoicePaidBody = @"Hello {Name},
+
+Your invoice submitted on {CreatedAt} has been paid on {PaidAt}.
+
+See all your invoices on: {VendorPayPublicLink}
+
+Thank you,  
+{StoreName}";
+    }
 }
