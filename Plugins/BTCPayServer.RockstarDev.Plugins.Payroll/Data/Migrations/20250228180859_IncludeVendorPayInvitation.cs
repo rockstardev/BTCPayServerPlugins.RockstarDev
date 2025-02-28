@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class includePayrollInvitation : Migration
+    public partial class IncludeVendorPayInvitation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
