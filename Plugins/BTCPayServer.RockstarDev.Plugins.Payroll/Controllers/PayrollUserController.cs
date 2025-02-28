@@ -53,8 +53,6 @@ Once your account is created and you log in, you will be able to:
 
 Payments will be issued in accordance with the terms of the contracted payment and purchase order.
 
-If you have any questions, please reach out to XXXXXX.
-
 Thank you,  
 {StoreName}";
 
@@ -160,7 +158,8 @@ Thank you,
             }
             catch (Exception)
             {
-                ModelState.AddModelError(nameof(model.Email), "To generate an invite link, Kindly setup a correct Email SMTP service on your admin setting");
+                ModelState.AddModelError(nameof(model.Email), 
+                    "Invitation email sending failed, kindly check your SMTP settings and ensure they are correct");
                 return View(model);
             }
             dbPlugins.Add(dbUser);
@@ -168,7 +167,7 @@ Thank you,
             await dbPlugins.SaveChangesAsync();
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = "An invitation has been sent to the user",
+                Message = "Invitation email sent to "+ model.Email,
                 Severity = StatusMessageModel.StatusSeverity.Success
             });
         }
@@ -221,7 +220,7 @@ Thank you,
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                Message = $"To generate an invite link, Kindly setup a correct Email SMTP service on your admin setting",
+                Message = $"Invitation email resending failed, kindly check your SMTP settings and ensure they are correct",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
@@ -230,7 +229,7 @@ Thank you,
         await ctx.SaveChangesAsync();
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
-            Message = $"User invitation resent successfully",
+            Message = $"User invitation successfully sent",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id, pending = true });
