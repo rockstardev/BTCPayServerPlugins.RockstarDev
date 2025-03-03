@@ -471,14 +471,15 @@ public class PayrollInvoiceController(
 
         var csvData = new StringBuilder();
         // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
-        csvData.AppendLine("Created Date,Transaction Date,Name,Description,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
+        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,PurchaseOrder - Description,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
         string emptyStr = string.Empty;
         decimal usdRate = 0;
         foreach (var invoice in invoices)
         {
+            var desc = string.IsNullOrEmpty(invoice.PurchaseOrder) ? invoice.Description ?? emptyStr : $"{invoice.PurchaseOrder} - {invoice.Description}";
             if (invoice.BtcPaid == null)
             {
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Description ?? emptyStr}," +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Id},{desc}," +
                                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
                                    $",{usdRate},{emptyStr},{emptyStr},false");
             }
@@ -494,7 +495,7 @@ public class PayrollInvoiceController(
                     usdRate = Math.Abs(usdRate);
                 }
 
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? emptyStr)},{invoice.User.Name},{invoice.Description ?? emptyStr}" +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? emptyStr)},{invoice.User.Name},{invoice.Id},{desc}," +
                                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
                                    $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId},true");
             }
