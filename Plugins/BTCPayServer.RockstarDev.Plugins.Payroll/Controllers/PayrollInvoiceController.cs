@@ -488,20 +488,24 @@ public class PayrollInvoiceController(
 
         var csvData = new StringBuilder();
         // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
-        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceId,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
-        string emptyStr = string.Empty;
+        csvData.AppendLine("Created Date,Transaction Date,Name,InvoiceDesc,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
+        var empty = string.Empty;
         decimal usdRate = 0;
         foreach (var invoice in invoices)
         {
+            var desc = $"{invoice.Description ?? empty}";
+            if (!string.IsNullOrEmpty(invoice.PurchaseOrder))
+                desc = $"{invoice.PurchaseOrder} - {desc}";
+            
             if (invoice.BtcPaid == null)
             {
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? emptyStr},{invoice.User.Name},{invoice.Description}," +
-                                   $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
-                                   $",{usdRate},{emptyStr},{emptyStr},false");
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? empty},{invoice.User.Name},{desc}," +
+                                   $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{empty}" +
+                                   $",{usdRate},{empty},{empty},false");
             }
             else
             {
-                var txn = walletTxnInfo?.Transactions.SingleOrDefault(a => a.Id == invoice.TxnId);
+                var txn = walletTxnInfo?.Transactions?.SingleOrDefault(a => a.Id == invoice.TxnId);
                 //string balance = string.IsNullOrEmpty(transaction.Balance) ? "" : transaction.Balance;
 
                 var btcPaid = Convert.ToDecimal(invoice.BtcPaid);
@@ -511,9 +515,9 @@ public class PayrollInvoiceController(
                     usdRate = Math.Abs(usdRate);
                 }
 
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? emptyStr)},{invoice.User.Name},{invoice.Description}" +
-                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{emptyStr}" +
-                                   $",-{invoice.BtcPaid},{emptyStr},{invoice.TxnId},true");
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? empty)},{invoice.User.Name},{desc}," +
+                                   $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{empty}" +
+                                   $",-{invoice.BtcPaid},{empty},{invoice.TxnId},true");
             }
         }
         
