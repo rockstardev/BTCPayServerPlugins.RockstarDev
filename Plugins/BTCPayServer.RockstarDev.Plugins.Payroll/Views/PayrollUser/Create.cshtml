@@ -1,6 +1,7 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
 @model PayrollUserCreateViewModel
 @{
+    Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("VendorPay", "Create Vendor Pay User", "VendorPay");
     var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
 }
