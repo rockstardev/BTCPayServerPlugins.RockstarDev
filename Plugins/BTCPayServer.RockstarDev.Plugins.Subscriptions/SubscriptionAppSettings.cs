@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using BTCPayServer.JsonConverters;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;

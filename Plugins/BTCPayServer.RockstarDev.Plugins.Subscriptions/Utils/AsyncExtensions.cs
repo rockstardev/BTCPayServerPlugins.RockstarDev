@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace BTCPayServer.RockstarDev.Plugins.Subscriptions;
+namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Utils;
 
 public static class AsyncExtensions
 {

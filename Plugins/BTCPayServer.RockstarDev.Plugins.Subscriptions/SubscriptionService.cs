@@ -8,6 +8,8 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.HostedServices;
 using BTCPayServer.HostedServices.Webhooks;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Utils;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.PaymentRequests;
