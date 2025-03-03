@@ -154,7 +154,17 @@ public class PayrollInvoiceController(
                 break;
 
             case "download":
-                return await DownloadInvoicesAsZipAsync(invoices);
+                var invoicesWithFile = invoices.Where(i => !string.IsNullOrWhiteSpace(i.InvoiceFilename)).ToList();
+                if (!invoicesWithFile.Any())
+                {
+                    TempData.SetStatusMessageModel(new StatusMessageModel()
+                    {
+                        Message = $"No invoice file available to download",
+                        Severity = StatusMessageModel.StatusSeverity.Info
+                    });
+                    return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+                }
+                return await DownloadInvoicesAsZipAsync(invoicesWithFile);
             
             case "export":
                 return await ExportInvoices(invoices);
@@ -376,7 +386,14 @@ public class PayrollInvoiceController(
             UserId = model.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
-        if (!settings.MakeInvoiceFilesOptional && model.Invoice != null)
+        if (model.Invoice == null && !settings.MakeInvoiceFilesOptional)
+        {
+            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice file");
+            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
+            return View(model);
+        }
+
+        if (model.Invoice != null)
         {
             var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
             var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
