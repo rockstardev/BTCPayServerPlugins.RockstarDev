@@ -37,6 +37,13 @@
 
 
     <ItemGroup>
-      <Folder Include="Views\Shared\" />
+      <_ContentIncludedByDefault Remove="Resources\swagger.subscriptions.json" />
     </ItemGroup>
+
+
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Subscriptions\NavExtension.cshtml" />
+      <UpToDateCheckInput Remove="Subscriptions\_ViewImports.cshtml" />
+    </ItemGroup>
+    
 </Project>

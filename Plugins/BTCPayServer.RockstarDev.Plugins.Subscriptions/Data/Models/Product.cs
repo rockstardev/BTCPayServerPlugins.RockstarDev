@@ -24,6 +24,8 @@ public class Product
     [StringLength(10)]
     public DurationTypes DurationType { get; set; }
     
+    [StringLength(25)]
+    public string ReminderDays { get; set; }
 
     [MaxLength(50)]
     public string StoreId { get; set; }

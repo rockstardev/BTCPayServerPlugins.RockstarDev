@@ -1,0 +1,41 @@
+﻿@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Subscription>
+@{
+    ViewData["Title"] = "Subscriptions";
+}
+
+<h2>Subscriptions</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Subscription</a>
+</p>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Customer</th>
+        <th>Product</th>
+        <th>Created</th>
+        <th>Expires</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var subscription in Model)
+    {
+        <tr>
+            <td>@subscription.Customer?.Name</td>
+            <td>@subscription.Product?.Name</td>
+            <td>@subscription.Created.ToString("g")</td>
+            <td>@subscription.Expires.ToString("g")</td>
+            <td>@subscription.State</td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@subscription.Id" class="btn btn-warning btn-sm">Edit</a>
+                <form asp-action="Delete" asp-route-id="@subscription.Id" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

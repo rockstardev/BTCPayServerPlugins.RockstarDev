@@ -1,0 +1,44 @@
+﻿@model BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Product
+@{
+    ViewData["Title"] = "Edit Product";
+}
+
+<h2>Edit Product</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Price"></label>
+        <input asp-for="Price" class="form-control" type="number" step="0.01" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Currency"></label>
+        <input asp-for="Currency" class="form-control" maxlength="4" placeholder="e.g., USD, BTC" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Duration"></label>
+        <input asp-for="Duration" class="form-control" type="number" min="1" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="DurationType"></label>
+        <select asp-for="DurationType" asp-items="Html.GetEnumSelectList<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.DurationTypes>()" class="form-control">
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="ReminderDays">Reminder Days (comma-separated)</label>
+        <input asp-for="ReminderDays" class="form-control" placeholder="e.g., 3, 7, 30" required />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

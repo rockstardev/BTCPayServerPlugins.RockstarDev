@@ -4,6 +4,8 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Abstractions.Services;
 using BTCPayServer.HostedServices.Webhooks;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 using BTCPayServer.Services.Apps;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,38 +16,31 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions
 {
     public class SubscriptionPlugin : BaseBTCPayServerPlugin
     {
+        public const string SubscriptionPluginNavKey = "SubscriptionPluginNavKey";
+        
         public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
         [
             new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
         ];
 
-        public override void Execute(IServiceCollection applicationBuilder)
+        public override void Execute(IServiceCollection serviceCollection)
         {
-            applicationBuilder.AddSingleton<ISwaggerProvider, SubscriptionsSwaggerProvider>();
-            applicationBuilder.AddSingleton<SubscriptionService>();
-            applicationBuilder.AddSingleton<IWebhookProvider>(o => o.GetRequiredService<SubscriptionService>());
-            applicationBuilder.AddHostedService(s => s.GetRequiredService<SubscriptionService>());
-
-            applicationBuilder.AddUIExtension("header-nav", "Subscriptions/NavExtension");
-            applicationBuilder.AddSingleton<AppBaseType, SubscriptionApp>();
-            base.Execute(applicationBuilder);
-        }
-    }
-
-    public class SubscriptionsSwaggerProvider : ISwaggerProvider
-    {
-        private readonly IFileProvider _fileProvider;
-
-        public SubscriptionsSwaggerProvider(IWebHostEnvironment webHostEnvironment)
-        {
-            _fileProvider = webHostEnvironment.WebRootFileProvider;
-        }
-
-        public async Task<JObject> Fetch()
-        {
-            var file = _fileProvider.GetFileInfo("Resources/swagger.subscriptions.json");
-            using var reader = new StreamReader(file.CreateReadStream());
-            return JObject.Parse(await reader.ReadToEndAsync());
+            serviceCollection.AddUIExtension("store-integrations-nav", SubscriptionPluginNavKey);
+            
+            serviceCollection.AddSingleton<SubscriptionService>();
+            serviceCollection.AddHostedService(s => s.GetRequiredService<SubscriptionService>());
+            serviceCollection.AddSingleton<EmailService>();
+            
+            // Add the database related registrations
+            serviceCollection.AddSingleton<SubscriptionsPluginDbContextFactory>();
+            serviceCollection.AddDbContext<SubscriptionsPluginDbContext>((provider, o) =>
+            {
+                var factory = provider.GetRequiredService<SubscriptionsPluginDbContextFactory>();
+                factory.ConfigureBuilder(o);
+            });
+            serviceCollection.AddHostedService<SubscriptionsPluginMigrationRunner>();
+            
+            base.Execute(serviceCollection);
         }
     }
 }

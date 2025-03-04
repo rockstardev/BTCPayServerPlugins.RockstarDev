@@ -35,9 +35,13 @@ public class Subscription
     [MaxLength(10)]
     public SubscriptionStates State { get; set; }
     
+    // for shopify and other systems
+    [MaxLength(50)]
+    public string PaymentRequestId { get; set; }
+    
     // TODO: Define entity
     
-    public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
+    public ICollection<SubscriptionReminder> SubscriptionReminders { get; set; } = new List<SubscriptionReminder>();
     
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {

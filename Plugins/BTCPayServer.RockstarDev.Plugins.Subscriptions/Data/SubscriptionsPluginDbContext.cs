@@ -9,6 +9,7 @@ public class SubscriptionsPluginDbContext(DbContextOptions<SubscriptionsPluginDb
     : DbContext(options)
 {
     public DbSet<Subscription> Subscriptions { get; set; }
+    public DbSet<SubscriptionReminder> SubscriptionReminders { get; set; }
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<PluginSetting> PluginSettings { get; set; }
@@ -16,7 +17,7 @@ public class SubscriptionsPluginDbContext(DbContextOptions<SubscriptionsPluginDb
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.Payroll");
+        modelBuilder.HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.Subscriptions");
 
         Subscription.OnModelCreating(modelBuilder);
         Customer.OnModelCreating(modelBuilder);
