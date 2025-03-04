@@ -14,7 +14,7 @@ using MimeKit;
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 
 public class EmailService(EmailSenderFactory emailSender, Logs logs, 
-    StoreRepository storeRepo, SubscriptionsPluginDbContextFactory dbContextFactory)
+    StoreRepository storeRepo, PluginDbContextFactory dbContextFactory)
 {
     private async Task SendBulkEmail(string storeId, IEnumerable<EmailRecipient> recipients)
     {

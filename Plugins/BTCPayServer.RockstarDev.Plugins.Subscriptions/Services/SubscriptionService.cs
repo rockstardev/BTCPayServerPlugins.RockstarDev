@@ -20,7 +20,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 public class SubscriptionService(
     EventAggregator eventAggregator,
     ILogger<SubscriptionService> logger,
-    SubscriptionsPluginDbContext dbContext,
+    PluginDbContext dbContext,
     PaymentRequestRepository paymentRequestRepository,
     EmailService emailService)
     : EventHostedServiceBase(eventAggregator, logger)

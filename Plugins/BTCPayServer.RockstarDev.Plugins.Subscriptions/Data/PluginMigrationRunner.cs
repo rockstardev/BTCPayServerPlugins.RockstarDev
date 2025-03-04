@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 
-internal class SubscriptionsPluginMigrationRunner(SubscriptionsPluginDbContextFactory dbContextFactory) : IHostedService
+internal class PluginMigrationRunner(PluginDbContextFactory dbContextFactory) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {

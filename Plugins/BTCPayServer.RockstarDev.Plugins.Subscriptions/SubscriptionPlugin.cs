@@ -32,13 +32,13 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions
             serviceCollection.AddSingleton<EmailService>();
             
             // Add the database related registrations
-            serviceCollection.AddSingleton<SubscriptionsPluginDbContextFactory>();
-            serviceCollection.AddDbContext<SubscriptionsPluginDbContext>((provider, o) =>
+            serviceCollection.AddSingleton<PluginDbContextFactory>();
+            serviceCollection.AddDbContext<PluginDbContext>((provider, o) =>
             {
-                var factory = provider.GetRequiredService<SubscriptionsPluginDbContextFactory>();
+                var factory = provider.GetRequiredService<PluginDbContextFactory>();
                 factory.ConfigureBuilder(o);
             });
-            serviceCollection.AddHostedService<SubscriptionsPluginMigrationRunner>();
+            serviceCollection.AddHostedService<PluginMigrationRunner>();
             
             base.Execute(serviceCollection);
         }

@@ -9,16 +9,16 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 
-public class SubscriptionsPluginDbContextFactory(IOptions<DatabaseOptions> options)
-    : BaseDbContextFactory<SubscriptionsPluginDbContext>(options,
+public class PluginDbContextFactory(IOptions<DatabaseOptions> options)
+    : BaseDbContextFactory<PluginDbContext>(options,
         "BTCPayServer.RockstarDev.Plugins.Payroll")
 {
-    public override SubscriptionsPluginDbContext CreateContext(
+    public override PluginDbContext CreateContext(
         Action<NpgsqlDbContextOptionsBuilder> npgsqlOptionsAction = null)
     {
-        var builder = new DbContextOptionsBuilder<SubscriptionsPluginDbContext>();
+        var builder = new DbContextOptionsBuilder<PluginDbContext>();
         ConfigureBuilder(builder, npgsqlOptionsAction);
-        return new SubscriptionsPluginDbContext(builder.Options);
+        return new PluginDbContext(builder.Options);
     }
 
     // public async Task<PayrollStoreSetting> GetSettingAsync(string storeId)

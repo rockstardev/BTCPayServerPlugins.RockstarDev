@@ -10,7 +10,7 @@
     <PropertyGroup>
         <Product>Subscriptions</Product>
         <Description>Offer and manage subscriptions through BTCPay Server</Description>
-        <Version>1.0.2</Version>
+        <Version>0.0.1</Version>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
     <!-- Plugin development properties -->
@@ -29,21 +29,27 @@
         </ProjectReference>
     </ItemDefinitionGroup>
 
-
     <ItemGroup>
-        <EmbeddedResource Include="Resources\**" />
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
     </ItemGroup>
 
+    <!-- This is all so that we can generate entity framework migrations in design mode
+    <Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
+        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
+              DestinationFolder="$(OutputPath)"
+              Condition="'$(Configuration)' == 'Debug'" />
+        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer.Abstractions\bin\Debug\net8.0\BTCPayServer.Abstractions.dll"
+              DestinationFolder="$(OutputPath)"
+              Condition="'$(Configuration)' == 'Debug'" />
+    </Target>
+     -->
 
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="Resources\swagger.subscriptions.json" />
-    </ItemGroup>
-
-
-    <ItemGroup>
-      <UpToDateCheckInput Remove="Subscriptions\NavExtension.cshtml" />
-      <UpToDateCheckInput Remove="Subscriptions\_ViewImports.cshtml" />
+    <ItemGroup Condition="'$(Configuration)' != 'Release'">
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     </ItemGroup>
     
 </Project>

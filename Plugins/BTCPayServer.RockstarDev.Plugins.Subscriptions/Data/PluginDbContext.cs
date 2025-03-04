@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 
-public class SubscriptionsPluginDbContext(DbContextOptions<SubscriptionsPluginDbContext> options, bool designTime = false)
+public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool designTime = false)
     : DbContext(options)
 {
     public DbSet<Subscription> Subscriptions { get; set; }
@@ -19,9 +19,11 @@ public class SubscriptionsPluginDbContext(DbContextOptions<SubscriptionsPluginDb
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.Subscriptions");
 
-        Subscription.OnModelCreating(modelBuilder);
         Customer.OnModelCreating(modelBuilder);
+        PluginSetting.OnModelCreating(modelBuilder);
         Product.OnModelCreating(modelBuilder);
+        Subscription.OnModelCreating(modelBuilder);
+        SubscriptionReminder.OnModelCreating(modelBuilder);
     }
 
     // public async Task<PluginSetting?> GetSettingAsync(string storeId, PluginSettingKeys key)

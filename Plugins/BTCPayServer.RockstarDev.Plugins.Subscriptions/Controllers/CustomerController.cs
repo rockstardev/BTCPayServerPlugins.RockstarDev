@@ -16,10 +16,10 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class CustomerController : Controller
 {
-    private readonly SubscriptionsPluginDbContext _dbContext;
+    private readonly PluginDbContext _dbContext;
     private readonly IScopeProvider _scopeProvider;
 
-    public CustomerController(SubscriptionsPluginDbContext dbContext, IScopeProvider scopeProvider)
+    public CustomerController(PluginDbContext dbContext, IScopeProvider scopeProvider)
     {
         _dbContext = dbContext;
         _scopeProvider = scopeProvider;
