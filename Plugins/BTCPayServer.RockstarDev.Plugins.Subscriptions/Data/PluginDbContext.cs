@@ -8,6 +8,8 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool designTime = false)
     : DbContext(options)
 {
+    public const string Schema = "BTCPayServer.RockstarDev.Plugins.Subscriptions";
+    
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<SubscriptionReminder> SubscriptionReminders { get; set; }
     public DbSet<Customer> Customers { get; set; }
@@ -17,7 +19,7 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.Subscriptions");
+        modelBuilder.HasDefaultSchema(Schema);
 
         Customer.OnModelCreating(modelBuilder);
         PluginSetting.OnModelCreating(modelBuilder);

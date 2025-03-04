@@ -10,8 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 
 public class PluginDbContextFactory(IOptions<DatabaseOptions> options)
-    : BaseDbContextFactory<PluginDbContext>(options,
-        "BTCPayServer.RockstarDev.Plugins.Payroll")
+    : BaseDbContextFactory<PluginDbContext>(options, PluginDbContext.Schema)
 {
     public override PluginDbContext CreateContext(
         Action<NpgsqlDbContextOptionsBuilder> npgsqlOptionsAction = null)
