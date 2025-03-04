@@ -16,7 +16,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions
 {
     public class SubscriptionPlugin : BaseBTCPayServerPlugin
     {
-        public const string SubscriptionPluginNavKey = "SubscriptionPluginNavKey";
+        public const string SubscriptionPluginNavKey = "SubscriptionsNav";
         
         public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
         [

@@ -10,33 +10,30 @@ using System.Collections.Generic;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
+[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Route("~/plugins/{storeId}/subscriptions/")]
-[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class SubscriptionController : Controller
 {
     private readonly PluginDbContext _dbContext;
-    private readonly IScopeProvider _scopeProvider;
 
-    public SubscriptionController(PluginDbContext dbContext, IScopeProvider scopeProvider)
+    public SubscriptionController(PluginDbContext dbContext)
     {
         _dbContext = dbContext;
-        _scopeProvider = scopeProvider;
     }
+    
+    [FromRoute] public string StoreId { get; set; }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var subscriptions = await _dbContext.Subscriptions
             .Include(s => s.Customer)
             .Include(s => s.Product)
-            .Where(s => s.Customer.StoreId == storeId)
+            .Where(s => s.Customer.StoreId == StoreId)
             .ToListAsync();
 
         return View(subscriptions);
@@ -45,16 +42,12 @@ public class SubscriptionController : Controller
     [HttpGet("create")]
     public async Task<IActionResult> Create()
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         ViewBag.Customers = await _dbContext.Customers
-            .Where(c => c.StoreId == storeId)
+            .Where(c => c.StoreId == StoreId)
             .ToListAsync();
 
         ViewBag.Products = await _dbContext.Products
-            .Where(p => p.StoreId == storeId)
+            .Where(p => p.StoreId == StoreId)
             .ToListAsync();
 
         return View(new Subscription());
@@ -65,10 +58,6 @@ public class SubscriptionController : Controller
     {
         if (!ModelState.IsValid)
             return View(subscription);
-
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
 
         subscription.Created = DateTimeOffset.UtcNow;
         subscription.State = SubscriptionStates.Active;
@@ -82,23 +71,19 @@ public class SubscriptionController : Controller
     [HttpGet("edit/{id}")]
     public async Task<IActionResult> Edit(string id)
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var subscription = await _dbContext.Subscriptions
-            .Where(s => s.Customer.StoreId == storeId && s.Id == id)
+            .Where(s => s.Customer.StoreId == StoreId && s.Id == id)
             .FirstOrDefaultAsync();
 
         if (subscription == null)
             return NotFound();
 
         ViewBag.Customers = await _dbContext.Customers
-            .Where(c => c.StoreId == storeId)
+            .Where(c => c.StoreId == StoreId)
             .ToListAsync();
 
         ViewBag.Products = await _dbContext.Products
-            .Where(p => p.StoreId == storeId)
+            .Where(p => p.StoreId == StoreId)
             .ToListAsync();
 
         return View(subscription);
@@ -110,12 +95,8 @@ public class SubscriptionController : Controller
         if (!ModelState.IsValid)
             return View(subscription);
 
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var existingSubscription = await _dbContext.Subscriptions
-            .Where(s => s.Customer.StoreId == storeId && s.Id == id)
+            .Where(s => s.Customer.StoreId == StoreId && s.Id == id)
             .FirstOrDefaultAsync();
 
         if (existingSubscription == null)
@@ -134,12 +115,8 @@ public class SubscriptionController : Controller
     [HttpPost("delete/{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var subscription = await _dbContext.Subscriptions
-            .Where(s => s.Customer.StoreId == storeId && s.Id == id)
+            .Where(s => s.Customer.StoreId == StoreId && s.Id == id)
             .FirstOrDefaultAsync();
 
         if (subscription == null)

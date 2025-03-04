@@ -16,28 +16,24 @@ using BTCPayServer.Abstractions.Contracts;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
+[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Route("~/plugins/{storeId}/subscriptions/products/")]
-[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class ProductController : Controller
 {
     private readonly PluginDbContext _dbContext;
-    private readonly IScopeProvider _scopeProvider;
 
-    public ProductController(PluginDbContext dbContext, IScopeProvider scopeProvider)
+    public ProductController(PluginDbContext dbContext)
     {
         _dbContext = dbContext;
-        _scopeProvider = scopeProvider;
     }
+    
+    [FromRoute] public string StoreId { get; set; }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var products = await _dbContext.Products
-            .Where(p => p.StoreId == storeId)
+            .Where(p => p.StoreId == StoreId)
             .ToListAsync();
 
         return View(products);
@@ -55,11 +51,7 @@ public class ProductController : Controller
         if (!ModelState.IsValid)
             return View(product);
 
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
-        product.StoreId = storeId;
+        product.StoreId = StoreId;
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
 
@@ -69,12 +61,8 @@ public class ProductController : Controller
     [HttpGet("edit/{id}")]
     public async Task<IActionResult> Edit(string id)
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var product = await _dbContext.Products
-            .Where(p => p.StoreId == storeId && p.Id == id)
+            .Where(p => p.StoreId == StoreId && p.Id == id)
             .FirstOrDefaultAsync();
 
         if (product == null)
@@ -89,12 +77,8 @@ public class ProductController : Controller
         if (!ModelState.IsValid)
             return View(product);
 
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var existingProduct = await _dbContext.Products
-            .Where(p => p.StoreId == storeId && p.Id == id)
+            .Where(p => p.StoreId == StoreId && p.Id == id)
             .FirstOrDefaultAsync();
 
         if (existingProduct == null)
@@ -111,12 +95,8 @@ public class ProductController : Controller
     [HttpPost("delete/{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var product = await _dbContext.Products
-            .Where(p => p.StoreId == storeId && p.Id == id)
+            .Where(p => p.StoreId == StoreId && p.Id == id)
             .FirstOrDefaultAsync();
 
         if (product == null)

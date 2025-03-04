@@ -9,31 +9,27 @@ using System.Collections.Generic;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
+[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Route("~/plugins/{storeId}/subscriptions/customers/")]
-[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class CustomerController : Controller
 {
     private readonly PluginDbContext _dbContext;
-    private readonly IScopeProvider _scopeProvider;
-
-    public CustomerController(PluginDbContext dbContext, IScopeProvider scopeProvider)
+    public CustomerController(PluginDbContext dbContext)
     {
         _dbContext = dbContext;
-        _scopeProvider = scopeProvider;
     }
+    
+    [FromRoute] public string StoreId { get; set; }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var customers = await _dbContext.Customers
-            .Where(c => c.StoreId == storeId)
+            .Where(c => c.StoreId == StoreId)
             .ToListAsync();
 
         return View(customers);
@@ -51,11 +47,7 @@ public class CustomerController : Controller
         if (!ModelState.IsValid)
             return View(customer);
 
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
-        customer.StoreId = storeId;
+        customer.StoreId = StoreId;
         _dbContext.Customers.Add(customer);
         await _dbContext.SaveChangesAsync();
 
@@ -66,12 +58,8 @@ public class CustomerController : Controller
     [HttpGet("edit/{id}")]
     public async Task<IActionResult> Edit(string id)
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var customer = await _dbContext.Customers
-            .Where(c => c.StoreId == storeId && c.Id == id)
+            .Where(c => c.StoreId == StoreId && c.Id == id)
             .FirstOrDefaultAsync();
 
         if (customer == null)
@@ -86,12 +74,8 @@ public class CustomerController : Controller
         if (!ModelState.IsValid)
             return View(customer);
 
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var existingCustomer = await _dbContext.Customers
-            .Where(c => c.StoreId == storeId && c.Id == id)
+            .Where(c => c.StoreId == StoreId && c.Id == id)
             .FirstOrDefaultAsync();
 
         if (existingCustomer == null)
@@ -112,12 +96,8 @@ public class CustomerController : Controller
     [HttpPost("delete/{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var storeId = _scopeProvider.GetCurrentStoreId();
-        if (string.IsNullOrEmpty(storeId))
-            return Forbid();
-
         var customer = await _dbContext.Customers
-            .Where(c => c.StoreId == storeId && c.Id == id)
+            .Where(c => c.StoreId == StoreId && c.Id == id)
             .FirstOrDefaultAsync();
 
         if (customer == null)
