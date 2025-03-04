@@ -97,6 +97,7 @@ public class PayrollInvoiceController(
                 State = tuple.State,
                 TxnId = tuple.TxnId,
                 PurchaseOrder = tuple.PurchaseOrder,
+                ExtraInvoiceFiles = tuple.ExtraFilenames,
                 Description = tuple.Description,
                 InvoiceUrl = tuple.InvoiceFilename,
                 PaidAt = tuple.PaidAt,
@@ -172,10 +173,21 @@ public class PayrollInvoiceController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
+    public async Task<IActionResult> DownloadInvoices(string storeId, string invoiceId)
+    {
+        if (CurrentStore is null)
+            return NotFound();
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        PayrollInvoice invoice = ctx.PayrollInvoices
+                            .Include(a => a.User).Single(a => a.Id == invoiceId);
+        return await DownloadInvoicesAsZipAsync(new List<PayrollInvoice> { invoice });
+    }
+
+
     private async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
     {
         var zipName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
-
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
@@ -183,52 +195,57 @@ public class PayrollInvoiceController(
 
             foreach (var invoice in invoices)
             {
-                var fileUrl =
-                    await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                var filename = Path.GetFileName(fileUrl);
-                byte[] fileBytes;
-                
-                // if it is local storage, then read file from HDD
-                if (fileUrl?.Contains("/LocalStorage/") == true)
-                    fileBytes = await System.IO.File.ReadAllBytesAsync(Path.Combine(dataDirectories.Value.StorageDir, filename));
-                else 
-                    fileBytes = await httpClient.DownloadFileAsByteArray(fileUrl);
-                
-                // replace guid of invoice with name of the user + year-month
-                if (filename?.Length > 36)
+                var allFiles = new List<string> { invoice.InvoiceFilename };
+                if (!string.IsNullOrWhiteSpace(invoice.ExtraFilenames))
                 {
-                    var first36 = filename.Substring(0, 36);
-                    if (Guid.TryParse(first36, out Guid result))
-                    {
-                        var newName = $"{invoice.User.Name} - {invoice.CreatedAt:yyyy-MM} ";
-                        filename = filename.Replace(first36, newName);
-
-                        // Ensure filename is unique
-                        var baseFilename = Path.GetFileNameWithoutExtension(filename);
-                        var extension = Path.GetExtension(filename);
-                        int counter = 1;
-
-                        while (usedFilenames.Contains(filename))
-                        {
-                            filename = $"{baseFilename} ({counter}){extension}";
-                            counter++;
-                        }
-
-                        usedFilenames.Add(filename);
-                    }
+                    allFiles.AddRange(invoice.ExtraFilenames.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()));
                 }
 
-                var entry = zip.CreateEntry(filename);
-                using (var entryStream = entry.Open())
+                foreach (var file in allFiles)
                 {
-                    await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                    var fileUrl = await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), file);
+                    var filename = Path.GetFileName(fileUrl);
+                    byte[] fileBytes;
+
+                    if (fileUrl?.Contains("/LocalStorage/") == true)
+                        fileBytes = await System.IO.File.ReadAllBytesAsync(Path.Combine(dataDirectories.Value.StorageDir, filename));
+                    else
+                        fileBytes = await httpClient.DownloadFileAsByteArray(fileUrl);
+                       
+                    if (filename?.Length > 36)
+                    {
+                        var first36 = filename.Substring(0, 36);
+                        if (Guid.TryParse(first36, out _))
+                        {
+                            var newName = $"{invoice.User.Name} - {invoice.CreatedAt:yyyy-MM}";
+                            filename = filename.Replace(first36, newName);
+
+                            // Ensure filename is unique
+                            var baseFilename = Path.GetFileNameWithoutExtension(filename);
+                            var extension = Path.GetExtension(filename);
+                            int counter = 1;
+
+                            while (usedFilenames.Contains(filename))
+                            {
+                                filename = $"{baseFilename} ({counter}){extension}";
+                                counter++;
+                            }
+                            usedFilenames.Add(filename);
+                        }
+                    }
+
+                    var entry = zip.CreateEntry(filename);
+                    using (var entryStream = entry.Open())
+                    {
+                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                    }
                 }
             }
         }
-
         ms.Position = 0;
         return File(ms.ToArray(), "application/zip", zipName);
     }
+
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
@@ -349,9 +366,9 @@ public class PayrollInvoiceController(
 
         await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
         var settings = await dbPlugin.GetSettingAsync(storeId);
-        if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
+        if (!settings.MakeInvoiceFilesOptional && !model.Invoices.Any())
         {
-            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
+            ModelState.AddModelError(nameof(model.Invoices), "Kindly include an invoice");
         }
         
         if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
@@ -386,18 +403,28 @@ public class PayrollInvoiceController(
             UserId = model.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
-        if (model.Invoice == null && !settings.MakeInvoiceFilesOptional)
+        if (!model.Invoices.Any() && !settings.MakeInvoiceFilesOptional)
         {
-            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice file");
+            ModelState.AddModelError(nameof(model.Invoices), "Kindly include an invoice file");
             model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
             return View(model);
         }
 
-        if (model.Invoice != null)
+        if (model.Invoices.Any())
         {
             var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-            var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
+            var uploaded = await fileService.AddFile(model.Invoices.First(), adminset!.AdminAppUserId);
             dbPayrollInvoice.InvoiceFilename = uploaded.Id;
+            if (model.Invoices.Count > 1)
+            {
+                List<string> extraFiles = new List<string>();
+                foreach (var invoice in model.Invoices.Skip(1))
+                {
+                    var extraFileUpload = await fileService.AddFile(invoice, adminset.AdminAppUserId);
+                    extraFiles.Add(extraFileUpload.Id);
+                }
+                dbPayrollInvoice.ExtraFilenames = string.Join(", ", extraFiles);
+            }
         }
 
         dbPlugin.Add(dbPayrollInvoice);

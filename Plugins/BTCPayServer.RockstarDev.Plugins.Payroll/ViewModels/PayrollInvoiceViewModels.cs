@@ -30,6 +30,7 @@ public class PayrollInvoiceViewModel
     public string PurchaseOrder { get; set; }
     public string Description { get; set; }
     public string InvoiceUrl { get; set; }
+    public string ExtraInvoiceFiles { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
     public string AdminNote { get; set; }
 }
@@ -58,5 +59,7 @@ public class PayrollInvoiceUploadViewModel
 
     public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
-    public IFormFile Invoice { get; set; }
+    //public IFormFile Invoice { get; set; }
+    public List<IFormFile> Invoices { get; set; } = new();
+
 }

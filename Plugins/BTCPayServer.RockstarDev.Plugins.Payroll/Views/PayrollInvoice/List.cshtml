@@ -195,14 +195,21 @@
                             <td class="text-end">
                                 @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
                                 {
-                                    <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
+                                    <a data-bs-toggle="tooltip" title="View Uploaded Invoice" href="/Storage/@pp.InvoiceUrl" target="_blank" rel="noopener noreferrer">
+                                        <vc:icon symbol="nav-invoice" />
+                                    </a>
+                                    <span>-</span>
+                                }
+                                @if (!string.IsNullOrEmpty(pp.ExtraInvoiceFiles))
+                                {
+                                    <a data-bs-toggle="tooltip" title="Download all Uploaded Invoices"
+                                       asp-action="DownloadInvoices" asp-route-invoiceId="@pp.Id" asp-route-storeId="@storeId">
+                                        <vc:icon symbol="nav-invoices" />
+                                    </a>
+                                    <span>-</span>
                                 }
                                 @if (pp.State == PayrollInvoiceState.AwaitingApproval)
                                 {
-                                    @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
-                                    {
-                                        <span>-</span>
-                                    }
                                     <a asp-controller="PayrollInvoice"
                                        asp-action="Delete"
                                        asp-route-id="@pp.Id" asp-route-storeId="@storeId"

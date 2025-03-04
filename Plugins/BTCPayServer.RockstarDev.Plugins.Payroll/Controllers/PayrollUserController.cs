@@ -371,44 +371,72 @@ Thank you,
             .Include(c => c.User)
             .Where(p => p.UserId == user.Id)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
+        if (!payrollInvoices.Any())
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Message = $"No payroll invoice available for download",
+                Severity = StatusMessageModel.StatusSeverity.Info
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
+        }
 
-        
         var zipName = $"Invoices-{user.Name}-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
-
         using var ms = new MemoryStream();
-        using var zip = new ZipArchive(ms, ZipArchiveMode.Create, true);
-
-        if (payrollInvoices.Count > 0)
+        var usedFilenames = new HashSet<string>();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
             var csvData = new StringBuilder();
             csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
+
             foreach (var invoice in payrollInvoices)
             {
                 csvData.AppendLine(
                     $"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
 
-                var fileUrl =
-                    await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
-                string filename = Path.GetFileName(fileUrl);
-                string extension = Path.GetExtension(filename);
-                var entry = zip.CreateEntry($"{filename}{extension}");
-                using (var entryStream = entry.Open())
+                if (string.IsNullOrEmpty(invoice.InvoiceFilename))
+                    continue;
+
+                var allFiles = new List<string> { invoice.InvoiceFilename };
+                if (!string.IsNullOrWhiteSpace(invoice.ExtraFilenames))
                 {
-                    await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                    allFiles.AddRange(invoice.ExtraFilenames.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()));
+                }
+
+                foreach (var file in allFiles)
+                {
+                    var fileUrl = await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), file);
+                    var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
+                    string filename = Path.GetFileName(fileUrl);
+                    string extension = Path.GetExtension(filename);
+
+                    var baseFilename = Path.GetFileNameWithoutExtension(filename);
+                    int counter = 1;
+                    while (usedFilenames.Contains(filename))
+                    {
+                        filename = $"{baseFilename} ({counter}){extension}";
+                        counter++;
+                    }
+                    usedFilenames.Add(filename);
+
+                    var entry = zip.CreateEntry(filename);
+                    using (var entryStream = entry.Open())
+                    {
+                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                    }
                 }
             }
-
-            var csv = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
-            await using (var entryStream = csv.Open())
+            var csvEntry = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
+            await using (var csvStream = csvEntry.Open())
             {
                 var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
-                await entryStream.WriteAsync(csvBytes);
+                await csvStream.WriteAsync(csvBytes, 0, csvBytes.Length);
             }
         }
-
+        ms.Position = 0;
         return File(ms.ToArray(), "application/zip", zipName);
     }
+
 
     private void ReturnMessageStatus()
     {
