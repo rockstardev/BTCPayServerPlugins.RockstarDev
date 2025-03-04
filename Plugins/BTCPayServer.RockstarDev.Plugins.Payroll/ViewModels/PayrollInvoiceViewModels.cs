@@ -59,7 +59,6 @@ public class PayrollInvoiceUploadViewModel
 
     public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
-    //public IFormFile Invoice { get; set; }
     public List<IFormFile> Invoices { get; set; } = new();
 
 }
