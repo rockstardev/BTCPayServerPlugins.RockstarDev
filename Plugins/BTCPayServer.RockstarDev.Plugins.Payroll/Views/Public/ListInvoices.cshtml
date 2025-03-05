@@ -107,20 +107,26 @@
                                         }
                                     </td>
                                     <td class="text-end">
+
                                         @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
                                         {
-                                            <a href="/Storage/@pp.InvoiceUrl">View Invoice</a>
+                                            <a data-bs-toggle="tooltip" title="View Uploaded Invoice" href="/Storage/@pp.InvoiceUrl" target="_blank" rel="noopener noreferrer">
+                                                <vc:icon symbol="nav-invoice" />
+                                            </a>
+                                        }
+                                        @if (!string.IsNullOrEmpty(pp.ExtraInvoiceFiles))
+                                        {
+                                            <a data-bs-toggle="tooltip" title="All Files"
+                                               asp-action="DownloadInvoices" asp-route-invoiceId="@pp.Id" asp-route-storeId="@Model.StoreId">
+                                                <vc:icon symbol="actions-download" />
+                                            </a>
                                         }
                                         @if (pp.State == PayrollInvoiceState.AwaitingApproval)
                                         {
-                                            @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
-                                            {
-                                                <span>-</span>
-                                            }
-                                            <a asp-controller="Public"
+                                            <span>-</span>
+                                            <a asp-controller="PayrollInvoice"
                                                asp-action="Delete"
-                                               asp-route-storeId="@Model.StoreId"
-                                               asp-route-id="@pp.Id"
+                                               asp-route-id="@pp.Id" asp-route-storeId="@Model.StoreId"
                                                class="text-danger">
                                                 Delete
                                             </a>

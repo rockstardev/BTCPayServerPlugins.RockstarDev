@@ -354,6 +354,8 @@ public class PayrollInvoiceController(
         var validation = await payrollInvoiceUploadHelper.Process(storeId, model.UserId, model);
         if (!validation.IsValid)
         {
+            await using var ctx = payrollPluginDbContextFactory.CreateContext();
+            model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
             validation.ApplyToModelState(ModelState);
             return View(model);
         }

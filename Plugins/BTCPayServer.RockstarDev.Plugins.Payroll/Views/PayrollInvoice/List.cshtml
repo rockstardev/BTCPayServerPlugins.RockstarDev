@@ -198,18 +198,17 @@
                                     <a data-bs-toggle="tooltip" title="View Uploaded Invoice" href="/Storage/@pp.InvoiceUrl" target="_blank" rel="noopener noreferrer">
                                         <vc:icon symbol="nav-invoice" />
                                     </a>
-                                    <span>-</span>
                                 }
                                 @if (!string.IsNullOrEmpty(pp.ExtraInvoiceFiles))
                                 {
-                                    <a data-bs-toggle="tooltip" title="Download all Uploaded Invoices"
+                                    <a data-bs-toggle="tooltip" title="All Files"
                                        asp-action="DownloadInvoices" asp-route-invoiceId="@pp.Id" asp-route-storeId="@storeId">
-                                        <vc:icon symbol="nav-invoices" />
+                                        <vc:icon symbol="actions-download" />
                                     </a>
-                                    <span>-</span>
                                 }
                                 @if (pp.State == PayrollInvoiceState.AwaitingApproval)
                                 {
+                                    <span>-</span>
                                     <a asp-controller="PayrollInvoice"
                                        asp-action="Delete"
                                        asp-route-id="@pp.Id" asp-route-storeId="@storeId"
