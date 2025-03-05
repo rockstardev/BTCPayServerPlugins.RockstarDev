@@ -20,6 +20,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using System.Security.Cryptography;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.Services.Mails;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
@@ -32,12 +33,9 @@ public class PayrollUserController(
     EmailSenderFactory emailSenderFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
-    IFileService fileService,
-    HttpClient httpClient)
+    InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
-    private readonly HttpClient _httpClient = httpClient ?? new HttpClient();
-
     public StoreData CurrentStore => HttpContext.GetStoreData();
     private const string UserInviteEmailSubject = "You are invited to create a Vendor Pay account";
     private const string UserInviteEmailBody = @"Hello {Name},
@@ -365,50 +363,25 @@ Thank you,
             return NotFound();
 
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        var user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(c => c.User)
             .Where(p => p.UserId == user.Id)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
-
-        
-        var zipName = $"Invoices-{user.Name}-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
-
-        using var ms = new MemoryStream();
-        using var zip = new ZipArchive(ms, ZipArchiveMode.Create, true);
-
-        if (payrollInvoices.Count > 0)
+        if (!payrollInvoices.Any())
         {
-            var csvData = new StringBuilder();
-            csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
-            foreach (var invoice in payrollInvoices)
+            TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                csvData.AppendLine(
-                    $"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
-
-                var fileUrl =
-                    await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
-                string filename = Path.GetFileName(fileUrl);
-                string extension = Path.GetExtension(filename);
-                var entry = zip.CreateEntry($"{filename}{extension}");
-                using (var entryStream = entry.Open())
-                {
-                    await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
-                }
-            }
-
-            var csv = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
-            await using (var entryStream = csv.Open())
-            {
-                var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
-                await entryStream.WriteAsync(csvBytes);
-            }
+                Message = $"No payroll invoice available for download",
+                Severity = StatusMessageModel.StatusSeverity.Info
+            });
+            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        return File(ms.ToArray(), "application/zip", zipName);
+        return await invoicesDownloadHelper.Process(payrollInvoices, HttpContext.Request.GetAbsoluteRootUri());
     }
+
 
     private void ReturnMessageStatus()
     {

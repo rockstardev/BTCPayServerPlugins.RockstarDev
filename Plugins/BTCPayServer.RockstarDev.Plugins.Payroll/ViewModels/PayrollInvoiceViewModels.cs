@@ -30,6 +30,7 @@ public class PayrollInvoiceViewModel
     public string PurchaseOrder { get; set; }
     public string Description { get; set; }
     public string InvoiceUrl { get; set; }
+    public string ExtraInvoiceFiles { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
     public string AdminNote { get; set; }
 }
@@ -39,11 +40,8 @@ public class PayrollInvoiceUploadViewModel
     [Required]
     [DisplayName("User")]
     public string UserId { get; set; }
-
     public SelectList PayrollUsers { get; set; }
-        
-        
-        
+    
     [Required]
     public string Destination { get; set; }
     [Required]
@@ -59,4 +57,8 @@ public class PayrollInvoiceUploadViewModel
     public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
     public IFormFile Invoice { get; set; }
+    
+    [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]
+    public List<IFormFile> ExtraFiles { get; set; } = new();
+
 }

@@ -41,6 +41,9 @@ public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
     public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
     public IFormFile Invoice { get; set; }
+    
+    [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]
+    public List<IFormFile> ExtraFiles { get; set; } = new();
 }
 
 public class PublicChangePasswordViewModel : BasePayrollPublicViewModel

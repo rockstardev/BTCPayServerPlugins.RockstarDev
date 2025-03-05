@@ -29,6 +29,7 @@ using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Configuration;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using Microsoft.Extensions.Options;
 using BTCPayServer.Services.Invoices;
@@ -44,15 +45,14 @@ public class PayrollInvoiceController(
     RateFetcher rateFetcher,
     PaymentMethodHandlerDictionary handlers,
     BTCPayNetworkProvider networkProvider,
-    IFileService fileService,
-    IOptions<DataDirectories> dataDirectories,
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
-    HttpClient httpClient,
     BTCPayWalletProvider walletProvider,
     WalletRepository walletRepository,
     LabelService labelService,
-    EmailService emailService)
+    EmailService emailService,
+    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
+    InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
@@ -97,6 +97,7 @@ public class PayrollInvoiceController(
                 State = tuple.State,
                 TxnId = tuple.TxnId,
                 PurchaseOrder = tuple.PurchaseOrder,
+                ExtraInvoiceFiles = tuple.ExtraFilenames,
                 Description = tuple.Description,
                 InvoiceUrl = tuple.InvoiceFilename,
                 PaidAt = tuple.PaidAt,
@@ -164,7 +165,7 @@ public class PayrollInvoiceController(
                     });
                     return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
                 }
-                return await DownloadInvoicesAsZipAsync(invoicesWithFile);
+                return await invoicesDownloadHelper.Process(invoicesWithFile, HttpContext.Request.GetAbsoluteRootUri());
             
             case "export":
                 return await ExportInvoices(invoices);
@@ -172,63 +173,18 @@ public class PayrollInvoiceController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    private async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
+    public async Task<IActionResult> DownloadInvoices(string invoiceId)
     {
-        var zipName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
+        if (CurrentStore is null)
+            return NotFound();
 
-        using var ms = new MemoryStream();
-        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
-        {
-            var usedFilenames = new HashSet<string>();
-
-            foreach (var invoice in invoices)
-            {
-                var fileUrl =
-                    await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), invoice.InvoiceFilename);
-                var filename = Path.GetFileName(fileUrl);
-                byte[] fileBytes;
-                
-                // if it is local storage, then read file from HDD
-                if (fileUrl?.Contains("/LocalStorage/") == true)
-                    fileBytes = await System.IO.File.ReadAllBytesAsync(Path.Combine(dataDirectories.Value.StorageDir, filename));
-                else 
-                    fileBytes = await httpClient.DownloadFileAsByteArray(fileUrl);
-                
-                // replace guid of invoice with name of the user + year-month
-                if (filename?.Length > 36)
-                {
-                    var first36 = filename.Substring(0, 36);
-                    if (Guid.TryParse(first36, out Guid result))
-                    {
-                        var newName = $"{invoice.User.Name} - {invoice.CreatedAt:yyyy-MM} ";
-                        filename = filename.Replace(first36, newName);
-
-                        // Ensure filename is unique
-                        var baseFilename = Path.GetFileNameWithoutExtension(filename);
-                        var extension = Path.GetExtension(filename);
-                        int counter = 1;
-
-                        while (usedFilenames.Contains(filename))
-                        {
-                            filename = $"{baseFilename} ({counter}){extension}";
-                            counter++;
-                        }
-
-                        usedFilenames.Add(filename);
-                    }
-                }
-
-                var entry = zip.CreateEntry(filename);
-                using (var entryStream = entry.Open())
-                {
-                    await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
-                }
-            }
-        }
-
-        ms.Position = 0;
-        return File(ms.ToArray(), "application/zip", zipName);
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        var invoice = ctx.PayrollInvoices
+                            .Include(a => a.User)
+                            .Single(a => a.Id == invoiceId && a.User.StoreId == CurrentStore.Id);
+        return await invoicesDownloadHelper.Process([invoice], HttpContext.Request.GetAbsoluteRootUri());
     }
+
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
@@ -325,89 +281,28 @@ public class PayrollInvoiceController(
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
     }
 
+   
     [HttpPost("upload")]
-
     public async Task<IActionResult> Upload(string storeId, PayrollInvoiceUploadViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
 
-        if (model.Amount <= 0)
+        var validation = await payrollInvoiceUploadHelper.Process(storeId, model.UserId, model);
+        if (!validation.IsValid)
         {
-            ModelState.AddModelError(nameof(model.Amount), "Amount must be more than 0.");
-        }
-
-        try
-        {
-            var network = networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
-            var unused = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
-        }
-        catch (Exception)
-        {
-            ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
-        }
-
-        await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
-        var settings = await dbPlugin.GetSettingAsync(storeId);
-        if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
-        {
-            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
-        }
-        
-        if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
-        {
-            model.PurchaseOrdersRequired = true;
-            ModelState.AddModelError(nameof(model.PurchaseOrder), "Purchase Order is required");
-        }
-
-        var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
-            a.Destination == model.Destination &&
-            a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
-
-        if (alreadyInvoiceWithAddress)
-            ModelState.AddModelError(nameof(model.Destination), "This destination is already specified for another invoice from which payment is in progress");
-
-        if (!ModelState.IsValid)
-        {
-            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
+            await using var ctx = payrollPluginDbContextFactory.CreateContext();
+            model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
+            validation.ApplyToModelState(ModelState);
             return View(model);
         }
 
-        // TODO: Make saving of the file and entry in the database atomic
-        var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount; // this will remove .00 from the amount
-        var dbPayrollInvoice = new PayrollInvoice
+        TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Amount = removeTrailingZeros,
-            CreatedAt = DateTime.UtcNow,
-            Currency = model.Currency,
-            Destination = model.Destination,
-            PurchaseOrder = model.PurchaseOrder,
-            Description = model.Description,
-            UserId = model.UserId,
-            State = PayrollInvoiceState.AwaitingApproval
-        };
-        if (model.Invoice == null && !settings.MakeInvoiceFilesOptional)
-        {
-            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice file");
-            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
-            return View(model);
-        }
-
-        if (model.Invoice != null)
-        {
-            var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-            var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
-            dbPayrollInvoice.InvoiceFilename = uploaded.Id;
-        }
-
-        dbPlugin.Add(dbPayrollInvoice);
-        await dbPlugin.SaveChangesAsync();
-
-        TempData.SetStatusMessageModel(new StatusMessageModel()
-        {
-            Message = $"Invoice uploaded successfully",
+            Message = "Invoice uploaded successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
+
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
