@@ -42,7 +42,7 @@ public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
     public string Description { get; set; }
     public IFormFile Invoice { get; set; }
     
-    [DisplayName("Extra Files")]
+    [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]
     public List<IFormFile> ExtraFiles { get; set; } = new();
 }
 
