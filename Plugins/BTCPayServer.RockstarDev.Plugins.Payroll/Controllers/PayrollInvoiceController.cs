@@ -29,6 +29,7 @@ using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Wallets;
 using BTCPayServer.Configuration;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using Microsoft.Extensions.Options;
 using BTCPayServer.Services.Invoices;
@@ -52,7 +53,8 @@ public class PayrollInvoiceController(
     BTCPayWalletProvider walletProvider,
     WalletRepository walletRepository,
     LabelService labelService,
-    EmailService emailService)
+    EmailService emailService,
+    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper)
     : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
@@ -342,95 +344,26 @@ public class PayrollInvoiceController(
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
     }
 
+   
     [HttpPost("upload")]
-
     public async Task<IActionResult> Upload(string storeId, PayrollInvoiceUploadViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
 
-        if (model.Amount <= 0)
+        var validation = await payrollInvoiceUploadHelper.Process(storeId, model.UserId, model);
+        if (!validation.IsValid)
         {
-            ModelState.AddModelError(nameof(model.Amount), "Amount must be more than 0.");
-        }
-
-        try
-        {
-            var network = networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
-            var unused = Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
-        }
-        catch (Exception)
-        {
-            ModelState.AddModelError(nameof(model.Destination), "Invalid Destination, check format of address.");
-        }
-
-        await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
-        var settings = await dbPlugin.GetSettingAsync(storeId);
-        if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
-        {
-            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
-        }
-        
-        if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
-        {
-            model.PurchaseOrdersRequired = true;
-            ModelState.AddModelError(nameof(model.PurchaseOrder), "Purchase Order is required");
-        }
-
-        var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
-            a.Destination == model.Destination &&
-            a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
-
-        if (alreadyInvoiceWithAddress)
-            ModelState.AddModelError(nameof(model.Destination), "This destination is already specified for another invoice from which payment is in progress");
-
-        if (!ModelState.IsValid)
-        {
-            // return view model with errors
-            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
+            validation.ApplyToModelState(ModelState);
             return View(model);
         }
 
-        // TODO: Make saving of the file and entry in the database atomic
-        var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount; // this will remove .00 from the amount
-        var dbPayrollInvoice = new PayrollInvoice
+        TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Amount = removeTrailingZeros,
-            CreatedAt = DateTime.UtcNow,
-            Currency = model.Currency,
-            Destination = model.Destination,
-            PurchaseOrder = model.PurchaseOrder,
-            Description = model.Description,
-            UserId = model.UserId,
-            State = PayrollInvoiceState.AwaitingApproval
-        };
-
-        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        if (model.Invoice != null)
-        {
-            var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
-            dbPayrollInvoice.InvoiceFilename = uploaded.Id;
-        }
-        
-        if (model.ExtraFiles?.Count > 0)
-        {
-            var extraFiles = new List<string>();
-            foreach (var invoice in model.ExtraFiles)
-            {
-                var extraFileUpload = await fileService.AddFile(invoice, adminset!.AdminAppUserId);
-                extraFiles.Add(extraFileUpload.Id);
-            }
-            dbPayrollInvoice.ExtraFilenames = string.Join(",", extraFiles);
-        }
-
-        dbPlugin.Add(dbPayrollInvoice);
-        await dbPlugin.SaveChangesAsync();
-
-        TempData.SetStatusMessageModel(new StatusMessageModel()
-        {
-            Message = $"Invoice uploaded successfully",
+            Message = "Invoice uploaded successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
+
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
