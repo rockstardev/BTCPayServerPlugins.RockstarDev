@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     [DbContext(typeof(PayrollPluginDbContext))]
-    [Migration("20250303215437_includeExtrafileToPayrollInvoice")]
-    partial class includeExtrafileToPayrollInvoice
+    [Migration("20250305035810_IncludeExtraFilenamesInPayrollInvoice")]
+    partial class IncludeExtraFilenamesInPayrollInvoice
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -89,7 +89,8 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("ExtraFilenames")
-                        .HasColumnType("text");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("InvoiceFilename")
                         .HasMaxLength(36)

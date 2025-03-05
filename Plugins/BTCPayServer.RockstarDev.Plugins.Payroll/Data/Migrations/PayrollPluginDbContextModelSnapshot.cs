@@ -86,7 +86,8 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("ExtraFilenames")
-                        .HasColumnType("text");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("InvoiceFilename")
                         .HasMaxLength(36)

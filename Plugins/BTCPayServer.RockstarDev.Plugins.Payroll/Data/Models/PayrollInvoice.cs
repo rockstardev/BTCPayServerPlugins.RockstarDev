@@ -28,6 +28,7 @@ public class PayrollInvoice
     public string Description { get; set; }
     [MaxLength(36)] // guid
     public string InvoiceFilename { get; set; }
+    [MaxLength(1000)]
     public string ExtraFilenames { get; set; }
     public bool IsArchived { get; set; }
     public PayrollInvoiceState State { get; set; }
