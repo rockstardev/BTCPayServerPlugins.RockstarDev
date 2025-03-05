@@ -41,6 +41,9 @@ public class PayrollUserCreateViewModel
     [Display(Name = "Confirm Password")]
     [Compare("Password", ErrorMessage = "Password fields don't match")]
     public string ConfirmPassword { get; set; }
+
+    [Display(Name = "Reminder Dates")]
+    public string EmailReminder { get; set; }
     [JsonIgnore]
     public string StoreId { get; set; }
 }

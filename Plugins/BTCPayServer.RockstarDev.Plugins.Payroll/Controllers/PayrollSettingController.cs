@@ -28,6 +28,9 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
         var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollSettingViewModel
         {
+            EmailReminders = settings.EmailReminders,
+            EmailRemindersBody = settings.EmailRemindersBody,
+            EmailRemindersSubject = settings.EmailRemindersSubject,
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
@@ -46,6 +49,19 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
         if (CurrentStore is null)
             return NotFound();
 
+        if (model.EmailReminders && string.IsNullOrEmpty(model.EmailRemindersSubject))
+            ModelState.AddModelError(nameof(model.EmailRemindersSubject), "Value cannot be empty. Kindly include an email subject");
+
+        if (model.EmailReminders && string.IsNullOrEmpty(model.EmailRemindersBody))
+            ModelState.AddModelError(nameof(model.EmailRemindersBody), "Value cannot be empty. Kindly include an email body");
+
+        if (!ModelState.IsValid)
+        {
+            var emailSender = await emailSenderFactory.GetEmailSender(storeId);
+            ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
+            return View(model);
+        }
+
         var link = linkGenerator.GetUriByAction(
             action: "ListInvoices",
             controller: "Public",
@@ -54,6 +70,9 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
             host: HttpContext.Request.Host);
         var settings = new PayrollStoreSetting
         {
+            EmailReminders = model.EmailReminders,
+            EmailRemindersBody = model.EmailRemindersBody,
+            EmailRemindersSubject = model.EmailRemindersSubject,
             MakeInvoiceFilesOptional = model.MakeInvoiceFileOptional,
             PurchaseOrdersRequired = model.PurchaseOrdersRequired,
             EmailOnInvoicePaid = model.EmailOnInvoicePaid,

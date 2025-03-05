@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -15,6 +16,8 @@ public class PayrollUser
 
     public string Email { get; set; }
     public string Password { get; set; }
+    public string EmailReminder { get; set; }
+    public DateTime? LastReminderSent { get; set; }
 
     [MaxLength(50)]
     public string StoreId { get; set; }

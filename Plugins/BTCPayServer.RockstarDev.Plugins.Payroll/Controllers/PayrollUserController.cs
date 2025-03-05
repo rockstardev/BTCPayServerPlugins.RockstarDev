@@ -151,7 +151,7 @@ Thank you,
             };
             try
             {
-                await emailService.SendUserInvitationEmailEmail(dbUser, model.UserInviteEmailSubject, model.UserInviteEmailBody, 
+                await emailService.SendUserInvitationEmail(dbUser, model.UserInviteEmailSubject, model.UserInviteEmailBody, 
                     Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, invitation.Token }, Request.Scheme));
             }
             catch (Exception)
@@ -211,7 +211,7 @@ Thank you,
         existingInvitation.CreatedAt = DateTime.UtcNow;
         try
         {
-            await emailService.SendUserInvitationEmailEmail(user, UserInviteEmailSubject, UserInviteEmailBody,
+            await emailService.SendUserInvitationEmail(user, UserInviteEmailSubject, UserInviteEmailBody,
                 Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, existingInvitation.Token }, Request.Scheme));
         }
         catch (Exception)
@@ -246,7 +246,7 @@ Thank you,
         if (user.State == PayrollUserState.Pending)
             return NotFound();
 
-        var model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name };
+        var model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name, EmailReminder = user.EmailReminder };
         return View(model);
     }
 
@@ -262,6 +262,12 @@ Thank you,
 
         user.Email = string.IsNullOrEmpty(model.Email) ? user.Email : model.Email;
         user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
+
+        user.EmailReminder = string.IsNullOrEmpty(model.EmailReminder)
+        ? user.EmailReminder 
+        : string.Join(",", model.EmailReminder.Split(',')
+                .Select(r => r.Trim()).Where(r => !string.IsNullOrEmpty(r))
+                .Distinct().OrderBy(r => int.Parse(r)));
 
         ctx.Update(user);
         await ctx.SaveChangesAsync();

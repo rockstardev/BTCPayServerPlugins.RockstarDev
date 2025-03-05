@@ -5,8 +5,22 @@
 @model PayrollUserCreateViewModel
 @{
     ViewData.SetActivePage("VendorPay", "Edit Vendor Pay User", "VendorPay");
-    
     var storeId = ScopeProvider.GetCurrentStoreId();
+
+    bool IsValidReminderDate(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (int.TryParse(value, out int num))
+        {
+            return num >= 1 && num <= 31;
+        }
+        return false;
+    }
+
+    var initialReminders = (Model.EmailReminder ?? "").Split(',')
+        .Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim())
+        .Where(IsValidReminderDate).Distinct()
+        .OrderBy(r => int.Parse(r)).ToList();
 }
 
 <form method="post" asp-action="Edit">
@@ -39,6 +53,94 @@
                     </div>
                 </div>
             </div>
+
+
+            <div class="form-group">
+                <label asp-for="EmailReminder" class="form-label"></label>
+                <div class="input-group mb-3">
+                    <input type="number" id="reminderInput" class="form-control" placeholder="Enter date (1-31)" min="1" max="31" />
+                    <button type="button" id="addReminder" class="btn btn-secondary">Add</button>
+                </div>
+                <div id="reminderList" class="d-flex flex-wrap align-items-center gap-2">
+                    @foreach (var reminder in initialReminders)
+                    {
+                        <span class="badge bg-secondary me-1 mb-1 role-button cursor-pointer" data-value="@reminder">
+                            @reminder
+                        </span>
+                    }
+                </div>
+                <input type="hidden" id="EmailReminder" asp-for="EmailReminder" value="@string.Join(",", initialReminders)" />
+                <div id="validationMessage" class="text-danger mt-2"></div>
+            </div>
+
         </div>
     </div>
 </form>
+
+@section PageFootContent {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const reminderInput = document.getElementById("reminderInput");
+            const addReminderButton = document.getElementById("addReminder");
+            const reminderList = document.getElementById("reminderList");
+            const hiddenInput = document.getElementById("EmailReminder");
+            const validationMessage = document.getElementById("validationMessage");
+
+            function isValidReminderDate(value) {
+                const num = parseInt(value, 10);
+                return !isNaN(num) && num >= 1 && num <= 31;
+            }
+
+            function updateHiddenInput() {
+                const selectedValues = Array.from(reminderList.querySelectorAll(".role-button"))
+                    .map(badge => badge.getAttribute("data-value"))
+                    .filter(val => val);
+                hiddenInput.value = selectedValues.join(",");
+            }
+
+            addReminderButton.addEventListener("click", function () {
+                const value = reminderInput.value.trim();
+
+                if (!value) {
+                    validationMessage.textContent = "Please enter a date";
+                    return;
+                }
+
+                if (!isValidReminderDate(value)) {
+                    validationMessage.textContent = "Please enter a valid date between 1 and 31";
+                    return;
+                }
+
+                const existingValues = hiddenInput.value.split(",");
+                if (existingValues.includes(value)) {
+                    validationMessage.textContent = "This date is already added";
+                    return;
+                }
+
+                const badge = document.createElement("span");
+                badge.classList.add("badge", "bg-secondary", "me-1", "mb-1", "role-button");
+                badge.setAttribute("data-value", value);
+                badge.textContent = value;
+
+                reminderList.appendChild(badge);
+                updateHiddenInput();
+                reminderInput.value = "";
+                validationMessage.textContent = "";
+            });
+
+            reminderInput.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    addReminderButton.click();
+                }
+            });
+
+            reminderList.addEventListener("click", function (e) {
+                if (e.target.classList.contains("role-button")) {
+                    e.target.remove();
+                updateHiddenInput();
+                }
+            });
+        });
+    </script>
+}

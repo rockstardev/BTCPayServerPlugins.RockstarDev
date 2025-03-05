@@ -2,7 +2,6 @@
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -23,10 +22,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
-        
-        // helpers
-        serviceCollection.AddTransient<PayrollInvoiceUploadHelper>();
-        serviceCollection.AddTransient<InvoicesDownloadHelper>();
+        serviceCollection.AddSingleton<IHostedService, VendorPayEmailReminderService>();
 
         // Add the database related registrations
         serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();

@@ -86,7 +86,7 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
         }
     }
 
-    public async Task SendUserInvitationEmailEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
+    public async Task SendUserInvitationEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
     {
         var settings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
         if (!settings.IsComplete())
@@ -104,6 +104,24 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
         };
         var emailRecipients = new List<EmailRecipient> { recipient };
         await SendBulkEmail(model.StoreId, emailRecipients);
+    }
+
+    public async Task<bool> SendInvoiceEmailReminder(PayrollUser model, string subject, string body)
+    {
+        var settings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
+        if (!settings.IsComplete())
+            return false;
+
+        var storeName = (await storeRepo.FindStore(model.StoreId))?.StoreName;
+        var recipient = new EmailRecipient
+        {
+            Address = InternetAddress.Parse(model.Email),
+            Subject = subject,
+            MessageText = body
+        };
+        var emailRecipients = new List<EmailRecipient> { recipient };
+        await SendBulkEmail(model.StoreId, emailRecipients);
+        return true;
     }
 
     public class EmailRecipient

@@ -15,6 +15,11 @@ public class PayrollSettingViewModel
     public string EmailOnInvoicePaidSubject { get; set; }
     public string EmailOnInvoicePaidBody { get; set; }
 
+    [Display(Name = "Email reminders for users")]
+    public bool EmailReminders { get; set; }
+    public string EmailRemindersSubject { get; set; }
+    public string EmailRemindersBody { get; set; }
+
     public record Defaults
     {
         public const string EmailOnInvoicePaidSubject = @"Your invoice has been paid";

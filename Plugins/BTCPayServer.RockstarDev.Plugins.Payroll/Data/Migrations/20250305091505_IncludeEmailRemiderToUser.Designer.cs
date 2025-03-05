@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
     [DbContext(typeof(PayrollPluginDbContext))]
-    partial class PayrollPluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250305091505_IncludeEmailRemiderToUser")]
+    partial class IncludeEmailRemiderToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -84,10 +87,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
                     b.Property<string>("Destination")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ExtraFilenames")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("InvoiceFilename")
                         .HasMaxLength(36)
