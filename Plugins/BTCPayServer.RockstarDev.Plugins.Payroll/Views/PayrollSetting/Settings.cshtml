@@ -108,8 +108,8 @@
             };
 
             toggleElements.forEach(({ toggle, target }) => {
-                const toggleEl = document.getElementById(toggle);
-                toggleEl.addEventListener('change', () => toggleVisibility(toggle, target));
+                const toggleInput = document.getElementById(toggle);
+                toggleInput.addEventListener('change', () => toggleVisibility(toggle, target));
                 toggleVisibility(toggle, target);
             });
         });
