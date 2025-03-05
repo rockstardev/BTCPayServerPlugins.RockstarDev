@@ -13,8 +13,8 @@
 {
     <li class="nav-item">
         <a permission="@Policies.CanModifyServerSettings"
-           asp-controller="Product" asp-action="Index" asp-route-storeId="@storeId"
-           class="nav-link @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey, null, "Index")">
+           asp-controller="Subscription" asp-action="Index" asp-route-storeId="@storeId"
+           class="nav-link @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey, null, "Subscriptions")">
 
             <svg class="icon" role="img" viewBox="0 0 24 24">
                 <rect x="3" y="5" width="18" height="14" rx="2" ry="2" fill="currentColor"/>
@@ -37,11 +37,6 @@
             <a permission="@Policies.CanModifyServerSettings" 
                asp-controller="Customer" asp-action="Index" asp-route-storeId="@storeId"
                class="nav-link @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey, null, "Customers")">Customers</a>
-        </li>
-        <li class="nav-item nav-item-sub">
-            <a permission="@Policies.CanModifyServerSettings" 
-               asp-controller="Subscription" asp-action="Index" asp-route-storeId="@storeId"
-               class="nav-link @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey, null, "Subscriptions")">Subscriptions</a>
         </li>
     }
 }

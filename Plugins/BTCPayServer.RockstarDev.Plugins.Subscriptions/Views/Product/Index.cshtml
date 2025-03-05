@@ -1,39 +1,60 @@
-﻿@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Product>
+﻿@using BTCPayServer.RockstarDev.Plugins.Subscriptions
+@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Product>
+@inject IScopeProvider ScopeProvider
 @{
-    ViewData["Title"] = "Products";
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    ViewData.SetActivePage(SubscriptionPlugin.SubscriptionPluginNavKey, "Subscription - Products", "Products");
 }
 
-<h2>Products</h2>
+<form method="post">
+    <div class="sticky-header-setup"></div>
+    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a asp-controller="Customer" asp-action="Create" asp-route-storeId="@storeId"
+               class="btn btn-primary">Create New Customer</a>
+        </div>
+    </div>
+</form>
 
-<p>
-    <a asp-action="Create" class="btn btn-primary">Create New Product</a>
-</p>
+<partial name="_StatusMessage" />
 
-<table class="table">
-    <thead>
-    <tr>
-        <th>Name</th>
-        <th>Price</th>
-        <th>Duration</th>
-        <th>Reminder Days</th>
-        <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var product in Model)
-    {
-        <tr>
-            <td>@product.Name</td>
-            <td>@product.Price @product.Currency</td>
-            <td>@product.Duration @product.DurationType</td>
-            <td>@product.ReminderDays</td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-warning btn-sm">Edit</a>
-                <form asp-action="Delete" asp-route-id="@product.Id" method="post" style="display:inline;">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</button>
-                </form>
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
+@if (Model.Any())
+{
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Duration</th>
+                <th>Reminder Days</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var product in Model)
+            {
+                <tr>
+                    <td>@product.Name</td>
+                    <td>@product.Price @product.Currency</td>
+                    <td>@product.Duration @product.DurationType</td>
+                    <td>@product.ReminderDays</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-warning btn-sm">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@product.Id" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        No Products.
+    </p>
+}
