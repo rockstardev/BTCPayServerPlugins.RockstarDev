@@ -57,6 +57,9 @@
 
             <div class="form-group">
                 <label asp-for="EmailReminder" class="form-label"></label>
+                <div class="text-secondary">
+                    <span>Set invoice reminder days for user. Remember to enable Email reminder in settings page</span>
+                </div>
                 <div class="input-group mb-3">
                     <input type="number" id="reminderInput" class="form-control" placeholder="Enter date (1-31)" min="1" max="31" />
                     <button type="button" id="addReminder" class="btn btn-secondary">Add</button>
