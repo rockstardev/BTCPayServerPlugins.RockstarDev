@@ -7,10 +7,13 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using Microsoft.AspNetCore.Http;
 using Microsoft.VisualBasic.FileIO;
@@ -29,108 +32,6 @@ public class SubscriptionController : Controller
     }
     
     [FromRoute] public string StoreId { get; set; }
-    
-    [HttpPost]
-    public async Task<IActionResult> ImportSubscriptions(IFormFile file)
-    {
-        if (file.Length == 0)
-        {
-            TempData["Error"] = "Please upload a valid CSV file.";
-            return RedirectToAction("Index");
-        }
-
-        var storeId = StoreId; // Adjust to actual store retrieval logic
-
-        // Ensure the product exists5
-        var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Name == "Bitcoin Magazine 12-month Subscription");
-        if (product == null)
-        {
-            product = new Product
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "Bitcoin Magazine 12-month Subscription",
-                Price = 120m,
-                Currency = "USD",
-                Duration = 12,
-                DurationType = DurationTypes.Month,
-                ReminderDays = "30,7,1",
-                StoreId = storeId,
-            };
-            _dbContext.Products.Add(product);
-            await _dbContext.SaveChangesAsync();
-        }
-
-        using var reader = new StreamReader(file.OpenReadStream());
-        var lineNumber = 0;
-        
-        using var parser = new TextFieldParser(reader);
-        parser.TextFieldType = FieldType.Delimited;
-        parser.SetDelimiters(",");
-
-        bool isFirstLine = true;
-        while (!parser.EndOfData)
-        {
-            var fields = parser.ReadFields();
-            if (isFirstLine) { isFirstLine = false; continue; } // Skip header
-
-            if (fields.Length < 9) continue; // Ensure correct format
-
-            var email = fields[1].Trim();
-            var firstName = fields[3].Trim();
-            var lastName = fields[4].Trim();
-            var address1 = fields[5].Trim();
-            var address2 = fields[6].Trim();
-            var country = fields[7].Trim();
-            var zip = fields[8].Trim();
-            var expiresAt = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(fields[13].Trim()));
-
-            // Check if customer exists
-            var customer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.Email == email);
-            if (customer == null)
-            {
-                customer = new Customer
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = $"{firstName} {lastName}",
-                    Email = email,
-                    Address1 = address1,
-                    Address2 = address2,
-                    City = "Foo",
-                    Country = country,
-                    ZipCode = zip,
-                    StoreId = storeId
-                };
-
-                _dbContext.Customers.Add(customer);
-                await _dbContext.SaveChangesAsync();
-            }
-
-            // Check if subscription already exists
-            var existingSubscription = await _dbContext.Subscriptions
-                .FirstOrDefaultAsync(s => s.CustomerId == customer.Id && s.ProductId == product.Id);
-
-            if (existingSubscription != null) continue;
-
-            // Create subscription
-            var subscription = new Subscription
-            {
-                Id = Guid.NewGuid().ToString(),
-                CustomerId = customer.Id,
-                ProductId = product.Id,
-                Created = DateTimeOffset.UtcNow,
-                Expires = expiresAt,
-                State = SubscriptionStates.Active,
-                ExternalId = "shopify-1234",
-                PaymentRequestId = "pending"
-            };
-
-            _dbContext.Subscriptions.Add(subscription);
-        }
-
-        await _dbContext.SaveChangesAsync();
-        TempData["Success"] = "Subscriptions imported successfully!";
-        return RedirectToAction("Index", new {StoreId});
-    }
 
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -230,5 +131,162 @@ public class SubscriptionController : Controller
         _dbContext.Subscriptions.Remove(subscription);
         await _dbContext.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+    
+
+    [HttpGet("import")]
+    public IActionResult Import()
+    {
+        return View(new SubscriptionsImportViewModel());
+    }
+
+    public class SubscriptionsImportViewModel
+    {
+        [DisplayName("CSV File with Subscriptions")]
+        [Required]
+        public IFormFile CsvFile { get; set; }
+    }
+    
+    [HttpPost("import")]
+    public async Task<IActionResult> Import(SubscriptionsImportViewModel model)
+    {
+        if (model.CsvFile == null || model.CsvFile.Length == 0)
+        {
+            TempData["Error"] = "Please upload a valid CSV file.";
+            return View(model);
+        }
+
+        var storeId = StoreId; // Adjust to actual store retrieval logic
+
+        // Ensure the product exists5
+        var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Name == "Bitcoin Magazine 12-month Subscription");
+        if (product == null)
+        {
+            product = new Product
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Bitcoin Magazine 12-month Subscription",
+                Price = 120m,
+                Currency = "USD",
+                Duration = 12,
+                DurationType = DurationTypes.Month,
+                ReminderDays = "30,7,1",
+                StoreId = storeId,
+            };
+            _dbContext.Products.Add(product);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        using var reader = new StreamReader(model.CsvFile.OpenReadStream());
+        var lineNumber = 0;
+        
+        using var parser = new TextFieldParser(reader);
+        parser.TextFieldType = FieldType.Delimited;
+        parser.SetDelimiters(",");
+
+        var subscriptionList = new List<Subscription>();
+        
+        bool isFirstLine = true;
+        while (!parser.EndOfData)
+        {
+            var fields = parser.ReadFields();
+            if (isFirstLine) { isFirstLine = false; continue; } // Skip header
+
+            if (fields.Length < 9) continue; // Ensure correct format
+
+            var email = fields[1].Trim();
+            var firstName = fields[3].Trim();
+            var lastName = fields[4].Trim();
+            var address1 = fields[5].Trim();
+            var address2 = fields[6].Trim();
+            var country = fields[7].Trim();
+            var zip = fields[8].Trim();
+            var expiresAt = DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(fields[13].Trim()));
+
+            // Check if customer exists
+            var customer = await _dbContext.Customers.FirstOrDefaultAsync(c => c.Email == email);
+            if (customer == null)
+            {
+                customer = new Customer
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = $"{firstName} {lastName}",
+                    Email = email,
+                    Address1 = address1,
+                    Address2 = address2,
+                    City = "Foo",
+                    Country = country,
+                    ZipCode = zip,
+                    StoreId = storeId
+                };
+
+                _dbContext.Customers.Add(customer);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            // Check if subscription already exists
+            var existingSubscription = await _dbContext.Subscriptions
+                .FirstOrDefaultAsync(s => s.CustomerId == customer.Id && s.ProductId == product.Id);
+
+            if (existingSubscription != null) continue;
+
+            // Create subscription
+            var subscription = new Subscription
+            {
+                Id = Guid.NewGuid().ToString(),
+                CustomerId = customer.Id,
+                ProductId = product.Id,
+                Created = DateTimeOffset.UtcNow,
+                Expires = expiresAt,
+                State = SubscriptionStates.Active,
+                ExternalId = "shopify-1234",
+                PaymentRequestId = "pending"
+            };
+
+            subscriptionList.Add(subscription);
+        }
+
+        _dbContext.Subscriptions.AddRange(subscriptionList);
+        await _dbContext.SaveChangesAsync();
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Severity = StatusMessageModel.StatusSeverity.Success,
+            Message = subscriptionList.Count + " Subscriptions imported successfully!"
+        });
+        return RedirectToAction("Index", new { storeId = StoreId});
+    }
+
+
+    [HttpPost("ClearSubscriptions")]
+    public async Task<IActionResult> ClearSubscriptions()
+    {
+        var subscriptions = await _dbContext.Subscriptions
+            .Where(s => s.Customer.StoreId == StoreId)
+            .ToListAsync();
+
+        var customerIds = subscriptions.Select(s => s.CustomerId).Distinct().ToList();
+        var productIds = subscriptions.Select(s => s.ProductId).Distinct().ToList();
+
+        _dbContext.Subscriptions.RemoveRange(subscriptions);
+
+        var customers = await _dbContext.Customers
+            .Where(c => customerIds.Contains(c.Id))
+            .ToListAsync();
+
+        var products = await _dbContext.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToListAsync();
+
+        _dbContext.Customers.RemoveRange(customers);
+        _dbContext.Products.RemoveRange(products);
+
+        await _dbContext.SaveChangesAsync();
+
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Severity = StatusMessageModel.StatusSeverity.Success,
+            Message = "All subscriptions, products, and customers have been removed."
+        });
+        return RedirectToAction("Index", new { storeId = StoreId});
     }
 }
