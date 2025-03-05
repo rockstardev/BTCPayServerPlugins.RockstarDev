@@ -43,10 +43,10 @@
                     <td>@subscription.Expires.ToString("g")</td>
                     <td>@subscription.State</td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@subscription.Id" class="btn btn-warning btn-sm">Edit</a>
-                        <form asp-action="Delete" asp-route-id="@subscription.Id" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</button>
-                        </form>
+                        <a asp-action="Edit" asp-route-id="@subscription.Id" asp-route-storeId="@storeId">Edit</a>
+                        <span>-</span>
+                        <a asp-action="Delete" asp-route-id="@subscription.Id" asp-route-storeId="@storeId" 
+                           class="text-danger">Delete</a>
                     </td>
                 </tr>
             }

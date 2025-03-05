@@ -13,6 +13,7 @@ using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Client;
 using Microsoft.AspNetCore.Http;
+using Microsoft.VisualBasic.FileIO;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
@@ -32,7 +33,7 @@ public class SubscriptionController : Controller
     [HttpPost]
     public async Task<IActionResult> ImportSubscriptions(IFormFile file)
     {
-        if (file == null || file.Length == 0)
+        if (file.Length == 0)
         {
             TempData["Error"] = "Please upload a valid CSV file.";
             return RedirectToAction("Index");
@@ -62,12 +63,15 @@ public class SubscriptionController : Controller
         using var reader = new StreamReader(file.OpenReadStream());
         var lineNumber = 0;
         
-        while (!reader.EndOfStream)
-        {
-            var line = await reader.ReadLineAsync();
-            if (string.IsNullOrWhiteSpace(line) || lineNumber++ == 0) continue; // Skip header
+        using var parser = new TextFieldParser(reader);
+        parser.TextFieldType = FieldType.Delimited;
+        parser.SetDelimiters(",");
 
-            var fields = line.Split(',');
+        bool isFirstLine = true;
+        while (!parser.EndOfData)
+        {
+            var fields = parser.ReadFields();
+            if (isFirstLine) { isFirstLine = false; continue; } // Skip header
 
             if (fields.Length < 9) continue; // Ensure correct format
 
