@@ -45,16 +45,14 @@ public class PayrollInvoiceController(
     RateFetcher rateFetcher,
     PaymentMethodHandlerDictionary handlers,
     BTCPayNetworkProvider networkProvider,
-    IFileService fileService,
-    IOptions<DataDirectories> dataDirectories,
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
-    HttpClient httpClient,
     BTCPayWalletProvider walletProvider,
     WalletRepository walletRepository,
     LabelService labelService,
     EmailService emailService,
-    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper)
+    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
+    InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
@@ -167,7 +165,7 @@ public class PayrollInvoiceController(
                     });
                     return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
                 }
-                return await DownloadInvoicesAsZipAsync(invoicesWithFile);
+                return await invoicesDownloadHelper.Process(invoicesWithFile, HttpContext.Request.GetAbsoluteRootUri());
             
             case "export":
                 return await ExportInvoices(invoices);
@@ -175,77 +173,16 @@ public class PayrollInvoiceController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
-    public async Task<IActionResult> DownloadInvoices(string storeId, string invoiceId)
+    public async Task<IActionResult> DownloadInvoices(string invoiceId)
     {
         if (CurrentStore is null)
             return NotFound();
 
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
-        PayrollInvoice invoice = ctx.PayrollInvoices
-                            .Include(a => a.User).Single(a => a.Id == invoiceId);
-        return await DownloadInvoicesAsZipAsync(new List<PayrollInvoice> { invoice });
-    }
-
-
-    private async Task<IActionResult> DownloadInvoicesAsZipAsync(List<PayrollInvoice> invoices)
-    {
-        var zipName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
-        using var ms = new MemoryStream();
-        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
-        {
-            var usedFilenames = new HashSet<string>();
-
-            foreach (var invoice in invoices)
-            {
-                var allFiles = new List<string> { invoice.InvoiceFilename };
-                if (!string.IsNullOrWhiteSpace(invoice.ExtraFilenames))
-                {
-                    allFiles.AddRange(invoice.ExtraFilenames.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()));
-                }
-
-                foreach (var file in allFiles)
-                {
-                    var fileUrl = await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), file);
-                    var filename = Path.GetFileName(fileUrl);
-                    byte[] fileBytes;
-
-                    if (fileUrl?.Contains("/LocalStorage/") == true)
-                        fileBytes = await System.IO.File.ReadAllBytesAsync(Path.Combine(dataDirectories.Value.StorageDir, filename));
-                    else
-                        fileBytes = await httpClient.DownloadFileAsByteArray(fileUrl);
-                       
-                    if (filename?.Length > 36)
-                    {
-                        var first36 = filename.Substring(0, 36);
-                        if (Guid.TryParse(first36, out _))
-                        {
-                            var newName = $"{invoice.User.Name} - {invoice.CreatedAt:yyyy-MM}";
-                            filename = filename.Replace(first36, newName);
-
-                            // Ensure filename is unique
-                            var baseFilename = Path.GetFileNameWithoutExtension(filename);
-                            var extension = Path.GetExtension(filename);
-                            int counter = 1;
-
-                            while (usedFilenames.Contains(filename))
-                            {
-                                filename = $"{baseFilename} ({counter}){extension}";
-                                counter++;
-                            }
-                            usedFilenames.Add(filename);
-                        }
-                    }
-
-                    var entry = zip.CreateEntry(filename);
-                    using (var entryStream = entry.Open())
-                    {
-                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
-                    }
-                }
-            }
-        }
-        ms.Position = 0;
-        return File(ms.ToArray(), "application/zip", zipName);
+        var invoice = ctx.PayrollInvoices
+                            .Include(a => a.User)
+                            .Single(a => a.Id == invoiceId && a.User.StoreId == CurrentStore.Id);
+        return await invoicesDownloadHelper.Process([invoice], HttpContext.Request.GetAbsoluteRootUri());
     }
 
 

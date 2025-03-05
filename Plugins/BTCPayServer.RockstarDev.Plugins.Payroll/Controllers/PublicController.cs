@@ -28,12 +28,10 @@ public class PublicController(
     ApplicationDbContextFactory dbContextFactory,
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
     IHttpContextAccessor httpContextAccessor,
-    BTCPayNetworkProvider networkProvider,
-    IFileService fileService,
     UriResolver uriResolver,
     VendorPayPassHasher hasher,
-    ISettingsRepository settingsRepository,
-    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper)
+    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
+    InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
     private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
@@ -225,6 +223,21 @@ public class PublicController(
         public IActionResult ErrorActionResult { get; set; }
         public StoreData Store { get; set; }
         public string UserId { get; set; }
+    }
+    
+    
+    [HttpGet("DownloadInvoices")]
+    public async Task<IActionResult> DownloadInvoices(string storeId, string invoiceId)
+    {
+        var vali = await validateStoreAndUser(storeId, true);
+        if (vali.ErrorActionResult != null)
+            return vali.ErrorActionResult;
+
+        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        var invoice = ctx.PayrollInvoices
+            .Include(a => a.User)
+            .Single(a => a.Id == invoiceId && a.User.StoreId == storeId);
+        return await invoicesDownloadHelper.Process([invoice], HttpContext.Request.GetAbsoluteRootUri());
     }
 
 

@@ -26,6 +26,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         
         // helpers
         serviceCollection.AddTransient<PayrollInvoiceUploadHelper>();
+        serviceCollection.AddTransient<InvoicesDownloadHelper>();
 
         // Add the database related registrations
         serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();

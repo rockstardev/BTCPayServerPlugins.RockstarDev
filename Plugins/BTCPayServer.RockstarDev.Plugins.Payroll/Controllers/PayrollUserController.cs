@@ -20,6 +20,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using System.Security.Cryptography;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.Services.Mails;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
@@ -32,12 +33,9 @@ public class PayrollUserController(
     EmailSenderFactory emailSenderFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
-    IFileService fileService,
-    HttpClient httpClient)
+    InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
-    private readonly HttpClient _httpClient = httpClient ?? new HttpClient();
-
     public StoreData CurrentStore => HttpContext.GetStoreData();
     private const string UserInviteEmailSubject = "You are invited to create a Vendor Pay account";
     private const string UserInviteEmailBody = @"Hello {Name},
@@ -365,7 +363,7 @@ Thank you,
             return NotFound();
 
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        var user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(c => c.User)
@@ -381,60 +379,7 @@ Thank you,
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        var zipName = $"Invoices-{user.Name}-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
-        using var ms = new MemoryStream();
-        var usedFilenames = new HashSet<string>();
-        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
-        {
-            var csvData = new StringBuilder();
-            csvData.AppendLine("Name,Destination,Amount,Currency,Description,Status");
-
-            foreach (var invoice in payrollInvoices)
-            {
-                csvData.AppendLine(
-                    $"{invoice.User.Name},{invoice.Destination},{invoice.Amount},{invoice.Currency},{invoice.Description},{invoice.State}");
-
-                if (string.IsNullOrEmpty(invoice.InvoiceFilename))
-                    continue;
-
-                var allFiles = new List<string> { invoice.InvoiceFilename };
-                if (!string.IsNullOrWhiteSpace(invoice.ExtraFilenames))
-                {
-                    allFiles.AddRange(invoice.ExtraFilenames.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()));
-                }
-
-                foreach (var file in allFiles)
-                {
-                    var fileUrl = await fileService.GetFileUrl(HttpContext.Request.GetAbsoluteRootUri(), file);
-                    var fileBytes = await _httpClient.DownloadFileAsByteArray(fileUrl);
-                    string filename = Path.GetFileName(fileUrl);
-                    string extension = Path.GetExtension(filename);
-
-                    var baseFilename = Path.GetFileNameWithoutExtension(filename);
-                    int counter = 1;
-                    while (usedFilenames.Contains(filename))
-                    {
-                        filename = $"{baseFilename} ({counter}){extension}";
-                        counter++;
-                    }
-                    usedFilenames.Add(filename);
-
-                    var entry = zip.CreateEntry(filename);
-                    using (var entryStream = entry.Open())
-                    {
-                        await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
-                    }
-                }
-            }
-            var csvEntry = zip.CreateEntry($"Invoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv");
-            await using (var csvStream = csvEntry.Open())
-            {
-                var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
-                await csvStream.WriteAsync(csvBytes, 0, csvBytes.Length);
-            }
-        }
-        ms.Position = 0;
-        return File(ms.ToArray(), "application/zip", zipName);
+        return await invoicesDownloadHelper.Process(payrollInvoices, HttpContext.Request.GetAbsoluteRootUri());
     }
 
 
