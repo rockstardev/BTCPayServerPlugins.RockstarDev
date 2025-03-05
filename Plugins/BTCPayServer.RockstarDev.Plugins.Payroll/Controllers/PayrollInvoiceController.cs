@@ -366,9 +366,9 @@ public class PayrollInvoiceController(
 
         await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
         var settings = await dbPlugin.GetSettingAsync(storeId);
-        if (!settings.MakeInvoiceFilesOptional && !model.Invoices.Any())
+        if (!settings.MakeInvoiceFilesOptional && model.Invoice == null)
         {
-            ModelState.AddModelError(nameof(model.Invoices), "Kindly include an invoice");
+            ModelState.AddModelError(nameof(model.Invoice), "Kindly include an invoice");
         }
         
         if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
@@ -386,6 +386,7 @@ public class PayrollInvoiceController(
 
         if (!ModelState.IsValid)
         {
+            // return view model with errors
             model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
             return View(model);
         }
@@ -403,28 +404,23 @@ public class PayrollInvoiceController(
             UserId = model.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
-        if (!model.Invoices.Any() && !settings.MakeInvoiceFilesOptional)
-        {
-            ModelState.AddModelError(nameof(model.Invoices), "Kindly include an invoice file");
-            model.PayrollUsers = getPayrollUsers(dbPlugin, CurrentStore.Id);
-            return View(model);
-        }
 
-        if (model.Invoices.Any())
+        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        if (model.Invoice != null)
         {
-            var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-            var uploaded = await fileService.AddFile(model.Invoices.First(), adminset!.AdminAppUserId);
+            var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
             dbPayrollInvoice.InvoiceFilename = uploaded.Id;
-            if (model.Invoices.Count > 1)
+        }
+        
+        if (model.ExtraFiles?.Count > 0)
+        {
+            var extraFiles = new List<string>();
+            foreach (var invoice in model.ExtraFiles)
             {
-                List<string> extraFiles = new List<string>();
-                foreach (var invoice in model.Invoices.Skip(1))
-                {
-                    var extraFileUpload = await fileService.AddFile(invoice, adminset.AdminAppUserId);
-                    extraFiles.Add(extraFileUpload.Id);
-                }
-                dbPayrollInvoice.ExtraFilenames = string.Join(", ", extraFiles);
+                var extraFileUpload = await fileService.AddFile(invoice, adminset!.AdminAppUserId);
+                extraFiles.Add(extraFileUpload.Id);
             }
+            dbPayrollInvoice.ExtraFilenames = string.Join(",", extraFiles);
         }
 
         dbPlugin.Add(dbPayrollInvoice);

@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
@@ -294,6 +295,7 @@ public class PublicController(
 
         if (!ModelState.IsValid)
         {
+            // returning the view model with errors
             return View(model);
         }
 
@@ -310,11 +312,23 @@ public class PublicController(
             UserId = vali.UserId,
             State = PayrollInvoiceState.AwaitingApproval
         };
-        if (!settings.MakeInvoiceFilesOptional && model.Invoice != null)
+        
+        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        if (model.Invoice != null)
         {
-            var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
             var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
             dbPayrollInvoice.InvoiceFilename = uploaded.Id;
+        }
+        
+        if (model.ExtraFiles?.Count > 0)
+        {
+            var extraFiles = new List<string>();
+            foreach (var invoice in model.ExtraFiles)
+            {
+                var extraFileUpload = await fileService.AddFile(invoice, adminset!.AdminAppUserId);
+                extraFiles.Add(extraFileUpload.Id);
+            }
+            dbPayrollInvoice.ExtraFilenames = string.Join(",", extraFiles);
         }
 
         dbPlugin.Add(dbPayrollInvoice);
@@ -325,7 +339,7 @@ public class PublicController(
             Message = $"Invoice uploaded successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(ListInvoices), new { storeId });
+        return RedirectToAction(nameof(ListInvoices), new { storeId = storeId });
     }
 
 

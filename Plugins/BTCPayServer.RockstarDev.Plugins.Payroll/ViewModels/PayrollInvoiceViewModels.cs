@@ -40,11 +40,8 @@ public class PayrollInvoiceUploadViewModel
     [Required]
     [DisplayName("User")]
     public string UserId { get; set; }
-
     public SelectList PayrollUsers { get; set; }
-        
-        
-        
+    
     [Required]
     public string Destination { get; set; }
     [Required]
@@ -59,6 +56,9 @@ public class PayrollInvoiceUploadViewModel
 
     public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
-    public List<IFormFile> Invoices { get; set; } = new();
+    public IFormFile Invoice { get; set; }
+    
+    [DisplayName("Extra Files")]
+    public List<IFormFile> ExtraFiles { get; set; } = new();
 
 }
