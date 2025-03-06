@@ -1,44 +1,61 @@
 ﻿@model BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Product
+@inject IScopeProvider ScopeProvider
 @{
-    ViewData["Title"] = "Edit Product";
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    Layout = "_Layout"; // adding so PageFootContent section is detected
+    ViewData.SetActivePage(SubscriptionPlugin.SubscriptionPluginNavKey, "Edit Product", "Products");
 }
 
-<h2>Edit Product</h2>
-
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="Id" />
-
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" required />
+<div class="sticky-header d-flex align-items-center justify-content-between">
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div class="d-flex gap-3 mt-3 mt-sm-0">
+        <a asp-action="Index" asp-route-storeid="@storeId" class="btn btn-secondary">Cancel</a>
+        <input type="submit" class="btn btn-primary" value="Save" form="mainForm" />
     </div>
+</div>
 
-    <div class="form-group">
-        <label asp-for="Price"></label>
-        <input asp-for="Price" class="form-control" type="number" step="0.01" required />
+<partial name="_StatusMessage" />
+
+<form method="post" asp-action="Create" asp-route-storeid="@storeId" enctype="multipart/form-data" id="mainForm">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control flex-grow" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Price" class="form-label"></label>
+                <input asp-for="Price" class="form-control flex-grow" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Currency" class="form-label"></label>
+                <input asp-for="Currency" class="form-control" maxlength="4" placeholder="e.g., USD, BTC" required />
+                <span asp-validation-for="Currency" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Duration" class="form-label"></label>
+                <input asp-for="Duration" class="form-control" maxlength="4" placeholder="e.g., USD, BTC" required />
+                <span asp-validation-for="Duration" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DurationType" class="form-label"></label>
+                <select asp-for="DurationType" class="form-control"
+                        asp-items="Html.GetEnumSelectList<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.DurationTypes>()">
+                </select>
+                <span asp-validation-for="DurationType" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ReminderDays" class="form-label">Reminder Days (comma-separated)</label>
+                <input asp-for="ReminderDays" class="form-control" placeholder="e.g., 3, 7, 30" required />
+                <span asp-validation-for="ReminderDays" class="text-danger"></span>
+            </div>
+        </div>
     </div>
-
-    <div class="form-group">
-        <label asp-for="Currency"></label>
-        <input asp-for="Currency" class="form-control" maxlength="4" placeholder="e.g., USD, BTC" required />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Duration"></label>
-        <input asp-for="Duration" class="form-control" type="number" min="1" required />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="DurationType"></label>
-        <select asp-for="DurationType" asp-items="Html.GetEnumSelectList<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.DurationTypes>()" class="form-control">
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="ReminderDays">Reminder Days (comma-separated)</label>
-        <input asp-for="ReminderDays" class="form-control" placeholder="e.g., 3, 7, 30" required />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>

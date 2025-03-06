@@ -3,7 +3,7 @@
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    ViewData.SetActivePage(SubscriptionPlugin.SubscriptionPluginNavKey, "Subscription - Customers", "Customers");
+    ViewData.SetActivePage(SubscriptionPlugin.SubscriptionPluginNavKey, "Customers", "Customers");
 }
 
 <form method="post">
@@ -45,10 +45,10 @@
                     <td>@customer.Country</td>
                     <td>@customer.ZipCode</td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-warning btn-sm">Edit</a>
-                        <form asp-action="Delete" asp-route-id="@customer.Id" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</button>
-                        </form>
+                        <a asp-action="Edit" asp-route-id="@customer.Id" asp-route-storeId="@storeId">Edit</a>
+                        <span>-</span>
+                        <a asp-action="Delete" asp-route-id="@customer.Id" asp-route-storeId="@storeId"
+                           class="text-danger">Delete</a>
                     </td>
                 </tr>
             }
