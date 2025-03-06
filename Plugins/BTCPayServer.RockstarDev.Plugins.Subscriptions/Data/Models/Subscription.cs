@@ -61,6 +61,7 @@ public class Subscription
 
 public enum SubscriptionStates
 {
-    Disabled,
-    Active
+    Disabled, // Disabled by admin, for fraud or other reason
+    Active,
+    Expired
 }

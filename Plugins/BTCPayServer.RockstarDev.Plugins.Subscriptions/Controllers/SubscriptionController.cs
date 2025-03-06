@@ -238,7 +238,7 @@ public class SubscriptionController : Controller
                 ProductId = product.Id,
                 Created = DateTimeOffset.UtcNow,
                 Expires = expiresAt,
-                State = SubscriptionStates.Active,
+                State = expiresAt > DateTimeOffset.UtcNow ? SubscriptionStates.Active : SubscriptionStates.Expired,
                 ExternalId = "shopify-1234",
                 PaymentRequestId = "pending"
             };
@@ -288,5 +288,12 @@ public class SubscriptionController : Controller
             Message = "All subscriptions, products, and customers have been removed."
         });
         return RedirectToAction("Index", new { storeId = StoreId});
+    }
+
+
+    [HttpPost("SendReminders")]
+    public async Task<IActionResult> SendReminders()
+    {
+        
     }
 }
