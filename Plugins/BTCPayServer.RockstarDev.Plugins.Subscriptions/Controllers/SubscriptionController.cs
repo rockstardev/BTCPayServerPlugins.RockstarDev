@@ -326,4 +326,22 @@ Thank you,
         
         return View(model);
     }
+
+    [HttpPost("SendReminders")]
+    public async Task<IActionResult> SendReminders(SendReminderViewModel model)
+    {
+        var cutoffDate = DateTimeOffset.UtcNow.AddDays(int.Parse(model.ReminderType));
+        var subscriptions = await _dbContext.Subscriptions
+            .Include(s => s.Customer)
+            .Include(s => s.Product)
+            .Where(s => s.Customer.StoreId == StoreId && s.Expires < cutoffDate)
+            .ToListAsync();
+
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Severity = StatusMessageModel.StatusSeverity.Success,
+            Message = subscriptions.Count + " subscription reminders have been sent"
+        });
+        return RedirectToAction(nameof(Index), new { storeId = StoreId });
+    }
 }
