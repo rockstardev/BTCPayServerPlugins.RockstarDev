@@ -97,7 +97,9 @@ public class VendorPayEmailReminderService(
                 continue;
 
             List<int> reminders = user.EmailReminder.Split(',').Select(int.Parse).ToList();
-            if (reminders.Contains(todayDate.Day))
+            var lastDayOfMonth = DateTime.DaysInMonth(todayDate.Year, todayDate.Month);
+            var emailOnLastDay = reminders.Contains(31) && todayDate.Day == lastDayOfMonth;
+            if (reminders.Contains(todayDate.Day) || emailOnLastDay)
             {
                 try
                 {
