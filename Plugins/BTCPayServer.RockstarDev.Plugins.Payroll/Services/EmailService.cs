@@ -13,12 +13,18 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class EmailService(EmailSenderFactory emailSender, Logs logs, 
+public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs, 
     StoreRepository storeRepo, PayrollPluginDbContextFactory pluginDbContextFactory)
 {
+    public async Task<bool> IsEmailSettingsConfigured(string storeId)
+    {
+        var emailSender = await emailSenderFactory.GetEmailSender(storeId);
+        return (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
+    }
+    
     private async Task SendBulkEmail(string storeId, IEnumerable<EmailRecipient> recipients)
     {
-        var emailSettings = await (await emailSender.GetEmailSender(storeId)).GetEmailSettings();
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
         if (emailSettings?.IsComplete() != true)
             return;
         
@@ -88,7 +94,7 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
 
     public async Task SendUserInvitationEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
     {
-        var emailSettings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(model.StoreId)).GetEmailSettings();
         if (emailSettings?.IsComplete() != true)
             return;
 
@@ -108,7 +114,7 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
 
     public async Task<bool> SendInvoiceEmailReminder(PayrollUser model, string subject, string body)
     {
-        var emailSettings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(model.StoreId)).GetEmailSettings();
         if (emailSettings?.IsComplete() != true)
             return false;
 

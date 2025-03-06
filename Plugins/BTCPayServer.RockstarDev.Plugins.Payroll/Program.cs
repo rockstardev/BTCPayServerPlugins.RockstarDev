@@ -1,4 +1,5 @@
-﻿using BTCPayServer.Abstractions.Contracts;
+﻿using System;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
@@ -20,10 +21,14 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
     {
         serviceCollection.AddUIExtension("store-integrations-nav", "PayrollNav");
 
-        serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
-        serviceCollection.AddSingleton<IHostedService, VendorPayEmailReminderService>();
+        
+        // hosted services
+        serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
+        serviceCollection.AddSingleton<IHostedService>(provider =>
+            provider.GetService<VendorPayEmailReminderService>());
+        serviceCollection.AddScheduledTask<VendorPayEmailReminderService>(TimeSpan.FromHours(12));
 
         // helpers
         serviceCollection.AddTransient<PayrollInvoiceUploadHelper>();

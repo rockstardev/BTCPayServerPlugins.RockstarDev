@@ -7,93 +7,64 @@ using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using Microsoft.Extensions.Logging;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-
 
 public class VendorPayEmailReminderService(
     EmailService emailService,
     EventAggregator eventAggregator,
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
     Logs logs)
-    : EventHostedServiceBase(eventAggregator, logs)
+    : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {
-    public override async Task StartAsync(CancellationToken cancellationToken)
+    public async Task Do(CancellationToken cancellationToken)
     {
-
-        await base.StartAsync(cancellationToken);
-        _ = ScheduleChecks();
-    }
-
-    private CancellationTokenSource _checkTcs = new();
-
-    private async Task ScheduleChecks()
-    {
-        while (!CancellationToken.IsCancellationRequested)
+        await using var db = payrollPluginDbContextFactory.CreateContext();
+        var stores = db.PayrollSettings.Select(a=>a.StoreId).ToList();
+        foreach (var storeId in stores)
         {
-            try
-            {
-                var tcs = new TaskCompletionSource<object>();
+            if (await emailService.IsEmailSettingsConfigured(storeId) == false)
+                continue;
+            
+            var settings = await db.GetSettingAsync(storeId);
+            if (settings == null || !settings.EmailReminders)
+                continue;
 
-                PushEvent(new SequentialExecute(async () =>
-                {
-                    await HandleEmailReminders();
-                    return null;
-
-                }, tcs));
-                await tcs.Task;
-            }
-            catch (Exception e)
-            {
-                Logs.PayServer.LogError(e, "Error while checking email reminder subscriptions");
-            }
-            _checkTcs = new CancellationTokenSource();
-            _checkTcs.CancelAfter(TimeSpan.FromHours(1));
-            try
-            {
-                await Task.Delay(TimeSpan.FromHours(1),
-                    CancellationTokenSource.CreateLinkedTokenSource(_checkTcs.Token, CancellationToken).Token);
-            }
-            catch (OperationCanceledException) { }
+            PushEvent(new PeriodProcessEvent { StoreId = storeId, Setting = settings });
         }
     }
 
-    protected override void SubscribeToEvents()
+    public class PeriodProcessEvent
     {
-        Subscribe<SequentialExecute>();
-        base.SubscribeToEvents();
+        public string StoreId { get; set; }
+        public PayrollStoreSetting Setting { get; set; }
     }
-
-    public record SequentialExecute(Func<Task<object>> Action, TaskCompletionSource<object> TaskCompletionSource);
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
     {
-        if (evt is SequentialExecute sequentialExecute)
+        if (evt is PeriodProcessEvent sequentialExecute)
         {
-            var task = await sequentialExecute.Action();
-            sequentialExecute.TaskCompletionSource.SetResult(task);
-            return;
+            await HandleEmailReminders(sequentialExecute.StoreId, sequentialExecute.Setting);
         }
 
         await base.ProcessEvent(evt, cancellationToken);
     }
 
-    private async Task HandleEmailReminders()
+    private async Task HandleEmailReminders(string storeId, PayrollStoreSetting settings)
     {
         bool shouldUpdateDb = false;
 
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
-        List<PayrollUser> activeUsers = ctx.PayrollUsers.Where(a => a.State == PayrollUserState.Active).ToList();
+        List<PayrollUser> activeUsers = ctx.PayrollUsers.Where(a => 
+            a.StoreId == storeId && a.State == PayrollUserState.Active && a.EmailReminder != null && a.EmailReminder != "")
+            .ToList();
 
         DateTime todayDate = DateTime.UtcNow.Date;
         foreach (var user in activeUsers)
         {
             if (user.LastReminderSent.HasValue && user.LastReminderSent.Value.Date == todayDate)
-                continue;
-
-            var settings = await payrollPluginDbContextFactory.GetSettingAsync(user.StoreId);
-            if (settings == null || !settings.EmailReminders || string.IsNullOrEmpty(user.EmailReminder))
                 continue;
 
             List<int> reminders = user.EmailReminder.Split(',').Select(int.Parse).ToList();
@@ -103,14 +74,18 @@ public class VendorPayEmailReminderService(
             {
                 try
                 {
-                    var emailSent = await emailService.SendInvoiceEmailReminder(user, settings.EmailRemindersSubject, settings.EmailRemindersBody);
+                    var emailSent = await emailService.SendInvoiceEmailReminder(user, settings.EmailRemindersSubject,
+                        settings.EmailRemindersBody);
                     if (emailSent)
                     {
                         user.LastReminderSent = todayDate;
                         shouldUpdateDb = true;
                     }
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    Logs.PayServer.LogError("VendorPay: HandleEmailReminders fail: {0} ", ex);
+                }
             }
         }
         if (shouldUpdateDb)
