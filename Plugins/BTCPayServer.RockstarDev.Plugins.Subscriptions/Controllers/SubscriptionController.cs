@@ -16,6 +16,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.VisualBasic.FileIO;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
@@ -290,10 +291,39 @@ public class SubscriptionController : Controller
         return RedirectToAction("Index", new { storeId = StoreId});
     }
 
+    
+    // send reminders
+    public class SendReminderViewModel
+    {
+        public string ReminderType { get; set; }
+        public IEnumerable<SelectListItem> RemindersList { get; set; }
+        public string Subject { get; set; }
+        public string Body { get; set; }
+    }
 
-    [HttpPost("SendReminders")]
+    [HttpGet("SendReminders")]
     public async Task<IActionResult> SendReminders()
     {
+        var model = new SendReminderViewModel
+        {
+            RemindersList = new List<SelectListItem>
+            {
+                new SelectListItem("Subscription Expiring in 30 days", "30"),
+                new SelectListItem("Subscription Expiring in 7 days", "7"),
+                new SelectListItem("Subscription Expiring in 1 day", "1"),
+                new SelectListItem("Expired Subscriptions", "0")
+            },
+            Subject = "Your subscription is about to expire",
+            Body = @"Dear {CustomerName},
+
+Your subscription is about to expire. Please renew it to continue receiving our product.
+
+{RenewalLink}
+
+Thank you,
+{StoreName}"
+        };
         
+        return View(model);
     }
 }
