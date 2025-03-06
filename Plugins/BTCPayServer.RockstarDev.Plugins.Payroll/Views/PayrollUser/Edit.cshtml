@@ -4,6 +4,7 @@
 @inject IScopeProvider ScopeProvider
 @model PayrollUserCreateViewModel
 @{
+    Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("VendorPay", "Edit Vendor Pay User", "VendorPay");
     var storeId = ScopeProvider.GetCurrentStoreId();
 
@@ -57,13 +58,16 @@
 
             <div class="form-group">
                 <label asp-for="EmailReminder" class="form-label"></label>
-                <div class="text-secondary">
-                    <span>Set invoice reminder days for user. Remember to enable Email reminder in settings page</span>
-                </div>
                 <div class="input-group mb-3">
                     <input type="number" id="reminderInput" class="form-control" placeholder="Enter date (1-31)" min="1" max="31" />
                     <button type="button" id="addReminder" class="btn btn-secondary">Add</button>
                 </div>
+                @if (!Model.StoreEmailSettingsConfigured)
+                {
+                    <div class="text-secondary">
+                        <span>Store Email Settings needs to be configured for reminders to work</span>
+                    </div>
+                }
                 <div id="reminderList" class="d-flex flex-wrap align-items-center gap-2">
                     @foreach (var reminder in initialReminders)
                     {
@@ -121,7 +125,7 @@
                 }
 
                 const badge = document.createElement("span");
-                badge.classList.add("badge", "bg-secondary", "me-1", "mb-1", "role-button");
+                badge.classList.add("badge", "bg-secondary", "me-1", "mb-1", "role-button", "cursor-pointer");
                 badge.setAttribute("data-value", value);
                 badge.textContent = value;
 

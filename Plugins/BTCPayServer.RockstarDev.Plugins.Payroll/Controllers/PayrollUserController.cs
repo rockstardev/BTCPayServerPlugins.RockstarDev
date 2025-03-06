@@ -86,20 +86,12 @@ Thank you,
             return NotFound();
 
         var isEmailSettingsConfigured = await IsEmailSettingsConfigured();
-        ViewData["StoreEmailSettingsConfigured"] = isEmailSettingsConfigured;
         var vm = new PayrollUserCreateViewModel { 
             StoreId = CurrentStore.Id, 
             UserInviteEmailBody = UserInviteEmailBody, 
-            UserInviteEmailSubject = UserInviteEmailSubject
+            UserInviteEmailSubject = UserInviteEmailSubject,
+            StoreEmailSettingsConfigured = isEmailSettingsConfigured
         };
-        if (!isEmailSettingsConfigured)
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
-            {
-                Message = $"Kindly configure Email SMTP in the admin settings to be able to invite user to Vendor Pay via email",
-                Severity = StatusMessageModel.StatusSeverity.Info
-            });
-        }
         return View(vm);
     }
 
@@ -112,7 +104,7 @@ Thank you,
         await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
 
         var email = model.Email.ToLowerInvariant();
-        ViewData["StoreEmailSettingsConfigured"] = await IsEmailSettingsConfigured();
+        model.StoreEmailSettingsConfigured = await IsEmailSettingsConfigured();
         if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
@@ -246,7 +238,11 @@ Thank you,
         if (user.State == PayrollUserState.Pending)
             return NotFound();
 
-        var model = new PayrollUserCreateViewModel { Id = user.Id, Email = user.Email, Name = user.Name, EmailReminder = user.EmailReminder };
+        var model = new PayrollUserCreateViewModel
+        {
+            Id = user.Id, Email = user.Email, Name = user.Name, EmailReminder = user.EmailReminder, 
+            StoreEmailSettingsConfigured = await IsEmailSettingsConfigured()
+        };
         return View(model);
     }
 
@@ -256,6 +252,12 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
+        if (!ModelState.IsValid)
+        {
+            model.StoreEmailSettingsConfigured = await IsEmailSettingsConfigured();
+            return View(model);
+        }
+
         await using var ctx = payrollPluginDbContextFactory.CreateContext();
 
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
@@ -263,11 +265,10 @@ Thank you,
         user.Email = string.IsNullOrEmpty(model.Email) ? user.Email : model.Email;
         user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
 
-        user.EmailReminder = string.IsNullOrEmpty(model.EmailReminder)
-        ? user.EmailReminder 
-        : string.Join(",", model.EmailReminder.Split(',')
+        user.EmailReminder = string.IsNullOrEmpty(model.EmailReminder) ? user.EmailReminder : 
+            string.Join(",", model.EmailReminder.Split(',')
                 .Select(r => r.Trim()).Where(r => !string.IsNullOrEmpty(r))
-                .Distinct().OrderBy(r => int.Parse(r)));
+                .Distinct().OrderBy(int.Parse));
 
         ctx.Update(user);
         await ctx.SaveChangesAsync();
