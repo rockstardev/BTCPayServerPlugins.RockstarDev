@@ -11,6 +11,7 @@ using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Services.Mails;
 using Microsoft.AspNetCore.Routing;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
@@ -18,7 +19,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollSettingController(PayrollPluginDbContextFactory payrollPluginDbContextFactory, 
-    EmailSenderFactory emailSenderFactory, LinkGenerator linkGenerator) : Controller
+    EmailService emailService, LinkGenerator linkGenerator) : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -37,8 +38,8 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
             EmailRemindersSubject = settings.EmailRemindersSubject ?? PayrollSettingViewModel.Defaults.EmailRemindersSubject,
             EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody
         };
-        var emailSender = await emailSenderFactory.GetEmailSender(storeId);
-        ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
+        
+        ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
         return View(model);
     }
 
@@ -57,8 +58,7 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
 
         if (!ModelState.IsValid)
         {
-            var emailSender = await emailSenderFactory.GetEmailSender(storeId);
-            ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
+            ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
             return View(model);
         }
 

@@ -30,7 +30,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController(
     PayrollPluginDbContextFactory payrollPluginDbContextFactory,
-    EmailSenderFactory emailSenderFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
     InvoicesDownloadHelper invoicesDownloadHelper)
@@ -85,7 +84,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        var isEmailSettingsConfigured = await IsEmailSettingsConfigured();
+        var isEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
         var vm = new PayrollUserCreateViewModel { 
             StoreId = CurrentStore.Id, 
             UserInviteEmailBody = UserInviteEmailBody, 
@@ -104,7 +103,7 @@ Thank you,
         await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
 
         var email = model.Email.ToLowerInvariant();
-        model.StoreEmailSettingsConfigured = await IsEmailSettingsConfigured();
+        model.StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
         if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
@@ -241,7 +240,7 @@ Thank you,
         var model = new PayrollUserCreateViewModel
         {
             Id = user.Id, Email = user.Email, Name = user.Name, EmailReminder = user.EmailReminder, 
-            StoreEmailSettingsConfigured = await IsEmailSettingsConfigured()
+            StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id)
         };
         return View(model);
     }
@@ -254,7 +253,7 @@ Thank you,
 
         if (!ModelState.IsValid)
         {
-            model.StoreEmailSettingsConfigured = await IsEmailSettingsConfigured();
+            model.StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
             return View(model);
         }
 
@@ -477,11 +476,5 @@ Thank you,
             .Replace("+", "-")
             .Replace("/", "_")
             .TrimEnd('=');
-    }
-
-    private async Task<bool> IsEmailSettingsConfigured()
-    {
-        var emailSender = await emailSenderFactory.GetEmailSender(CurrentStore.Id);
-        return (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
     }
 }
