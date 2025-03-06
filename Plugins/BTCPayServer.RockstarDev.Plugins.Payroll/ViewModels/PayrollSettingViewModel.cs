@@ -15,7 +15,7 @@ public class PayrollSettingViewModel
     public string EmailOnInvoicePaidSubject { get; set; }
     public string EmailOnInvoicePaidBody { get; set; }
 
-    [Display(Name = "Email reminders for users")]
+    [Display(Name = "Email reminders for vendors to upload invoices")]
     public bool EmailReminders { get; set; }
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
@@ -29,7 +29,17 @@ Your invoice submitted on {CreatedAt} has been paid on {PaidAt}.
 
 See all your invoices on: {VendorPayPublicLink}
 
-Thank you,  
+Thank you,
+{StoreName}";
+        
+        public const string EmailRemindersSubject = @"Reminder to upload your invoice";
+        public const string EmailRemindersBody = @"Hello {Name},
+
+We're sending this email to remind you that it is time to upload your invoice.
+
+Please proceed to: {VendorPayPublicLink}
+
+Thank you,
 {StoreName}";
     }
 }

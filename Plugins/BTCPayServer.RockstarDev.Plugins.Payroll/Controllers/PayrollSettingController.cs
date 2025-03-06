@@ -28,14 +28,14 @@ public class PayrollSettingController(PayrollPluginDbContextFactory payrollPlugi
         var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollSettingViewModel
         {
-            EmailReminders = settings.EmailReminders,
-            EmailRemindersBody = settings.EmailRemindersBody,
-            EmailRemindersSubject = settings.EmailRemindersSubject,
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
-            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody
+            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
+            EmailReminders = settings.EmailReminders,
+            EmailRemindersSubject = settings.EmailRemindersSubject ?? PayrollSettingViewModel.Defaults.EmailRemindersSubject,
+            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody
         };
         var emailSender = await emailSenderFactory.GetEmailSender(storeId);
         ViewData["StoreEmailSettingsConfigured"] = (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();

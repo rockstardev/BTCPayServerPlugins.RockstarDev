@@ -51,12 +51,12 @@
             </div>
             <div id="emailTemplateGroup" style="display: none;">
                 <div class="form-group">
-                    <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Customize Subject</label>
+                    <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Subject</label>
                     <input asp-for="EmailOnInvoicePaidSubject" class="form-control" />
                     <span asp-validation-for="EmailOnInvoicePaidSubject" class="text-danger"></span>
                 </div>
                 <div class="form-group">
-                    <label asp-for="EmailOnInvoicePaidBody" class="form-label">Customize Email Template</label>
+                    <label asp-for="EmailOnInvoicePaidBody" class="form-label">Email Body</label>
                     <textarea asp-for="EmailOnInvoicePaidBody" class="form-control" rows="8"></textarea>
                     <span asp-validation-for="EmailOnInvoicePaidBody" class="text-danger"></span>
                 </div>
@@ -80,12 +80,12 @@
 
             <div id="emailReminderTemplateGroup" style="display: none;">
                 <div class="form-group">
-                    <label asp-for="EmailRemindersSubject" class="form-label">Email Reminder Template Subject</label>
+                    <label asp-for="EmailRemindersSubject" class="form-label">Subject</label>
                     <input asp-for="EmailRemindersSubject" class="form-control" />
                     <span asp-validation-for="EmailRemindersSubject" class="text-danger"></span>
                 </div>
                 <div class="form-group">
-                    <label asp-for="EmailRemindersBody" class="form-label">Customize Email Reminder Template Body</label>
+                    <label asp-for="EmailRemindersBody" class="form-label">Email Body</label>
                     <textarea asp-for="EmailRemindersBody" class="form-control" rows="8"></textarea>
                     <span asp-validation-for="EmailRemindersBody" class="text-danger"></span>
                 </div>
