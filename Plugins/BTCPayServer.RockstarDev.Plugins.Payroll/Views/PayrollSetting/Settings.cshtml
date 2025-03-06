@@ -9,6 +9,7 @@
     var storeId = ScopeProvider.GetCurrentStoreId();
     Layout = "_Layout";
     ViewData.SetActivePage("VendorPay", "Update Plugin Settings", "VendorPay");
+    var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
 }
 
 <form method="post" asp-action="Settings">
@@ -33,9 +34,6 @@
             </div>
 
             <h3>Emails</h3>
-            @{
-                var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
-            }
             <div class="form-group d-flex align-items-center">
                 
                 <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
@@ -53,14 +51,43 @@
             </div>
             <div id="emailTemplateGroup" style="display: none;">
                 <div class="form-group">
-                    <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Customize Subject</label>
+                    <label asp-for="EmailOnInvoicePaidSubject" class="form-label">Subject</label>
                     <input asp-for="EmailOnInvoicePaidSubject" class="form-control" />
                     <span asp-validation-for="EmailOnInvoicePaidSubject" class="text-danger"></span>
                 </div>
                 <div class="form-group">
-                    <label asp-for="EmailOnInvoicePaidBody" class="form-label">Customize Email Template</label>
+                    <label asp-for="EmailOnInvoicePaidBody" class="form-label">Email Body</label>
                     <textarea asp-for="EmailOnInvoicePaidBody" class="form-control" rows="8"></textarea>
                     <span asp-validation-for="EmailOnInvoicePaidBody" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group d-flex align-items-center">
+
+                <input asp-for="EmailReminders" type="checkbox" class="btcpay-toggle me-3" id="emailReminderToggle" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                <div>
+                    <label asp-for="EmailReminders" class="form-check-label"></label>
+                    <span asp-validation-for="EmailReminders" class="text-danger"></span>
+                    @if (!storeEmailSettingsConfigured)
+                    {
+                        <div class="text-secondary">
+                            <span text-translate="true">Your email server has not been configured.</span>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div id="emailReminderTemplateGroup" style="display: none;">
+                <div class="form-group">
+                    <label asp-for="EmailRemindersSubject" class="form-label">Subject</label>
+                    <input asp-for="EmailRemindersSubject" class="form-control" />
+                    <span asp-validation-for="EmailRemindersSubject" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EmailRemindersBody" class="form-label">Email Body</label>
+                    <textarea asp-for="EmailRemindersBody" class="form-control" rows="8"></textarea>
+                    <span asp-validation-for="EmailRemindersBody" class="text-danger"></span>
                 </div>
             </div>
         </div>
@@ -71,13 +98,20 @@
 @section PageFootContent {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const emailToggle = document.getElementById('emailToggle');
-            const emailTemplateGroup = document.getElementById('emailTemplateGroup');
-            const toggleEmailTemplateVisibility = () => {
-                emailTemplateGroup.style.display = emailToggle.checked ? 'block' : 'none';
+            const toggleElements = [
+                { toggle: 'emailToggle', target: 'emailTemplateGroup' },
+                { toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup' }
+            ];
+
+            const toggleVisibility = (toggle, target) => {
+                document.getElementById(target).style.display = document.getElementById(toggle).checked ? 'block' : 'none';
             };
-            emailToggle.addEventListener('change', toggleEmailTemplateVisibility);
-            toggleEmailTemplateVisibility();
+
+            toggleElements.forEach(({ toggle, target }) => {
+                const toggleInput = document.getElementById(toggle);
+                toggleInput.addEventListener('change', () => toggleVisibility(toggle, target));
+                toggleVisibility(toggle, target);
+            });
         });
     </script>
 }

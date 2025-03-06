@@ -7,7 +7,6 @@
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("VendorPay", "Vendor Pay Users", "VendorPay");
-
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
@@ -64,6 +63,7 @@
                     <tr>
                         <th scope="col">Name</th>
                         <th scope="col">Email</th>
+                        <th scope="col">Email Reminder Days</th>
                         <th scope="col">State</th>
                         <th scope="col" class="text-end"></th>
                     </tr>
@@ -74,6 +74,7 @@
                         <tr class="mass-action-row">
                             <td>@pp.Name</td>
                             <td>@pp.Email</td>
+                            <td>@(!string.IsNullOrEmpty(pp.EmailReminder) ? pp.EmailReminder : "-")</td>
                             <td>@pp.State</td>
                             <td class="align-middle">
                             </td>

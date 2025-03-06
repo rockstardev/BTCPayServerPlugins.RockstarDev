@@ -13,16 +13,22 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class EmailService(EmailSenderFactory emailSender, Logs logs, 
+public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs, 
     StoreRepository storeRepo, PayrollPluginDbContextFactory pluginDbContextFactory)
 {
+    public async Task<bool> IsEmailSettingsConfigured(string storeId)
+    {
+        var emailSender = await emailSenderFactory.GetEmailSender(storeId);
+        return (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
+    }
+    
     private async Task SendBulkEmail(string storeId, IEnumerable<EmailRecipient> recipients)
     {
-        var settings = await (await emailSender.GetEmailSender(storeId)).GetEmailSettings();
-        if (!settings.IsComplete())
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
+        if (emailSettings?.IsComplete() != true)
             return;
         
-        var client = await settings.CreateSmtpClient();
+        var client = await emailSettings.CreateSmtpClient();
         try
         {
             foreach (var recipient in recipients)
@@ -30,7 +36,7 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
                 try
                 {
                     var message = new MimeMessage();
-                    message.From.Add(MailboxAddress.Parse(settings.From));
+                    message.From.Add(MailboxAddress.Parse(emailSettings.From));
                     message.To.Add(recipient.Address);
                     message.Subject = recipient.Subject;
                     message.Body = new TextPart("plain") { Text = recipient.MessageText };
@@ -75,7 +81,7 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
                         .Replace("{StoreName}", storeName)
                         .Replace("{CreatedAt}", invoice.CreatedAt.ToString("MMM dd, yyyy h:mm tt zzz"))
                         .Replace("{PaidAt}", invoice.PaidAt?.ToString("MMM dd, yyyy h:mm tt zzz"))
-                        .Replace("{VendorPayPublicLink}", $"{setting.VendorPayPublicLink}")
+                        .Replace("{VendorPayPublicLink}", setting.VendorPayPublicLink)
                 });
             }
 
@@ -86,10 +92,10 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
         }
     }
 
-    public async Task SendUserInvitationEmailEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
+    public async Task SendUserInvitationEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
     {
-        var settings = await (await emailSender.GetEmailSender(model.StoreId)).GetEmailSettings();
-        if (!settings.IsComplete())
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(model.StoreId)).GetEmailSettings();
+        if (emailSettings?.IsComplete() != true)
             return;
 
         var storeName = (await storeRepo.FindStore(model.StoreId))?.StoreName;
@@ -104,6 +110,33 @@ public class EmailService(EmailSenderFactory emailSender, Logs logs,
         };
         var emailRecipients = new List<EmailRecipient> { recipient };
         await SendBulkEmail(model.StoreId, emailRecipients);
+    }
+
+    public async Task<bool> SendInvoiceEmailReminder(PayrollUser model, string subject, string body)
+    {
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(model.StoreId)).GetEmailSettings();
+        if (emailSettings?.IsComplete() != true)
+            return false;
+
+        var store = await storeRepo.FindStore(model.StoreId);
+        var storeName = store.StoreName;
+        
+        var settings = await pluginDbContextFactory.GetSettingAsync(store.Id);
+        if (settings?.EmailReminders != true)
+            return false;
+
+        var recipient = new EmailRecipient
+        {
+            Address = InternetAddress.Parse(model.Email),
+            Subject = subject,
+            MessageText = body
+                .Replace("{Name}", model.Name)
+                .Replace("{StoreName}", storeName)
+                .Replace("{VendorPayPublicLink}", settings.VendorPayPublicLink)
+        };
+        var emailRecipients = new List<EmailRecipient> { recipient };
+        await SendBulkEmail(model.StoreId, emailRecipients);
+        return true;
     }
 
     public class EmailRecipient

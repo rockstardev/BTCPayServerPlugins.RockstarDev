@@ -4,16 +4,13 @@ using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.Services.Invoices;
-using BTCPayServer.Services.Stores;
 using Microsoft.EntityFrameworkCore;
-using MimeKit;
 using NBitcoin;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static BTCPayServer.RockstarDev.Plugins.Payroll.Services.EmailService;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
