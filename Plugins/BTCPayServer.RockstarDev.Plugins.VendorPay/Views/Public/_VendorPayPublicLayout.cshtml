@@ -1,0 +1,20 @@
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers
+@inject BTCPayServer.Services.BTCPayServerEnvironment Env
+@model BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels.BaseVendorPayPublicViewModel
+@{
+    Layout = null;
+    ViewData["StoreBranding"] = Model.StoreBranding;
+}
+<!DOCTYPE html>
+<html lang="en" @(Env.IsDeveloping ? " data-devenv" : "")>
+<head>
+    <partial name="LayoutHead" />
+    <meta name="robots" content="noindex,nofollow">
+</head>
+<body class="min-vh-100">
+    @RenderBody()
+
+    <partial name="LayoutFoot" />
+    <partial name="_ValidationScriptsPartial" />
+</body>
+</html>
