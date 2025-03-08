@@ -21,7 +21,7 @@ public class Product
     public string Currency { get; set; }
 
     public int Duration { get; set; }
-    [StringLength(10)]
+    
     public DurationTypes DurationType { get; set; }
     
     [StringLength(25)]

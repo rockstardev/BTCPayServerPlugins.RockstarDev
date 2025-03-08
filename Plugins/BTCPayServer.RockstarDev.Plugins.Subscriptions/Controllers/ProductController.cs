@@ -48,14 +48,21 @@ public class ProductController : Controller
     [HttpPost("create")]
     public async Task<IActionResult> Create(Product product)
     {
+        ModelState.Remove(nameof(product.Id));
         if (!ModelState.IsValid)
             return View(product);
 
         product.StoreId = StoreId;
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
+        
+        TempData.SetStatusMessageModel(new StatusMessageModel()
+        {
+            Severity = StatusMessageModel.StatusSeverity.Success,
+            Message = $"Product {product.Name} successfully created"
+        });
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new {StoreId});
     }
 
     [HttpGet("edit/{id}")]
@@ -92,8 +99,18 @@ public class ProductController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [HttpPost("delete/{id}")]
+    [HttpGet("delete/{id}")]
     public async Task<IActionResult> Delete(string id)
+    {
+        var product = await _dbContext.Products
+            .Where(p => p.StoreId == StoreId && p.Id == id)
+            .FirstOrDefaultAsync();
+        
+        return View("Confirm", new ConfirmModel($"Delete Product", 
+            $"Do you really want to delete '{product.Name}' product?", "Delete"));
+    }
+    [HttpPost("delete/{id}")]
+    public async Task<IActionResult> DeletePost(string id)
     {
         var product = await _dbContext.Products
             .Where(p => p.StoreId == StoreId && p.Id == id)
@@ -104,6 +121,6 @@ public class ProductController : Controller
 
         _dbContext.Products.Remove(product);
         await _dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new {StoreId});;
     }
 }
