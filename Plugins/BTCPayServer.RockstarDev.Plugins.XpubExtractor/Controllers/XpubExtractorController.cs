@@ -12,10 +12,6 @@ namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers;
 [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class XpubExtractorController : Controller
 {
-    public XpubExtractorController()
-    {
-    }
-
     [HttpGet("~/plugins/xpubextractor/")]
     public IActionResult Index()
     {

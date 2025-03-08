@@ -4,17 +4,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor
 {
-    public class Program : BaseBTCPayServerPlugin
+    public class XpubExtractorPlugin : BaseBTCPayServerPlugin
     {
         public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
         {
             new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
         };
 
-        public override void Execute(IServiceCollection applicationBuilder)
+        public override void Execute(IServiceCollection serviceCollection)
         {
-            applicationBuilder.AddUIExtension("store-integrations-nav", "XpubExtractorNav");
-            base.Execute(applicationBuilder);
+            serviceCollection.AddUIExtension("store-integrations-nav", "XpubExtractorNav");
+            base.Execute(serviceCollection);
         }
     }
 }
