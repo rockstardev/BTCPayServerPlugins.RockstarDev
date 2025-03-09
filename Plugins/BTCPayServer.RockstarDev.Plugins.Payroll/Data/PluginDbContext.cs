@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
-public class PayrollPluginDbContext(DbContextOptions<PayrollPluginDbContext> options, bool designTime = false)
+public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool designTime = false)
     : DbContext(options)
 {
 

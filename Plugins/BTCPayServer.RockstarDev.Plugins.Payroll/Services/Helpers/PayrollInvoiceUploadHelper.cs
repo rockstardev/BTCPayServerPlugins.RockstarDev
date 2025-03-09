@@ -11,7 +11,7 @@ using NBitcoin;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 
 public class PayrollInvoiceUploadHelper(
-    PayrollPluginDbContextFactory dbContextFactory,
+    PluginDbContextFactory dbContextFactory,
     IFileService fileService,
     ISettingsRepository settingsRepository,
     BTCPayNetworkProvider networkProvider)

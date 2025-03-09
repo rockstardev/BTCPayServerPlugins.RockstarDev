@@ -26,7 +26,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Route("~/plugins/{storeId}/payroll/public/", Order = 1)]
 public class PublicController(
     ApplicationDbContextFactory dbContextFactory,
-    PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+    PluginDbContextFactory PluginDbContextFactory,
     IHttpContextAccessor httpContextAccessor,
     UriResolver uriResolver,
     VendorPayPassHasher hasher,
@@ -64,7 +64,7 @@ public class PublicController(
         model.StoreName = vali.Store.StoreName;
         model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
-        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = PluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
             a.StoreId == storeId && a.Email == model.Email.ToLowerInvariant());
 
@@ -85,7 +85,7 @@ public class PublicController(
     [HttpGet("users/{token}/accept")]
     public async Task<IActionResult> AcceptInvitation(string storeId, string token)
     {
-        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = PluginDbContextFactory.CreateContext();
 
         var invitation = dbPlugins.PayrollInvitations
             .SingleOrDefault(i => i.Token == token && !i.AcceptedAt.HasValue &&
@@ -107,7 +107,7 @@ public class PublicController(
     [HttpPost("users/{token}/accept")]
     public async Task<IActionResult> AcceptInvitation(AcceptInvitationRequestViewModel model)
     {
-        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = PluginDbContextFactory.CreateContext();
         var invitation = dbPlugins.PayrollInvitations.SingleOrDefault(i => i.Token == model.Token && !i.AcceptedAt.HasValue && i.CreatedAt.AddDays(7) >= DateTime.UtcNow);
         if (invitation == null)
         {
@@ -161,7 +161,7 @@ public class PublicController(
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && p.UserId == vali.UserId && p.IsArchived == false)
@@ -207,7 +207,7 @@ public class PublicController(
         string userId = null;
         if (validateUser)
         {
-            await using var dbPlugin = payrollPluginDbContextFactory.CreateContext();
+            await using var dbPlugin = PluginDbContextFactory.CreateContext();
             userId = httpContextAccessor.HttpContext!.Session.GetString(PAYROLL_AUTH_USER_ID);
             var userInDb = dbPlugin.PayrollUsers.SingleOrDefault(a =>
                 a.StoreId == storeId && a.Id == userId && a.State == PayrollUserState.Active);
@@ -234,7 +234,7 @@ public class PublicController(
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         var invoice = ctx.PayrollInvoices
             .Include(a => a.User)
             .Single(a => a.Id == invoiceId && a.User.StoreId == storeId);
@@ -250,7 +250,7 @@ public class PublicController(
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        var settings = await payrollPluginDbContextFactory.GetSettingAsync(storeId);
+        var settings = await PluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PublicPayrollInvoiceUploadViewModel
         {
             StoreId = vali.Store.Id,
@@ -324,7 +324,7 @@ public class PublicController(
         if (!ModelState.IsValid)
             return View(model);
 
-        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = PluginDbContextFactory.CreateContext();
         var userInDb = dbPlugins.PayrollUsers.SingleOrDefault(a =>
             a.StoreId == storeId && a.Id == vali.UserId);
         if (userInDb == null)
@@ -361,7 +361,7 @@ public class PublicController(
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         PayrollInvoice invoice = ctx.PayrollInvoices.Include(c => c.User)
             .SingleOrDefault(a => a.Id == id);
 
@@ -387,7 +387,7 @@ public class PublicController(
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
 
         var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
 

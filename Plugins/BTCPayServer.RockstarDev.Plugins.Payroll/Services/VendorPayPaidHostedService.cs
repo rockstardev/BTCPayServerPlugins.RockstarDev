@@ -18,7 +18,7 @@ public class VendorPayPaidHostedService(
     EmailService emailService,
     EventAggregator eventAggregator,
     PaymentMethodHandlerDictionary handlers,
-    PayrollPluginDbContextFactory pluginDbContextFactory,
+    PluginDbContextFactory pluginDbContextFactory,
     Logs logs)
     : EventHostedServiceBase(eventAggregator, logs)
 {

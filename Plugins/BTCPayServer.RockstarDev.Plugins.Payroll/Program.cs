@@ -35,13 +35,13 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddTransient<InvoicesDownloadHelper>();
 
         // Add the database related registrations
-        serviceCollection.AddSingleton<PayrollPluginDbContextFactory>();
-        serviceCollection.AddDbContext<PayrollPluginDbContext>((provider, o) =>
+        serviceCollection.AddSingleton<PluginDbContextFactory>();
+        serviceCollection.AddDbContext<PluginDbContext>((provider, o) =>
         {
-            var factory = provider.GetRequiredService<PayrollPluginDbContextFactory>();
+            var factory = provider.GetRequiredService<PluginDbContextFactory>();
             factory.ConfigureBuilder(o);
         });
-        serviceCollection.AddHostedService<PayrollPluginMigrationRunner>();
+        serviceCollection.AddHostedService<PluginMigrationRunner>();
 
         base.Execute(serviceCollection);
     }

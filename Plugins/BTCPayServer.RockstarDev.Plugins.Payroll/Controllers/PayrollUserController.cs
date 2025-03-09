@@ -29,7 +29,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Route("~/plugins/{storeId}/payroll/users/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController(
-    PayrollPluginDbContextFactory payrollPluginDbContextFactory,
+    PluginDbContextFactory PluginDbContextFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
     InvoicesDownloadHelper invoicesDownloadHelper)
@@ -57,7 +57,7 @@ Thank you,
     [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all, bool pending)
     {
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         IQueryable<PayrollUser> query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
         if (pending)
         {
@@ -100,7 +100,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var dbPlugins = payrollPluginDbContextFactory.CreateContext();
+        await using var dbPlugins = PluginDbContextFactory.CreateContext();
 
         var email = model.Email.ToLowerInvariant();
         model.StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
@@ -185,7 +185,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == PayrollUserState.Pending);
         if (user == null)
         {
@@ -231,7 +231,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
 
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         if (user.State == PayrollUserState.Pending)
@@ -257,7 +257,7 @@ Thank you,
             return View(model);
         }
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
 
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
@@ -283,7 +283,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
 
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         if (user.State == PayrollUserState.Pending)
@@ -298,7 +298,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
 
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
@@ -321,7 +321,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (user == null)
@@ -337,7 +337,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (user == null)
@@ -368,7 +368,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         var user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         var payrollInvoices = await ctx.PayrollInvoices
@@ -404,7 +404,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (user == null)
@@ -437,7 +437,7 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = payrollPluginDbContextFactory.CreateContext();
+        await using var ctx = PluginDbContextFactory.CreateContext();
         var payrollUser = ctx.PayrollUsers
             .Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 

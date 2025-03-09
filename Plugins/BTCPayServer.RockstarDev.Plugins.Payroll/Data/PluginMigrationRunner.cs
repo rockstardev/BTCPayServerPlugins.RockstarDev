@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
-internal class PayrollPluginMigrationRunner(PayrollPluginDbContextFactory dbContextFactory) : IHostedService
+internal class PluginMigrationRunner(PluginDbContextFactory dbContextFactory) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {

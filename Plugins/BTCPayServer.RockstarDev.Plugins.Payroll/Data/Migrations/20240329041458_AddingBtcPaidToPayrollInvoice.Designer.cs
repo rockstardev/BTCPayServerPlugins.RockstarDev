@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
-    [DbContext(typeof(PayrollPluginDbContext))]
+    [DbContext(typeof(PluginDbContext))]
     [Migration("20240329041458_AddingBtcPaidToPayrollInvoice")]
     partial class AddingBtcPaidToPayrollInvoice
     {

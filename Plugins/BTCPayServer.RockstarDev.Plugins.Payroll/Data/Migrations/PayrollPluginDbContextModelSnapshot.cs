@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
 {
-    [DbContext(typeof(PayrollPluginDbContext))]
-    partial class PayrollPluginDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(PluginDbContext))]
+    partial class PluginDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {

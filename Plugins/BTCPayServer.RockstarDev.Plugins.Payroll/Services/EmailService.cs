@@ -14,7 +14,7 @@ using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
 public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs, 
-    StoreRepository storeRepo, PayrollPluginDbContextFactory pluginDbContextFactory)
+    StoreRepository storeRepo, PluginDbContextFactory pluginDbContextFactory)
 {
     public async Task<bool> IsEmailSettingsConfigured(string storeId)
     {
