@@ -391,10 +391,12 @@ public class PayrollInvoiceController(
             var desc = $"{invoice.Description ?? empty}";
             if (!string.IsNullOrEmpty(invoice.PurchaseOrder))
                 desc = $"{invoice.PurchaseOrder} - {desc}";
-            
+
+            string formattedDesc = "\"" + desc.Replace("\"", "\"\"") + "\"";
+
             if (invoice.BtcPaid == null)
             {
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? empty},{invoice.User.Name},{desc}," +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? empty},{invoice.User.Name},{formattedDesc}," +
                                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{empty}" +
                                    $",{usdRate},{empty},{empty},false");
             }
@@ -410,7 +412,7 @@ public class PayrollInvoiceController(
                     usdRate = Math.Abs(usdRate);
                 }
 
-                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? empty)},{invoice.User.Name},{desc}," +
+                csvData.AppendLine($"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? empty)},{invoice.User.Name},{formattedDesc}," +
                                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{empty}" +
                                    $",-{invoice.BtcPaid},{empty},{invoice.TxnId},true");
             }
