@@ -1,1 +1,1 @@
-﻿dotnet ef migrations add FoundationForSubscriptionsDatabase -p Plugins/BTCPayServer.RockstarDev.Plugins.Subscriptions -c PluginDbContext -o Data/Migrations
+﻿dotnet ef migrations add AddingFieldsForSubscription -p Plugins/BTCPayServer.RockstarDev.Plugins.Subscriptions -c PluginDbContext -o Data/Migrations

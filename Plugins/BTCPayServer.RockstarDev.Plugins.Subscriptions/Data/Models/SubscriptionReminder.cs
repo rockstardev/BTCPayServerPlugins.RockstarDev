@@ -15,10 +15,16 @@ public class SubscriptionReminder
     public string Id { get; set; }
 
     [MaxLength(36)] // guid
-    public string SubscriptionId { get; set; }
+    public required string SubscriptionId { get; set; }
     public Subscription Subscription { get; set; }
 
     public DateTimeOffset Created { get; set; }
+
+    public DateTimeOffset? ClickedAt { get; set; }
+    [MaxLength(36)]
+    public string? PaymentRequestId { get; set; }
+    
+    public string? DebugAdditionalData { get; set; }
     
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {

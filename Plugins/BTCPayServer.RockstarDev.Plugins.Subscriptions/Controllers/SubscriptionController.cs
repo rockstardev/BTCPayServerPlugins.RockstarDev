@@ -336,6 +336,24 @@ Thank you,
             .Include(s => s.Product)
             .Where(s => s.Customer.StoreId == StoreId && s.Expires < cutoffDate)
             .ToListAsync();
+        
+        foreach (var subscription in subscriptions)
+        {
+            var customer = subscription.Customer;
+            var product = subscription.Product;
+
+            var subject = model.Subject
+                .Replace("{CustomerName}", customer.Name)
+                .Replace("{StoreName}", "My Store");
+
+            var body = model.Body
+                .Replace("{CustomerName}", customer.Name)
+                .Replace("{StoreName}", "My Store")
+                .Replace("{RenewalLink}", Url.Action("Create", "Subscription", new { storeId = StoreId }, Request.Scheme));
+
+            // Send email
+            // await _emailSender.SendEmailAsync(customer.Email, subject, body);
+        }
 
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {

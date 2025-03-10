@@ -49,6 +49,8 @@ public class SubscriptionService(
 
     private async Task ProcessSubscriptionReminders()
     {
+        return; // TODO: Remove this line
+        
         // TODO: This method is completely wrong, needs to be rewritten
         // Like fetch all the products... see what kind of reminders are there
         // Then fetch all the subscriptions that are about to expire based on this criteria

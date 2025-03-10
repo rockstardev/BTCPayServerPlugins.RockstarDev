@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Migrations
 {
     [DbContext(typeof(PluginDbContext))]
-    partial class PluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250310185531_AddingFieldsForSubscription")]
+    partial class AddingFieldsForSubscription
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
