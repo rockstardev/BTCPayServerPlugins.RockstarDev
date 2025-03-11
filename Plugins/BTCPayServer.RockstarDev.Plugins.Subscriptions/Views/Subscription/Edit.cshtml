@@ -1,11 +1,13 @@
 ﻿@model BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Subscription
+@inject IScopeProvider ScopeProvider
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData["Title"] = "Edit Subscription";
 }
 
 <h2>Edit Subscription</h2>
 
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" method="post" asp-route-storeid="@storeId">
     <input type="hidden" asp-for="Id" />
 
     <div class="form-group">

@@ -30,6 +30,7 @@ public class CustomerController : Controller
     {
         var customers = await _dbContext.Customers
             .Where(c => c.StoreId == StoreId)
+            .OrderBy(a => a.Email)
             .ToListAsync();
 
         return View(customers);
@@ -51,7 +52,7 @@ public class CustomerController : Controller
         _dbContext.Customers.Add(customer);
         await _dbContext.SaveChangesAsync();
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new {StoreId = StoreId});
     }
 
 
@@ -90,7 +91,7 @@ public class CustomerController : Controller
         existingCustomer.ZipCode = customer.ZipCode;
 
         await _dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new {StoreId = StoreId});
     }
 
     [HttpPost("delete/{id}")]
@@ -105,6 +106,6 @@ public class CustomerController : Controller
 
         _dbContext.Customers.Remove(customer);
         await _dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new {StoreId = StoreId});
     }
 }

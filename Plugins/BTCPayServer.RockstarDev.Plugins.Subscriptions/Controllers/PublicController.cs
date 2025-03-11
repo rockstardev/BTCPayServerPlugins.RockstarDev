@@ -25,7 +25,7 @@ using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
-[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[AllowAnonymous]
 [Route("~/plugins/{storeId}/subscriptions/public/")]
 public class PublicController : Controller
 {
@@ -88,6 +88,6 @@ public class PublicController : Controller
             await _dbContext.SaveChangesAsync();
         }
         
-        return RedirectToAction("Payment", "Checkout", new { id = reminder.PaymentRequestId });
+        return RedirectToAction("ViewPaymentRequest", "UIPaymentRequest", new { payReqId = reminder.PaymentRequestId });
     }
 }

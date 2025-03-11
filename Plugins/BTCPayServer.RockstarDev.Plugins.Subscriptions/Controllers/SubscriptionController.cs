@@ -15,9 +15,11 @@ using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.VisualBasic.FileIO;
+using MimeKit;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
@@ -26,10 +28,12 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 public class SubscriptionController : Controller
 {
     private readonly PluginDbContext _dbContext;
+    private readonly EmailService _emailService;
 
-    public SubscriptionController(PluginDbContext dbContext)
+    public SubscriptionController(PluginDbContext dbContext, EmailService emailService)
     {
         _dbContext = dbContext;
+        _emailService = emailService;
     }
     
     [FromRoute] public string StoreId { get; set; }
@@ -295,64 +299,114 @@ public class SubscriptionController : Controller
     // send reminders
     public class SendReminderViewModel
     {
-        public string ReminderType { get; set; }
+        public string? ReminderType { get; set; }
         public IEnumerable<SelectListItem> RemindersList { get; set; }
         public string Subject { get; set; }
         public string Body { get; set; }
+        public string? SubscriptionId { get; set; }
+        public string? SubscriptionCustomer { get; set; }
     }
 
     [HttpGet("SendReminders")]
-    public async Task<IActionResult> SendReminders()
+    public async Task<IActionResult> SendReminders(string? subscriptionId)
     {
         var model = new SendReminderViewModel
         {
             RemindersList = new List<SelectListItem>
             {
-                new SelectListItem("Subscription Expiring in 30 days", "30"),
-                new SelectListItem("Subscription Expiring in 7 days", "7"),
-                new SelectListItem("Subscription Expiring in 1 day", "1"),
-                new SelectListItem("Expired Subscriptions", "0")
+                new ("Subscription Expiring in 30 days", "30"),
+                new ("Subscription Expiring in 7 days", "7"),
+                new ("Subscription Expiring in 1 day", "1"),
+                new ("Expired Subscriptions", "0")
             },
-            Subject = "Your subscription is about to expire",
+            Subject = "Your subscription is expiring",
             Body = @"Dear {CustomerName},
 
-Your subscription is about to expire. Please renew it to continue receiving our product.
-
+Your {ProductName} subscription is expiring on {ExpiryDate}. Please renew your subscription by following the link below:
 {RenewalLink}
 
 Thank you,
 {StoreName}"
         };
-        
+
+        if (!string.IsNullOrEmpty(subscriptionId))
+        {
+            var existingSubscription = await _dbContext.Subscriptions
+                .Include(a => a.Customer)
+                .SingleOrDefaultAsync(a => a.Id == subscriptionId);
+            if (existingSubscription != null)
+            {
+                var customer = existingSubscription.Customer;
+                
+                model.ReminderType = "-1";
+                model.SubscriptionId = subscriptionId;
+                model.SubscriptionCustomer = $"{customer.Name} <{customer.Email}>";
+            }
+        }
+
         return View(model);
     }
 
     [HttpPost("SendReminders")]
     public async Task<IActionResult> SendReminders(SendReminderViewModel model)
     {
-        var cutoffDate = DateTimeOffset.UtcNow.AddDays(int.Parse(model.ReminderType));
-        var subscriptions = await _dbContext.Subscriptions
-            .Include(s => s.Customer)
-            .Include(s => s.Product)
-            .Where(s => s.Customer.StoreId == StoreId && s.Expires < cutoffDate)
-            .ToListAsync();
-        
+        var subscriptions = new List<Subscription>();
+        if (model.SubscriptionId != null)
+        {
+            var s = _dbContext.Subscriptions
+                .Include(a=> a.Customer)
+                .Include(a=> a.Product)
+                .Single(s => s.Id == model.SubscriptionId);
+            subscriptions.Add(s);
+        }
+        else
+        {
+            var cutoffDate = DateTimeOffset.UtcNow.AddDays(int.Parse(model.ReminderType));
+
+            subscriptions = await _dbContext.Subscriptions
+                .Include(s => s.Customer)
+                .Include(s => s.Product)
+                .Where(s => s.Customer.StoreId == StoreId && s.Expires < cutoffDate)
+                .ToListAsync();
+        }
+
+        var store = HttpContext.GetStoreData();
         foreach (var subscription in subscriptions)
         {
             var customer = subscription.Customer;
             var product = subscription.Product;
 
+            var srid = Guid.NewGuid().ToString();
+            var reminder = new SubscriptionReminder
+            {
+                Id = srid,
+                SubscriptionId = subscription.Id,
+                Created = DateTimeOffset.UtcNow
+            };
+            _dbContext.SubscriptionReminders.Add(reminder);
+            await _dbContext.SaveChangesAsync();
+
+            var renewalLink = Url.Action("Click", "Public", new { StoreId, srid = srid }, Request.Scheme);
+
             var subject = model.Subject
                 .Replace("{CustomerName}", customer.Name)
-                .Replace("{StoreName}", "My Store");
+                .Replace("{StoreName}", store.StoreName);
 
             var body = model.Body
                 .Replace("{CustomerName}", customer.Name)
-                .Replace("{StoreName}", "My Store")
-                .Replace("{RenewalLink}", Url.Action("Create", "Subscription", new { storeId = StoreId }, Request.Scheme));
+                .Replace("{ProductName}", product.Name)
+                .Replace("{ExpiryDate}", subscription.Expires.ToString("MMM dd, yyyy h:mm tt zzz"))
+                .Replace("{StoreName}", store.StoreName)
+                .Replace("{RenewalLink}", renewalLink);
 
             // Send email
-            // await _emailSender.SendEmailAsync(customer.Email, subject, body);
+            var email = new EmailService.EmailRecipient
+            {
+                Address = InternetAddress.Parse(customer.Email),
+                Subject = subject,
+                MessageText = body
+            };
+            await _emailService.SendEmail(StoreId, email);
         }
 
         TempData.SetStatusMessageModel(new StatusMessageModel()

@@ -18,14 +18,26 @@
 <form method="post" asp-action="SendReminders" asp-route-storeid="@storeId" enctype="multipart/form-data" id="mainForm">
     <div class="row">
         <div class="col-md-6">
-            <div class="form-group">
-                <label asp-for="ReminderType" class="form-label"></label>
-                <select asp-for="ReminderType" asp-items="Model.RemindersList" class="form-select"></select>
-                <span asp-validation-for="ReminderType" class="text-danger"></span>
-            </div>
+            @if (Model.SubscriptionId == null)
+            {
+                <div class="form-group">
+                    <label asp-for="ReminderType" class="form-label"></label>
+                    <select asp-for="ReminderType" asp-items="Model.RemindersList" class="form-select"></select>
+                    <span asp-validation-for="ReminderType" class="text-danger"></span>
+                </div>
+            }
+            else
+            {
+                <div class="form-group">
+                    <label asp-for="SubscriptionCustomer" class="form-label"></label>
+                    <input asp-for="SubscriptionCustomer" class="form-control" readonly="readonly" />
+                    <span asp-validation-for="SubscriptionCustomer" class="text-danger"></span>
+                    @Html.HiddenFor(a=>a.SubscriptionId)
+                </div>
+            }
             <div class="form-group">
                 <label asp-for="Subject" class="form-label"></label>
-                <input asp-for="Subject" class="form-control" />
+                <input asp-for="Subject" class="form-control"/>
                 <span asp-validation-for="Subject" class="text-danger"></span>
             </div>
             <div class="form-group">

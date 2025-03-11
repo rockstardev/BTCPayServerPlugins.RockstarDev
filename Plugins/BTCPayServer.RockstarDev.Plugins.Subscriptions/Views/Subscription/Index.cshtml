@@ -41,11 +41,15 @@
             @foreach (var subscription in Model)
             {
                 <tr>
-                    <td>@subscription.Customer?.Name</td>
+                    <td>@subscription.Customer?.Name <small>@subscription.Customer?.Email</small></td>
                     <td>@subscription.Product?.Name</td>
                     <td>@subscription.Created.ToString("g")</td>
                     <td>@subscription.Expires.ToString("g")</td>
-                    <td>@subscription.State</td>
+                    <td>
+                        <a asp-action="SendReminders" asp-route-subscriptionid="@subscription.Id" asp-route-storeId="@storeId">
+                            @subscription.State
+                        </a>
+                    </td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@subscription.Id" asp-route-storeId="@storeId">Edit</a>
                         <span>-</span>
