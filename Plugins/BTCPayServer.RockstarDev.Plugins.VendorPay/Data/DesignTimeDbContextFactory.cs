@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 
 // ReSharper disable once UnusedType.Global
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<PluginDbContext>

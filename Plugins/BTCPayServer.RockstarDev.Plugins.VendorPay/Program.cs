@@ -1,16 +1,16 @@
 ﻿using System;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // ReSharper disable once UnusedType.Global
-public class PayrollPlugin : BaseBTCPayServerPlugin
+public class VendorPayPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     {
@@ -19,7 +19,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddUIExtension("store-integrations-nav", "PayrollNav");
+        serviceCollection.AddUIExtension("store-integrations-nav", "VendorPayNav");
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
@@ -31,7 +31,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddScheduledTask<VendorPayEmailReminderService>(TimeSpan.FromHours(12));
 
         // helpers
-        serviceCollection.AddTransient<PayrollInvoiceUploadHelper>();
+        serviceCollection.AddTransient<VendorPayInvoiceUploadHelper>();
         serviceCollection.AddTransient<InvoicesDownloadHelper>();
 
         // Add the database related registrations

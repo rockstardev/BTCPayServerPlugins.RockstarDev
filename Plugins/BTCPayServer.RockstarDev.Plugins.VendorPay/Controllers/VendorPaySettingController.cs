@@ -1,42 +1,41 @@
 ﻿using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using BTCPayServer.Abstractions.Extensions;
-using BTCPayServer.Services.Mails;
 using Microsoft.AspNetCore.Routing;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollSettingController(PluginDbContextFactory PluginDbContextFactory, 
+public class VendorPaySettingController(PluginDbContextFactory PluginDbContextFactory, 
     EmailService emailService, LinkGenerator linkGenerator) : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("settings")]
-    public async Task<IActionResult> Settings(string storeId)
+    public async Task<IActionResult> Settings(string storeId) 
     {
         var settings = await PluginDbContextFactory.GetSettingAsync(storeId);
-        var model = new PayrollSettingViewModel
+        var model = new VendorPaySettingViewModel
         {
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
-            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
-            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
+            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidSubject,
+            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
-            EmailRemindersSubject = settings.EmailRemindersSubject ?? PayrollSettingViewModel.Defaults.EmailRemindersSubject,
-            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody
+            EmailRemindersSubject = settings.EmailRemindersSubject ?? VendorPaySettingViewModel.Defaults.EmailRemindersSubject,
+            EmailRemindersBody = settings.EmailRemindersBody ?? VendorPaySettingViewModel.Defaults.EmailRemindersBody
         };
         
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -45,7 +44,7 @@ public class PayrollSettingController(PluginDbContextFactory PluginDbContextFact
 
     [HttpPost("settings")]
 
-    public async Task<IActionResult> Settings(string storeId, PayrollSettingViewModel model)
+    public async Task<IActionResult> Settings(string storeId, VendorPaySettingViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -68,7 +67,7 @@ public class PayrollSettingController(PluginDbContextFactory PluginDbContextFact
             values: new { storeId },
             scheme: "https",
             host: HttpContext.Request.Host);
-        var settings = new PayrollStoreSetting
+        var settings = new VendorPayStoreSetting
         {
             EmailReminders = model.EmailReminders,
             EmailRemindersBody = model.EmailRemindersBody,
@@ -87,7 +86,7 @@ public class PayrollSettingController(PluginDbContextFactory PluginDbContextFact
             Message = $"Vendor pay settings updated successfully",
             Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
+        return RedirectToAction(nameof(VendorPayInvoiceController.List), "VendorPayInvoice", new { storeId = CurrentStore.Id });
 
     }
 }

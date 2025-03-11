@@ -3,32 +3,26 @@ using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Text;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using System.Security.Cryptography;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
-using BTCPayServer.Services.Mails;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/users/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/users/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollUserController(
+public class VendorPayUserController(
     PluginDbContextFactory PluginDbContextFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
@@ -58,24 +52,24 @@ Thank you,
     public async Task<IActionResult> List(string storeId, bool all, bool pending)
     {
         await using var ctx = PluginDbContextFactory.CreateContext();
-        IQueryable<PayrollUser> query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
+        IQueryable<VendorPayUser> query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
         if (pending)
         {
-            query = query.Where(a => a.State == PayrollUserState.Pending);
+            query = query.Where(a => a.State == VendorPayUserState.Pending);
         }
         else if (!all)
         {
-            query = query.Where(a => a.State == PayrollUserState.Active);
+            query = query.Where(a => a.State == VendorPayUserState.Active);
         }
-        List<PayrollUser> payrollUsers = query.OrderByDescending(data => data.Name).ToList();
-        var payrollUserListViewModel = new PayrollUserListViewModel
+        List<VendorPayUser> vendorpayUsers = query.OrderByDescending(data => data.Name).ToList();
+        var vendorpayUserListViewModel = new VendorPayUserListViewModel
         {
             All = all,
             Pending = pending,
-            DisplayedPayrollUsers = payrollUsers,
-            AllPayrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId).ToList()
+            DisplayedVendorPayUsers = vendorpayUsers,
+            AllVendorPayUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId).ToList()
         };
-        return View(payrollUserListViewModel);
+        return View(vendorpayUserListViewModel);
     }
 
     [HttpGet("create")]
@@ -85,7 +79,7 @@ Thank you,
             return NotFound();
 
         var isEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
-        var vm = new PayrollUserCreateViewModel { 
+        var vm = new VendorPayUserCreateViewModel { 
             StoreId = CurrentStore.Id, 
             UserInviteEmailBody = UserInviteEmailBody, 
             UserInviteEmailSubject = UserInviteEmailSubject,
@@ -95,7 +89,7 @@ Thank you,
     }
 
     [HttpPost("create")]
-    public async Task<IActionResult> Create(PayrollUserCreateViewModel model)
+    public async Task<IActionResult> Create(VendorPayUserCreateViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -110,13 +104,13 @@ Thank you,
             return View(model);
         }
         var uid = Guid.NewGuid().ToString();
-        var dbUser = new PayrollUser
+        var dbUser = new VendorPayUser
         {
             Id = uid,
             Name = model.Name,
             Email = email,
             StoreId = CurrentStore.Id,
-            State = model.SendRegistrationEmailInviteToUser ? PayrollUserState.Pending : PayrollUserState.Active
+            State = model.SendRegistrationEmailInviteToUser ? VendorPayUserState.Pending : VendorPayUserState.Active
         };
         if (model.SendRegistrationEmailInviteToUser)
         {
@@ -131,7 +125,7 @@ Thank you,
                 });
                 return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
             }
-            var invitation = new PayrollInvitation
+            var invitation = new VendorPayInvitation
             {
                 Id = uid,
                 StoreId = CurrentStore.Id,
@@ -186,7 +180,7 @@ Thank you,
             return NotFound();
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == PayrollUserState.Pending);
+        VendorPayUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == VendorPayUserState.Pending);
         if (user == null)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
@@ -234,10 +228,10 @@ Thank you,
         await using var ctx = PluginDbContextFactory.CreateContext();
 
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
-        if (user.State == PayrollUserState.Pending)
+        if (user.State == VendorPayUserState.Pending)
             return NotFound();
 
-        var model = new PayrollUserCreateViewModel
+        var model = new VendorPayUserCreateViewModel
         {
             Id = user.Id, Email = user.Email, Name = user.Name, EmailReminder = user.EmailReminder, 
             StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id)
@@ -246,7 +240,7 @@ Thank you,
     }
 
     [HttpPost("edit/{userId}")]
-    public async Task<IActionResult> Edit(string userId, PayrollUserCreateViewModel model)
+    public async Task<IActionResult> Edit(string userId, VendorPayUserCreateViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -259,7 +253,7 @@ Thank you,
 
         await using var ctx = PluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        VendorPayUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         user.Email = string.IsNullOrEmpty(model.Email) ? user.Email : model.Email;
         user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
@@ -285,22 +279,22 @@ Thank you,
 
         await using var ctx = PluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
-        if (user.State == PayrollUserState.Pending)
+        VendorPayUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        if (user.State == VendorPayUserState.Pending)
             return NotFound();
-        PayrollUserResetPasswordViewModel model = new PayrollUserResetPasswordViewModel { Id = user.Id };
+        VendorPayUserResetPasswordViewModel model = new VendorPayUserResetPasswordViewModel { Id = user.Id };
         return View(model);
     }
 
     [HttpPost("resetpassword/{userId}")]
-    public async Task<IActionResult> ResetPassword(string userId, PayrollUserResetPasswordViewModel model)
+    public async Task<IActionResult> ResetPassword(string userId, VendorPayUserResetPasswordViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
 
         await using var ctx = PluginDbContextFactory.CreateContext();
 
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        VendorPayUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (!ModelState.IsValid)
             return View(model);
@@ -322,7 +316,7 @@ Thank you,
             return NotFound();
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        VendorPayUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (user == null)
             return NotFound();
@@ -338,20 +332,20 @@ Thank you,
             return NotFound();
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        PayrollUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+        VendorPayUser user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         if (user == null)
             return NotFound();
 
         switch (user.State)
         {
-            case PayrollUserState.Disabled:
-                user.State = PayrollUserState.Active;
+            case VendorPayUserState.Disabled:
+                user.State = VendorPayUserState.Active;
                 break;
-            case PayrollUserState.Active:
-                user.State = PayrollUserState.Disabled;
+            case VendorPayUserState.Active:
+                user.State = VendorPayUserState.Disabled;
                 break;
-            case PayrollUserState.Archived:
+            case VendorPayUserState.Archived:
                 // Would need to know use case for this.
                 break;
         }
@@ -371,21 +365,21 @@ Thank you,
         await using var ctx = PluginDbContextFactory.CreateContext();
         var user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
-        var payrollInvoices = await ctx.PayrollInvoices
+        var vendorpayInvoices = await ctx.PayrollInvoices
             .Include(c => c.User)
             .Where(p => p.UserId == user.Id)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
-        if (!payrollInvoices.Any())
+        if (!vendorpayInvoices.Any())
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
-                Message = $"No payroll invoice available for download",
+                Message = $"No vendor pay invoice available for download",
                 Severity = StatusMessageModel.StatusSeverity.Info
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        return await invoicesDownloadHelper.Process(payrollInvoices, HttpContext.Request.GetAbsoluteRootUri());
+        return await invoicesDownloadHelper.Process(vendorpayInvoices, HttpContext.Request.GetAbsoluteRootUri());
     }
 
 
@@ -411,7 +405,7 @@ Thank you,
             return NotFound();
 
         if (ctx.PayrollInvoices.Any(a => a.UserId == user.Id &&
-            (a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled)))
+            (a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled)))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
@@ -421,7 +415,7 @@ Thank you,
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
         var completedOrCancelledInvoices = ctx.PayrollInvoices.Count(a => 
-            a.UserId == user.Id && (a.State == PayrollInvoiceState.Completed || a.State == PayrollInvoiceState.Cancelled));
+            a.UserId == user.Id && (a.State == VendorPayInvoiceState.Completed || a.State == VendorPayInvoiceState.Cancelled));
 
         string invoiceDeleteText = completedOrCancelledInvoices > 0
             ? $"The user: {user.Name} will be deleted along with {completedOrCancelledInvoices} associated invoices. Are you sure you want to proceed?" : 
@@ -438,11 +432,11 @@ Thank you,
             return NotFound();
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        var payrollUser = ctx.PayrollUsers
+        var vendorpayUser = ctx.PayrollUsers
             .Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
-        var userInvoices = ctx.PayrollInvoices.Where(a => a.UserId == payrollUser.Id).ToList();
-        if (userInvoices.Any(a => a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled))
+        var userInvoices = ctx.PayrollInvoices.Where(a => a.UserId == vendorpayUser.Id).ToList();
+        if (userInvoices.Any(a => a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel()
             {
@@ -451,13 +445,13 @@ Thank you,
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
-        var payrollUserInvite = ctx.PayrollInvitations.Where(c => c.Email == payrollUser.Email && c.StoreId == payrollUser.StoreId).ToList();
-        if (payrollUserInvite.Any())
+        var vendorpayUserInvite = ctx.PayrollInvitations.Where(c => c.Email == vendorpayUser.Email && c.StoreId == vendorpayUser.StoreId).ToList();
+        if (vendorpayUserInvite.Any())
         {
-            ctx.RemoveRange(payrollUserInvite);
+            ctx.RemoveRange(vendorpayUserInvite);
         }
         ctx.RemoveRange(userInvoices);
-        ctx.Remove(payrollUser);
+        ctx.Remove(vendorpayUser);
         await ctx.SaveChangesAsync();
 
         TempData.SetStatusMessageModel(new StatusMessageModel()

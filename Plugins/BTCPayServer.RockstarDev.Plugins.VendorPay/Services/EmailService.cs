@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Logging;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using BTCPayServer.Services.Mails;
 using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Logging;
 using MimeKit;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
 public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs, 
     StoreRepository storeRepo, PluginDbContextFactory pluginDbContextFactory)
@@ -54,7 +53,7 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
         }
     }
 
-    public async Task SendSuccessfulInvoicePaymentEmail(List<PayrollInvoice> invoices)
+    public async Task SendSuccessfulInvoicePaymentEmail(List<VendorPayInvoice> invoices)
     {
         if (!invoices.Any())
             return;
@@ -92,7 +91,7 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
         }
     }
 
-    public async Task SendUserInvitationEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)
+    public async Task SendUserInvitationEmail(VendorPayUser model, string subject, string body, string vendorPayRegisterationLink)
     {
         var emailSettings = await (await emailSenderFactory.GetEmailSender(model.StoreId)).GetEmailSettings();
         if (emailSettings?.IsComplete() != true)
@@ -112,7 +111,7 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
         await SendBulkEmail(model.StoreId, emailRecipients);
     }
 
-    public async Task<bool> SendInvoiceEmailReminder(PayrollUser model, string subject, string body)
+    public async Task<bool> SendInvoiceEmailReminder(VendorPayUser model, string subject, string body)
     {
         var emailSettings = await (await emailSenderFactory.GetEmailSender(model.StoreId)).GetEmailSettings();
         if (emailSettings?.IsComplete() != true)

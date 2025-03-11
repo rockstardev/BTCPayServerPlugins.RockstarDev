@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 
 /// <summary>

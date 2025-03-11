@@ -10,8 +10,6 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
-
-<<<<<<<< HEAD:Plugins/BTCPayServer.RockstarDev.Plugins.VendorPay/Data/PluginDbContextFactory.cs
 public class PluginDbContextFactory(IOptions<DatabaseOptions> options)
     : BaseDbContextFactory<PluginDbContext>(options,
         "BTCPayServer.RockstarDev.Plugins.Payroll")
@@ -22,18 +20,6 @@ public class PluginDbContextFactory(IOptions<DatabaseOptions> options)
         var builder = new DbContextOptionsBuilder<PluginDbContext>();
         ConfigureBuilder(builder, npgsqlOptionsAction);
         return new PluginDbContext(builder.Options);
-========
-public class VendorPayPluginDbContextFactory(IOptions<DatabaseOptions> options)
-    : BaseDbContextFactory<VendorPayPluginDbContext>(options,
-        "BTCPayServer.RockstarDev.Plugins.Payroll")
-{
-    public override VendorPayPluginDbContext CreateContext(
-        Action<NpgsqlDbContextOptionsBuilder> npgsqlOptionsAction = null)
-    {
-        var builder = new DbContextOptionsBuilder<VendorPayPluginDbContext>();
-        ConfigureBuilder(builder, npgsqlOptionsAction);
-        return new VendorPayPluginDbContext(builder.Options);
->>>>>>>> 2df4aab (Change all instance of payroll to Vendor pay):Plugins/BTCPayServer.RockstarDev.Plugins.VendorPay/Data/VendorPayPluginDbContextFactory.cs
     }
 
     public async Task<VendorPayStoreSetting> GetSettingAsync(string storeId)

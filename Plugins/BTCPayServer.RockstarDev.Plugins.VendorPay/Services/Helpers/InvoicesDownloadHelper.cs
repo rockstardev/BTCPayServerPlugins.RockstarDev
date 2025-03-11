@@ -20,7 +20,7 @@ public class InvoicesDownloadHelper(
 {
     public async Task<IActionResult> Process(List<VendorPayInvoice> invoices, Uri absoluteRootUri)
     {
-        var zipName = $"VendorPayPayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
+        var zipName = $"VendorPayInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.zip";
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {

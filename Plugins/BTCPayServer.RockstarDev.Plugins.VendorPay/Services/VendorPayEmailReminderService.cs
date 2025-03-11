@@ -5,12 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using Microsoft.Extensions.Logging;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
 public class VendorPayEmailReminderService(
     EmailService emailService,
@@ -39,7 +39,7 @@ public class VendorPayEmailReminderService(
     public class PeriodProcessEvent
     {
         public string StoreId { get; set; }
-        public PayrollStoreSetting Setting { get; set; }
+        public VendorPayStoreSetting Setting { get; set; }
     }
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
@@ -52,13 +52,13 @@ public class VendorPayEmailReminderService(
         await base.ProcessEvent(evt, cancellationToken);
     }
 
-    private async Task HandleEmailReminders(string storeId, PayrollStoreSetting settings)
+    private async Task HandleEmailReminders(string storeId, VendorPayStoreSetting settings)
     {
         bool shouldUpdateDb = false;
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        List<PayrollUser> activeUsers = ctx.PayrollUsers.Where(a => 
-            a.StoreId == storeId && a.State == PayrollUserState.Active && a.EmailReminder != null && a.EmailReminder != "")
+        List<VendorPayUser> activeUsers = ctx.PayrollUsers.Where(a => 
+            a.StoreId == storeId && a.State == VendorPayUserState.Active && a.EmailReminder != null && a.EmailReminder != "")
             .ToList();
 
         DateTime todayDate = DateTime.UtcNow.Date;

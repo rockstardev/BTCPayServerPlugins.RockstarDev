@@ -3,23 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using NBitcoin;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 
-public class PayrollInvoiceUploadHelper(
+public class VendorPayInvoiceUploadHelper(
     PluginDbContextFactory dbContextFactory,
     IFileService fileService,
     ISettingsRepository settingsRepository,
     BTCPayNetworkProvider networkProvider)
 {
     public Task<ValidationResult> Process(string storeId, string userId,
-        PublicPayrollInvoiceUploadViewModel model)
+        PublicVendorPayInvoiceUploadViewModel model)
     {
-        var mainModel = new PayrollInvoiceUploadViewModel
+        var mainModel = new VendorPayInvoiceUploadViewModel
         {
             Amount = model.Amount,
             Currency = model.Currency,
@@ -32,7 +32,7 @@ public class PayrollInvoiceUploadHelper(
         return Process(storeId, userId, mainModel);
     }
     
-    public async Task<ValidationResult> Process(string storeId, string userId, PayrollInvoiceUploadViewModel model)
+    public async Task<ValidationResult> Process(string storeId, string userId, VendorPayInvoiceUploadViewModel model)
     {
         var validation = new ValidationResult();
 
@@ -41,7 +41,7 @@ public class PayrollInvoiceUploadHelper(
 
         try
         {
-            var network = networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
+            var network = networkProvider.GetNetwork<BTCPayNetwork>(VendorPayPluginConst.BTC_CRYPTOCODE);
             Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
         catch (Exception)
@@ -60,7 +60,7 @@ public class PayrollInvoiceUploadHelper(
 
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
-            a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled);
+            a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled);
 
         if (alreadyInvoiceWithAddress)
             validation.AddError(nameof(model.Destination), "This destination is already specified for another invoice with payment in progress.");
@@ -72,7 +72,7 @@ public class PayrollInvoiceUploadHelper(
         }
 
         var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount;
-        var dbPayrollInvoice = new PayrollInvoice
+        var dbVendorpayInvoice = new VendorPayInvoice
         {
             Amount = removeTrailingZeros,
             CreatedAt = DateTime.UtcNow,
@@ -81,14 +81,14 @@ public class PayrollInvoiceUploadHelper(
             PurchaseOrder = model.PurchaseOrder,
             Description = model.Description,
             UserId = userId,
-            State = PayrollInvoiceState.AwaitingApproval
+            State = VendorPayInvoiceState.AwaitingApproval
         };
 
-        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
+        var adminset = await settingsRepository.GetSettingAsync<VendorPayPluginSettings>();
         if (model.Invoice != null)
         {
             var uploaded = await fileService.AddFile(model.Invoice, adminset!.AdminAppUserId);
-            dbPayrollInvoice.InvoiceFilename = uploaded.Id;
+            dbVendorpayInvoice.InvoiceFilename = uploaded.Id;
         }
 
         if (model.ExtraFiles?.Count > 0)
@@ -99,10 +99,10 @@ public class PayrollInvoiceUploadHelper(
                 var extraFileUpload = await fileService.AddFile(invoice, adminset!.AdminAppUserId);
                 extraFiles.Add(extraFileUpload.Id);
             }
-            dbPayrollInvoice.ExtraFilenames = string.Join(",", extraFiles);
+            dbVendorpayInvoice.ExtraFilenames = string.Join(",", extraFiles);
         }
 
-        dbPlugin.Add(dbPayrollInvoice);
+        dbPlugin.Add(dbVendorpayInvoice);
         await dbPlugin.SaveChangesAsync();
 
         return validation;

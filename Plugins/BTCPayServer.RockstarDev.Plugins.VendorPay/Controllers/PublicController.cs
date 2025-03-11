@@ -1,10 +1,11 @@
-﻿using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.Abstractions.Extensions;
+﻿using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using BTCPayServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -15,11 +16,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
-using Newtonsoft.Json;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [AllowAnonymous]
 [Route("~/plugins/{storeId}/vendorpay/public/", Order = 0)]
@@ -30,11 +28,11 @@ public class PublicController(
     IHttpContextAccessor httpContextAccessor,
     UriResolver uriResolver,
     VendorPayPassHasher hasher,
-    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
+    VendorPayInvoiceUploadHelper vendorpayInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
-    private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
+    private const string VENDORPAY_AUTH_USER_ID = "VENDORPAY_AUTH_USER_ID";
 
 
     [HttpGet("login")]
@@ -70,9 +68,9 @@ public class PublicController(
 
         if (userInDb != null)
         {
-            if (userInDb.State == PayrollUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
+            if (userInDb.State == VendorPayUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
             {
-                httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
+                httpContextAccessor.HttpContext!.Session.SetString(VENDORPAY_AUTH_USER_ID, userInDb!.Id);
                 return RedirectToAction(nameof(ListInvoices), new { storeId });
             }
         }
@@ -120,7 +118,7 @@ public class PublicController(
             ModelState.AddModelError(nameof(model.NewPassword), "User record does not exist. Kindly reach out to the BTCPay Server instance admin");
             return View(model);
         }
-        if (dbUser.State != PayrollUserState.Pending)
+        if (dbUser.State != VendorPayUserState.Pending)
         {
             ModelState.AddModelError(nameof(model.NewPassword), "User with the same email already exists. Kindly reach out to the BTCPay Server instance admin");
             return View(model);
@@ -129,7 +127,7 @@ public class PublicController(
             return View(model);
 
         dbUser.Password = hasher.HashPassword(invitation.Id, model.NewPassword);
-        dbUser.State = PayrollUserState.Active;
+        dbUser.State = VendorPayUserState.Active;
         invitation.AcceptedAt = DateTime.UtcNow;
         dbPlugins.Update(dbUser);
         dbPlugins.Update(invitation);
@@ -145,7 +143,7 @@ public class PublicController(
     [HttpGet("logout")]
     public IActionResult Logout(string storeId)
     {
-        httpContextAccessor.HttpContext?.Session.Remove(PAYROLL_AUTH_USER_ID);
+        httpContextAccessor.HttpContext?.Session.Remove(VENDORPAY_AUTH_USER_ID);
         return redirectToLogin(storeId);
     }
 
@@ -162,7 +160,7 @@ public class PublicController(
             return vali.ErrorActionResult;
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        var payrollInvoices = await ctx.PayrollInvoices
+        var vendorpayInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && p.UserId == vali.UserId && p.IsArchived == false)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
@@ -174,7 +172,7 @@ public class PublicController(
             StoreName = vali.Store.StoreName,
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob()),
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
-            Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel()
+            Invoices = vendorpayInvoices.Select(tuple => new VendorPayInvoiceViewModel()
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
@@ -208,9 +206,9 @@ public class PublicController(
         if (validateUser)
         {
             await using var dbPlugin = PluginDbContextFactory.CreateContext();
-            userId = httpContextAccessor.HttpContext!.Session.GetString(PAYROLL_AUTH_USER_ID);
+            userId = httpContextAccessor.HttpContext!.Session.GetString(VENDORPAY_AUTH_USER_ID);
             var userInDb = dbPlugin.PayrollUsers.SingleOrDefault(a =>
-                a.StoreId == storeId && a.Id == userId && a.State == PayrollUserState.Active);
+                a.StoreId == storeId && a.Id == userId && a.State == VendorPayUserState.Active);
             if (userInDb == null)
                 return new StoreUserValidator { ErrorActionResult = redirectToLogin(storeId) };
             else
@@ -251,7 +249,7 @@ public class PublicController(
             return vali.ErrorActionResult;
 
         var settings = await PluginDbContextFactory.GetSettingAsync(storeId);
-        var model = new PublicPayrollInvoiceUploadViewModel
+        var model = new PublicVendorPayInvoiceUploadViewModel
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
@@ -265,7 +263,7 @@ public class PublicController(
     }
 
     [HttpPost("upload")]
-    public async Task<IActionResult> Upload(string storeId, PublicPayrollInvoiceUploadViewModel model)
+    public async Task<IActionResult> Upload(string storeId, PublicVendorPayInvoiceUploadViewModel model)
     {
         var vali = await validateStoreAndUser(storeId, true);
         if (vali.ErrorActionResult != null)
@@ -275,7 +273,7 @@ public class PublicController(
         model.StoreName = vali.Store.StoreName;
         model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
 
-        var validation = await payrollInvoiceUploadHelper.Process(storeId, vali.UserId, model);
+        var validation = await vendorpayInvoiceUploadHelper.Process(storeId, vali.UserId, model);
         if (!validation.IsValid)
         {
             validation.ApplyToModelState(ModelState);
@@ -362,13 +360,13 @@ public class PublicController(
             return vali.ErrorActionResult;
 
         await using var ctx = PluginDbContextFactory.CreateContext();
-        PayrollInvoice invoice = ctx.PayrollInvoices.Include(c => c.User)
+        VendorPayInvoice invoice = ctx.PayrollInvoices.Include(c => c.User)
             .SingleOrDefault(a => a.Id == id);
 
         if (invoice == null)
             return NotFound();
 
-        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
@@ -391,7 +389,7 @@ public class PublicController(
 
         var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
 
-        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
