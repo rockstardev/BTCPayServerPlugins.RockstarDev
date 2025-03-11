@@ -1,0 +1,30 @@
+﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels
+@model AdminNoteViewModel
+@{
+    ViewData.SetActivePage("VendorPay", "Admin Note on Invoice", "VendorPay");
+}
+
+<form method="post" asp-action="AdminNote" enctype="multipart/form-data">
+    <div class="sticky-header d-flex align-items-center justify-content-between">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <input type="submit" value="Save" class="btn btn-primary" id="Save" />
+    </div>
+
+    <partial name="_StatusMessage" />
+    
+    @Html.HiddenFor(a=>a.Id)
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <div class="text-info">Please be aware that this note will only be visible in Admin panel</div>
+            </div>
+            <div class="form-group">
+                <label asp-for="AdminNote" class="form-label"></label>
+                <textarea asp-for="AdminNote" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="AdminNote" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</form>
