@@ -1,9 +1,12 @@
-﻿@model BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Product
+﻿@using BTCPayServer.Forms
+@model BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Product
+@inject FormDataService FormDataService
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
     Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage(SubscriptionPlugin.SubscriptionPluginNavKey, "Edit Product", "Products");
+    ViewData.SetActivePage(SubscriptionPlugin.SubscriptionPluginNavKey, "Create Product", "Products");
+    var checkoutFormOptions = await FormDataService.GetSelect(storeId, Model.FormId);
 }
 
 <div class="sticky-header d-flex align-items-center justify-content-between">
@@ -49,6 +52,12 @@
                         asp-items="Html.GetEnumSelectList<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.DurationTypes>()">
                 </select>
                 <span asp-validation-for="DurationType" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="FormId" class="form-label"></label>
+                <select asp-for="FormId" class="form-control" asp-items="@checkoutFormOptions"></select>
+                <span asp-validation-for="FormId" class="text-danger"></span>
             </div>
 
             <div class="form-group">

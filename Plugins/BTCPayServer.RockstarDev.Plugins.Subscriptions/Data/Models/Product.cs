@@ -25,12 +25,13 @@ public class Product
     public DurationTypes DurationType { get; set; }
     
     [StringLength(25)]
-    public string ReminderDays { get; set; }
+    public string? ReminderDays { get; set; }
 
     [MaxLength(50)]
     public string StoreId { get; set; }
     
-    // TODO: Define entity
+    [MaxLength(50)]
+    public string? FormId { get; set; }
     
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
     
