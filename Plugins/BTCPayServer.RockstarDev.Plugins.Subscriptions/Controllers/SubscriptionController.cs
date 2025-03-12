@@ -15,6 +15,7 @@ using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Forms;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -177,6 +178,8 @@ public class SubscriptionController : Controller
                 Duration = 12,
                 DurationType = DurationTypes.Month,
                 ReminderDays = "30,7,1",
+                //FormId = nameof(FormDataService.StaticFormEmailAddress),
+                FormId = "Address",
                 StoreId = storeId,
             };
             _dbContext.Products.Add(product);

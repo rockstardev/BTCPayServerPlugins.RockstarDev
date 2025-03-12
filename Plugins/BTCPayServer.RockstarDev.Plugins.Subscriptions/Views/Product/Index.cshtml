@@ -25,10 +25,12 @@
         <table class="table table-hover">
             <thead>
             <tr>
+                <th>Id</th>
                 <th>Name</th>
                 <th>Price</th>
                 <th>Duration</th>
                 <th>Reminder Days</th>
+                <th>Form Id</th>
                 <th>Actions</th>
             </tr>
             </thead>
@@ -36,10 +38,12 @@
             @foreach (var product in Model)
             {
                 <tr>
+                    <td>@product.Id</td>
                     <td>@product.Name</td>
                     <td>@product.Price @product.Currency</td>
                     <td>@product.Duration @product.DurationType</td>
                     <td>@product.ReminderDays</td>
+                    <td>@product.FormId</td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@product.Id" asp-route-storeId="@storeId">Edit</a>
                         <span>-</span>
