@@ -66,11 +66,20 @@ public class SubscriptionService(
                         //     email);
                         
                         // TODO: Update customer if needed from blob.FormResponse
+                        var newExpDate = subscriptionReminder.Subscription.Expires;
+                        if (newExpDate.AddDays(14) < DateTimeOffset.UtcNow)
+                        {
+                            // start a new subscription if it's too far in the past
+                            newExpDate = DateTimeOffset.UtcNow.Date;
+                        }
+                        
                         var sub = subscriptionReminder.Subscription;
                         if (sub.Product.DurationType == DurationTypes.Day)
-                            sub.Expires = sub.Expires.AddDays(sub.Product.Duration);
+                            sub.Expires = newExpDate.AddDays(sub.Product.Duration).ToUniversalTime();
                         else if (sub.Product.DurationType == DurationTypes.Month)
-                            sub.Expires = sub.Expires.AddMonths(sub.Product.Duration);
+                            sub.Expires = newExpDate.AddMonths(sub.Product.Duration).ToUniversalTime();
+
+                        sub.State = SubscriptionStates.Active;
                         
                         dbContext.Subscriptions.Update(sub);
                         await dbContext.SaveChangesAsync(cancellationToken);

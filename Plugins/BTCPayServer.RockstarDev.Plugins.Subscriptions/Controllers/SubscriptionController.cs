@@ -45,6 +45,7 @@ public class SubscriptionController : Controller
             .Include(s => s.Customer)
             .Include(s => s.Product)
             .Where(s => s.Customer.StoreId == StoreId)
+            .OrderByDescending(a=>a.Expires)
             .ToListAsync();
 
         return View(subscriptions);
