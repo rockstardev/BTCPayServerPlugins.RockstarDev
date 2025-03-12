@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
+using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
 using BTCPayServer.HostedServices.Webhooks;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
@@ -35,6 +36,7 @@ public class SubscriptionService(
     protected override void SubscribeToEvents()
     {
         Subscribe<PaymentRequestEvent>();
+        Subscribe<InvoiceEvent>();
         base.SubscribeToEvents();
     }
     
@@ -48,6 +50,65 @@ public class SubscriptionService(
     {
         switch (evt)
         {
+            case InvoiceEvent ie:
+            {
+                if (ie.Invoice.Status == InvoiceStatus.Settled)
+                {
+                    var metadata = ie.Invoice.Metadata;
+                    if (Guid.TryParse(metadata.ItemCode, out var guid))
+                    {
+                        var existingSubscription = await dbContext.Subscriptions.FirstOrDefaultAsync(a =>
+                            a.ExternalId == ie.InvoiceId, cancellationToken);
+                        if (existingSubscription != null)
+                            break; // we already processed this invoice subscription
+                        
+                        var product = await dbContext.Products.FindAsync(guid.ToString(), cancellationToken);
+                        if (product != null)
+                        {
+                            // Check if customer exists
+                            var customer =
+                                await dbContext.Customers.FirstOrDefaultAsync(c => c.Email == metadata.BuyerEmail, cancellationToken);
+                            if (customer == null)
+                            {
+                                customer = new Customer
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    Email = metadata.BuyerEmail,
+                                    StoreId = product.StoreId
+                                };
+
+                                dbContext.Customers.Add(customer);
+                            }
+
+                            customer.Name = metadata.BuyerName;
+                            customer.Address1 = metadata.BuyerAddress1;
+                            customer.Address2 = metadata.BuyerAddress2;
+                            customer.City = metadata.BuyerCity;
+                            customer.Country = metadata.BuyerCountry;
+                            customer.ZipCode = metadata.BuyerZip;
+                            
+                            // Create subscription
+                            var subscription = new Subscription
+                            {
+                                Id = Guid.NewGuid().ToString(),
+                                CustomerId = customer.Id,
+                                ProductId = product.Id,
+                                Created = DateTimeOffset.UtcNow,
+                                Expires = DateTimeOffset.UtcNow.AddMonths(product.Duration),
+                                State = SubscriptionStates.Active,
+                                ExternalId = ie.InvoiceId,
+                                PaymentRequestId = ""
+                            };
+                            dbContext.Subscriptions.Add(subscription);
+                        }
+
+                        await dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                break;
+            }
+            
             case PaymentRequestEvent { Type: PaymentRequestEvent.StatusChanged } payreq:
             {
                 if (payreq.Data.Status == PaymentRequestData.PaymentRequestStatus.Completed)
