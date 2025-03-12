@@ -9,7 +9,7 @@ using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers;
 
-[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = Policies.CanViewInvoices, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class XpubExtractorController : Controller
 {
     [HttpGet("~/plugins/xpubextractor/")]

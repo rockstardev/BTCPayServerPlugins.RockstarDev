@@ -25,7 +25,7 @@ using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers;
 
-[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = Policies.CanViewInvoices, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class VaultBridgeController : Controller
 {
     private readonly PaymentMethodHandlerDictionary _handlers;
