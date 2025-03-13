@@ -8,8 +8,8 @@
 
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Subscriptions</Product>
-        <Description>Offer and manage subscriptions through BTCPay Server</Description>
+        <Product>zzz - Subscriptions</Product>
+        <Description>**Do not install this if you’re unsure of what you’re doing.** Subscription, Product and Customer managment through BTCPay Server. Recurring reminders for renewals.</Description>
         <Version>0.0.1</Version>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
