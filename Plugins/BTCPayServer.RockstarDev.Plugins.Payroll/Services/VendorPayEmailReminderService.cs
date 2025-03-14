@@ -15,13 +15,13 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 public class VendorPayEmailReminderService(
     EmailService emailService,
     EventAggregator eventAggregator,
-    PluginDbContextFactory PluginDbContextFactory,
+    PluginDbContextFactory pluginDbContextFactory,
     Logs logs)
     : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {
     public async Task Do(CancellationToken cancellationToken)
     {
-        await using var db = PluginDbContextFactory.CreateContext();
+        await using var db = pluginDbContextFactory.CreateContext();
         var stores = db.PayrollSettings.Select(a=>a.StoreId).ToList();
         foreach (var storeId in stores)
         {
@@ -56,7 +56,7 @@ public class VendorPayEmailReminderService(
     {
         bool shouldUpdateDb = false;
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         List<PayrollUser> activeUsers = ctx.PayrollUsers.Where(a => 
             a.StoreId == storeId && a.State == PayrollUserState.Active && a.EmailReminder != null && a.EmailReminder != "")
             .ToList();

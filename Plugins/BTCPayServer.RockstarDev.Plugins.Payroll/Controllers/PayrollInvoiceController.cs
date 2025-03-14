@@ -40,7 +40,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController(
-    PluginDbContextFactory PluginDbContextFactory,
+    PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,
     RateFetcher rateFetcher,
     PaymentMethodHandlerDictionary handlers,
@@ -60,7 +60,7 @@ public class PayrollInvoiceController(
     [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all)
     {
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         var payrollInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
@@ -118,7 +118,7 @@ public class PayrollInvoiceController(
         if (selectedItems.Length == 0)
             return NotSupported("No invoice has been selected");
 
-        var ctx = PluginDbContextFactory.CreateContext();
+        var ctx = pluginDbContextFactory.CreateContext();
         var invoices = ctx.PayrollInvoices
                             .Include(a => a.User)
                             .Where(a => selectedItems.Contains(a.Id))
@@ -178,7 +178,7 @@ public class PayrollInvoiceController(
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         var invoice = ctx.PayrollInvoices
                             .Include(a => a.User)
                             .Single(a => a.Id == invoiceId && a.User.StoreId == CurrentStore.Id);
@@ -188,7 +188,7 @@ public class PayrollInvoiceController(
 
     private async Task<IActionResult> payInvoices(string[] selectedItems)
     {
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         var invoices = ctx.PayrollInvoices
             .Include(a => a.User)
             .Where(a => selectedItems.Contains(a.Id))
@@ -252,7 +252,7 @@ public class PayrollInvoiceController(
     [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)
     {
-        var settings = await PluginDbContextFactory.GetSettingAsync(storeId);
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollInvoiceUploadViewModel
         {
             Amount = 0,
@@ -260,7 +260,7 @@ public class PayrollInvoiceController(
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired
         };
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
         if (!model.PayrollUsers.Any())
         {
@@ -291,7 +291,7 @@ public class PayrollInvoiceController(
         var validation = await payrollInvoiceUploadHelper.Process(storeId, model.UserId, model);
         if (!validation.IsValid)
         {
-            await using var ctx = PluginDbContextFactory.CreateContext();
+            await using var ctx = pluginDbContextFactory.CreateContext();
             model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
             validation.ApplyToModelState(ModelState);
             return View(model);
@@ -312,7 +312,7 @@ public class PayrollInvoiceController(
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         PayrollInvoice invoice = ctx.PayrollInvoices.Include(c => c.User)
             .SingleOrDefault(a => a.Id == id);
 
@@ -337,7 +337,7 @@ public class PayrollInvoiceController(
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
 
         var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
 
@@ -475,7 +475,7 @@ public class PayrollInvoiceController(
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
             .SingleOrDefault(a => a.Id == id);
 
@@ -497,7 +497,7 @@ public class PayrollInvoiceController(
         if (CurrentStore is null)
             return NotFound();
 
-        await using var ctx = PluginDbContextFactory.CreateContext();
+        await using var ctx = pluginDbContextFactory.CreateContext();
 
         var invoice = ctx.PayrollInvoices.Single(a => a.Id == model.Id);
         invoice.AdminNote = model.AdminNote;

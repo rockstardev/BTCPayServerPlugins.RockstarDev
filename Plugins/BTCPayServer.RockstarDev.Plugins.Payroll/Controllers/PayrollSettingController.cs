@@ -18,7 +18,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollSettingController(PluginDbContextFactory PluginDbContextFactory, 
+public class PayrollSettingController(PluginDbContextFactory pluginDbContextFactory, 
     EmailService emailService, LinkGenerator linkGenerator) : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
@@ -26,7 +26,7 @@ public class PayrollSettingController(PluginDbContextFactory PluginDbContextFact
     [HttpGet("settings")]
     public async Task<IActionResult> Settings(string storeId)
     {
-        var settings = await PluginDbContextFactory.GetSettingAsync(storeId);
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
         var model = new PayrollSettingViewModel
         {
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
@@ -81,7 +81,7 @@ public class PayrollSettingController(PluginDbContextFactory PluginDbContextFact
             VendorPayPublicLink = link
         };
         
-        await PluginDbContextFactory.SetSettingAsync(storeId, settings);
+        await pluginDbContextFactory.SetSettingAsync(storeId, settings);
         TempData.SetStatusMessageModel(new StatusMessageModel()
         {
             Message = $"Vendor pay settings updated successfully",
