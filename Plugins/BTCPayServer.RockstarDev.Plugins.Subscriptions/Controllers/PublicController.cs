@@ -1,27 +1,15 @@
-﻿using System;
-using BTCPayServer.Abstractions.Constants;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Extensions;
+using BTCPayServer.Client.Models;
+using BTCPayServer.Data;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
+using BTCPayServer.Services.PaymentRequests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
-using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Client;
-using BTCPayServer.Client.Models;
-using BTCPayServer.Data;
-using BTCPayServer.Services.PaymentRequests;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.VisualBasic.FileIO;
 using Newtonsoft.Json.Linq;
+using PaymentRequestData = BTCPayServer.Data.PaymentRequestData;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
@@ -37,17 +25,14 @@ public class PublicController : Controller
         _dbContext = dbContext;
         _paymentRequestRepository = paymentRequestRepository;
     }
-    
+
     [FromRoute] public string StoreId { get; set; }
 
     [HttpGet("click/{srid}")]
     public async Task<IActionResult> Click(string srid)
     {
         var reminder = await _dbContext.SubscriptionReminders.FindAsync(srid);
-        if (reminder == null)
-        {
-            return NotFound();
-        }
+        if (reminder == null) return NotFound();
 
         reminder = await _dbContext.SubscriptionReminders
             .Include(a => a.Subscription)
@@ -56,9 +41,9 @@ public class PublicController : Controller
             .SingleAsync(pr => pr.Id == srid);
 
         var product = reminder.Subscription.Product;
-        if (String.IsNullOrEmpty(reminder.PaymentRequestId))
+        if (string.IsNullOrEmpty(reminder.PaymentRequestId))
         {
-            var req = new BTCPayServer.Data.PaymentRequestData()
+            var req = new PaymentRequestData
             {
                 StoreDataId = product.StoreId,
                 Archived = false,
@@ -73,21 +58,21 @@ public class PublicController : Controller
                 Title = product.Name + " Renewal",
                 FormId = product.FormId,
                 AllowCustomPaymentAmounts = false,
-                AdditionalData = new Dictionary<string, JToken>()
+                AdditionalData = new Dictionary<string, JToken>
                 {
                     //{ "appId", JToken.FromObject(appId) },
                     { "source", JToken.FromObject("subscription") },
                     { "url", HttpContext.Request.GetAbsoluteRoot() }
-                },
+                }
             });
 
             var pr = await _paymentRequestRepository.CreateOrUpdatePaymentRequest(req);
             reminder.PaymentRequestId = pr.Id;
-            
+
             _dbContext.SubscriptionReminders.Update(reminder);
             await _dbContext.SaveChangesAsync();
         }
-        
+
         return RedirectToAction("ViewPaymentRequest", "UIPaymentRequest", new { payReqId = reminder.PaymentRequestId });
     }
 }

@@ -1,12 +1,8 @@
-﻿@using BTCPayServer.Abstractions.Contracts
-@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.Client
-@using BTCPayServer.RockstarDev.Plugins.Subscriptions
-@using Microsoft.AspNetCore.Mvc.TagHelpers
+﻿@using BTCPayServer.Client
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    var activeClass = @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey);
+    var activeClass = ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey);
     var isActive = !string.IsNullOrWhiteSpace(activeClass);
 }
 @if (!string.IsNullOrEmpty(storeId))
@@ -48,12 +44,12 @@
     @if (isActive)
     {
         <li class="nav-item nav-item-sub">
-            <a permission="@Policies.CanModifyServerSettings" 
-               asp-controller="Product" asp-action="Index" asp-route-storeId="@storeId" 
+            <a permission="@Policies.CanModifyServerSettings"
+               asp-controller="Product" asp-action="Index" asp-route-storeId="@storeId"
                class="nav-link @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey, null, "Products")">Products</a>
         </li>
         <li class="nav-item nav-item-sub">
-            <a permission="@Policies.CanModifyServerSettings" 
+            <a permission="@Policies.CanModifyServerSettings"
                asp-controller="Customer" asp-action="Index" asp-route-storeId="@storeId"
                class="nav-link @ViewData.ActivePageClass(SubscriptionPlugin.SubscriptionPluginNavKey, null, "Customers")">Customers</a>
         </li>

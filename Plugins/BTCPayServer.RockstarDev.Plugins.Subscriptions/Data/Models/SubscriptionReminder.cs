@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 
@@ -16,16 +12,17 @@ public class SubscriptionReminder
 
     [MaxLength(36)] // guid
     public required string SubscriptionId { get; set; }
+
     public Subscription Subscription { get; set; }
 
     public DateTimeOffset Created { get; set; }
 
     public DateTimeOffset? ClickedAt { get; set; }
-    [MaxLength(36)]
-    public string? PaymentRequestId { get; set; }
-    
+
+    [MaxLength(36)] public string? PaymentRequestId { get; set; }
+
     public string? DebugAdditionalData { get; set; }
-    
+
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder

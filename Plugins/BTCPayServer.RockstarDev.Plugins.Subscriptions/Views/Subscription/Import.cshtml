@@ -9,20 +9,21 @@
 <div class="sticky-header d-flex align-items-center justify-content-between">
     <h2 class="mb-0">@ViewData["Title"]</h2>
     <div class="d-flex gap-3 mt-3 mt-sm-0">
-        <input type="submit" class="btn btn-secondary" value="Clear Subscriptions" form="clearForm" />
-        <form method="post" asp-action="ClearSubscriptions" asp-route-storeid="@storeId" id="clearForm" style="display: none;"></form>
-        <input type="submit" class="btn btn-primary" value="Import" form="importForm" />
+        <input type="submit" class="btn btn-secondary" value="Clear Subscriptions" form="clearForm"/>
+        <form method="post" asp-action="ClearSubscriptions" asp-route-storeid="@storeId" id="clearForm"
+              style="display: none;"></form>
+        <input type="submit" class="btn btn-primary" value="Import" form="importForm"/>
     </div>
 </div>
 
-<partial name="_StatusMessage" />
+<partial name="_StatusMessage"/>
 
 <form method="post" asp-action="Import" asp-route-storeid="@storeId" enctype="multipart/form-data" id="importForm">
     <div class="row">
         <div class="col-md-6">
             <div class="form-group">
                 <label asp-for="CsvFile" class="form-label"></label>
-                <input asp-for="CsvFile" class="form-control flex-grow" type="file" />
+                <input asp-for="CsvFile" class="form-control flex-grow" type="file"/>
                 <span asp-validation-for="CsvFile" class="text-danger"></span>
             </div>
         </div>

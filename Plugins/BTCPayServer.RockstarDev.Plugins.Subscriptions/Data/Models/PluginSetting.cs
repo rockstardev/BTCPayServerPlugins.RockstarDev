@@ -5,8 +5,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 
 public class PluginSetting
 {
-    [MaxLength(50)]
-    public string Key { get; set; }
+    [MaxLength(50)] public string Key { get; set; }
 
     [StringLength(50)] [Required] public string StoreId { get; set; }
 
