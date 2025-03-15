@@ -1,15 +1,12 @@
+using System.Linq;
+using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Extensions;
+using BTCPayServer.Client;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
-using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
@@ -18,11 +15,12 @@ namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 public class CustomerController : Controller
 {
     private readonly PluginDbContext _dbContext;
+
     public CustomerController(PluginDbContext dbContext)
     {
         _dbContext = dbContext;
     }
-    
+
     [FromRoute] public string StoreId { get; set; }
 
     [HttpGet]
@@ -52,7 +50,7 @@ public class CustomerController : Controller
         _dbContext.Customers.Add(customer);
         await _dbContext.SaveChangesAsync();
 
-        return RedirectToAction(nameof(Index), new {StoreId = StoreId});
+        return RedirectToAction(nameof(Index), new { StoreId });
     }
 
 
@@ -91,7 +89,7 @@ public class CustomerController : Controller
         existingCustomer.ZipCode = customer.ZipCode;
 
         await _dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index), new {StoreId = StoreId});
+        return RedirectToAction(nameof(Index), new { StoreId });
     }
 
     [HttpPost("delete/{id}")]
@@ -106,6 +104,6 @@ public class CustomerController : Controller
 
         _dbContext.Customers.Remove(customer);
         await _dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index), new {StoreId = StoreId});
+        return RedirectToAction(nameof(Index), new { StoreId });
     }
 }

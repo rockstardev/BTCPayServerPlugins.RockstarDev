@@ -1,5 +1,4 @@
-﻿@using BTCPayServer.RockstarDev.Plugins.Subscriptions
-@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Subscription>
+﻿@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Subscription>
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
@@ -21,7 +20,7 @@
     </div>
 </form>
 
-<partial name="_StatusMessage" />
+<partial name="_StatusMessage"/>
 
 @if (Model.Any())
 {
@@ -46,14 +45,15 @@
                     <td>@subscription.Created.ToString("g")</td>
                     <td>@subscription.Expires.ToString("g")</td>
                     <td>
-                        <a asp-action="SendReminders" asp-route-subscriptionid="@subscription.Id" asp-route-storeId="@storeId">
+                        <a asp-action="SendReminders" asp-route-subscriptionid="@subscription.Id"
+                           asp-route-storeId="@storeId">
                             @subscription.State
                         </a>
                     </td>
                     <td>
                         <a asp-action="Edit" asp-route-id="@subscription.Id" asp-route-storeId="@storeId">Edit</a>
                         <span>-</span>
-                        <a asp-action="Delete" asp-route-id="@subscription.Id" asp-route-storeId="@storeId" 
+                        <a asp-action="Delete" asp-route-id="@subscription.Id" asp-route-storeId="@storeId"
                            class="text-danger">Delete</a>
                     </td>
                 </tr>

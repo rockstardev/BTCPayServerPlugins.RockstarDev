@@ -1,27 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Client.Models;
-using BTCPayServer.Controllers;
-using BTCPayServer.Data;
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
-using BTCPayServer.HostedServices.Webhooks;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
-using BTCPayServer.Services;
-using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.PaymentRequests;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MimeKit;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using PaymentRequestData = BTCPayServer.Client.Models.PaymentRequestData;
-using WebhookDeliveryData = BTCPayServer.Data.WebhookDeliveryData;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 
@@ -33,17 +21,17 @@ public class SubscriptionService(
     EmailService emailService)
     : EventHostedServiceBase(eventAggregator, logger), IPeriodicTask
 {
+    public Task Do(CancellationToken cancellationToken)
+    {
+        // TODO: Implement period check whether subscriptions expired and send reminders / update statuses
+        return Task.CompletedTask;
+    }
+
     protected override void SubscribeToEvents()
     {
         Subscribe<PaymentRequestEvent>();
         Subscribe<InvoiceEvent>();
         base.SubscribeToEvents();
-    }
-    
-    public Task Do(CancellationToken cancellationToken)
-    {
-        // TODO: Implement period check whether subscriptions expired and send reminders / update statuses
-        return Task.CompletedTask;
     }
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
@@ -61,13 +49,14 @@ public class SubscriptionService(
                             a.ExternalId == ie.InvoiceId, cancellationToken);
                         if (existingSubscription != null)
                             break; // we already processed this invoice subscription
-                        
+
                         var product = await dbContext.Products.FindAsync(guid.ToString(), cancellationToken);
                         if (product != null)
                         {
                             // Check if customer exists
                             var customer =
-                                await dbContext.Customers.FirstOrDefaultAsync(c => c.Email == metadata.BuyerEmail, cancellationToken);
+                                await dbContext.Customers.FirstOrDefaultAsync(c => c.Email == metadata.BuyerEmail,
+                                    cancellationToken);
                             if (customer == null)
                             {
                                 customer = new Customer
@@ -86,7 +75,7 @@ public class SubscriptionService(
                             customer.City = metadata.BuyerCity;
                             customer.Country = metadata.BuyerCountry;
                             customer.ZipCode = metadata.BuyerZip;
-                            
+
                             // Create subscription
                             var subscription = new Subscription
                             {
@@ -105,10 +94,10 @@ public class SubscriptionService(
                         await dbContext.SaveChangesAsync(cancellationToken);
                     }
                 }
-                
+
                 break;
             }
-            
+
             case PaymentRequestEvent { Type: PaymentRequestEvent.StatusChanged } payreq:
             {
                 if (payreq.Data.Status == PaymentRequestData.PaymentRequestStatus.Completed)
@@ -125,15 +114,13 @@ public class SubscriptionService(
                         // var email = blob.Email ?? blob.FormResponse?["buyerEmail"]?.Value<string>();
                         // await HandlePaidSubscription(subscriptionAppId, subscriptionId, payreq.Data.Id,
                         //     email);
-                        
+
                         // TODO: Update customer if needed from blob.FormResponse
                         var newExpDate = subscriptionReminder.Subscription.Expires;
                         if (newExpDate.AddDays(14) < DateTimeOffset.UtcNow)
-                        {
                             // start a new subscription if it's too far in the past
                             newExpDate = DateTimeOffset.UtcNow.Date;
-                        }
-                        
+
                         var sub = subscriptionReminder.Subscription;
                         if (sub.Product.DurationType == DurationTypes.Day)
                             sub.Expires = newExpDate.AddDays(sub.Product.Duration).ToUniversalTime();
@@ -141,7 +128,7 @@ public class SubscriptionService(
                             sub.Expires = newExpDate.AddMonths(sub.Product.Duration).ToUniversalTime();
 
                         sub.State = SubscriptionStates.Active;
-                        
+
                         dbContext.Subscriptions.Update(sub);
                         await dbContext.SaveChangesAsync(cancellationToken);
                     }

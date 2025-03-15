@@ -1,7 +1,5 @@
-﻿using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
+﻿using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 
@@ -9,13 +7,13 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
     : DbContext(options)
 {
     public const string Schema = "BTCPayServer.RockstarDev.Plugins.Subscriptions";
-    
+
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<SubscriptionReminder> SubscriptionReminders { get; set; }
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<PluginSetting> PluginSettings { get; set; }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

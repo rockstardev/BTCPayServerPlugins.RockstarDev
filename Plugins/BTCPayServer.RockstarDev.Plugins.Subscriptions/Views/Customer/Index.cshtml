@@ -1,5 +1,4 @@
-﻿@using BTCPayServer.RockstarDev.Plugins.Subscriptions
-@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Customer>
+﻿@model List<BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models.Customer>
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
@@ -17,7 +16,7 @@
     </div>
 </form>
 
-<partial name="_StatusMessage" />
+<partial name="_StatusMessage"/>
 
 @if (Model.Any())
 {

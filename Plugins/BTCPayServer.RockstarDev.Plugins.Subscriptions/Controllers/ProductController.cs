@@ -1,18 +1,13 @@
+using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using BTCPayServer.Abstractions.Contracts;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Controllers;
 
@@ -26,7 +21,7 @@ public class ProductController : Controller
     {
         _dbContext = dbContext;
     }
-    
+
     [FromRoute] public string StoreId { get; set; }
 
     [HttpGet]
@@ -55,14 +50,14 @@ public class ProductController : Controller
         product.StoreId = StoreId;
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
-        
-        TempData.SetStatusMessageModel(new StatusMessageModel()
+
+        TempData.SetStatusMessageModel(new StatusMessageModel
         {
             Severity = StatusMessageModel.StatusSeverity.Success,
             Message = $"Product {product.Name} successfully created"
         });
 
-        return RedirectToAction(nameof(Index), new {StoreId});
+        return RedirectToAction(nameof(Index), new { StoreId });
     }
 
     [HttpGet("edit/{id}")]
@@ -105,10 +100,11 @@ public class ProductController : Controller
         var product = await _dbContext.Products
             .Where(p => p.StoreId == StoreId && p.Id == id)
             .FirstOrDefaultAsync();
-        
-        return View("Confirm", new ConfirmModel($"Delete Product", 
+
+        return View("Confirm", new ConfirmModel("Delete Product",
             $"Do you really want to delete '{product.Name}' product?", "Delete"));
     }
+
     [HttpPost("delete/{id}")]
     public async Task<IActionResult> DeletePost(string id)
     {
@@ -121,6 +117,7 @@ public class ProductController : Controller
 
         _dbContext.Products.Remove(product);
         await _dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index), new {StoreId});;
+        return RedirectToAction(nameof(Index), new { StoreId });
+        ;
     }
 }

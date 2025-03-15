@@ -8,17 +8,19 @@
 <form asp-action="Create" method="post">
     <div class="form-group">
         <label>Customer</label>
-        <select asp-for="CustomerId" asp-items="@(new SelectList(ViewBag.Customers, "Id", "Name"))" class="form-control"></select>
+        <select asp-for="CustomerId" asp-items="@(new SelectList(ViewBag.Customers, "Id", "Name"))"
+                class="form-control"></select>
     </div>
 
     <div class="form-group">
         <label>Product</label>
-        <select asp-for="ProductId" asp-items="@(new SelectList(ViewBag.Products, "Id", "Name"))" class="form-control"></select>
+        <select asp-for="ProductId" asp-items="@(new SelectList(ViewBag.Products, "Id", "Name"))"
+                class="form-control"></select>
     </div>
 
     <div class="form-group">
         <label asp-for="Expires"></label>
-        <input asp-for="Expires" class="form-control" type="date" required />
+        <input asp-for="Expires" class="form-control" type="date" required/>
     </div>
 
     <button type="submit" class="btn btn-success">Save</button>

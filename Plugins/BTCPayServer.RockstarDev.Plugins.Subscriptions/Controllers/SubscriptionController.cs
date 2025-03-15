@@ -1,24 +1,22 @@
 ﻿using System;
-using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Extensions;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
-using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
-using BTCPayServer.Abstractions.Contracts;
+using System.Linq;
+using System.Threading.Tasks;
+using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Forms;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data;
+using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic.FileIO;
 using MimeKit;
 
@@ -36,7 +34,7 @@ public class SubscriptionController : Controller
         _dbContext = dbContext;
         _emailService = emailService;
     }
-    
+
     [FromRoute] public string StoreId { get; set; }
 
     [HttpGet]
@@ -46,7 +44,7 @@ public class SubscriptionController : Controller
             .Include(s => s.Customer)
             .Include(s => s.Product)
             .Where(s => s.Customer.StoreId == StoreId)
-            .OrderByDescending(a=>a.Expires)
+            .OrderByDescending(a => a.Expires)
             .ToListAsync();
 
         return View(subscriptions);
@@ -139,7 +137,7 @@ public class SubscriptionController : Controller
         await _dbContext.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
-    
+
 
     [HttpGet("import")]
     public IActionResult Import()
@@ -147,13 +145,6 @@ public class SubscriptionController : Controller
         return View(new SubscriptionsImportViewModel());
     }
 
-    public class SubscriptionsImportViewModel
-    {
-        [DisplayName("CSV File with Subscriptions")]
-        [Required]
-        public IFormFile CsvFile { get; set; }
-    }
-    
     [HttpPost("import")]
     public async Task<IActionResult> Import(SubscriptionsImportViewModel model)
     {
@@ -166,7 +157,8 @@ public class SubscriptionController : Controller
         var storeId = StoreId; // Adjust to actual store retrieval logic
 
         // Ensure the product exists5
-        var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Name == "Bitcoin Magazine 12-month Subscription");
+        var product =
+            await _dbContext.Products.FirstOrDefaultAsync(p => p.Name == "Bitcoin Magazine 12-month Subscription");
         if (product == null)
         {
             product = new Product
@@ -180,7 +172,7 @@ public class SubscriptionController : Controller
                 ReminderDays = "30,7,1",
                 //FormId = nameof(FormDataService.StaticFormEmailAddress),
                 FormId = "Address",
-                StoreId = storeId,
+                StoreId = storeId
             };
             _dbContext.Products.Add(product);
             await _dbContext.SaveChangesAsync();
@@ -188,18 +180,22 @@ public class SubscriptionController : Controller
 
         using var reader = new StreamReader(model.CsvFile.OpenReadStream());
         var lineNumber = 0;
-        
+
         using var parser = new TextFieldParser(reader);
         parser.TextFieldType = FieldType.Delimited;
         parser.SetDelimiters(",");
 
         var subscriptionList = new List<Subscription>();
-        
-        bool isFirstLine = true;
+
+        var isFirstLine = true;
         while (!parser.EndOfData)
         {
             var fields = parser.ReadFields();
-            if (isFirstLine) { isFirstLine = false; continue; } // Skip header
+            if (isFirstLine)
+            {
+                isFirstLine = false;
+                continue;
+            } // Skip header
 
             if (fields.Length < 9) continue; // Ensure correct format
 
@@ -257,12 +253,12 @@ public class SubscriptionController : Controller
 
         _dbContext.Subscriptions.AddRange(subscriptionList);
         await _dbContext.SaveChangesAsync();
-        TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel
         {
             Severity = StatusMessageModel.StatusSeverity.Success,
             Message = subscriptionList.Count + " Subscriptions imported successfully!"
         });
-        return RedirectToAction("Index", new { storeId = StoreId});
+        return RedirectToAction("Index", new { storeId = StoreId });
     }
 
 
@@ -291,24 +287,12 @@ public class SubscriptionController : Controller
 
         await _dbContext.SaveChangesAsync();
 
-        TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel
         {
             Severity = StatusMessageModel.StatusSeverity.Success,
             Message = "All subscriptions, products, and customers have been removed."
         });
-        return RedirectToAction("Index", new { storeId = StoreId});
-    }
-
-    
-    // send reminders
-    public class SendReminderViewModel
-    {
-        public string? ReminderType { get; set; }
-        public IEnumerable<SelectListItem> RemindersList { get; set; }
-        public string Subject { get; set; }
-        public string Body { get; set; }
-        public string? SubscriptionId { get; set; }
-        public string? SubscriptionCustomer { get; set; }
+        return RedirectToAction("Index", new { storeId = StoreId });
     }
 
     [HttpGet("SendReminders")]
@@ -318,10 +302,10 @@ public class SubscriptionController : Controller
         {
             RemindersList = new List<SelectListItem>
             {
-                new ("Subscription Expiring in 30 days", "30"),
-                new ("Subscription Expiring in 7 days", "7"),
-                new ("Subscription Expiring in 1 day", "1"),
-                new ("Expired Subscriptions", "0")
+                new("Subscription Expiring in 30 days", "30"),
+                new("Subscription Expiring in 7 days", "7"),
+                new("Subscription Expiring in 1 day", "1"),
+                new("Expired Subscriptions", "0")
             },
             Subject = "Your subscription is expiring",
             Body = @"Dear {CustomerName},
@@ -341,7 +325,7 @@ Thank you,
             if (existingSubscription != null)
             {
                 var customer = existingSubscription.Customer;
-                
+
                 model.ReminderType = "-1";
                 model.SubscriptionId = subscriptionId;
                 model.SubscriptionCustomer = $"{customer.Name} <{customer.Email}>";
@@ -358,8 +342,8 @@ Thank you,
         if (model.SubscriptionId != null)
         {
             var s = _dbContext.Subscriptions
-                .Include(a=> a.Customer)
-                .Include(a=> a.Product)
+                .Include(a => a.Customer)
+                .Include(a => a.Product)
                 .Single(s => s.Id == model.SubscriptionId);
             subscriptions.Add(s);
         }
@@ -390,7 +374,7 @@ Thank you,
             _dbContext.SubscriptionReminders.Add(reminder);
             await _dbContext.SaveChangesAsync();
 
-            var renewalLink = Url.Action("Click", "Public", new { StoreId, srid = srid }, Request.Scheme);
+            var renewalLink = Url.Action("Click", "Public", new { StoreId, srid }, Request.Scheme);
 
             var subject = model.Subject
                 .Replace("{CustomerName}", customer.Name)
@@ -413,11 +397,30 @@ Thank you,
             await _emailService.SendEmail(StoreId, email);
         }
 
-        TempData.SetStatusMessageModel(new StatusMessageModel()
+        TempData.SetStatusMessageModel(new StatusMessageModel
         {
             Severity = StatusMessageModel.StatusSeverity.Success,
             Message = subscriptions.Count + " subscription reminders have been sent"
         });
         return RedirectToAction(nameof(Index), new { storeId = StoreId });
+    }
+
+    public class SubscriptionsImportViewModel
+    {
+        [DisplayName("CSV File with Subscriptions")]
+        [Required]
+        public IFormFile CsvFile { get; set; }
+    }
+
+
+    // send reminders
+    public class SendReminderViewModel
+    {
+        public string? ReminderType { get; set; }
+        public IEnumerable<SelectListItem> RemindersList { get; set; }
+        public string Subject { get; set; }
+        public string Body { get; set; }
+        public string? SubscriptionId { get; set; }
+        public string? SubscriptionCustomer { get; set; }
     }
 }
