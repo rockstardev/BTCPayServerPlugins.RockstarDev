@@ -26,6 +26,9 @@
                     <a asp-action="RunHeartbeatNow" asp-route-storeId="@storeId" class="dropdown-item">
                         Run Heartbeat Now
                     </a>
+                    <a asp-action="UpdateExchangeRates" asp-route-storeId="@storeId" class="dropdown-item">
+                        Update Exchange Rates
+                    </a>
                 </div>
             </div>
             <a asp-controller="ExchangeOrder" asp-action="Create" asp-route-storeId="@storeId"
