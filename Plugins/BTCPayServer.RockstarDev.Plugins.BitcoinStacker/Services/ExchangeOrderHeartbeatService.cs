@@ -273,9 +273,9 @@ public class ExchangeOrderHeartbeatService(
             return false;
         }
 
-        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, exchangeResp);
+        db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, exchangeResp, exchangeResp.Id.ToString());
         order.TargetAmount = exchangeResp.Target.Amount;
-        order.ConversionRate = exchangeResp.ConversionRate.Amount;
+        order.ConversionRate = Math.Round(1 / exchangeResp.ConversionRate.Amount, 2);
         order.State = DbExchangeOrder.States.Completed;
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExchangeExecuted, executeQuoteResp);
         await db.SaveChangesAsync(cancellationToken);
