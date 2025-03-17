@@ -9,33 +9,34 @@
     ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, "Exchange Orders", "ExchangeOrder");
 }
 
-<form method="post">
-    <div class="sticky-header-setup"></div>
-    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
-        <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <div class="dropdown">
-                <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret"
-                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span>Options</span>
-                </button>
-                <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
-                    <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
-                        Settings
-                    </a>
-                    <a asp-action="RunHeartbeatNow" asp-route-storeId="@storeId" class="dropdown-item">
-                        Run Heartbeat Now
-                    </a>
-                    <a asp-action="UpdateExchangeRates" asp-route-storeId="@storeId" class="dropdown-item">
-                        Update Exchange Rates
-                    </a>
-                </div>
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div class="d-flex gap-3 mt-3 mt-sm-0">
+        <div class="dropdown">
+            <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span>Options</span>
+            </button>
+            <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
+                <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
+                    Settings
+                </a>
+                <form id="RunHeartbeatNowForm" asp-action="RunHeartbeatNow" asp-route-storeId="@storeId" method="post" style="display:none;"></form>
+                <a href="#" class="dropdown-item" onclick="event.preventDefault(); document.getElementById('RunHeartbeatNowForm').submit();">
+                    Run Heartbeat Now
+                </a>
+
+                <form id="UpdateExchangeRatesForm" asp-action="UpdateExchangeRates" asp-route-storeId="@storeId" method="post" style="display:none;"></form>
+                <a href="#" class="dropdown-item" onclick="event.preventDefault(); document.getElementById('UpdateExchangeRatesForm').submit();">
+                    Update Exchange Rates
+                </a>
             </div>
-            <a asp-controller="ExchangeOrder" asp-action="Create" asp-route-storeId="@storeId"
-               class="btn btn-primary">Create Exchange Order</a>
         </div>
+        <a asp-controller="ExchangeOrder" asp-action="Create" asp-route-storeId="@storeId"
+           class="btn btn-primary">Create Exchange Order</a>
     </div>
-</form>
+</div>
 
 <partial name="_StatusMessage"/>
 

@@ -117,8 +117,7 @@ public class ExchangeOrderController(
     }
 
 
-    // TODO: Switch to HTTPPOST
-    [HttpGet("AddDelay")]
+    [HttpPost("AddDelay")]
     public async Task<IActionResult> AddDelay(Guid id)
     {
         var db = pluginDbContextFactory.CreateContext();
@@ -133,8 +132,7 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
 
-    // TODO: Switch to HTTPPOST
-    [HttpGet("ForceConversion")]
+    [HttpPost("ForceConversion")]
     public async Task<IActionResult> ForceConversion(Guid id)
     {
         await using var db = pluginDbContextFactory.CreateContext();
@@ -156,8 +154,7 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
 
-    // TODO: Switch to HTTPPOST
-    [HttpGet("RunHeartbeatNow")]
+    [HttpPost("RunHeartbeatNow")]
     public async Task<IActionResult> RunHeartbeatNow()
     {
         await using var db = pluginDbContextFactory.CreateContext();
@@ -174,8 +171,7 @@ public class ExchangeOrderController(
         return RedirectToAction(nameof(Index), new { StoreId });
     }
     
-    // TODO: Switch to HTTPPOST
-    [HttpGet("UpdateExchangeRates")]
+    [HttpPost("UpdateExchangeRates")]
     public async Task<IActionResult> UpdateExchangeRates()
     {
         await using var db = pluginDbContextFactory.CreateContext();
