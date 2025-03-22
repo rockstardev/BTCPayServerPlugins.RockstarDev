@@ -55,19 +55,19 @@ public class VendorPayEmailReminderService(
     private async Task HandleEmailReminders(string storeId, PayrollStoreSetting settings)
     {
         bool shouldUpdateDb = false;
-
+        
         await using var ctx = pluginDbContextFactory.CreateContext();
-        List<PayrollUser> activeUsers = ctx.PayrollUsers.Where(a => 
-            a.StoreId == storeId && a.State == PayrollUserState.Active && a.EmailReminder != null && a.EmailReminder != "")
+        var todayDate = DateTime.UtcNow.Date;
+        var threeDaysAgo = todayDate.AddDays(-3);
+        var usersToEmailCandidates = ctx.PayrollUsers.Where(a => 
+                a.StoreId == storeId && a.State == PayrollUserState.Active && a.EmailReminder != null && a.EmailReminder != "" &&
+                !a.PayrollInvoices.Any(i => i.UserId == a.Id && i.CreatedAt >= threeDaysAgo) &&
+                (!a.LastReminderSent.HasValue || a.LastReminderSent.Value.Date != todayDate))
             .ToList();
-
-        DateTime todayDate = DateTime.UtcNow.Date;
-        foreach (var user in activeUsers)
+        
+        foreach (var user in usersToEmailCandidates)
         {
-            if (user.LastReminderSent.HasValue && user.LastReminderSent.Value.Date == todayDate)
-                continue;
-
-            List<int> reminders = user.EmailReminder.Split(',').Select(int.Parse).ToList();
+            var reminders = user.EmailReminder.Split(',').Select(int.Parse).ToList();
             var lastDayOfMonth = DateTime.DaysInMonth(todayDate.Year, todayDate.Month);
             var emailOnLastDay = reminders.Contains(31) && todayDate.Day == lastDayOfMonth;
             if (reminders.Contains(todayDate.Day) || emailOnLastDay)
@@ -88,9 +88,10 @@ public class VendorPayEmailReminderService(
                 }
             }
         }
+        
         if (shouldUpdateDb)
         {
-            ctx.UpdateRange(activeUsers);
+            ctx.UpdateRange(usersToEmailCandidates);
             await ctx.SaveChangesAsync();
         }
     }
