@@ -279,6 +279,10 @@ var vaultui = (function () {
         this.askForXPubs = async function () {
             if (!await self.ensureConnectedToBackend())
                 return false;
+
+            const signatureType = $("#signatureType").val();
+            const customKeyPath = $("#keyPath").val();
+            
             self.bridge.socket.send("ask-xpub");
             var json = await self.bridge.waitBackendMessage();
             if (json.hasOwnProperty("error")) {
@@ -298,9 +302,15 @@ var vaultui = (function () {
                 }
                 show(VaultFeedbacks.fetchedXpubs);
                 self.xpub = json;
+
+                if (signatureType.toLowerCase() === "custom" && customKeyPath) {
+                    self.xpub.keyPath = customKeyPath;
+                }
+
                 return true;
             } catch (err) {
                 showError({ error: true, message: err });
+                return false;
             }
         };
 
