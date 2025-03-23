@@ -30,6 +30,7 @@
                 <select id="signatureType" name="signatureType" class="form-select w-auto">
                     <option value="singlesig">Singlesig</option>
                     <option value="multisig">Multisig</option>
+                    <option value="custom">Custom</option>
                 </select>
             </div>
             <div class="form-group">
@@ -44,6 +45,11 @@
             <div class="form-group">
                 <label for="accountNumber" class="form-label">Account</label>
                 <input id="accountNumber" class="form-control" name="accountNumber" type="number" value="0" min="0" step="1" style="max-width:12ch;" />
+            </div>
+            <div class="form-group">
+                <label for="keyPath" class="form-label">Key Path</label>
+                <input id="keyPath" class="form-control" name="keyPath" type="text" readonly style="max-width:30ch;" />
+                <small id="keyPathHelp" class="form-text text-muted" style="display:none;">Custom format example: 1'/2'/3'/4'</small>
             </div>
         </div>
         <div>
@@ -105,6 +111,73 @@
     <script src="~/Resources/js/plugin-vaultbridge.ui.js" defer asp-append-version="true"></script>
 
     <script>
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const signatureTypeSelect = document.getElementById("signatureType");
+        const addressTypeSelect = document.getElementById("addressType");
+        const accountNumberInput = document.getElementById("accountNumber");
+        const keyPathInput = document.getElementById("keyPath");
+        const keyPathHelp = document.getElementById("keyPathHelp");
+        
+        function updateKeyPath() {
+            const signatureType = signatureTypeSelect.value;
+            const addressType = addressTypeSelect.value;
+            const accountNumber = accountNumberInput.value;
+            
+            if (signatureType === "custom") {
+                keyPathInput.readOnly = false;
+                keyPathHelp.style.display = "block";
+                if (!keyPathInput.value) {
+                    keyPathInput.value = "";
+                    keyPathInput.placeholder = "Enter custom path (e.g., 1'/2'/3'/4')";
+                }
+            } else {
+                keyPathInput.readOnly = true;
+                keyPathHelp.style.display = "none";
+                keyPathInput.placeholder = "";
+                
+                if (signatureType === "singlesig") {
+                    switch (addressType) {
+                        case "segwit":
+                            keyPathInput.value = `m/84'/0'/${accountNumber}'`;
+                            break;
+                        case "segwitWrapped":
+                            keyPathInput.value = `m/49'/0'/${accountNumber}'`;
+                            break;
+                        case "legacy":
+                            keyPathInput.value = `m/44'/0'/${accountNumber}'`;
+                            break;
+                        case "taproot":
+                            keyPathInput.value = `m/86'/0'/${accountNumber}'`;
+                            break;
+                    }
+                } else if (signatureType === "multisig") {
+                    switch (addressType) {
+                        case "segwit":
+                            keyPathInput.value = `m/48'/0'/${accountNumber}'/2'`;
+                            break;
+                        case "segwitWrapped":
+                            keyPathInput.value = `m/48'/0'/${accountNumber}'/1'`;
+                            break;
+                        case "legacy":
+                            keyPathInput.value = `m/45'/0'/${accountNumber}'`;
+                            break;
+                        case "taproot":
+                            keyPathInput.value = `m/48'/0'/${accountNumber}'/3'`;
+                            break;
+                    }
+                }
+            }
+        }
+        
+        signatureTypeSelect.addEventListener("change", updateKeyPath);
+        addressTypeSelect.addEventListener("change", updateKeyPath);
+        accountNumberInput.addEventListener("change", updateKeyPath);
+        accountNumberInput.addEventListener("input", updateKeyPath);
+        
+        updateKeyPath();
+    });
+
     window.addEventListener("load", async () => {
         const wsPath = "@Url.Action("VaultBridgeConnection", "VaultBridge", new { cryptoCode = Model.CryptoCode })";
         const wsProto = location.protocol.replace(/^http/, "ws");
@@ -136,5 +209,5 @@ Key Path: ${keyPath}
 
         document.getElementById("mainCode").value = textToCopy.trim();
     });
-</script>
+    </script>
 }
