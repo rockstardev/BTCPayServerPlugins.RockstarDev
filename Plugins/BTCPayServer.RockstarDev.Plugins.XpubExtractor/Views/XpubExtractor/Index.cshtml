@@ -33,7 +33,7 @@
                     <option value="custom">Custom</option>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="divAddressType">
                 <label for="addressType" class="form-label">Address type</label>
                 <select id="addressType" name="addressType" class="form-select w-auto">
                     <option value="segwit">Segwit (Recommended, cheapest fee)</option>
@@ -42,14 +42,14 @@
                     <option value="taproot">Taproot (ONLY FOR DEVELOPMENT)</option>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="divAccount">
                 <label for="accountNumber" class="form-label">Account</label>
                 <input id="accountNumber" class="form-control" name="accountNumber" type="number" value="0" min="0" step="1" style="max-width:12ch;" />
             </div>
             <div class="form-group">
                 <label for="keyPath" class="form-label">Key Path</label>
-                <input id="keyPath" class="form-control" name="keyPath" type="text" readonly style="max-width:30ch;" />
-                <small id="keyPathHelp" class="form-text text-muted" style="display:none;">Custom format example: 1'/2'/3'/4'</small>
+                <input id="keyPath" class="form-control" name="keyPath" type="text" readonly style="max-width:30ch;"
+                       placeholder="Enter custom path (e.g. m/84'/0'/4')"/>
             </div>
         </div>
         <div>
@@ -114,10 +114,11 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         const signatureTypeSelect = document.getElementById("signatureType");
+        const divAddressType = document.getElementById("divAddressType");
         const addressTypeSelect = document.getElementById("addressType");
+        const divAccount = document.getElementById("divAccount");
         const accountNumberInput = document.getElementById("accountNumber");
         const keyPathInput = document.getElementById("keyPath");
-        const keyPathHelp = document.getElementById("keyPathHelp");
         
         function updateKeyPath() {
             const signatureType = signatureTypeSelect.value;
@@ -126,15 +127,16 @@
             
             if (signatureType === "custom") {
                 keyPathInput.readOnly = false;
-                keyPathHelp.style.display = "block";
+                divAddressType.style.display = "none";
+                divAccount.style.display = "none";
+                
                 if (!keyPathInput.value) {
-                    keyPathInput.value = "";
-                    keyPathInput.placeholder = "Enter custom path (e.g., 1'/2'/3'/4')";
+                    keyPathInput.value = "m/84'/0'/4'";
                 }
             } else {
                 keyPathInput.readOnly = true;
-                keyPathHelp.style.display = "none";
-                keyPathInput.placeholder = "";
+                divAddressType.style.display = "block";
+                divAccount.style.display = "block";
                 
                 if (signatureType === "singlesig") {
                     switch (addressType) {
