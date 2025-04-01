@@ -1,26 +1,25 @@
 ﻿using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Lightning;
-using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Tests;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.Extensions.Configuration;
+using BTCPayServer.Views.Stores;
 using Microsoft.Playwright;
-using Microsoft.Playwright.NUnit;
 using NBitcoin;
-using OpenQA.Selenium;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class PlaywrightBaseTest : IAsyncDisposable
+public class PlaywrightBaseTest : UnitTestBase
 {
+    public PlaywrightBaseTest(ITestOutputHelper helper) : base(helper)
+    {
+    }
 
+    public ServerTester Server { get; set; }
     public WalletId WalletId { get; set; }
     public IPlaywright Playwright { get; private set; }
     public IBrowser Browser { get; private set; }
     public IPage Page { get; private set; }
-    public string AdminEmail { get; set; }
-    public string AdminPassword { get; set; }
     public string StoreName { get; set; }
     public Uri ServerUri { get; private set; }
     public string Password { get; private set; }
@@ -31,17 +30,11 @@ public class PlaywrightBaseTest : IAsyncDisposable
 
     string CreatedUser;
 
-    public async Task StartAsync()
-    {
-        var builder = new ConfigurationBuilder().AddUserSecrets<BTCPayServerTester>();
-        var configuration = builder.Build();
 
-        AdminEmail = "admin@example.com";
-        AdminPassword = "password";
-        StoreName = "Test Store";
-        
+    public async Task<string> InitializeAsync(Uri uri)
+    {
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-        
+
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
             Headless = false, // Set to true for CI/automated environments
@@ -50,17 +43,16 @@ public class PlaywrightBaseTest : IAsyncDisposable
 
         var context = await Browser.NewContextAsync();
         Page = await context.NewPageAsync();
+        ServerUri = uri;
+        TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
 
-        // Navigate to BTCPay Server
-        ServerUri = new Uri("http://localhost:14142"); // Adjust as needed
         await Page.GotoAsync(ServerUri.ToString());
-
-        // Ensure initialization happens only once
         if (!_isInitialized)
         {
             await InitializeBTCPayServer();
             _isInitialized = true;
         }
+        return StoreId;
     }
 
     public async Task GoToUrl(string relativeUrl)
@@ -68,14 +60,10 @@ public class PlaywrightBaseTest : IAsyncDisposable
         await Page.GotoAsync(Link(relativeUrl));
     }
 
+
     public string Link(string relativeLink)
     {
         return ServerUri.AbsoluteUri.WithoutEndingSlash() + relativeLink.WithStartingSlash();
-    }
-
-    public async Task GoToRegister()
-    {
-        await GoToUrl("/register");
     }
 
     public async Task<string> RegisterNewUser(bool isAdmin = false)
@@ -88,40 +76,56 @@ public class PlaywrightBaseTest : IAsyncDisposable
             await Page.ClickAsync("#IsAdmin");
 
         await Page.ClickAsync("#RegisterButton");
-        await Page.WaitForSelectorAsync("body:has-no-text('error')", new PageWaitForSelectorOptions { Timeout = 5000 });
         CreatedUser = usr;
         Password = "123456";
         IsAdmin = isAdmin;
         return usr;
     }
 
+    public async Task GoToStore(StoreNavPages storeNavPage = StoreNavPages.General)
+    {
+        await GoToStore(null, storeNavPage);
+    }
+
+    public async Task GoToStore(string storeId, StoreNavPages storeNavPage = StoreNavPages.General)
+    {
+        if (storeId is not null)
+        {
+            await GoToUrl($"/stores/{storeId}/");
+            StoreId = storeId;
+            if (WalletId != null)
+                WalletId = new WalletId(storeId, WalletId.CryptoCode);
+        }
+        if (storeNavPage != StoreNavPages.General)
+        {
+            await Page.Locator($"#StoreNav-{StoreNavPages.General}").ClickAsync();
+        }
+        await Page.Locator($"#StoreNav-{storeNavPage}").ClickAsync();
+    }
+
     public async Task<(string storeName, string storeId)> CreateNewStoreAsync(bool keepId = true)
     {
-        try
+        if (await Page.Locator("#StoreSelectorToggle").IsVisibleAsync())
         {
-            var storeSelectorToggle = Page.Locator("#StoreSelectorToggle");
-            if (await storeSelectorToggle.CountAsync() > 0)
-            {
-                await storeSelectorToggle.ClickAsync();
-            }
+            await Page.Locator("#StoreSelectorToggle").ClickAsync();
         }
-        catch { }
-
         await GoToUrl("/stores/create");
         var name = "Store" + RandomUtils.GetUInt64();
+        TestLogs.LogInformation($"Created store {name}");
         await Page.FillAsync("#Name", name);
-        var preferredExchangeSelect = Page.Locator("#PreferredExchange");
-        var selectedOption = await preferredExchangeSelect.SelectOptionAsync("CoinGecko");
-        // Assert.Equal("Recommendation (Kraken)", rateSource.SelectedOption.Text);
+
+        var selectedOption = await Page.Locator("#PreferredExchange option:checked").TextContentAsync();
+        Assert.Equal("Recommendation (Kraken)", selectedOption.Trim());
+        await Page.Locator("#PreferredExchange").SelectOptionAsync(new SelectOptionValue { Label = "CoinGecko" });
         await Page.ClickAsync("#Create");
         await Page.ClickAsync("#StoreNav-General");
-
         var storeId = await Page.InputValueAsync("#Id");
         if (keepId)
             StoreId = storeId;
 
         return (name, storeId);
     }
+
 
     public async Task GoToWalletSettingsAsync(string cryptoCode = "BTC")
     {
@@ -133,69 +137,6 @@ public class PlaywrightBaseTest : IAsyncDisposable
         }
     }
 
-
-    public async Task<Mnemonic> GenerateWalletAsync(string cryptoCode = "BTC", string seed = "", bool? importkeys = null, bool isHotWallet = false, ScriptPubKeyType format = ScriptPubKeyType.Segwit)
-    {
-        var isImport = !string.IsNullOrEmpty(seed);
-        await GoToWalletSettingsAsync(cryptoCode);
-        var changeWalletLink = Page.Locator("#ChangeWalletLink");
-        // Replace previous wallet case
-        if (await changeWalletLink.CountAsync() > 0)
-        {
-            await Page.Locator("#ActionsDropdownToggle").ClickAsync();
-            await Page.Locator("#ChangeWalletLink").ClickAsync();
-            await Page.FillAsync("#ConfirmInput", "REPLACE");
-            await Page.Locator("#ConfirmContinue").ClickAsync();
-        }
-
-        if (isImport)
-        {
-            await Page.Locator("#ImportWalletOptionsLink").ClickAsync();
-            await Page.Locator("#ImportSeedLink").ClickAsync();
-            await Page.FillAsync("#ExistingMnemonic", seed);
-            await Page.Locator("#SavePrivateKeys").SetCheckedAsync(isHotWallet);
-        }
-        else
-        {
-            var option = isHotWallet ? "Hotwallet" : "Watchonly";
-            await Page.Locator("#GenerateWalletLink").ClickAsync();
-            await Page.Locator($"#Generate{option}Link").ClickAsync();
-        }
-
-        await Page.Locator("#ScriptPubKeyType").ClickAsync();
-        await Page.Locator($"#ScriptPubKeyType option[value='{format}']").ClickAsync();
-
-
-
-        await Page.Locator("#AdvancedSettings [data-toggle='collapse']").ClickAsync();
-        // await page.GetByRole("button", new { name = "Advanced Settings" }).ClickAsync();
-
-        if (importkeys is bool v)
-            await Page.Locator("#ImportKeysToRPC").SetCheckedAsync(v);
-        await Page.Locator("#Continue").ClickAsync();
-
-        if (isImport)
-        {
-            // Confirm addresses
-            await Page.Locator("#Confirm").ClickAsync();
-        }
-        else
-        {
-            // Seed backup
-            await FindAlertMessageAsync();
-            if (string.IsNullOrEmpty(seed))
-            {
-                seed = await Page.Locator("#RecoveryPhrase").First.GetAttributeAsync("data-mnemonic");
-            }
-
-            // Confirm seed backup
-            await Page.Locator("#confirm").ClickAsync();
-            await Page.Locator("#submit").ClickAsync();
-        }
-
-        WalletId = new WalletId(StoreId, cryptoCode);
-        return new Mnemonic(seed);
-    }
 
     /// <summary>
     /// Assume to be in store's settings
@@ -259,94 +200,13 @@ public class PlaywrightBaseTest : IAsyncDisposable
 
     private async Task InitializeBTCPayServer()
     {
-        try
-        {
-            await GoToRegister();
-            await RegisterNewUser();
-            // Try to log in or check if initial setup is required
-            await HandleInitialSetup();
-
-            // Create store if it doesn't exist
-            await EnsureStoreExists();
-
-            // Navigate to plugin section
-            await NavigateToPlugin();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Initialization error: {ex.Message}");
-            throw;
-        }
+        await GoToUrl("/register");
+        await RegisterNewUser(true);
+        await CreateNewStoreAsync();
+        await GoToStore();
+        await AddDerivationScheme();
     }
 
-    private async Task HandleInitialSetup()
-    {
-        // Check if login is required or first-time setup
-        try
-        {
-            // Try to log in
-            await Page.GotoAsync(Link("/login"));
-
-            // Check if login page is visible
-            await Page.WaitForSelectorAsync("#Email");
-
-            // Perform login
-            await Page.FillAsync("#Email", AdminEmail);
-            await Page.FillAsync("#Password", AdminPassword);
-            await Page.ClickAsync("button[type='submit']");
-
-            // Wait for login to complete
-            await Page.WaitForURLAsync("**/dashboard");
-        }
-        catch
-        {
-            // If login fails, might need first-time setup
-            await PerformFirstTimeSetup();
-        }
-    }
-
-    private async Task PerformFirstTimeSetup()
-    {
-        // Implement first-time setup logic
-        // This might include:
-        // - Creating initial admin account
-        // - Setting up initial configuration
-        await Page.FillAsync("#Email", AdminEmail);
-        await Page.FillAsync("#Password", AdminPassword);
-        await Page.FillAsync("#ConfirmPassword", AdminPassword);
-        await Page.ClickAsync("button[type='submit']");
-
-        // Additional setup steps as needed
-    }
-
-    private async Task EnsureStoreExists()
-    {
-        // Navigate to stores
-        await Page.GotoAsync($"{ServerUri}/stores");
-
-        // Check if store exists, create if not
-        var storeLocator = $"text={StoreName}";
-        try
-        {
-            // Try to find existing store
-            await Page.WaitForSelectorAsync(storeLocator, new PageWaitForSelectorOptions { Timeout = 3000 });
-        }
-        catch
-        {
-            // Store doesn't exist, create new store
-            await Page.ClickAsync("text=Create a new store");
-            await Page.FillAsync("#StoreName", StoreName);
-            await Page.ClickAsync("button[type='submit']");
-        }
-    }
-
-    private async Task NavigateToPlugin()
-    {
-        // Navigate to the specific plugin section
-        // Adjust the selector based on your plugin's location in the navigation
-        await Page.ClickAsync("text=Plugins"); // Adjust this selector
-        await Page.WaitForLoadStateAsync();
-    }
 
     public async ValueTask DisposeAsync()
     {
