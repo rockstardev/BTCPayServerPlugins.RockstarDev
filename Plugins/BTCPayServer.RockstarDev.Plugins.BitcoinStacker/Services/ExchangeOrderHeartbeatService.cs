@@ -10,7 +10,6 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Strike.Client;
 using Strike.Client.CurrencyExchanges;
@@ -165,13 +164,13 @@ public class ExchangeOrderHeartbeatService(
 
             await db.SaveChangesAsync(cancellationToken);
         }
-        
+
         // check balance and if it increased execute purchase immediately
         await Task.Delay(10000, cancellationToken).WaitAsync(cancellationToken);
 
         var balanceResp = await strikeClient.Balances.GetBalances();
         var usdBalanceOnStrike = balanceResp.FirstOrDefault(a => a.Currency == Currency.Usd)?.Available ?? 0;
-        
+
         // 
         var waitingOrders = db.ExchangeOrders
             .Where(order => order.StoreId == ppe.StoreId
@@ -206,10 +205,8 @@ public class ExchangeOrderHeartbeatService(
             {
                 // sometimes deposits are in pending state for a while, but there is available balance, proceed
                 if (usdBalanceOnStrike > order.Amount)
-                {
                     if (await ExecuteConversionOrder(db, order, strikeClient, cancellationToken))
                         usdBalanceOnStrike -= order.Amount;
-                }
             }
             else
             {
@@ -241,10 +238,13 @@ public class ExchangeOrderHeartbeatService(
     {
         var req = new CurrencyExchangeQuoteReq
         {
-            Buy = Currency.Btc, Sell = Currency.Usd,
+            Buy = Currency.Btc,
+            Sell = Currency.Usd,
             Amount = new MoneyWithFee
             {
-                Currency = Currency.Usd, Amount = order.Amount, FeePolicy = FeePolicy.Inclusive
+                Currency = Currency.Usd,
+                Amount = order.Amount,
+                FeePolicy = FeePolicy.Inclusive
             }
         };
         db.AddExchangeOrderLogs(order.Id, DbExchangeOrderLog.Events.ExecutingExchange, req);

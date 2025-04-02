@@ -38,7 +38,7 @@
     </div>
 </div>
 
-<partial name="_StatusMessage"/>
+<partial name="_StatusMessage" />
 
 @if (Model.BTCBalance != null && Model.USDBalance != null)
 {
@@ -105,7 +105,7 @@
     </div>
 
     <partial name="_Confirm"
-             model="@(new ConfirmModel("Clear Delay?", "Are you sure you want to clear the delay on this Exchange Order?", "Confirm"))"/>
+             model="@(new ConfirmModel("Clear Delay?", "Are you sure you want to clear the delay on this Exchange Order?", "Confirm"))" />
 }
 else
 {
