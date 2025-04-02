@@ -51,6 +51,7 @@ public class CashController(
         StoreData.SetPaymentMethodConfig(handlers[paymentMethodId], currentPaymentMethodConfig);
         store.SetStoreBlob(blob);
         await storeRepository.UpdateStore(store);
+
         return RedirectToAction("StoreConfig", new { storeId = store.Id, paymentMethodId });
     }
 

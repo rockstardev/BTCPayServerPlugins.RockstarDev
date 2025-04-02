@@ -34,4 +34,30 @@ public class CashUITest : PlaywrightBaseTest
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
     }
+
+
+    [Xunit.Fact]
+    public async Task DisableCashPaymentTest()
+    {
+        string testDir = Path.Combine(Directory.GetCurrentDirectory(), "DisableCashPaymentTest");
+        using var p = CreateServerTester(testDir);
+        await p.StartAsync();
+        var storeId = await InitializeAsync(p.PayTester.ServerUri);
+
+        await GoToUrl($"/stores/{storeId}/cash");
+
+        var checkboxSelector = "input#Enabled";
+        var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+
+        bool isDisabled = !await checkBox.IsCheckedAsync();
+        if (!isDisabled)
+            await checkBox.CheckAsync();
+
+        await Page.Locator("input#Submit").ClickAsync();
+
+        checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+        Assert.False(await checkBox.IsCheckedAsync());
+    }
 }
