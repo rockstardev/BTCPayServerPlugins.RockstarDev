@@ -35,7 +35,7 @@ public class PlaywrightBaseTest : UnitTestBase
 
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = false, // Set to true for CI/automated environments
+            Headless = true, // Set to true for CI/automated environments
             SlowMo = 50 // Add slight delay between actions to improve stability
         });
 

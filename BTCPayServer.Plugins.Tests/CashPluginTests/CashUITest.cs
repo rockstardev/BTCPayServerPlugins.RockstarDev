@@ -1,5 +1,4 @@
-﻿using BTCPayServer.Tests;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.Tests.CashPluginTests;
@@ -8,20 +7,16 @@ namespace BTCPayServer.Plugins.Tests.CashPluginTests;
 [TestFixture]
 public class CashUITest : PlaywrightBaseTest, IAsyncDisposable
 {
-    private string _testDir;
-    private ServerTester _serverTester;
-    public CashUITest(ITestOutputHelper helper) : base(helper)
-    {
-        _testDir = Path.Combine(Directory.GetCurrentDirectory(), "CashPaymentTests");
-    }
+    public CashUITest(ITestOutputHelper helper) : base(helper) { }
 
 
     [Xunit.Fact]
     public async Task EnableCashPaymentTest()
     {
-        _serverTester = CreateServerTester(_testDir);
-        await _serverTester.StartAsync();
-        var storeId = await InitializeAsync(_serverTester.PayTester.ServerUri);
+        string testDir = Path.Combine(Directory.GetCurrentDirectory(), "EnableCashPaymentTest");
+        using var p = CreateServerTester(testDir);
+        await p.StartAsync();
+        var storeId = await InitializeAsync(p.PayTester.ServerUri);
 
         await GoToUrl($"/stores/{storeId}/cash");
 
@@ -39,6 +34,7 @@ public class CashUITest : PlaywrightBaseTest, IAsyncDisposable
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
     }
+
 
 
     /*[Xunit.Fact]

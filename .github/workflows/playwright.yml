@@ -27,11 +27,12 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
+        
     - name: Restore dependencies 
       run: |
         dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
         dotnet restore ConfigBuilder
+        dotnet restore BTCPayServer.Plugins.Tests
 
     - name: Clean project
       run: dotnet clean
@@ -39,6 +40,7 @@ jobs:
     - name: Build projects and run ConfigBuilder
       run: |
         dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
+        dotnet build BTCPayServer.Plugins.Tests
         dotnet build ConfigBuilder
         dotnet run --project ConfigBuilder
 
@@ -54,9 +56,8 @@ jobs:
 
     - name: Install Playwright browsers
       run: |
-        # Find the correct path to playwright.ps1
         PLAYWRIGHT_PATH=$(find . -name "playwright.ps1" | head -1)
-        # Install Playwright browsers using PowerShell
+        echo "Found playwright.ps1 at: $PLAYWRIGHT_PATH"
         pwsh $PLAYWRIGHT_PATH install --with-deps
 
     - name: Run tests
