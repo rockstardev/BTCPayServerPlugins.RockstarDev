@@ -135,10 +135,6 @@ csharp_prefer_simple_using_statement = true:warning
 curly_bracket_next_line = true
 indent_brace_style = Allman
 
-# Xml project files
-[*.{csproj,vcxproj,vcxproj.filters,proj,nativeproj,locproj}]
-indent_size = 2
-
 # Xml build files
 [*.builds]
 indent_size = 2
