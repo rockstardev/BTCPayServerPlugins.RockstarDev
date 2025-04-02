@@ -15,12 +15,10 @@ public class PlaywrightBaseTest : UnitTestBase
     {
     }
 
-    public ServerTester Server { get; set; }
     public WalletId WalletId { get; set; }
     public IPlaywright Playwright { get; private set; }
     public IBrowser Browser { get; private set; }
     public IPage Page { get; private set; }
-    public string StoreName { get; set; }
     public Uri ServerUri { get; private set; }
     public string Password { get; private set; }
     public string StoreId { get; private set; }
@@ -205,17 +203,5 @@ public class PlaywrightBaseTest : UnitTestBase
         await CreateNewStoreAsync();
         await GoToStore();
         await AddDerivationScheme();
-    }
-
-
-    public async ValueTask DisposeAsync()
-    {
-        if (Page != null)
-            await Page.CloseAsync();
-
-        if (Browser != null)
-            await Browser.CloseAsync();
-
-        Playwright?.Dispose();
     }
 }
