@@ -91,7 +91,7 @@ dotnet_style_null_propagation = true:suggestion
 csharp_style_expression_bodied_methods = false:none
 csharp_style_expression_bodied_constructors = false:none
 csharp_style_expression_bodied_operators = false:none
-csharp_style_expression_bodied_properties = true:none
+csharp_style_expression_bodied_properties = true:suggestion
 csharp_style_expression_bodied_indexers = true:none
 csharp_style_expression_bodied_accessors = true:none
 
