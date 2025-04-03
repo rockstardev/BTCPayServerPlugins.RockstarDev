@@ -13,6 +13,9 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      CI: true
+      BTCPAY_SERVER_URL: http://localhost:14142
 
     steps:
     - uses: actions/checkout@v4
@@ -44,9 +47,11 @@ jobs:
         dotnet build ConfigBuilder
         dotnet run --project ConfigBuilder
 
-    - name: Install PowerShell
+    - name: Start containers
+      run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev
+
+    - name: Setup powershell
       run: |
-        # Install PowerShell on Ubuntu
         sudo apt-get update
         sudo apt-get install -y wget apt-transport-https software-properties-common
         wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
@@ -54,10 +59,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y powershell
 
-    - name: Install Playwright browsers
+    - name: Install playwright browsers
       run: |
         PLAYWRIGHT_PATH=$(find . -name "playwright.ps1" | head -1)
-        echo "Found playwright.ps1 at: $PLAYWRIGHT_PATH"
         pwsh $PLAYWRIGHT_PATH install --with-deps
 
     - name: Run tests
