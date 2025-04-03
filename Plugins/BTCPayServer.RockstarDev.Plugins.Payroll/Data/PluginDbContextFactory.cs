@@ -1,13 +1,13 @@
-﻿using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.Abstractions.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 
@@ -43,15 +43,11 @@ public class PluginDbContextFactory(IOptions<DatabaseOptions> options)
         else
         {
             // Add a new setting since it does not exist
-            var newSetting = new PayrollSetting
-            {
-                StoreId = storeId,
-                Setting = JsonConvert.SerializeObject(setting)
-            };
+            var newSetting = new PayrollSetting { StoreId = storeId, Setting = JsonConvert.SerializeObject(setting) };
             db.PayrollSettings.Add(newSetting);
         }
 
         await db.SaveChangesAsync();
         return setting;
-    } 
+    }
 }

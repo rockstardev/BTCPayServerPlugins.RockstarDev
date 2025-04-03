@@ -1,8 +1,8 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@inject IScopeProvider ScopeProvider
 @using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data
-@inject IScopeProvider ScopeProvider
 @model PayrollUserListViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
@@ -36,6 +36,7 @@
                        class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
                        role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
                 }
+
                 @if (state == PayrollUserState.Pending)
                 {
                     <a id="@state-view"
@@ -48,7 +49,7 @@
             }
             <a id="all-view"
                asp-action="List"
-               asp-route-storeId="@storeId"    
+               asp-route-storeId="@storeId"
                asp-route-all="true"
                class="nav-link @(Model.All ? "active" : "")"
                role="tab">All (@Model.AllPayrollUsers.Count)</a>
@@ -60,74 +61,78 @@
         <div class="table-responsive-md">
             <table class="table table-hover">
                 <thead>
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Email Reminder Days</th>
-                        <th scope="col">State</th>
-                        <th scope="col" class="text-end"></th>
-                    </tr>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Email Reminder Days</th>
+                    <th scope="col">State</th>
+                    <th scope="col" class="text-end"></th>
+                </tr>
                 </thead>
                 <tbody>
-                    @foreach (var pp in Model.DisplayedPayrollUsers)
-                    {
-                        <tr class="mass-action-row">
-                            <td>@pp.Name</td>
-                            <td>@pp.Email</td>
-                            <td>@(!string.IsNullOrEmpty(pp.EmailReminder) ? pp.EmailReminder : "-")</td>
-                            <td>@pp.State</td>
-                            <td class="align-middle">
-                            </td>
+                @foreach (var pp in Model.DisplayedPayrollUsers)
+                {
+                    <tr class="mass-action-row">
+                        <td>@pp.Name</td>
+                        <td>@pp.Email</td>
+                        <td>@(!string.IsNullOrEmpty(pp.EmailReminder) ? pp.EmailReminder : "-")</td>
+                        <td>@pp.State</td>
+                        <td class="align-middle">
+                        </td>
 
-                            <td class="text-end">
-                                <div class="d-inline-flex align-items-center gap-3">
-                                    <div class="dropdown">
-                                        <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="ToggleActions-@pp.Id">
-                                            <vc:icon symbol="dots" />
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
+                        <td class="text-end">
+                            <div class="d-inline-flex align-items-center gap-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown"
+                                            aria-expanded="false" id="ToggleActions-@pp.Id">
+                                        <vc:icon symbol="dots" />
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
 
-                                            @if (pp.State == PayrollUserState.Pending)
-                                            {
-                                                <li>
-                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Resend Invitation</a>
-                                                </li>
-                                            }
-                                            else
-                                            {
-                                                <li>
-                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Edit</a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item"
-                                                       asp-controller="PayrollUser"
-                                                       asp-action="ToggleUserStatus"
-                                                       asp-route-userId="@pp.Id"
-                                                       asp-route-storeId="@storeId"
-                                                       asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
-                                                        @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId" asp-route-userId="@pp.Id">Download all invoices</a>
-                                                </li>
-                                            }
-                                            <li class="dropdown-divider"></li>
+                                        @if (pp.State == PayrollUserState.Pending)
+                                        {
                                             <li>
-                                                <a asp-controller="PayrollUser"
-                                                   asp-action="Delete"
+                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-storeId="@storeId"
+                                                   asp-route-userId="@pp.Id">Resend Invitation</a>
+                                            </li>
+                                        }
+                                        else
+                                        {
+                                            <li>
+                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-storeId="@storeId"
+                                                   asp-route-userId="@pp.Id">Edit</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   asp-controller="PayrollUser"
+                                                   asp-action="ToggleUserStatus"
                                                    asp-route-userId="@pp.Id"
                                                    asp-route-storeId="@storeId"
-                                                   class="dropdown-item text-danger">
-                                                    Delete
+                                                   asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
+                                                    @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
                                                 </a>
                                             </li>
-                                        </ul>
-                                    </div>
+                                            <li>
+                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId"
+                                                   asp-route-userId="@pp.Id">Download all invoices</a>
+                                            </li>
+                                        }
+                                        <li class="dropdown-divider"></li>
+                                        <li>
+                                            <a asp-controller="PayrollUser"
+                                               asp-action="Delete"
+                                               asp-route-userId="@pp.Id"
+                                               asp-route-storeId="@storeId"
+                                               class="dropdown-item text-danger">
+                                                Delete
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
-                            </td>
-                        </tr>
-                    }
+                            </div>
+                        </td>
+                    </tr>
+                }
                 </tbody>
             </table>
         </div>
@@ -135,15 +140,15 @@
         <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
 
         @section PageFootContent {
-        <script>
-            const ppProgresses = document.getElementsByClassName("ppProgress");
-            for (var i = 0; i < ppProgresses.length; i++) {
-                var pp = ppProgresses[i];
-                var ppId = pp.getAttribute("data-pp");
-                var template = document.getElementById("tooptip_template_" + ppId);
-                pp.setAttribute("title", template.innerHTML);
-            }
-        </script>
+            <script>
+                const ppProgresses = document.getElementsByClassName("ppProgress");
+                for (var i = 0; i < ppProgresses.length; i++) {
+                    var pp = ppProgresses[i];
+                    var ppId = pp.getAttribute("data-pp");
+                    var template = document.getElementById("tooptip_template_" + ppId);
+                    pp.setAttribute("title", template.innerHTML);
+                }
+            </script>
         }
     }
     else

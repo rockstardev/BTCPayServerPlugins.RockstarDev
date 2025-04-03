@@ -3,7 +3,7 @@
 @using BTCPayServer.Abstractions.TagHelpers
 @using BTCPayServer.TagHelpers
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PayrollSettingViewModel
+@model PayrollSettingViewModel
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
@@ -35,16 +35,18 @@
 
             <h3>Emails</h3>
             <div class="form-group d-flex align-items-center">
-                
-                <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+
+                <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle"
+                       disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
                 <div>
                     <label asp-for="EmailOnInvoicePaid" class="form-check-label"></label>
-                    <span asp-validation-for="EmailOnInvoicePaid" class="text-danger"></span> 
+                    <span asp-validation-for="EmailOnInvoicePaid" class="text-danger"></span>
                     @if (!storeEmailSettingsConfigured)
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                                first.</a>
                         </div>
                     }
                 </div>
@@ -64,7 +66,8 @@
 
             <div class="form-group d-flex align-items-center">
 
-                <input asp-for="EmailReminders" type="checkbox" class="btcpay-toggle me-3" id="emailReminderToggle" disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                <input asp-for="EmailReminders" type="checkbox" class="btcpay-toggle me-3" id="emailReminderToggle"
+                       disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
                 <div>
                     <label asp-for="EmailReminders" class="form-check-label"></label>
                     <span asp-validation-for="EmailReminders" class="text-danger"></span>
@@ -72,7 +75,8 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                                first.</a>
                         </div>
                     }
                 </div>
@@ -99,15 +103,15 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const toggleElements = [
-                { toggle: 'emailToggle', target: 'emailTemplateGroup' },
-                { toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup' }
+                {toggle: 'emailToggle', target: 'emailTemplateGroup'},
+                {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'}
             ];
 
             const toggleVisibility = (toggle, target) => {
                 document.getElementById(target).style.display = document.getElementById(toggle).checked ? 'block' : 'none';
             };
 
-            toggleElements.forEach(({ toggle, target }) => {
+            toggleElements.forEach(({toggle, target}) => {
                 const toggleInput = document.getElementById(toggle);
                 toggleInput.addEventListener('change', () => toggleVisibility(toggle, target));
                 toggleVisibility(toggle, target);

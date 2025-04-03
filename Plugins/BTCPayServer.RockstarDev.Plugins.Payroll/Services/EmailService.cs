@@ -9,30 +9,31 @@ using BTCPayServer.Services.Mails;
 using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Logging;
 using MimeKit;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
-public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs, 
-    StoreRepository storeRepo, PluginDbContextFactory pluginDbContextFactory)
+public class EmailService(
+    EmailSenderFactory emailSenderFactory,
+    Logs logs,
+    StoreRepository storeRepo,
+    PluginDbContextFactory pluginDbContextFactory)
 {
     public async Task<bool> IsEmailSettingsConfigured(string storeId)
     {
         var emailSender = await emailSenderFactory.GetEmailSender(storeId);
         return (await emailSender.GetEmailSettings() ?? new EmailSettings()).IsComplete();
     }
-    
+
     private async Task SendBulkEmail(string storeId, IEnumerable<EmailRecipient> recipients)
     {
         var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
         if (emailSettings?.IsComplete() != true)
             return;
-        
+
         var client = await emailSettings.CreateSmtpClient();
         try
         {
             foreach (var recipient in recipients)
-            {
                 try
                 {
                     var message = new MimeMessage();
@@ -46,7 +47,6 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
                 {
                     logs.PayServer.LogError(ex, $"Error sending email to: {recipient.Address}");
                 }
-            }
         }
         finally
         {
@@ -67,11 +67,10 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
             var setting = await pluginDbContextFactory.GetSettingAsync(storeGroup.Key);
             if (setting?.EmailOnInvoicePaid != true)
                 continue;
-            
+
             var storeName = (await storeRepo.FindStore(storeGroup.Key))?.StoreName;
 
             foreach (var invoice in storeGroup)
-            {
                 emailRecipients.Add(new EmailRecipient
                 {
                     Address = InternetAddress.Parse(invoice.User.Email),
@@ -83,12 +82,8 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
                         .Replace("{PaidAt}", invoice.PaidAt?.ToString("MMM dd, yyyy h:mm tt zzz"))
                         .Replace("{VendorPayPublicLink}", setting.VendorPayPublicLink)
                 });
-            }
 
-            if (emailRecipients.Any())
-            {
-                await SendBulkEmail(storeGroup.Key, emailRecipients);
-            }
+            if (emailRecipients.Any()) await SendBulkEmail(storeGroup.Key, emailRecipients);
         }
     }
 
@@ -104,9 +99,9 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
             Address = InternetAddress.Parse(model.Email),
             Subject = subject,
             MessageText = body
-                    .Replace("{Name}", model.Name)
-                    .Replace("{StoreName}", storeName)
-                    .Replace("{VendorPayRegisterLink}", vendorPayRegisterationLink)
+                .Replace("{Name}", model.Name)
+                .Replace("{StoreName}", storeName)
+                .Replace("{VendorPayRegisterLink}", vendorPayRegisterationLink)
         };
         var emailRecipients = new List<EmailRecipient> { recipient };
         await SendBulkEmail(model.StoreId, emailRecipients);
@@ -120,7 +115,7 @@ public class EmailService(EmailSenderFactory emailSenderFactory, Logs logs,
 
         var store = await storeRepo.FindStore(model.StoreId);
         var storeName = store.StoreName;
-        
+
         var settings = await pluginDbContextFactory.GetSettingAsync(store.Id);
         if (settings?.EmailReminders != true)
             return false;

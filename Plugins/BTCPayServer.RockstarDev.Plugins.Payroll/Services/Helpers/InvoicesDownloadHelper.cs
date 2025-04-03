@@ -6,10 +6,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Configuration;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -32,9 +30,7 @@ public class InvoicesDownloadHelper(
             {
                 var allFiles = new List<string> { invoice.InvoiceFilename };
                 if (!string.IsNullOrWhiteSpace(invoice.ExtraFilenames))
-                {
                     allFiles.AddRange(invoice.ExtraFilenames.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()));
-                }
 
                 foreach (var file in allFiles)
                 {
@@ -43,10 +39,10 @@ public class InvoicesDownloadHelper(
                     byte[] fileBytes;
 
                     if (fileUrl?.Contains("/LocalStorage/") == true)
-                        fileBytes = await System.IO.File.ReadAllBytesAsync(Path.Combine(dataDirectories.Value.StorageDir, filename));
+                        fileBytes = await File.ReadAllBytesAsync(Path.Combine(dataDirectories.Value.StorageDir, filename));
                     else
                         fileBytes = await httpClient.DownloadFileAsByteArray(fileUrl);
-                       
+
                     if (filename?.Length > 36)
                     {
                         var first36 = filename.Substring(0, 36);
@@ -58,13 +54,14 @@ public class InvoicesDownloadHelper(
                             // Ensure filename is unique
                             var baseFilename = Path.GetFileNameWithoutExtension(filename);
                             var extension = Path.GetExtension(filename);
-                            int counter = 1;
+                            var counter = 1;
 
                             while (usedFilenames.Contains(filename))
                             {
                                 filename = $"{baseFilename} ({counter}){extension}";
                                 counter++;
                             }
+
                             usedFilenames.Add(filename);
                         }
                     }

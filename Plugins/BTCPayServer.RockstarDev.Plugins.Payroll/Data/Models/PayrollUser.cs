@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 
@@ -21,6 +21,7 @@ public class PayrollUser
 
     [MaxLength(50)]
     public string StoreId { get; set; }
+
     public ICollection<PayrollInvoice> PayrollInvoices { get; set; } = new List<PayrollInvoice>();
 
     // TODO: Adding State property

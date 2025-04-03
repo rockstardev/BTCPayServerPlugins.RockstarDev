@@ -1,6 +1,6 @@
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
-@inject BTCPayServer.Services.BTCPayServerEnvironment Env
-@model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.BasePayrollPublicViewModel
+@inject BTCPayServerEnvironment Env
+@using BTCPayServer.Services
+@model BasePayrollPublicViewModel
 @{
     Layout = null;
     ViewData["StoreBranding"] = Model.StoreBranding;
@@ -12,9 +12,9 @@
     <meta name="robots" content="noindex,nofollow">
 </head>
 <body class="min-vh-100">
-    @RenderBody()
+@RenderBody()
 
-    <partial name="LayoutFoot" />
-    <partial name="_ValidationScriptsPartial" />
+<partial name="LayoutFoot" />
+<partial name="_ValidationScriptsPartial" />
 </body>
 </html>

@@ -1,6 +1,6 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
@@ -21,6 +21,7 @@ public class PayrollInvitation
     public DateTime CreatedAt { get; set; }
 
     public DateTime? AcceptedAt { get; set; }
+
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {
     }
