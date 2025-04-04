@@ -21,6 +21,7 @@ public class PayrollSettingController(
     PluginDbContextFactory pluginDbContextFactory,
     EmailService emailService,
     LinkGenerator linkGenerator) : Controller
+
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
@@ -80,6 +81,7 @@ public class PayrollSettingController(
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
             VendorPayPublicLink = link
         };
+
 
         await pluginDbContextFactory.SetSettingAsync(storeId, settings);
         TempData.SetStatusMessageModel(new StatusMessageModel

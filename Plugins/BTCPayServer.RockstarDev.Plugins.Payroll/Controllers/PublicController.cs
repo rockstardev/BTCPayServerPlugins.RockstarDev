@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Extensions;
@@ -102,8 +102,10 @@ public class PublicController(
     public async Task<IActionResult> AcceptInvitation(AcceptInvitationRequestViewModel model)
     {
         await using var dbPlugins = pluginDbContextFactory.CreateContext();
+
         var invitation =
             dbPlugins.PayrollInvitations.SingleOrDefault(i => i.Token == model.Token && !i.AcceptedAt.HasValue && i.CreatedAt.AddDays(7) >= DateTime.UtcNow);
+
         if (invitation == null)
         {
             ModelState.AddModelError(nameof(model.NewPassword), "Invalid or expired invitation");
@@ -347,6 +349,7 @@ public class PublicController(
             return vali.ErrorActionResult;
 
         await using var ctx = pluginDbContextFactory.CreateContext();
+
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
             .SingleOrDefault(a => a.Id == id);
 

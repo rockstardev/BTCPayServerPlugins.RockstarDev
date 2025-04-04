@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -53,7 +53,9 @@ Thank you,
     public async Task<IActionResult> List(string storeId, bool all, bool pending)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
+
         var query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
+
         if (pending)
             query = query.Where(a => a.State == PayrollUserState.Pending);
         else if (!all) query = query.Where(a => a.State == PayrollUserState.Active);
@@ -179,7 +181,9 @@ Thank you,
             return NotFound();
 
         await using var ctx = pluginDbContextFactory.CreateContext();
+
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == PayrollUserState.Pending);
+
         if (user == null)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
@@ -318,7 +322,9 @@ Thank you,
             return NotFound();
 
         await using var ctx = pluginDbContextFactory.CreateContext();
+
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
 
         if (user == null)
             return NotFound();
@@ -336,7 +342,9 @@ Thank you,
             return NotFound();
 
         await using var ctx = pluginDbContextFactory.CreateContext();
+
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
+
 
         if (user == null)
             return NotFound();

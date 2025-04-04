@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +20,9 @@ public class VendorPayEmailReminderService(
     public async Task Do(CancellationToken cancellationToken)
     {
         await using var db = pluginDbContextFactory.CreateContext();
+
         var stores = db.PayrollSettings.Select(a => a.StoreId).ToList();
+
         foreach (var storeId in stores)
         {
             if (await emailService.IsEmailSettingsConfigured(storeId) == false)

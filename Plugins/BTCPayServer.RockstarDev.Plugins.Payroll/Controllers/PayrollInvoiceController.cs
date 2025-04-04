@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -289,6 +289,7 @@ public class PayrollInvoiceController(
             return NotFound();
 
         await using var ctx = pluginDbContextFactory.CreateContext();
+
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
             .SingleOrDefault(a => a.Id == id);
 

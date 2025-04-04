@@ -21,6 +21,7 @@ public class DbExchangeOrderLog
     public string Content { get; set; }
     public DateTimeOffset Created { get; set; }
 
+
     [StringLength(50)]
     public string Parameter { get; set; }
 }

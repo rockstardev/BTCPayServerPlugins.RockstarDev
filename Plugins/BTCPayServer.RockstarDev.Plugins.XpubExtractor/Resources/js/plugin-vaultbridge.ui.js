@@ -1,5 +1,5 @@
-/// <reference path="vaultbridge.js" />
-/// file: vaultbridge.js
+/// <reference path="plugin-vaultbridge.js" />
+/// file: plugin-vaultbridge.js
 
 var vaultui = (function () {
 
@@ -279,6 +279,7 @@ var vaultui = (function () {
         this.askForXPubs = async function () {
             if (!await self.ensureConnectedToBackend())
                 return false;
+
             self.bridge.socket.send("ask-xpub");
             var json = await self.bridge.waitBackendMessage();
             if (json.hasOwnProperty("error")) {
@@ -301,51 +302,49 @@ var vaultui = (function () {
                 return true;
             } catch (err) {
                 showError({ error: true, message: err });
+                return false;
             }
         };
 
         /**
-        * @returns {Promise<{addressType:string, accountNumber:number}>}
-        */
+         * @returns {Promise<{signatureType:string, addressType:string, accountNumber:number, customKeyPath:string}>}
+         */
         this.getXpubSettings = function () {
             show(VaultFeedbacks.askXpubs);
-            $("#vault-xpub").css("display", "block");
-            $("#vault-confirm").css("display", "block");
+            $("#vault-xpub, #vault-confirm").css("display", "block");
             $("#vault-confirm").text("Confirm");
-            
-            // restore previous settings if applicable
-            const savedSignatureType = localStorage.getItem('signatureType');
-            if (savedSignatureType) {
-                $("#signatureType").val(savedSignatureType);
-            }            
-            const savedAddressType = localStorage.getItem('addressType');
-            if (savedAddressType) {
-                $("#addressType").val(savedAddressType);
-            }
-            const savedAccountNumber = localStorage.getItem('accountNumber');
-            if (savedAccountNumber) {
-                $("#accountNumber").val(savedAccountNumber);
-            }
-            //            
-            
+
             return new Promise(function (resolve, reject) {
                 $("#vault-confirm").click(async function (e) {
                     e.preventDefault();
-                    $("#vault-xpub").css("display", "none");
-                    $("#vault-confirm").css("display", "none");
+                    $("#vault-xpub, #vault-confirm").css("display", "none");
                     $(this).unbind();
-                    const signatureType = $("select[name=\"signatureType\"]").val();
-                    const addressType = $("select[name=\"addressType\"]").val();
-                    const accountNumber = parseInt($("input[name=\"accountNumber\"]").val());
-                    if (signatureType && addressType && !isNaN(accountNumber)) {
-                        localStorage.setItem('signatureType', signatureType);
-                        localStorage.setItem('addressType', addressType);
-                        localStorage.setItem('accountNumber', accountNumber+"");
-                        
-                        resolve({ signatureType, addressType, accountNumber });
-                    } else {
-                        reject("Provide an address type and account number")
+
+                    const signatureType = $("select[name='signatureType']").val();
+                    const addressType = $("select[name='addressType']").val();
+                    const accountNumberInput = $("input[name='accountNumber']").val();
+                    const accountNumber = parseInt(accountNumberInput);
+                    const customKeyPath = $("input[name='customKeyPath']").val();
+
+                    const isCustom = signatureType === "custom";
+
+                    if (!isCustom && (!signatureType || !addressType || isNaN(accountNumber))) {
+                        reject("Provide an address type and account number");
+                        return;
                     }
+                    if (isCustom && !customKeyPath) {
+                        reject("Provide a custom key path");
+                        return;
+                    }
+                    
+                    // TODO: Optionally save the settings in local storage and restore UI in future
+                    
+                    resolve({
+                        signatureType,
+                        addressType: addressType,
+                        accountNumber: isCustom ? null : accountNumber,
+                        customKeyPath: isCustom ? customKeyPath : null
+                    });
                 });
             });
         };
