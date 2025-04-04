@@ -121,21 +121,16 @@
         const customKeyPathInput = document.getElementById("customKeyPath");
         
         function updateKeyPath() {
-            const signatureType = signatureTypeSelect.value;
+            const signatureType = signatureTypeSelect.value.toLowerCase();
             const addressType = addressTypeSelect.value;
             const accountNumber = accountNumberInput.value;
             
             if (signatureType === "custom") {
                 customKeyPathInput.readOnly = false;
-                divAddressType.style.display = "none";
                 divAccount.style.display = "none";
-                
-                if (!customKeyPathInput.value) {
-                    customKeyPathInput.value = "m/84'/0'/4'";
-                }
+                customKeyPathInput.value = "m/21'/21'/21'";
             } else {
                 customKeyPathInput.readOnly = true;
-                divAddressType.style.display = "block";
                 divAccount.style.display = "block";
                 
                 if (signatureType === "singlesig") {

@@ -36,14 +36,14 @@ public class VaultBridgeController : Controller
         _handlers = handlers;
         _authorizationService = authorizationService;
     }
-    
+
     // This is a websocket endpoint that is used by javascript to fetch information from a hardware wallet
     [Route("~/plugins/xpubextractor/vaultbridgeconnection")]
     public async Task<IActionResult> VaultBridgeConnection(string cryptoCode = null)
     {
         if (!HttpContext.WebSockets.IsWebSocketRequest)
             return NotFound();
-        
+
         WalletId walletId = new WalletId(CurrentStore.Id, "BTC");
         cryptoCode = cryptoCode ?? walletId.CryptoCode;
         bool versionChecked = false;
@@ -248,6 +248,8 @@ public class VaultBridgeController : Controller
                             var askedXpub = JObject.Parse(await websocketHelper.NextMessageAsync(cancellationToken));
                             // when we're in ask-xpub mode, we will wait here on server until we get another message from client view
 
+                            var signatureType = askedXpub["signatureType"].Value<string>();
+                            var addressType = askedXpub["addressType"].Value<string>();
                             var customKeyPath = askedXpub["customKeyPath"]?.Value<string>();
                             KeyPath keyPath;
 
@@ -265,10 +267,8 @@ public class VaultBridgeController : Controller
                             }
                             else
                             {
-                                var signatureType = askedXpub["signatureType"].Value<string>();
-                                var addressType = askedXpub["addressType"].Value<string>();
                                 var accountNumber = askedXpub["accountNumber"].Value<int>();
-                                
+
                                 keyPath = GetKeyPath(signatureType, addressType, network.CoinType, accountNumber);
                                 if (keyPath is null)
                                 {
@@ -277,18 +277,18 @@ public class VaultBridgeController : Controller
                                 }
                             }
 
-                            if (fingerprint is null) 
+                            if (fingerprint is null)
                                 await FetchFingerprint();
-                            
+
                             var xpub = await device.GetXPubAsync(keyPath);
-                            
+
                             // Create derivation strategy based on key path
                             var factory = network.NBXplorerNetwork.DerivationStrategyFactory;
-                            var strategy = CreateDerivationStrategy(factory, xpub, keyPath);
+                            var strategy = CreateDerivationStrategy(factory, xpub, addressType);
                             if (strategy is null)
                             {
                                 await websocketHelper.Send("{ \"error\": \"unsupported-signature-type\"}",
-                                cancellationToken);
+                                    cancellationToken);
                                 continue;
                             }
 
@@ -412,12 +412,19 @@ public class VaultBridgeController : Controller
 
     public class IndexViewModel
     {
-        [Display(Name = "Derivation scheme")] public string DerivationScheme { get; set; }
+        [Display(Name = "Derivation scheme")]
+        public string DerivationScheme { get; set; }
+
         public string CryptoCode { get; set; }
         public string KeyPath { get; set; }
-        [Display(Name = "Root fingerprint")] public string RootFingerprint { get; set; }
+
+        [Display(Name = "Root fingerprint")]
+        public string RootFingerprint { get; set; }
+
         public bool Confirmation { get; set; }
-        [Display(Name = "Wallet file")] public IFormFile WalletFile { get; set; }
+
+        [Display(Name = "Wallet file")]
+        public IFormFile WalletFile { get; set; }
 
         [Display(Name = "Wallet file content")]
         public string WalletFileContent { get; set; }
@@ -428,10 +435,17 @@ public class VaultBridgeController : Controller
         [Display(Name = "Derivation scheme format")]
         public string DerivationSchemeFormat { get; set; }
 
-        [Display(Name = "Account key")] public string AccountKey { get; set; }
+        [Display(Name = "Account key")]
+        public string AccountKey { get; set; }
+
         public BTCPayNetwork Network { get; set; }
-        [Display(Name = "Can use hot wallet")] public bool CanUseHotWallet { get; set; }
-        [Display(Name = "Can use RPC import")] public bool CanUseRPCImport { get; set; }
+
+        [Display(Name = "Can use hot wallet")]
+        public bool CanUseHotWallet { get; set; }
+
+        [Display(Name = "Can use RPC import")]
+        public bool CanUseRPCImport { get; set; }
+
         public bool SupportSegwit { get; set; }
         public bool SupportTaproot { get; set; }
 
@@ -472,13 +486,19 @@ public class VaultBridgeController : Controller
     }
 
     private DerivationStrategyBase CreateDerivationStrategy(DerivationStrategyFactory factory,
-        BitcoinExtPubKey xpub, KeyPath keyPath)
+        BitcoinExtPubKey xpub, string addressType)
     {
-        var scriptPubKeyType = GetScriptPubKeyType(new RootedKeyPath(keyPath));
-        return factory.CreateDirectDerivationStrategy(xpub,
-            new DerivationStrategyOptions
-            {
-                ScriptPubKeyType = scriptPubKeyType
-            });
+        return addressType switch
+        {
+            "taproot" => factory.CreateDirectDerivationStrategy(xpub,
+                new DerivationStrategyOptions { ScriptPubKeyType = ScriptPubKeyType.TaprootBIP86 }),
+            "segwit" => factory.CreateDirectDerivationStrategy(xpub,
+                new DerivationStrategyOptions { ScriptPubKeyType = ScriptPubKeyType.Segwit }),
+            "segwitWrapped" => factory.CreateDirectDerivationStrategy(xpub,
+                new DerivationStrategyOptions { ScriptPubKeyType = ScriptPubKeyType.SegwitP2SH }),
+            "legacy" => factory.CreateDirectDerivationStrategy(xpub,
+                new DerivationStrategyOptions { ScriptPubKeyType = ScriptPubKeyType.Legacy }),
+            _ => null
+        };
     }
 }
