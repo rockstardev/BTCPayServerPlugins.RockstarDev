@@ -12,12 +12,8 @@ public class RequiredIfAttribute(string dependentProperty, object targetValue) :
 
         var dependentValue = property.GetValue(validationContext.ObjectInstance, null);
         if ((dependentValue == null && targetValue == null) || (dependentValue != null && dependentValue.Equals(targetValue)))
-        {
             if (value == null || (value is string s && string.IsNullOrWhiteSpace(s)))
-            {
                 return new ValidationResult($"{validationContext.DisplayName} is required.");
-            }
-        }
 
         return ValidationResult.Success;
     }

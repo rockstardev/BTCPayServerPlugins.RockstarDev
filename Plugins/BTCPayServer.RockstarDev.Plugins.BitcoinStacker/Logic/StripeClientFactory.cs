@@ -17,13 +17,7 @@ public class StripeClientFactory
     public async Task<List<Payout>> PayoutsSince(string apiKey, DateTimeOffset sinceDate)
     {
         var payouts = new PayoutService(new StripeClient(apiKey));
-        var payoutsResp = await payouts.ListAsync(new PayoutListOptions
-        {
-            Created = new DateRangeOptions
-            {
-                GreaterThan = sinceDate.UtcDateTime
-            }
-        });
+        var payoutsResp = await payouts.ListAsync(new PayoutListOptions { Created = new DateRangeOptions { GreaterThan = sinceDate.UtcDateTime } });
         return payoutsResp.Data;
     }
 }

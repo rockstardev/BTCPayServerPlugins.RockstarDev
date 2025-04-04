@@ -59,7 +59,7 @@
 
 
     <ItemGroup>
-      <EditorConfigFiles Remove=".editorconfig" />
+        <EditorConfigFiles Remove=".editorconfig"/>
     </ItemGroup>
     <!-- Copy all files from the net8.0 folder -->
     <Target Name="CopyStripeNetFiles" BeforeTargets="AfterBuild">

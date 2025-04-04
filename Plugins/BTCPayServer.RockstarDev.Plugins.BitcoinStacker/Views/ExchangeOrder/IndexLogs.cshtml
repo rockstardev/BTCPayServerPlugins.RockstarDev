@@ -1,4 +1,4 @@
-﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models
 @using Microsoft.AspNetCore.Mvc.TagHelpers
@@ -38,7 +38,7 @@
         <a href="#" class="btn btn-primary" onclick="event.preventDefault(); document.getElementById('AddDelayForm').submit();">
             Add Delay
         </a>
-        
+
         @if (Model.Item.State != DbExchangeOrder.States.Completed)
         {
             <form id="ForceConversionForm" asp-controller="ExchangeOrder" asp-action="ForceConversion" asp-route-storeId="@storeId"

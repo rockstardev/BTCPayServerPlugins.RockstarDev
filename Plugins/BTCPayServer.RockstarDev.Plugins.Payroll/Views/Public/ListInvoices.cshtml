@@ -1,9 +1,8 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Components.TruncateCenter
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PublicListInvoicesViewModel
+@model PublicListInvoicesViewModel
 @{
     Layout = "_PayrollPublicLayout";
     ViewData["Title"] = "Your Invoices";
@@ -19,7 +18,8 @@
                 <div class="d-flex gap-3 mt-3 mt-sm-0">
                     <a asp-controller="Public" asp-action="Upload" asp-route-storeId="@Model.StoreId" class="btn btn-primary">Upload Invoice</a>
                     <div class="dropdown">
-                        <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
                             <span>Options</span>
                         </button>
                         <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
@@ -39,101 +39,105 @@
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="mass-action-head">
-                            <tr>
-                                <th class="date-col">
-                                    <div class="d-flex align-items-center gap-1">
-                                        Created At
-                                        <button type="button" class="btn btn-link p-0 fa fa-clock-o switch-time-format only-for-js" title="Switch date format"></button>
-                                    </div>
-                                </th>
-                                <th scope="col">User</th>
-                                <th scope="col">Destination</th>
-                                <th scope="col">Amount</th>
-                                <th scope="col">State</th>
-                                @if (Model.PurchaseOrdersRequired)
-                                {
+                        <tr>
+                            <th class="date-col">
+                                <div class="d-flex align-items-center gap-1">
+                                    Created At
+                                    <button type="button" class="btn btn-link p-0 fa fa-clock-o switch-time-format only-for-js"
+                                            title="Switch date format"></button>
+                                </div>
+                            </th>
+                            <th scope="col">User</th>
+                            <th scope="col">Destination</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">State</th>
+                            @if (Model.PurchaseOrdersRequired)
+                            {
                                 <th scope="col">Purchase Order</th>
-                                }
-                                else
-                                {
+                            }
+                            else
+                            {
                                 <th scope="col">Description</th>
-                                }
-                                <th scope="col" class="text-end"></th>
-                            </tr>
+                            }
+                            <th scope="col" class="text-end"></th>
+                        </tr>
                         </thead>
                         <tbody>
-                            @foreach (var pp in Model.Invoices)
-                            {
-                                <tr id="invoice_@pp.Id">
-                                    <td>@pp.CreatedAt.ToBrowserDate()</td>
-                                    <td>
-                                        @pp.Name
-                                        <a href="mailto:@pp.Email"><i class="fa fa-envelope-o"></i></a>
-                                    </td>
-                                    <td>
-                                        <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@pp.Destination" classes="truncate-center-id" />
-                                    </td>
-                                    <td>@pp.Amount @pp.Currency</td>
-                                    <td>
-                                        @if (pp.State == PayrollInvoiceState.Completed && !string.IsNullOrEmpty(pp.TxnId))
-                                        {
-                                            <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
-                                                @pp.State.ToString()
-                                            </a>
-                                        }
-                                        else
-                                        {
+                        @foreach (var pp in Model.Invoices)
+                        {
+                            <tr id="invoice_@pp.Id">
+                                <td>@pp.CreatedAt.ToBrowserDate()</td>
+                                <td>
+                                    @pp.Name
+                                    <a href="mailto:@pp.Email"><i class="fa fa-envelope-o"></i></a>
+                                </td>
+                                <td>
+                                    <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@(pp.Destination)"
+                                                        classes="truncate-center-id" />
+                                </td>
+                                <td>@pp.Amount @pp.Currency</td>
+                                <td>
+                                    @if (pp.State == PayrollInvoiceState.Completed && !string.IsNullOrEmpty(pp.TxnId))
+                                    {
+                                        <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
                                             @pp.State.ToString()
-                                        }
-                                        @if (pp.State == PayrollInvoiceState.Completed && pp.PaidAt.HasValue)
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        @pp.State.ToString()
+                                    }
+                                    @if (pp.State == PayrollInvoiceState.Completed && pp.PaidAt.HasValue)
+                                    {
+                                        <div>@pp.PaidAt?.ToBrowserDate()</div>
+                                    }
+                                </td>
+                                <td>
+                                    @if (Model.PurchaseOrdersRequired)
+                                    {
+                                        <span style="max-width: 250px;">@pp.PurchaseOrder</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(pp.Description))
+                                    {
+                                        @if (!string.IsNullOrEmpty(pp.PurchaseOrder))
                                         {
-                                            <div>@pp.PaidAt?.ToBrowserDate()</div>
+                                            <span> - </span>
                                         }
-                                    </td>
-                                    <td>
-                                        @if (Model.PurchaseOrdersRequired)
-                                        {
-                                            <span style="max-width: 250px;">@pp.PurchaseOrder</span>
-                                        }
-                                        @if (!string.IsNullOrEmpty(pp.Description))
-                                        {
-                                            @if (!String.IsNullOrEmpty(pp.PurchaseOrder))
-                                            {
-                                                <span> - </span>
-                                            }
-                                            <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
+
+                                        <span class="text-break" data-bs-toggle="tooltip" title="@pp.Description" style="cursor: pointer;">
                                                 <span style="max-width: 250px;">@pp.Description</span>
                                             </span>
-                                        }
-                                    </td>
-                                    <td class="text-end">
+                                    }
+                                </td>
+                                <td class="text-end">
 
-                                        @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
-                                        {
-                                            <a data-bs-toggle="tooltip" title="View Uploaded Invoice" href="/Storage/@pp.InvoiceUrl" target="_blank" rel="noopener noreferrer">
-                                                <vc:icon symbol="nav-invoice" />
-                                            </a>
-                                        }
-                                        @if (!string.IsNullOrEmpty(pp.ExtraInvoiceFiles))
-                                        {
-                                            <a data-bs-toggle="tooltip" title="All Files"
-                                               asp-action="DownloadInvoices" asp-route-invoiceId="@pp.Id" asp-route-storeId="@Model.StoreId">
-                                                <vc:icon symbol="actions-download" />
-                                            </a>
-                                        }
-                                        @if (pp.State == PayrollInvoiceState.AwaitingApproval)
-                                        {
-                                            <span>-</span>
-                                            <a asp-controller="PayrollInvoice"
-                                               asp-action="Delete"
-                                               asp-route-id="@pp.Id" asp-route-storeId="@Model.StoreId"
-                                               class="text-danger">
-                                                Delete
-                                            </a>
-                                        }
-                                    </td>
-                                </tr>
-                            }
+                                    @if (!string.IsNullOrEmpty(pp.InvoiceUrl))
+                                    {
+                                        <a data-bs-toggle="tooltip" title="View Uploaded Invoice" href="/Storage/@pp.InvoiceUrl" target="_blank"
+                                           rel="noopener noreferrer">
+                                            <vc:icon symbol="nav-invoice" />
+                                        </a>
+                                    }
+                                    @if (!string.IsNullOrEmpty(pp.ExtraInvoiceFiles))
+                                    {
+                                        <a data-bs-toggle="tooltip" title="All Files"
+                                           asp-action="DownloadInvoices" asp-route-invoiceId="@pp.Id" asp-route-storeId="@Model.StoreId">
+                                            <vc:icon symbol="actions-download" />
+                                        </a>
+                                    }
+                                    @if (pp.State == PayrollInvoiceState.AwaitingApproval)
+                                    {
+                                        <span>-</span>
+                                        <a asp-controller="PayrollInvoice"
+                                           asp-action="Delete"
+                                           asp-route-id="@pp.Id" asp-route-storeId="@Model.StoreId"
+                                           class="text-danger">
+                                            Delete
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
                         </tbody>
                     </table>
                 </div>
@@ -150,7 +154,8 @@
     </main>
     <footer class="store-footer">
         <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
-            Powered by <partial name="_StoreFooterLogo" />
+            Powered by
+            <partial name="_StoreFooterLogo" />
         </a>
     </footer>
 </div>

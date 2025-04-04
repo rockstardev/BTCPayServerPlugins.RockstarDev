@@ -1,7 +1,6 @@
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 
@@ -20,9 +19,6 @@ public class ValidationResult
 
     public void ApplyToModelState(ModelStateDictionary modelState)
     {
-        foreach (var error in _errors)
-        {
-            modelState.AddModelError(error.Key, error.Value);
-        }
+        foreach (var error in _errors) modelState.AddModelError(error.Key, error.Value);
     }
 }

@@ -1,5 +1,4 @@
-﻿@using BTCPayServer.RockstarDev.Plugins.Payroll.Controllers
-@model BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels.PublicPayrollInvoiceUploadViewModel
+﻿@model PublicPayrollInvoiceUploadViewModel
 @{
     Layout = "_PayrollPublicLayout";
     ViewData["Title"] = "Upload Invoice";
@@ -35,7 +34,7 @@
                     </div>
                     @if (Model.PurchaseOrdersRequired)
                     {
-                        @Html.HiddenFor(a=>a.PurchaseOrdersRequired)
+                        @Html.HiddenFor(a => a.PurchaseOrdersRequired)
                         <div class="form-group">
                             <label asp-for="PurchaseOrder" class="form-label"></label>
                             <input asp-for="PurchaseOrder" class="form-control" />
@@ -68,7 +67,8 @@
     </div>
     <footer class="store-footer">
         <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
-            Powered by <partial name="_StoreFooterLogo" />
+            Powered by
+            <partial name="_StoreFooterLogo" />
         </a>
     </footer>
 </div>

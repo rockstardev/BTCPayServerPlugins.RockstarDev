@@ -1,9 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 
 /// <summary>
-/// This class holds settings per store
+///     This class holds settings per store
 /// </summary>
 public class PayrollStoreSetting
 {

@@ -12,10 +12,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll;
 // ReSharper disable once UnusedType.Global
 public class PayrollPlugin : BaseBTCPayServerPlugin
 {
-    public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
-    {
-        new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
-    };
+    public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } = { new() { Identifier = nameof(BTCPayServer), Condition = ">=2.0.0" } };
 
     public override void Execute(IServiceCollection serviceCollection)
     {
@@ -23,7 +20,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
-        
+
         // hosted services
         serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
         serviceCollection.AddSingleton<IHostedService>(provider =>

@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
 public class PayrollUserListViewModel
 {
-    public List<Data.Models.PayrollUser> DisplayedPayrollUsers { get; set; }
-    public List<Data.Models.PayrollUser> AllPayrollUsers { get; set; }
+    public List<PayrollUser> DisplayedPayrollUsers { get; set; }
+    public List<PayrollUser> AllPayrollUsers { get; set; }
     public bool Pending { get; set; }
     public bool All { get; set; }
 }
@@ -44,6 +45,7 @@ public class PayrollUserCreateViewModel
 
     [Display(Name = "Email Reminder Days")]
     public string EmailReminder { get; set; }
+
     [JsonIgnore]
     public string StoreId { get; set; }
 
@@ -53,6 +55,7 @@ public class PayrollUserCreateViewModel
 public class PayrollUserResetPasswordViewModel
 {
     public string Id { get; set; }
+
     [Required]
     [MinLength(6)]
     [DataType(DataType.Password)]
@@ -71,6 +74,7 @@ public class AcceptInvitationRequestViewModel : BasePayrollPublicViewModel
     public string Token { get; set; }
     public string Email { get; set; }
     public string Name { get; set; }
+
     [Required]
     [MinLength(6)]
     [DataType(DataType.Password)]
@@ -92,5 +96,4 @@ public class InvitationEmailModel
     public string UserName { get; set; }
     public string UserEmail { get; set; }
     public string Subject { get; set; }
-
 }

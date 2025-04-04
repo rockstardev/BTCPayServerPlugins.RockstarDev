@@ -1,5 +1,4 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
-@using static BTCPayServer.RockstarDev.Plugins.Payroll.Controllers.PayrollInvoiceController
 @model AdminNoteViewModel
 @{
     ViewData.SetActivePage("VendorPay", "Admin Note on Invoice", "VendorPay");
@@ -12,8 +11,8 @@
     </div>
 
     <partial name="_StatusMessage" />
-    
-    @Html.HiddenFor(a=>a.Id)
+
+    @Html.HiddenFor(a => a.Id)
 
     <div class="row">
         <div class="col-md-6">

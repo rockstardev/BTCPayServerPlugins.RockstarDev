@@ -40,15 +40,18 @@ public class PayrollInvoiceUploadViewModel
     [Required]
     [DisplayName("User")]
     public string UserId { get; set; }
+
     public SelectList PayrollUsers { get; set; }
-    
+
     [Required]
     public string Destination { get; set; }
+
     [Required]
     public decimal Amount { get; set; }
+
     [Required]
     public string Currency { get; set; }
-        
+
     [RequiredIf("PurchaseOrdersRequired", true)]
     [DisplayName("Purchase Order")]
     [MaxLength(20)]
@@ -57,8 +60,7 @@ public class PayrollInvoiceUploadViewModel
     public bool PurchaseOrdersRequired { get; set; }
     public string Description { get; set; }
     public IFormFile Invoice { get; set; }
-    
+
     [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]
     public List<IFormFile> ExtraFiles { get; set; } = new();
-
 }

@@ -1,7 +1,7 @@
-﻿@using BTCPayServer.Abstractions.Contracts
+﻿@inject IScopeProvider ScopeProvider
+@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@inject IScopeProvider ScopeProvider
 @model PayrollUserCreateViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
@@ -11,10 +11,11 @@
     bool IsValidReminderDate(string value)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
-        if (int.TryParse(value, out int num))
+        if (int.TryParse(value, out var num))
         {
             return num >= 1 && num <= 31;
         }
+
         return false;
     }
 
@@ -145,7 +146,7 @@
             reminderList.addEventListener("click", function (e) {
                 if (e.target.classList.contains("role-button")) {
                     e.target.remove();
-                updateHiddenInput();
+                    updateHiddenInput();
                 }
             });
         });

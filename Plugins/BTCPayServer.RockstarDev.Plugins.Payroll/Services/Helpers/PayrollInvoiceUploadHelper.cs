@@ -31,7 +31,7 @@ public class PayrollInvoiceUploadHelper(
         };
         return Process(storeId, userId, mainModel);
     }
-    
+
     public async Task<ValidationResult> Process(string storeId, string userId, PayrollInvoiceUploadViewModel model)
     {
         var validation = new ValidationResult();
@@ -66,10 +66,8 @@ public class PayrollInvoiceUploadHelper(
             validation.AddError(nameof(model.Destination), "This destination is already specified for another invoice with payment in progress.");
 
         if (!validation.IsValid)
-        {
             // triggering early return with validation errors
             return validation;
-        }
 
         var removeTrailingZeros = model.Amount % 1 == 0 ? (int)model.Amount : model.Amount;
         var dbPayrollInvoice = new PayrollInvoice
@@ -99,6 +97,7 @@ public class PayrollInvoiceUploadHelper(
                 var extraFileUpload = await fileService.AddFile(invoice, adminset!.AdminAppUserId);
                 extraFiles.Add(extraFileUpload.Id);
             }
+
             dbPayrollInvoice.ExtraFilenames = string.Join(",", extraFiles);
         }
 

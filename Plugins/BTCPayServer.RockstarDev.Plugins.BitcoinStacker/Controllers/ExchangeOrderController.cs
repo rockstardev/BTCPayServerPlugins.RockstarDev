@@ -27,7 +27,8 @@ public class ExchangeOrderController(
     StrikeClientFactory strikeClientFactory,
     EventAggregator eventAggregator) : Controller
 {
-    [FromRoute] public string StoreId { get; set; }
+    [FromRoute]
+    public string StoreId { get; set; }
 
     [HttpGet("index")]
     public async Task<IActionResult> Index()
@@ -161,11 +162,7 @@ public class ExchangeOrderController(
         var store = db.SettingFetch(StoreId, DbSettingKeys.ExchangeOrderSettings);
         var settings = SettingsViewModel.FromDbSettings(store);
 
-        eventAggregator.Publish(new ExchangeOrderHeartbeatService.PeriodProcessEvent
-        {
-            StoreId = StoreId,
-            Setting = settings
-        });
+        eventAggregator.Publish(new ExchangeOrderHeartbeatService.PeriodProcessEvent { StoreId = StoreId, Setting = settings });
         TempData[WellKnownTempData.SuccessMessage] = "Heartbeat run in progress";
 
         return RedirectToAction(nameof(Index), new { StoreId });
@@ -195,6 +192,28 @@ public class ExchangeOrderController(
     }
     
     
+
+    [HttpPost("UpdateExchangeRates")]
+    public async Task<IActionResult> UpdateExchangeRates()
+    {
+        await using var db = pluginDbContextFactory.CreateContext();
+
+        var exchanges = db.ExchangeOrders
+            .Where(a => a.StoreId == StoreId &&
+                        a.ConversionRate != null && a.ConversionRate > 0 && a.ConversionRate < 0.01m)
+            .ToList();
+
+        foreach (var exchange in exchanges)
+            if (exchange.ConversionRate != null)
+                exchange.ConversionRate = Math.Round(1m / exchange.ConversionRate.Value, 2);
+
+        await db.SaveChangesAsync();
+
+        TempData[WellKnownTempData.SuccessMessage] = "Exchange Rates updated";
+
+        return RedirectToAction(nameof(Index), new { StoreId });
+    }
+
 
     //
 
