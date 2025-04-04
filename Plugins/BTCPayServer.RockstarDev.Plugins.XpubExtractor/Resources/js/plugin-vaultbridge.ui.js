@@ -314,16 +314,6 @@ var vaultui = (function () {
             $("#vault-xpub, #vault-confirm").css("display", "block");
             $("#vault-confirm").text("Confirm");
 
-            const restoreSetting = (key, selector) => {
-                const value = localStorage.getItem(key);
-                if (value) $(selector).val(value);
-            };
-
-            restoreSetting('signatureType', '#signatureType');
-            restoreSetting('addressType', '#addressType');
-            restoreSetting('accountNumber', '#accountNumber');
-            restoreSetting('customKeyPath', '#customKeyPath');
-
             return new Promise(function (resolve, reject) {
                 $("#vault-confirm").click(async function (e) {
                     e.preventDefault();
@@ -346,19 +336,14 @@ var vaultui = (function () {
                         reject("Provide a custom key path");
                         return;
                     }
-
-                    const customPath = isCustom ? customKeyPath : null;
-
-                    localStorage.setItem('signatureType', signatureType);
-                    localStorage.setItem('addressType', isCustom ? "" : addressType);
-                    localStorage.setItem('accountNumber', isCustom ? "" : accountNumberInput);
-                    localStorage.setItem('customKeyPath', customPath);
-
+                    
+                    // TODO: Optionally save the settings in local storage and restore UI in future
+                    
                     resolve({
                         signatureType,
-                        addressType: isCustom ? null : addressType,
+                        addressType: addressType,
                         accountNumber: isCustom ? null : accountNumber,
-                        customKeyPath: customPath
+                        customKeyPath: isCustom ? customKeyPath : null
                     });
                 });
             });
