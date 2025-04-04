@@ -17,7 +17,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-
 public class PayrollSettingController(
     PluginDbContextFactory pluginDbContextFactory,
     EmailService emailService,
@@ -86,7 +85,6 @@ public class PayrollSettingController(
 
         await pluginDbContextFactory.SetSettingAsync(storeId, settings);
         TempData.SetStatusMessageModel(new StatusMessageModel
-
         {
             Message = "Vendor pay settings updated successfully", Severity = StatusMessageModel.StatusSeverity.Success
         });

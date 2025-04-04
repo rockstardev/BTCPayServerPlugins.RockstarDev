@@ -54,6 +54,4 @@ public class DbExchangeOrder
     public string DepositId { get; set; }
 
     public List<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
-
 }
-

@@ -45,7 +45,6 @@ public class VendorPayEmailReminderService(
 
     private async Task HandleEmailReminders(string storeId, PayrollStoreSetting settings)
     {
-
         var shouldUpdateDb = false;
 
         await using var ctx = pluginDbContextFactory.CreateContext();

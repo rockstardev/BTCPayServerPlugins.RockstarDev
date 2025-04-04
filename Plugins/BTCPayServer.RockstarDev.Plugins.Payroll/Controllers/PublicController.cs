@@ -351,7 +351,6 @@ public class PublicController(
         await using var ctx = pluginDbContextFactory.CreateContext();
 
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
-
             .SingleOrDefault(a => a.Id == id);
 
         if (invoice == null)

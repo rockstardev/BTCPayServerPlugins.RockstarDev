@@ -25,4 +25,3 @@ public class DbExchangeOrderLog
     [StringLength(50)]
     public string Parameter { get; set; }
 }
-
