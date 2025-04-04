@@ -191,7 +191,12 @@
             vaultUI.closeBridge();
         });
 
-        while (!await vaultUI.askForDevice() || !await vaultUI.askForXPubs()) {
+        // Get form values
+        const signatureType = document.getElementById("signatureType").value;
+        const addressType = document.getElementById("addressType").value;
+        const accountNumber = parseInt(document.getElementById("accountNumber").value);
+
+        while (!await vaultUI.askForDevice() || !await vaultUI.askForXPubs(signatureType, addressType, accountNumber)) {
             // wait
         }
 

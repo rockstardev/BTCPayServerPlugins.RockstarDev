@@ -276,37 +276,38 @@ var vaultui = (function () {
             return true;
         };
 
-        this.askForXPubs = async function () {
+        this.askForXPubs = async function (signatureType, addressType, accountNumber) {
             if (!await self.ensureConnectedToBackend())
                 return false;
 
-            const signatureType = $("#signatureType").val();
-            const customKeyPath = $("#keyPath").val();
-            
             self.bridge.socket.send("ask-xpub");
             var json = await self.bridge.waitBackendMessage();
             if (json.hasOwnProperty("error")) {
                 if (await needRetry(json))
-                    return await self.askForXPubs();
+                    return await askForXPubs(signatureType, addressType, accountNumber);
                 return false;
             }
             try {
-                var selectedXPubs = await self.getXpubSettings();
+                const isCustom = signatureType.toLowerCase() === "custom";
+                const customPath = isCustom ? document.getElementById("keyPath").value : null;
+
+                const selectedXPubs = {
+                    signatureType: isCustom ? null : signatureType,
+                    addressType: isCustom ? null : addressType,
+                    accountNumber: isCustom ? null : accountNumber,
+                    customPath: customPath
+                };
+
                 self.bridge.socket.send(JSON.stringify(selectedXPubs));
                 show(VaultFeedbacks.fetchingXpubs);
                 json = await self.bridge.waitBackendMessage();
                 if (json.hasOwnProperty("error")) {
                     if (await needRetry(json))
-                        return await self.askForXPubs();
+                        return await askForXPubs(signatureType, addressType, accountNumber);
                     return false;
                 }
                 show(VaultFeedbacks.fetchedXpubs);
                 self.xpub = json;
-
-                if (signatureType.toLowerCase() === "custom" && customKeyPath) {
-                    self.xpub.keyPath = customKeyPath;
-                }
-
                 return true;
             } catch (err) {
                 showError({ error: true, message: err });

@@ -247,40 +247,48 @@ public class VaultBridgeController : Controller
                             await websocketHelper.Send("{ \"info\": \"ok\"}", cancellationToken);
                             var askedXpub = JObject.Parse(await websocketHelper.NextMessageAsync(cancellationToken));
                             // when we're in ask-xpub mode, we will wait here on server until we get another message from client view
-                            
-                            var signatureType = askedXpub["signatureType"].Value<string>();
-                            var addressType = askedXpub["addressType"].Value<string>();
-                            var accountNumber = askedXpub["accountNumber"].Value<int>();
+
+                            var customPath = askedXpub["customPath"]?.Value<string>();
+                            KeyPath keyPath;
+
+                            if (!string.IsNullOrEmpty(customPath))
+                            {
+                                try
+                                {
+                                    keyPath = KeyPath.Parse(customPath);
+                                }
+                                catch (FormatException)
+                                {
+                                    await websocketHelper.Send("{ \"error\": \"invalid-keypath\"}", cancellationToken);
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                var signatureType = askedXpub["signatureType"].Value<string>();
+                                var addressType = askedXpub["addressType"].Value<string>();
+                                var accountNumber = askedXpub["accountNumber"].Value<int>();
+                                
+                                keyPath = GetKeyPath(signatureType, addressType, network.CoinType, accountNumber);
+                                if (keyPath is null)
+                                {
+                                    await websocketHelper.Send("{ \"error\": \"invalid-addresstype\"}", cancellationToken);
+                                    continue;
+                                }
+                            }
+
                             if (fingerprint is null) 
                                 await FetchFingerprint();
                             
-                            var keyPath = GetKeyPath(signatureType, addressType, network.CoinType, accountNumber);
-                            if (keyPath is null)
-                            {
-                                await websocketHelper.Send("{ \"error\": \"invalid-addresstype\"}", cancellationToken);
-                                continue;
-                            }
-
                             var xpub = await device.GetXPubAsync(keyPath);
-                            if (!network.NBitcoinNetwork.Consensus.SupportSegwit && addressType != "legacy")
-                            {
-                                await websocketHelper.Send("{ \"error\": \"segwit-notsupported\"}", cancellationToken);
-                                continue;
-                            }
-
-                            if (!network.NBitcoinNetwork.Consensus.SupportTaproot && addressType == "taproot")
-                            {
-                                await websocketHelper.Send("{ \"error\": \"taproot-notsupported\"}", cancellationToken);
-                                continue;
-                            }
-
-                            // Create derivation strategy based on address type and signature type
+                            
+                            // Create derivation strategy based on key path
                             var factory = network.NBXplorerNetwork.DerivationStrategyFactory;
-                            var strategy = CreateDerivationStrategy(factory, xpub, addressType, signatureType);
+                            var strategy = CreateDerivationStrategy(factory, xpub, keyPath);
                             if (strategy is null)
                             {
                                 await websocketHelper.Send("{ \"error\": \"unsupported-signature-type\"}",
-                                    cancellationToken);
+                                cancellationToken);
                                 continue;
                             }
 
@@ -293,71 +301,6 @@ public class VaultBridgeController : Controller
                                 ["keyPath"] = keyPath.ToString()
                             };
                             await websocketHelper.Send(result.ToString(), cancellationToken);
-
-                            // Helper methods
-                            KeyPath GetKeyPath(string signatureType, string addressType, KeyPath coinType,
-                                int accountNumber)
-                            {
-                                return (signatureType, addressType) switch
-                                {
-                                    ("singlesig", "taproot") => new KeyPath("86'").Derive(coinType)
-                                        .Derive(accountNumber, true),
-                                    ("singlesig", "segwit") => new KeyPath("84'").Derive(coinType)
-                                        .Derive(accountNumber, true),
-                                    ("singlesig", "segwitWrapped") => new KeyPath("49'").Derive(coinType)
-                                        .Derive(accountNumber, true),
-                                    ("singlesig", "legacy") => new KeyPath("44'").Derive(coinType)
-                                        .Derive(accountNumber, true),
-                                    ("multisig", "segwit") => new KeyPath("48'").Derive(coinType)
-                                        .Derive(accountNumber, true).Derive(2, true),
-                                    ("multisig", "segwitWrapped") => new KeyPath("48'").Derive(coinType)
-                                        .Derive(accountNumber, true).Derive(1, true),
-                                    ("multisig", "legacy") => new KeyPath("45'").Derive(coinType)
-                                        .Derive(accountNumber, true),
-                                    ("multisig", "taproot") => new KeyPath("48'").Derive(coinType)
-                                        .Derive(accountNumber, true).Derive(3, true),
-                                    _ => null
-                                };
-                            }
-
-                            DerivationStrategyBase CreateDerivationStrategy(DerivationStrategyFactory factory,
-                                BitcoinExtPubKey xpub, string addressType, string signatureType)
-                            {
-                                // if (signatureType == "multisig")
-                                // {
-                                //     return factory.CreateMultiSigDerivationStrategy(new[] { xpub }, 2, new DerivationStrategyOptions
-                                //     {
-                                //         ScriptPubKeyType = addressType switch
-                                //         {
-                                //             "segwit" => ScriptPubKeyType.Segwit,
-                                //             "segwitWrapped" => ScriptPubKeyType.SegwitP2SH,
-                                //             "legacy" => ScriptPubKeyType.Legacy,
-                                //             "taproot" => ScriptPubKeyType.TaprootBIP86,
-                                //             _ => ScriptPubKeyType.Legacy
-                                //         }
-                                //     });
-                                // }
-                                return addressType switch
-                                {
-                                    "taproot" => factory.CreateDirectDerivationStrategy(xpub,
-                                        new DerivationStrategyOptions
-                                        {
-                                            ScriptPubKeyType = ScriptPubKeyType.TaprootBIP86
-                                        }),
-                                    "segwit" => factory.CreateDirectDerivationStrategy(xpub,
-                                        new DerivationStrategyOptions { ScriptPubKeyType = ScriptPubKeyType.Segwit }),
-                                    "segwitWrapped" => factory.CreateDirectDerivationStrategy(xpub,
-                                        new DerivationStrategyOptions
-                                        {
-                                            ScriptPubKeyType = ScriptPubKeyType.SegwitP2SH
-                                        }),
-                                    "legacy" => factory.CreateDirectDerivationStrategy(xpub,
-                                        new DerivationStrategyOptions { ScriptPubKeyType = ScriptPubKeyType.Legacy }),
-                                    _ => null
-                                };
-                            }
-                            // End of ask-xpub
-
                             break;
                         case "ask-passphrase":
                             if (command == "ask-passphrase")
@@ -502,5 +445,40 @@ public class VaultBridgeController : Controller
 
             return null;
         }
+    }
+
+    private KeyPath GetKeyPath(string signatureType, string addressType, KeyPath coinType, int accountNumber)
+    {
+        return (signatureType, addressType) switch
+        {
+            ("singlesig", "taproot") => new KeyPath("86'").Derive(coinType)
+                .Derive(accountNumber, true),
+            ("singlesig", "segwit") => new KeyPath("84'").Derive(coinType)
+                .Derive(accountNumber, true),
+            ("singlesig", "segwitWrapped") => new KeyPath("49'").Derive(coinType)
+                .Derive(accountNumber, true),
+            ("singlesig", "legacy") => new KeyPath("44'").Derive(coinType)
+                .Derive(accountNumber, true),
+            ("multisig", "segwit") => new KeyPath("48'").Derive(coinType)
+                .Derive(accountNumber, true).Derive(2, true),
+            ("multisig", "segwitWrapped") => new KeyPath("48'").Derive(coinType)
+                .Derive(accountNumber, true).Derive(1, true),
+            ("multisig", "legacy") => new KeyPath("45'").Derive(coinType)
+                .Derive(accountNumber, true),
+            ("multisig", "taproot") => new KeyPath("48'").Derive(coinType)
+                .Derive(accountNumber, true).Derive(3, true),
+            _ => null
+        };
+    }
+
+    private DerivationStrategyBase CreateDerivationStrategy(DerivationStrategyFactory factory,
+        BitcoinExtPubKey xpub, KeyPath keyPath)
+    {
+        var scriptPubKeyType = GetScriptPubKeyType(new RootedKeyPath(keyPath));
+        return factory.CreateDirectDerivationStrategy(xpub,
+            new DerivationStrategyOptions
+            {
+                ScriptPubKeyType = scriptPubKeyType
+            });
     }
 }
