@@ -190,29 +190,6 @@ public class ExchangeOrderController(
 
         return RedirectToAction(nameof(Index), new { StoreId });
     }
-    
-    
-
-    [HttpPost("UpdateExchangeRates")]
-    public async Task<IActionResult> UpdateExchangeRates()
-    {
-        await using var db = pluginDbContextFactory.CreateContext();
-
-        var exchanges = db.ExchangeOrders
-            .Where(a => a.StoreId == StoreId &&
-                        a.ConversionRate != null && a.ConversionRate > 0 && a.ConversionRate < 0.01m)
-            .ToList();
-
-        foreach (var exchange in exchanges)
-            if (exchange.ConversionRate != null)
-                exchange.ConversionRate = Math.Round(1m / exchange.ConversionRate.Value, 2);
-
-        await db.SaveChangesAsync();
-
-        TempData[WellKnownTempData.SuccessMessage] = "Exchange Rates updated";
-
-        return RedirectToAction(nameof(Index), new { StoreId });
-    }
 
 
     //
