@@ -1,5 +1,5 @@
-/// <reference path="vaultbridge.js" />
-/// file: vaultbridge.js
+/// <reference path="plugin-vaultbridge.js" />
+/// file: plugin-vaultbridge.js
 
 var vaultui = (function () {
 
@@ -276,7 +276,7 @@ var vaultui = (function () {
             return true;
         };
 
-        this.askForXPubs = async function (signatureType, addressType, accountNumber) {
+        this.askForXPubs = async function () {
             if (!await self.ensureConnectedToBackend())
                 return false;
 
@@ -284,26 +284,17 @@ var vaultui = (function () {
             var json = await self.bridge.waitBackendMessage();
             if (json.hasOwnProperty("error")) {
                 if (await needRetry(json))
-                    return await askForXPubs(signatureType, addressType, accountNumber);
+                    return await self.askForXPubs();
                 return false;
             }
             try {
-                const isCustom = signatureType.toLowerCase() === "custom";
-                const customPath = isCustom ? document.getElementById("keyPath").value : null;
-
-                const selectedXPubs = {
-                    signatureType: isCustom ? null : signatureType,
-                    addressType: isCustom ? null : addressType,
-                    accountNumber: isCustom ? null : accountNumber,
-                    customPath: customPath
-                };
-
+                var selectedXPubs = await self.getXpubSettings();
                 self.bridge.socket.send(JSON.stringify(selectedXPubs));
                 show(VaultFeedbacks.fetchingXpubs);
                 json = await self.bridge.waitBackendMessage();
                 if (json.hasOwnProperty("error")) {
                     if (await needRetry(json))
-                        return await askForXPubs(signatureType, addressType, accountNumber);
+                        return await self.askForXPubs();
                     return false;
                 }
                 show(VaultFeedbacks.fetchedXpubs);
@@ -316,47 +307,59 @@ var vaultui = (function () {
         };
 
         /**
-        * @returns {Promise<{addressType:string, accountNumber:number}>}
-        */
+         * @returns {Promise<{signatureType:string, addressType:string, accountNumber:number, customKeyPath:string}>}
+         */
         this.getXpubSettings = function () {
             show(VaultFeedbacks.askXpubs);
-            $("#vault-xpub").css("display", "block");
-            $("#vault-confirm").css("display", "block");
+            $("#vault-xpub, #vault-confirm").css("display", "block");
             $("#vault-confirm").text("Confirm");
-            
-            // restore previous settings if applicable
-            const savedSignatureType = localStorage.getItem('signatureType');
-            if (savedSignatureType) {
-                $("#signatureType").val(savedSignatureType);
-            }            
-            const savedAddressType = localStorage.getItem('addressType');
-            if (savedAddressType) {
-                $("#addressType").val(savedAddressType);
-            }
-            const savedAccountNumber = localStorage.getItem('accountNumber');
-            if (savedAccountNumber) {
-                $("#accountNumber").val(savedAccountNumber);
-            }
-            //            
-            
+
+            const restoreSetting = (key, selector) => {
+                const value = localStorage.getItem(key);
+                if (value) $(selector).val(value);
+            };
+
+            restoreSetting('signatureType', '#signatureType');
+            restoreSetting('addressType', '#addressType');
+            restoreSetting('accountNumber', '#accountNumber');
+            restoreSetting('customKeyPath', '#customKeyPath');
+
             return new Promise(function (resolve, reject) {
                 $("#vault-confirm").click(async function (e) {
                     e.preventDefault();
-                    $("#vault-xpub").css("display", "none");
-                    $("#vault-confirm").css("display", "none");
+                    $("#vault-xpub, #vault-confirm").css("display", "none");
                     $(this).unbind();
-                    const signatureType = $("select[name=\"signatureType\"]").val();
-                    const addressType = $("select[name=\"addressType\"]").val();
-                    const accountNumber = parseInt($("input[name=\"accountNumber\"]").val());
-                    if (signatureType && addressType && !isNaN(accountNumber)) {
-                        localStorage.setItem('signatureType', signatureType);
-                        localStorage.setItem('addressType', addressType);
-                        localStorage.setItem('accountNumber', accountNumber+"");
-                        
-                        resolve({ signatureType, addressType, accountNumber });
-                    } else {
-                        reject("Provide an address type and account number")
+
+                    const signatureType = $("select[name='signatureType']").val();
+                    const addressType = $("select[name='addressType']").val();
+                    const accountNumberInput = $("input[name='accountNumber']").val();
+                    const accountNumber = parseInt(accountNumberInput);
+                    const customKeyPath = $("input[name='customKeyPath']").val();
+
+                    const isCustom = signatureType === "custom";
+
+                    if (!isCustom && (!signatureType || !addressType || isNaN(accountNumber))) {
+                        reject("Provide an address type and account number");
+                        return;
                     }
+                    if (isCustom && !customKeyPath) {
+                        reject("Provide a custom key path");
+                        return;
+                    }
+
+                    const customPath = isCustom ? customKeyPath : null;
+
+                    localStorage.setItem('signatureType', signatureType);
+                    localStorage.setItem('addressType', isCustom ? "" : addressType);
+                    localStorage.setItem('accountNumber', isCustom ? "" : accountNumberInput);
+                    localStorage.setItem('customKeyPath', customPath);
+
+                    resolve({
+                        signatureType,
+                        addressType: isCustom ? null : addressType,
+                        accountNumber: isCustom ? null : accountNumber,
+                        customKeyPath: customPath
+                    });
                 });
             });
         };

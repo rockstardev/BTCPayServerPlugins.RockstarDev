@@ -248,14 +248,14 @@ public class VaultBridgeController : Controller
                             var askedXpub = JObject.Parse(await websocketHelper.NextMessageAsync(cancellationToken));
                             // when we're in ask-xpub mode, we will wait here on server until we get another message from client view
 
-                            var customPath = askedXpub["customPath"]?.Value<string>();
+                            var customKeyPath = askedXpub["customKeyPath"]?.Value<string>();
                             KeyPath keyPath;
 
-                            if (!string.IsNullOrEmpty(customPath))
+                            if (!string.IsNullOrEmpty(customKeyPath))
                             {
                                 try
                                 {
-                                    keyPath = KeyPath.Parse(customPath);
+                                    keyPath = KeyPath.Parse(customKeyPath);
                                 }
                                 catch (FormatException)
                                 {

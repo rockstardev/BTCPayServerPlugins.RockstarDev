@@ -47,8 +47,8 @@
                 <input id="accountNumber" class="form-control" name="accountNumber" type="number" value="0" min="0" step="1" style="max-width:12ch;" />
             </div>
             <div class="form-group">
-                <label for="keyPath" class="form-label">Key Path</label>
-                <input id="keyPath" class="form-control" name="keyPath" type="text" readonly style="max-width:30ch;"
+                <label for="customKeyPath" class="form-label">Key Path</label>
+                <input id="customKeyPath" class="form-control" name="customKeyPath" type="text" readonly style="max-width:30ch;"
                        placeholder="Enter custom path (e.g. m/84'/0'/4')"/>
             </div>
         </div>
@@ -118,7 +118,7 @@
         const addressTypeSelect = document.getElementById("addressType");
         const divAccount = document.getElementById("divAccount");
         const accountNumberInput = document.getElementById("accountNumber");
-        const keyPathInput = document.getElementById("keyPath");
+        const customKeyPathInput = document.getElementById("customKeyPath");
         
         function updateKeyPath() {
             const signatureType = signatureTypeSelect.value;
@@ -126,46 +126,46 @@
             const accountNumber = accountNumberInput.value;
             
             if (signatureType === "custom") {
-                keyPathInput.readOnly = false;
+                customKeyPathInput.readOnly = false;
                 divAddressType.style.display = "none";
                 divAccount.style.display = "none";
                 
-                if (!keyPathInput.value) {
-                    keyPathInput.value = "m/84'/0'/4'";
+                if (!customKeyPathInput.value) {
+                    customKeyPathInput.value = "m/84'/0'/4'";
                 }
             } else {
-                keyPathInput.readOnly = true;
+                customKeyPathInput.readOnly = true;
                 divAddressType.style.display = "block";
                 divAccount.style.display = "block";
                 
                 if (signatureType === "singlesig") {
                     switch (addressType) {
                         case "segwit":
-                            keyPathInput.value = `m/84'/0'/${accountNumber}'`;
+                            customKeyPathInput.value = `m/84'/0'/${accountNumber}'`;
                             break;
                         case "segwitWrapped":
-                            keyPathInput.value = `m/49'/0'/${accountNumber}'`;
+                            customKeyPathInput.value = `m/49'/0'/${accountNumber}'`;
                             break;
                         case "legacy":
-                            keyPathInput.value = `m/44'/0'/${accountNumber}'`;
+                            customKeyPathInput.value = `m/44'/0'/${accountNumber}'`;
                             break;
                         case "taproot":
-                            keyPathInput.value = `m/86'/0'/${accountNumber}'`;
+                            customKeyPathInput.value = `m/86'/0'/${accountNumber}'`;
                             break;
                     }
                 } else if (signatureType === "multisig") {
                     switch (addressType) {
                         case "segwit":
-                            keyPathInput.value = `m/48'/0'/${accountNumber}'/2'`;
+                            customKeyPathInput.value = `m/48'/0'/${accountNumber}'/2'`;
                             break;
                         case "segwitWrapped":
-                            keyPathInput.value = `m/48'/0'/${accountNumber}'/1'`;
+                            customKeyPathInput.value = `m/48'/0'/${accountNumber}'/1'`;
                             break;
                         case "legacy":
-                            keyPathInput.value = `m/45'/0'/${accountNumber}'`;
+                            customKeyPathInput.value = `m/45'/0'/${accountNumber}'`;
                             break;
                         case "taproot":
-                            keyPathInput.value = `m/48'/0'/${accountNumber}'/3'`;
+                            customKeyPathInput.value = `m/48'/0'/${accountNumber}'/3'`;
                             break;
                     }
                 }
@@ -191,12 +191,7 @@
             vaultUI.closeBridge();
         });
 
-        // Get form values
-        const signatureType = document.getElementById("signatureType").value;
-        const addressType = document.getElementById("addressType").value;
-        const accountNumber = parseInt(document.getElementById("accountNumber").value);
-
-        while (!await vaultUI.askForDevice() || !await vaultUI.askForXPubs(signatureType, addressType, accountNumber)) {
+        while (!await vaultUI.askForDevice() || !await vaultUI.askForXPubs()) {
             // wait
         }
 
