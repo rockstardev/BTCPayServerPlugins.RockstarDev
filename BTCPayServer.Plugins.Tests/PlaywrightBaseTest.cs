@@ -1,4 +1,5 @@
-﻿using BTCPayServer.Abstractions.Extensions;
+﻿using System.Globalization;
+using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
 using BTCPayServer.Views.Stores;
@@ -6,6 +7,7 @@ using Microsoft.Playwright;
 using NBitcoin;
 using Xunit;
 using Xunit.Abstractions;
+using System.Text.RegularExpressions;
 
 namespace BTCPayServer.Plugins.Tests;
 
@@ -24,18 +26,17 @@ public class PlaywrightBaseTest : UnitTestBase
     public string StoreId { get; private set; }
     public bool IsAdmin { get; private set; }
 
-    private bool _isInitialized = false;
-
     string CreatedUser;
+    string InvoiceId;
 
 
-    public async Task<string> InitializeAsync(Uri uri)
+    public async Task InitializePlaywright(Uri uri)
     {
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = true, // Set to true for CI/automated environments
+            Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
             SlowMo = 50 // Add slight delay between actions to improve stability
         });
 
@@ -43,15 +44,18 @@ public class PlaywrightBaseTest : UnitTestBase
         Page = await context.NewPageAsync();
         ServerUri = uri;
         TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
-
-        await Page.GotoAsync(ServerUri.ToString());
-        if (!_isInitialized)
-        {
-            await InitializeBTCPayServer();
-            _isInitialized = true;
-        }
-        return StoreId;
     }
+
+    public async Task LogIn()
+    {
+        await LogIn(CreatedUser, "123456");
+    }
+    public async Task LogIn(string user, string password = "123456")
+    {
+        await Page.FillAsync("#Email", user);
+        await Page.FillAsync("#Password", password);
+        await Page.ClickAsync("#LoginButton");    }
+
 
     public async Task GoToUrl(string relativeUrl)
     {
@@ -93,10 +97,6 @@ public class PlaywrightBaseTest : UnitTestBase
             StoreId = storeId;
             if (WalletId != null)
                 WalletId = new WalletId(storeId, WalletId.CryptoCode);
-        }
-        if (storeNavPage != StoreNavPages.General)
-        {
-            await Page.Locator($"#StoreNav-{StoreNavPages.General}").ClickAsync();
         }
         await Page.Locator($"#StoreNav-{storeNavPage}").ClickAsync();
     }
@@ -168,6 +168,71 @@ public class PlaywrightBaseTest : UnitTestBase
     }
 
 
+    public async Task<string> CreateInvoice(decimal? amount = 10, string currency = "USD",
+        string refundEmail = "", string defaultPaymentMethod = null,
+        StatusMessageModel.StatusSeverity expectedSeverity = StatusMessageModel.StatusSeverity.Success)
+    {
+        return await CreateInvoice(null, amount, currency, refundEmail, defaultPaymentMethod, expectedSeverity);
+    }
+
+    public async Task<string> CreateInvoice(string storeId, decimal? amount = 10, string currency = "USD",
+        string refundEmail = "", string defaultPaymentMethod = null,
+        StatusMessageModel.StatusSeverity expectedSeverity = StatusMessageModel.StatusSeverity.Success)
+    {
+        await GoToInvoices(storeId);
+
+        await ClickPagePrimary();
+        if (amount is decimal v)
+            await Page.Locator("#Amount").FillAsync(v.ToString(CultureInfo.InvariantCulture));
+
+        var currencyEl = Page.Locator("#Currency");
+        await currencyEl.ClearAsync();
+        await currencyEl.FillAsync(currency);
+        await Page.Locator("#BuyerEmail").FillAsync(refundEmail);
+        if (defaultPaymentMethod is not null)
+            await Page.SelectOptionAsync("select[name='DefaultPaymentMethod']", new SelectOptionValue { Value = defaultPaymentMethod });
+        await ClickPagePrimary();
+
+        var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
+        var inv = expectedSeverity == StatusMessageModel.StatusSeverity.Success
+            ? Regex.Match(await statusText, @"Invoice (\w+) just created!").Groups[1].Value
+            : null;
+
+        InvoiceId = inv;
+        TestLogs.LogInformation($"Created invoice {inv}");
+        return inv;
+    }
+
+
+    public async Task GoToInvoiceCheckout(string invoiceId = null)
+    {
+        invoiceId ??= InvoiceId;
+        await Page.Locator("#StoreNav-Invoices").ClickAsync();
+        await Page.Locator($"#invoice-checkout-{invoiceId}").ClickAsync();
+        await Page.Locator("#Checkout").WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    public async Task GoToInvoice(string id)
+    {
+        await GoToUrl($"/invoices/{id}/");
+    }
+
+    public async Task GoToInvoices(string storeId = null)
+    {
+        if (storeId is null)
+        {
+            await Page.Locator("#StoreNav-Invoices").ClickAsync();;
+        }
+        else
+        {
+            await GoToUrl(storeId == null ? "/invoices/" : $"/stores/{storeId}/invoices/");
+            StoreId = storeId;
+        }
+    }
+
+
+
+
     public async Task<ILocator> FindAlertMessageAsync(StatusMessageModel.StatusSeverity severity = StatusMessageModel.StatusSeverity.Success)
     {
         return await FindAlertMessageAsync(new[] { severity });
@@ -196,7 +261,20 @@ public class PlaywrightBaseTest : UnitTestBase
     }
 
 
-    private async Task InitializeBTCPayServer()
+    public async Task ClickPagePrimary()
+    {
+        try
+        {
+            await Page.Locator("#page-primary").ClickAsync();
+        }
+        catch (PlaywrightException)
+        {
+            await Page.Locator("#page-primary").WaitForAsync(new() { State = WaitForSelectorState.Visible });
+            await Page.Locator("#page-primary").ClickAsync();
+        }
+    }
+
+    public async Task InitializeBTCPayServer()
     {
         await GoToUrl("/register");
         await RegisterNewUser(true);
