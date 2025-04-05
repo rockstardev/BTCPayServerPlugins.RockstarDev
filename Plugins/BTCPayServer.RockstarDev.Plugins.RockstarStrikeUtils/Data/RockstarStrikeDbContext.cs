@@ -7,13 +7,13 @@ public class RockstarStrikeDbContext(DbContextOptions<RockstarStrikeDbContext> o
     : DbContext(options)
 {
     public const string DefaultPluginSchema = "BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils";
-    
+
     public DbSet<DbSetting> Settings { get; set; }
-    
+
     // For supporting exchange orders
     public DbSet<DbExchangeOrder> ExchangeOrders { get; set; }
     public DbSet<DbExchangeOrderLog> ExchangeOrderLogs { get; set; }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

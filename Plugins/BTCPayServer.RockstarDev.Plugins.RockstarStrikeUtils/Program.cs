@@ -1,42 +1,38 @@
-﻿using System;
-using BTCPayServer.Abstractions.Contracts;
+﻿using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
 using Microsoft.Extensions.DependencyInjection;
 using Strike.Client;
 
-namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
+namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils;
+
+// ReSharper disable once ClassNeverInstantiated.Global
+public class RockstarStrikeUtilsPlugin : BaseBTCPayServerPlugin
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
-    public class RockstarStrikeUtilsPlugin : BaseBTCPayServerPlugin
+    public const string PluginStrikeNavKey = "RockstarStrikeUtilsNav";
+
+    public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } = { new() { Identifier = nameof(BTCPayServer), Condition = ">=2.0.0" } };
+
+    public override void Execute(IServiceCollection serviceCollection)
     {
-        public const string PluginStrikeNavKey = "RockstarStrikeUtilsNav";
-        public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
+        serviceCollection.AddUIExtension("store-integrations-nav", PluginStrikeNavKey);
+
+        // strike registrations
+        serviceCollection.AddStrikeHttpClient();
+        serviceCollection.AddStrikeClient();
+
+        serviceCollection.AddSingleton<StrikeClientFactory>();
+
+        // Add the database related registrations
+        serviceCollection.AddSingleton<RockstarStrikeDbContextFactory>();
+        serviceCollection.AddDbContext<RockstarStrikeDbContext>((provider, o) =>
         {
-            new() {Identifier = nameof(BTCPayServer), Condition = ">=2.0.0"}
-        };
+            var factory = provider.GetRequiredService<RockstarStrikeDbContextFactory>();
+            factory.ConfigureBuilder(o);
+        });
+        serviceCollection.AddHostedService<RockstarStrikeMigrationRunner>();
 
-        public override void Execute(IServiceCollection serviceCollection)
-        {
-            serviceCollection.AddUIExtension("store-integrations-nav", PluginStrikeNavKey);
-            
-            // strike registrations
-            serviceCollection.AddStrikeHttpClient();
-            serviceCollection.AddStrikeClient();
-
-            serviceCollection.AddSingleton<StrikeClientFactory>();
-            
-            // Add the database related registrations
-            serviceCollection.AddSingleton<RockstarStrikeDbContextFactory>();
-            serviceCollection.AddDbContext<RockstarStrikeDbContext>((provider, o) =>
-            {
-                var factory = provider.GetRequiredService<RockstarStrikeDbContextFactory>();
-                factory.ConfigureBuilder(o);
-            });
-            serviceCollection.AddHostedService<RockstarStrikeMigrationRunner>();
-
-            base.Execute(serviceCollection);
-        }
+        base.Execute(serviceCollection);
     }
 }

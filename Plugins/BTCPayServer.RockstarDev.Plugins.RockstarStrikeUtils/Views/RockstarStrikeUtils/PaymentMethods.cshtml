@@ -36,7 +36,7 @@
         @foreach (var item in Model.List)
         {
             <tr class="mass-action-row">
-                <td><a asp-controller="RockstarStrikeUtils" asp-action="DepositsCreate" 
+                <td><a asp-controller="RockstarStrikeUtils" asp-action="DepositsCreate"
                        asp-route-storeId="@storeId" asp-route-pmid="@item.Id">@item.Id</a></td>
                 <td>@item.Created</td>
                 <td>@item.TransferType</td>

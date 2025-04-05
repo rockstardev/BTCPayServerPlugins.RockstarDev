@@ -103,7 +103,7 @@
                     <div class="form-group">
                         <div>Buy @quote.Target.Amount.ToString("N8") Bitcoin for @quote.Source.Amount.ToString("N2") USD</div>
                         <div>Exchange Rate:
-                            @{ var invertedRate = 1 / quote.ConversionRate.Amount;}
+                            @{ var invertedRate = 1 / quote.ConversionRate.Amount; }
                             @invertedRate.ToString("N2")
                         </div>
                     </div>
@@ -118,11 +118,11 @@
                         </div>
                     </div>
                 }
-                
+
                 <input type="hidden" name="QuoteId" value="@quote.Id" />
-                
+
                 <div class="form-group mt-4">
-                    <input type="submit" class="btn btn-primary" asp-route-storeId="@storeId" value="Execute Conversion"/>
+                    <input type="submit" class="btn btn-primary" asp-route-storeId="@storeId" value="Execute Conversion" />
                 </div>
             </div>
         </div>

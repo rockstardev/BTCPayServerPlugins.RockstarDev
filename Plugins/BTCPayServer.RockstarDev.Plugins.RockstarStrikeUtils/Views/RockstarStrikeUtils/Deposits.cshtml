@@ -1,5 +1,4 @@
-﻿@using System.Text.Json
-@using BTCPayServer.Abstractions.Contracts
+﻿@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model DepositsViewModel
@@ -25,8 +24,8 @@
 @if (Model.Deposits.Any())
 {
     <div class="table-responsive-md">
-    <table class="table table-hover">
-        <thead>
+        <table class="table table-hover">
+            <thead>
             <tr>
                 <th scope="col">Deposit ID</th>
                 <th scope="col">Amount</th>
@@ -36,8 +35,8 @@
                 <th scope="col">Failure Reason</th>
                 <th scope="col" class="text-end"></th>
             </tr>
-        </thead>
-        <tbody>
+            </thead>
+            <tbody>
             @foreach (var deposit in Model.Deposits)
             {
                 <tr class="mass-action-row">
@@ -51,9 +50,9 @@
                     </td>
                 </tr>
             }
-        </tbody>
-    </table>
-</div>
+            </tbody>
+        </table>
+    </div>
 }
 else
 {

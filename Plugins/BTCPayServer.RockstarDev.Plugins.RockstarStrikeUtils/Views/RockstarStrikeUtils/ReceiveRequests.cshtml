@@ -27,30 +27,30 @@
     <div class="table-responsive-md">
         <table class="table table-hover">
             <thead>
-                <tr>
-                    <th scope="col">Request ID</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">TargetCurrency</th>
-                    <th scope="col">Bolt11</th>
-                    <th scope="col">Bolt12</th>
-                    <th scope="col">Onchain</th>
-                    <th scope="col" class="text-end"></th>
-                </tr>
+            <tr>
+                <th scope="col">Request ID</th>
+                <th scope="col">Created</th>
+                <th scope="col">TargetCurrency</th>
+                <th scope="col">Bolt11</th>
+                <th scope="col">Bolt12</th>
+                <th scope="col">Onchain</th>
+                <th scope="col" class="text-end"></th>
+            </tr>
             </thead>
             <tbody>
-                @foreach (var request in Model.ReceiveRequests)
-                {
-                    <tr class="mass-action-row">
-                        <td>@request.ReceiveRequestId</td>
-                        <td>@request.Created</td>
-                        <td>@request.TargetCurrency</td>
-                        <td>@JsonSerializer.Serialize(request.Bolt11, new JsonSerializerOptions { WriteIndented = true })</td>
-                        <td>@JsonSerializer.Serialize(request.Bolt12, new JsonSerializerOptions { WriteIndented = true })</td>
-                        <td>@JsonSerializer.Serialize(request.Onchain, new JsonSerializerOptions { WriteIndented = true })</td>
-                        <td class="text-end">
-                        </td>
-                    </tr>
-                }
+            @foreach (var request in Model.ReceiveRequests)
+            {
+                <tr class="mass-action-row">
+                    <td>@request.ReceiveRequestId</td>
+                    <td>@request.Created</td>
+                    <td>@request.TargetCurrency</td>
+                    <td>@JsonSerializer.Serialize(request.Bolt11, new JsonSerializerOptions { WriteIndented = true })</td>
+                    <td>@JsonSerializer.Serialize(request.Bolt12, new JsonSerializerOptions { WriteIndented = true })</td>
+                    <td>@JsonSerializer.Serialize(request.Onchain, new JsonSerializerOptions { WriteIndented = true })</td>
+                    <td class="text-end">
+                    </td>
+                </tr>
+            }
             </tbody>
         </table>
     </div>

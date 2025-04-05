@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
@@ -28,7 +26,7 @@ public class RockstarStrikeUtilsController(
 {
     [FromRoute]
     public string StoreId { get; set; }
-    
+
     [HttpGet("index")]
     public async Task<IActionResult> Index()
     {
@@ -45,7 +43,7 @@ public class RockstarStrikeUtilsController(
         {
             StrikeApiKey = db.Settings.SingleOrDefault(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey)?.Value
         };
-        
+
         return View(model);
     }
 
@@ -57,21 +55,16 @@ public class RockstarStrikeUtilsController(
 
         var validKey = await strikeClientFactory.TestAndSaveApiKeyAsync(model.StrikeApiKey);
         if (!validKey)
-        {
             ModelState.AddModelError(nameof(model.StrikeApiKey), "Invalid API key.");
-        }
         else
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Strike API key saved successfully.",
-                Severity = StatusMessageModel.StatusSeverity.Success
+                Message = "Strike API key saved successfully.", Severity = StatusMessageModel.StatusSeverity.Success
             });
-        }
 
         return View(model);
     }
-    
+
     // Payment Methods
     [HttpGet("PaymentMethods")]
     public async Task<IActionResult> PaymentMethods()
@@ -79,17 +72,13 @@ public class RockstarStrikeUtilsController(
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         var resp = await client.PaymentMethods.GetPaymentMethods();
-        var model = new PaymentMethodsViewModel
-        {
-            List = resp.Items.ToList(),
-            TotalCount = resp.Count
-        };
-        
+        var model = new PaymentMethodsViewModel { List = resp.Items.ToList(), TotalCount = resp.Count };
+
         return View(model);
     }
-    
+
     //  Receive Requests
     [HttpGet("ReceiveRequests")]
     public async Task<IActionResult> ReceiveRequests()
@@ -97,17 +86,13 @@ public class RockstarStrikeUtilsController(
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         var requests = await client.ReceiveRequests.GetRequests();
-        var model = new ReceiveRequestsViewModel
-        {
-            ReceiveRequests = requests.Items.ToList(),
-            TotalCount = requests.Count
-        };
-        
+        var model = new ReceiveRequestsViewModel { ReceiveRequests = requests.Items.ToList(), TotalCount = requests.Count };
+
         return View(model);
     }
-    
+
     [HttpGet("ReceiveRequests/create")]
     public async Task<IActionResult> ReceiveRequestsCreate()
     {
@@ -115,21 +100,17 @@ public class RockstarStrikeUtilsController(
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
 
-        var model = new ReceiveRequestsCreateViewModel
-        {
-            TargetCurrency = "USD",
-            Onchain = true
-        };
+        var model = new ReceiveRequestsCreateViewModel { TargetCurrency = "USD", Onchain = true };
         return View(model);
     }
-    
+
     [HttpPost("ReceiveRequests/create")]
     public async Task<IActionResult> ReceiveRequestsCreate(ReceiveRequestsCreateViewModel model)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         if (!ModelState.IsValid)
             return View(model);
 
@@ -148,26 +129,20 @@ public class RockstarStrikeUtilsController(
         };
         var resp = await client.ReceiveRequests.Create(req);
         if (resp.IsSuccessStatusCode)
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Created Receive Request {resp.ReceiveRequestId}",
-                Severity = StatusMessageModel.StatusSeverity.Success
+                Message = $"Created Receive Request {resp.ReceiveRequestId}", Severity = StatusMessageModel.StatusSeverity.Success
             });
-        }
         else
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $" Receive Request creation failed: {resp.Error}",
-                Severity = StatusMessageModel.StatusSeverity.Error
+                Message = $" Receive Request creation failed: {resp.Error}", Severity = StatusMessageModel.StatusSeverity.Error
             });
-        }
 
         return RedirectToAction(nameof(ReceiveRequests), new { StoreId });
     }
-    
-    
+
+
     // Deposits
     [HttpGet("Deposits")]
     public async Task<IActionResult> Deposits()
@@ -175,18 +150,14 @@ public class RockstarStrikeUtilsController(
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         var requests = await client.Deposits.GetDeposits();
-        var model = new DepositsViewModel
-        {
-            Deposits = requests.Items.ToList(),
-            TotalCount = requests.Count
-        };
-        
+        var model = new DepositsViewModel { Deposits = requests.Items.ToList(), TotalCount = requests.Count };
+
         return View(model);
     }
-    
-    
+
+
     [HttpGet("Deposits/create")]
     public async Task<IActionResult> DepositsCreate(string pmid)
     {
@@ -200,23 +171,23 @@ public class RockstarStrikeUtilsController(
             Amount = "10",
             FeePolicy = FeePolicy.Exclusive
         };
-        if (!String.IsNullOrEmpty(pmid) && Guid.TryParse(pmid, out var guid))
+        if (!string.IsNullOrEmpty(pmid) && Guid.TryParse(pmid, out var guid))
             model.StrikePaymentMethodId = guid;
-        
+
         return View(model);
     }
-    
+
     [HttpPost("Deposits/create")]
     public async Task<IActionResult> DepositsCreate(DepositsCreateViewModel model)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         if (!ModelState.IsValid)
             return View(model);
 
-        
+
         var req = new DepositReq
         {
             PaymentMethodId = model.StrikePaymentMethodId,
@@ -225,25 +196,19 @@ public class RockstarStrikeUtilsController(
         };
         var resp = await client.Deposits.Create(req);
         if (resp.IsSuccessStatusCode)
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Created Deposit {resp.Id}",
-                Severity = StatusMessageModel.StatusSeverity.Success
+                Message = $"Created Deposit {resp.Id}", Severity = StatusMessageModel.StatusSeverity.Success
             });
-        }
         else
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Deposit creation failed: {resp.Error}",
-                Severity = StatusMessageModel.StatusSeverity.Error
+                Message = $"Deposit creation failed: {resp.Error}", Severity = StatusMessageModel.StatusSeverity.Error
             });
-        }
 
         return RedirectToAction(nameof(Deposits), new { StoreId });
     }
-    
+
     //  Exchanges
     [HttpGet("CurrencyExchanges")]
     public async Task<IActionResult> CurrencyExchanges(string operation, decimal amount)
@@ -251,9 +216,9 @@ public class RockstarStrikeUtilsController(
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         var resp = await client.Balances.GetBalances();
-        var model = new CurrencyExchangesViewModel()
+        var model = new CurrencyExchangesViewModel
         {
             Balances = resp.ToList(),
             Operation = operation,
@@ -265,85 +230,85 @@ public class RockstarStrikeUtilsController(
             CurrencyExchangeQuoteReq req = null;
             if (operation == "BuyBitcoin")
             {
-                if (resp.Single(a=>a.Currency == Currency.Usd).Available < amount)
+                if (resp.Single(a => a.Currency == Currency.Usd).Available < amount)
                 {
                     ModelState.AddModelError(nameof(model.Amount), "Insufficient USD funds.");
                     return View(nameof(CurrencyExchanges), model);
                 }
+
                 req = new CurrencyExchangeQuoteReq
                 {
-                    Buy = Currency.Btc, Sell = Currency.Usd,
+                    Buy = Currency.Btc,
+                    Sell = Currency.Usd,
                     Amount = new MoneyWithFee
                     {
-                        Currency = Currency.Usd, Amount = amount, FeePolicy = FeePolicy.Inclusive
+                        Currency = Currency.Usd,
+                        Amount = amount,
+                        FeePolicy = FeePolicy.Inclusive
                     }
                 };
             }
             else if (operation == "SellBitcoin")
             {
-                if (resp.Single(a=>a.Currency == Currency.Btc).Available < amount)
+                if (resp.Single(a => a.Currency == Currency.Btc).Available < amount)
                 {
                     ModelState.AddModelError(nameof(model.Amount), "Insufficient BTC funds.");
                     return View(nameof(CurrencyExchanges), model);
                 }
+
                 req = new CurrencyExchangeQuoteReq
                 {
-                    Buy = Currency.Usd, Sell = Currency.Btc,
+                    Buy = Currency.Usd,
+                    Sell = Currency.Btc,
                     Amount = new MoneyWithFee
                     {
-                        Currency = Currency.Btc, Amount = amount, FeePolicy = FeePolicy.Exclusive
+                        Currency = Currency.Btc,
+                        Amount = amount,
+                        FeePolicy = FeePolicy.Exclusive
                     }
                 };
             }
             else
+            {
                 throw new InvalidOperationException("Invalid operation");
+            }
 
             var exchangeResp = await client.CurrencyExchanges.CreateQuote(req);
-            if (!exchangeResp.IsSuccessStatusCode)
-            {
-                ModelState.AddModelError(nameof(model.Amount), "Quote not generated: " + exchangeResp.Error);
-            }
+            if (!exchangeResp.IsSuccessStatusCode) ModelState.AddModelError(nameof(model.Amount), "Quote not generated: " + exchangeResp.Error);
             model.Quote = exchangeResp;
         }
-        
+
         return View(model);
     }
-    
+
     [HttpPost("CurrencyExchangesProcess")]
     public async Task<IActionResult> CurrencyExchangesProcess(Guid quoteId)
     {
         var client = await strikeClientFactory.ClientCreateAsync();
         if (client == null)
             return RedirectToAction(nameof(Configuration), new { StoreId });
-        
+
         var resp = await client.CurrencyExchanges.GetQuote(quoteId);
         if (!resp.IsSuccessStatusCode || resp.State != CurrencyExchangeState.New)
         {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Failed to get pending quote: {resp.Error}",
-                Severity = StatusMessageModel.StatusSeverity.Error
+                Message = $"Failed to get pending quote: {resp.Error}", Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(CurrencyExchanges), new { StoreId });
         }
 
         var executeQuote = await client.CurrencyExchanges.ExecuteQuote(quoteId);
         if (executeQuote.IsSuccessStatusCode)
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Quote executed successfully.",
-                Severity = StatusMessageModel.StatusSeverity.Success
+                Message = "Quote executed successfully.", Severity = StatusMessageModel.StatusSeverity.Success
             });
-        }
         else
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Failed to execute quote: {executeQuote.Error}",
-                Severity = StatusMessageModel.StatusSeverity.Error
+                Message = $"Failed to execute quote: {executeQuote.Error}", Severity = StatusMessageModel.StatusSeverity.Error
             });
-        }
 
         return RedirectToAction(nameof(CurrencyExchanges), new { StoreId });
     }

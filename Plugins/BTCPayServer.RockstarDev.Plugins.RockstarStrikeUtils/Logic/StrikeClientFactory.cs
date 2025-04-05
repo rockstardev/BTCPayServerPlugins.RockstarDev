@@ -18,7 +18,7 @@ public class StrikeClientFactory(
     IScopeProvider scopeProvider)
 {
     private string StoreId => scopeProvider.GetCurrentStoreId();
-    
+
     public async Task<bool> TestAndSaveApiKeyAsync(string apiKey)
     {
         var client = InitClient(apiKey);
@@ -38,7 +38,12 @@ public class StrikeClientFactory(
             var setting = await db.Settings.SingleOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey);
 
             if (setting is null)
-                db.Settings.Add(new DbSetting { Key = DbSetting.StrikeApiKey, StoreId = StoreId, Value = apiKey });
+                db.Settings.Add(new DbSetting
+                {
+                    Key = DbSetting.StrikeApiKey,
+                    StoreId = StoreId,
+                    Value = apiKey
+                });
             else
                 setting.Value = apiKey;
 
@@ -63,11 +68,8 @@ public class StrikeClientFactory(
     public async Task<StrikeClient> ClientCreateAsync()
     {
         await using var db = strikeDbContextFactory.CreateContext();
-        var apiKey = db.Settings.SingleOrDefault(a =>  a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey)?.Value;
-        if (apiKey is null)
-        {
-            throw new InvalidOperationException("API key not found in the database.");
-        }
+        var apiKey = db.Settings.SingleOrDefault(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey)?.Value;
+        if (apiKey is null) throw new InvalidOperationException("API key not found in the database.");
 
         return InitClient(apiKey);
     }
