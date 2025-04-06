@@ -29,6 +29,11 @@ public class PlaywrightBaseTest : UnitTestBase
     string CreatedUser;
     string InvoiceId;
 
+    public async ValueTask DisposeAsync()
+    {
+        await Browser.DisposeAsync();
+        Playwright.Dispose();
+    }
 
     public async Task InitializePlaywright(Uri uri)
     {
@@ -263,15 +268,8 @@ public class PlaywrightBaseTest : UnitTestBase
 
     public async Task ClickPagePrimary()
     {
-        try
-        {
-            await Page.Locator("#page-primary").ClickAsync();
-        }
-        catch (PlaywrightException)
-        {
-            await Page.Locator("#page-primary").WaitForAsync(new() { State = WaitForSelectorState.Visible });
-            await Page.Locator("#page-primary").ClickAsync();
-        }
+        await Page.WaitForSelectorAsync("#page-primary", new() { State = WaitForSelectorState.Visible });
+        await Page.Locator("#page-primary").ClickAsync();
     }
 
     public async Task InitializeBTCPayServer()

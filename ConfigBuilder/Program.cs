@@ -45,42 +45,13 @@ if (!Directory.Exists(pluginsDirectory))
 var pluginPaths = "";
 foreach (var plugin in Directory.GetDirectories(pluginsDirectory))
 {
-    try
-    {
-        var assemblyConfigurationAttribute = typeof(Program).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>();
-        var buildConfigurationName = assemblyConfigurationAttribute?.Configuration ?? "Debug";
+    var dllPath = Directory.GetFiles(plugin, "*.dll", SearchOption.AllDirectories)
+        .FirstOrDefault(p => p.Contains("net8.0"));
 
-        var binPath = Path.Combine(plugin, "bin");
-        if (!Directory.Exists(binPath))
-        {
-            continue;
-        }
-
-        var pluginName = Path.GetFileName(plugin);
-        var dllPath = Path.Combine(plugin, "bin", buildConfigurationName, "net8.0", $"{pluginName}.dll");
-
-        if (!File.Exists(dllPath))
-        {
-            foreach (var configDir in Directory.GetDirectories(binPath))
-            {
-                var possibleDllPath = Path.Combine(configDir, "net8.0", $"{pluginName}.dll");
-                if (File.Exists(possibleDllPath))
-                {
-                    dllPath = possibleDllPath;
-                    break;
-                }
-            }
-        }
-
-        if (File.Exists(dllPath))
-        {
-            pluginPaths += $"{Path.GetFullPath(dllPath)};";
-        }
-    }
-    catch (Exception e)
-    {
-        Console.WriteLine($"Error processing plugin {plugin}: {e.Message}");
-    }
+    if (dllPath != null)
+        pluginPaths += $"{Path.GetFullPath(dllPath)};";
+    else
+        Console.WriteLine($"DLL not found for plugin {plugin}");
 }
 
 var content = JsonSerializer.Serialize(new { DEBUG_PLUGINS = pluginPaths });
