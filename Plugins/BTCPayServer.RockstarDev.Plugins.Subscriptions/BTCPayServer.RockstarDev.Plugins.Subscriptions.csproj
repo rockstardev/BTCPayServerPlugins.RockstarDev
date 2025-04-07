@@ -10,7 +10,7 @@
     <PropertyGroup>
         <Product>zzz - Subscriptions</Product>
         <Description>**Do not install this if you’re unsure of what you’re doing.** Subscription, Product and Customer managment through BTCPay Server. Recurring reminders for renewals.</Description>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
     <!-- Plugin development properties -->
