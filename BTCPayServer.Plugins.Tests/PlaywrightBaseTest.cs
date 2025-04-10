@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class PlaywrightBaseTest : UnitTestBase
+public class PlaywrightBaseTest : UnitTestBase, IDisposable
 {
     public PlaywrightBaseTest(ITestOutputHelper helper) : base(helper)
     {
@@ -29,26 +29,58 @@ public class PlaywrightBaseTest : UnitTestBase
     string CreatedUser;
     string InvoiceId;
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await Browser.DisposeAsync();
-        Playwright.Dispose();
+        static void Try(Action action)
+        {
+            try
+            { action(); }
+            catch {}
+        }
+
+        Try(() =>
+        {
+            Page?.CloseAsync().GetAwaiter().GetResult();
+            Page = null;
+        });
+
+        Try(() =>
+        {
+            Browser?.CloseAsync().GetAwaiter().GetResult();
+            Browser = null;
+        });
+
+        Try(() =>
+        {
+            Playwright?.Dispose();
+            Playwright = null;
+        });
     }
+
+
 
     public async Task InitializePlaywright(Uri uri)
     {
-        Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-
-        Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        try
         {
-            Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
-            SlowMo = 50 // Add slight delay between actions to improve stability
-        });
+            Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
-        var context = await Browser.NewContextAsync();
-        Page = await context.NewPageAsync();
-        ServerUri = uri;
-        TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
+            Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
+                SlowMo = 50 // Add slight delay between actions to improve stability
+            });
+
+            var context = await Browser.NewContextAsync();
+            Page = await context.NewPageAsync();
+            ServerUri = uri;
+            TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
+        }
+        catch (Exception ex)
+        {
+
+            throw;
+        }
     }
 
     public async Task LogIn()

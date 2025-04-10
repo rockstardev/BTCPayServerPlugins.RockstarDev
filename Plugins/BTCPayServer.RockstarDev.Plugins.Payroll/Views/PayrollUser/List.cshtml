@@ -1,4 +1,4 @@
-﻿@inject IScopeProvider ScopeProvider
+@inject IScopeProvider ScopeProvider
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
@@ -16,7 +16,7 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
+			<a id="createUserButton" asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
             <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
         </div>
     </div>
