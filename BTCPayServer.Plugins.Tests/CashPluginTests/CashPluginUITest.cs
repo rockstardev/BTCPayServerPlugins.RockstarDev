@@ -1,18 +1,18 @@
-﻿using BTCPayServer.Tests;
+using BTCPayServer.Tests;
 using Xunit;
 using Xunit.Abstractions;
-using static BTCPayServer.Plugins.Tests.CashPluginTests.CashPluginUITest;
+using static BTCPayServer.Plugins.Tests.CashPluginUITest;
 
-namespace BTCPayServer.Plugins.Tests.CashPluginTests;
+namespace BTCPayServer.Plugins.Tests;
 
-public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFixture>
+public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServerTesterFixture>
 {
     public ServerTester ServerTester { get; private set; }
     public string TestDir { get; private set; }
 
-    private readonly ServerTesterFixture _fixture;
+    private readonly CashPluginServerTesterFixture _fixture;
 
-    public CashPluginUITest(ServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
+    public CashPluginUITest(CashPluginServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
     {
         _fixture = fixture;
         if (_fixture.ServerTester == null)
@@ -84,7 +84,6 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         Assert.Equal(new Uri(ServerTester.PayTester.ServerUri, $"tests/index.html?invoice={invoiceId}").ToString(), Page.Url);
     }
 
-
     [Fact]
     public async Task DisableCashPaymentTest()
     {
@@ -106,7 +105,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
     }
 
 
-    public class ServerTesterFixture : IDisposable
+    public class CashPluginServerTesterFixture : IDisposable
     {
         public ServerTester ServerTester { get; private set; }
 
@@ -122,6 +121,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         public void Dispose()
         {
             ServerTester?.Dispose();
+            ServerTester = null;
         }
     }
 }
