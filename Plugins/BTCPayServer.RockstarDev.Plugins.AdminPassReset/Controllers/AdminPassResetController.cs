@@ -16,8 +16,8 @@ namespace BTCPayServer.RockstarDev.Plugins.AdminPassReset.Controllers;
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class AdminPassResetController : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly LinkGenerator _generator;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public AdminPassResetController(UserManager<ApplicationUser> userManager, LinkGenerator generator)
     {
@@ -34,11 +34,8 @@ public class AdminPassResetController : Controller
     [HttpPost("~/plugins/adminpassreset/create")]
     public async Task<IActionResult> Create(AdminPassResetViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        
+        if (!ModelState.IsValid) return View(model);
+
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null)
         {
@@ -50,14 +47,14 @@ public class AdminPassResetController : Controller
         var host = new HostString(uri.Host, uri.Port);
         var code = await _userManager.GeneratePasswordResetTokenAsync(user!);
         model.CallbackUrl = _generator.GetUriByAction(
-            action: nameof(UIAccountController.SetPassword),
-            controller: "UIAccount",
-            values: new { userId = user.Id, code },
-            scheme: uri.Scheme,
-            host: host,
-            pathBase: uri.PathAndQuery
+            nameof(UIAccountController.SetPassword),
+            "UIAccount",
+            new { userId = user.Id, code },
+            uri.Scheme,
+            host,
+            uri.PathAndQuery
         );
-        
+
         return View(model);
     }
 

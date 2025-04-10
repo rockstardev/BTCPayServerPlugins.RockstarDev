@@ -3,7 +3,6 @@
 @model BTCPayServer.RockstarDev.Plugins.AdminPassReset.Controllers.AdminPassResetController.AdminPassResetViewModel
 @{
     ViewData.SetActivePage("AdminPassReset", "Admin Pass Reset Create", "AdminPassReset");
-    
 }
 
 <h2 class="mt-1 mb-4">@ViewData["Title"]</h2>
@@ -22,12 +21,12 @@
 
             @if (!string.IsNullOrEmpty(Model.CallbackUrl))
             {
-            <div class="form-group">
-                <label class="form-label">Reset Link:</label>
-                <div>
-                    <a href="@Model.CallbackUrl" style="word-break: break-all" target="_blank">@Model.CallbackUrl</a>
+                <div class="form-group">
+                    <label class="form-label">Reset Link:</label>
+                    <div>
+                        <a href="@Model.CallbackUrl" style="word-break: break-all" target="_blank">@Model.CallbackUrl</a>
+                    </div>
                 </div>
-            </div>
             }
 
         </form>
