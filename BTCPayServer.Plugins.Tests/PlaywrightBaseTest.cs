@@ -58,7 +58,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     }
 
 
-
     public async Task InitializePlaywright(Uri uri)
     {
         try
@@ -172,7 +171,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         }
     }
 
-
     /// <summary>
     /// Assume to be in store's settings
     /// </summary>
@@ -192,18 +190,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         await Page.Locator("#Confirm").ClickAsync();
         await FindAlertMessageAsync();
     }
-
-
-    public async Task GoToLightningSettingsAsync(string cryptoCode = "BTC")
-    {
-        await Page.Locator($"#StoreNav-Lightning{cryptoCode}").ClickAsync();
-        // if Lightning is already set up we need to navigate to the settings
-        if (await Page.Locator("#StoreNav-LightningSettings").CountAsync() > 0)
-        {
-            await Page.Locator("#StoreNav-LightningSettings").ClickAsync();
-        }
-    }
-
 
     public async Task<string> CreateInvoice(decimal? amount = 10, string currency = "USD",
         string refundEmail = "", string defaultPaymentMethod = null,
@@ -240,20 +226,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         return inv;
     }
 
-
-    public async Task GoToInvoiceCheckout(string invoiceId = null)
-    {
-        invoiceId ??= InvoiceId;
-        await Page.Locator("#StoreNav-Invoices").ClickAsync();
-        await Page.Locator($"#invoice-checkout-{invoiceId}").ClickAsync();
-        await Page.Locator("#Checkout").WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    public async Task GoToInvoice(string id)
-    {
-        await GoToUrl($"/invoices/{id}/");
-    }
-
     public async Task GoToInvoices(string storeId = null)
     {
         if (storeId is null)
@@ -266,9 +238,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
             StoreId = storeId;
         }
     }
-
-
-
 
     public async Task<ILocator> FindAlertMessageAsync(StatusMessageModel.StatusSeverity severity = StatusMessageModel.StatusSeverity.Success)
     {
@@ -296,7 +265,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
             throw new TimeoutException($"Unable to find {className}");
         }
     }
-
 
     public async Task ClickPagePrimary()
     {
