@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class PlaywrightBaseTest : UnitTestBase
+public class PlaywrightBaseTest : UnitTestBase, IDisposable
 {
     public PlaywrightBaseTest(ITestOutputHelper helper) : base(helper)
     {
@@ -29,44 +29,53 @@ public class PlaywrightBaseTest : UnitTestBase
     string CreatedUser;
     string InvoiceId;
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await Browser.DisposeAsync();
-        Playwright.Dispose();
+        static void Try(Action action)
+        {
+            try
+            { action(); }
+            catch {}
+        }
+
+        Try(() =>
+        {
+            Page?.CloseAsync().GetAwaiter().GetResult();
+            Page = null;
+        });
+
+        Try(() =>
+        {
+            Browser?.CloseAsync().GetAwaiter().GetResult();
+            Browser = null;
+        });
+
+        Try(() =>
+        {
+            Playwright?.Dispose();
+            Playwright = null;
+        });
     }
+
 
     public async Task InitializePlaywright(Uri uri)
     {
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
             Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
             SlowMo = 50 // Add slight delay between actions to improve stability
         });
-
         var context = await Browser.NewContextAsync();
         Page = await context.NewPageAsync();
         ServerUri = uri;
         TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
     }
 
-    public async Task LogIn()
-    {
-        await LogIn(CreatedUser, "123456");
-    }
-    public async Task LogIn(string user, string password = "123456")
-    {
-        await Page.FillAsync("#Email", user);
-        await Page.FillAsync("#Password", password);
-        await Page.ClickAsync("#LoginButton");    }
-
-
     public async Task GoToUrl(string relativeUrl)
     {
         await Page.GotoAsync(Link(relativeUrl));
     }
-
 
     public string Link(string relativeLink)
     {
@@ -129,7 +138,6 @@ public class PlaywrightBaseTest : UnitTestBase
         return (name, storeId);
     }
 
-
     public async Task GoToWalletSettingsAsync(string cryptoCode = "BTC")
     {
         await Page.ClickAsync($"#StoreNav-Wallet{cryptoCode}");
@@ -139,7 +147,6 @@ public class PlaywrightBaseTest : UnitTestBase
             await walletNavSettings.ClickAsync();
         }
     }
-
 
     /// <summary>
     /// Assume to be in store's settings
@@ -160,18 +167,6 @@ public class PlaywrightBaseTest : UnitTestBase
         await Page.Locator("#Confirm").ClickAsync();
         await FindAlertMessageAsync();
     }
-
-
-    public async Task GoToLightningSettingsAsync(string cryptoCode = "BTC")
-    {
-        await Page.Locator($"#StoreNav-Lightning{cryptoCode}").ClickAsync();
-        // if Lightning is already set up we need to navigate to the settings
-        if (await Page.Locator("#StoreNav-LightningSettings").CountAsync() > 0)
-        {
-            await Page.Locator("#StoreNav-LightningSettings").ClickAsync();
-        }
-    }
-
 
     public async Task<string> CreateInvoice(decimal? amount = 10, string currency = "USD",
         string refundEmail = "", string defaultPaymentMethod = null,
@@ -208,20 +203,6 @@ public class PlaywrightBaseTest : UnitTestBase
         return inv;
     }
 
-
-    public async Task GoToInvoiceCheckout(string invoiceId = null)
-    {
-        invoiceId ??= InvoiceId;
-        await Page.Locator("#StoreNav-Invoices").ClickAsync();
-        await Page.Locator($"#invoice-checkout-{invoiceId}").ClickAsync();
-        await Page.Locator("#Checkout").WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    public async Task GoToInvoice(string id)
-    {
-        await GoToUrl($"/invoices/{id}/");
-    }
-
     public async Task GoToInvoices(string storeId = null)
     {
         if (storeId is null)
@@ -234,9 +215,6 @@ public class PlaywrightBaseTest : UnitTestBase
             StoreId = storeId;
         }
     }
-
-
-
 
     public async Task<ILocator> FindAlertMessageAsync(StatusMessageModel.StatusSeverity severity = StatusMessageModel.StatusSeverity.Success)
     {
@@ -252,7 +230,6 @@ public class PlaywrightBaseTest : UnitTestBase
             await locator.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
             var visibleElements = await locator.AllAsync();
             var visibleElement = visibleElements.FirstOrDefault(el => el.IsVisibleAsync().GetAwaiter().GetResult());
-
             if (visibleElement != null)
                 return Page.Locator(className).First;
 
@@ -260,11 +237,29 @@ public class PlaywrightBaseTest : UnitTestBase
         }
         catch (TimeoutException)
         {
-            // If no element found, throw exception
             throw new TimeoutException($"Unable to find {className}");
         }
     }
 
+    public async Task<ILocator> FindAlertMessageAsync(StatusMessageModel.StatusSeverity[] severity, IPage page)
+    {
+        var className = string.Join(", ", severity.Select(statusSeverity => $".alert-{StatusMessageModel.ToString(statusSeverity)}"));
+        var locator = page.Locator(className);
+        try
+        {
+            await locator.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
+            var visibleElements = await locator.AllAsync();
+            var visibleElement = visibleElements.FirstOrDefault(el => el.IsVisibleAsync().GetAwaiter().GetResult());
+            if (visibleElement != null)
+                return page.Locator(className).First;
+
+            return locator.First;
+        }
+        catch (TimeoutException)
+        {
+            throw new TimeoutException($"Unable to find {className}");
+        }
+    }
 
     public async Task ClickPagePrimary()
     {
