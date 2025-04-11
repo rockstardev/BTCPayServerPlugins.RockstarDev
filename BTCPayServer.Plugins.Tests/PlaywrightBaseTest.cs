@@ -60,44 +60,22 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
 
     public async Task InitializePlaywright(Uri uri)
     {
-        try
+        Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+        Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-
-            Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
-                SlowMo = 50 // Add slight delay between actions to improve stability
-            });
-
-            var context = await Browser.NewContextAsync();
-            Page = await context.NewPageAsync();
-            ServerUri = uri;
-            TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
-        }
-        catch (Exception ex)
-        {
-
-            throw;
-        }
+            Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
+            SlowMo = 50 // Add slight delay between actions to improve stability
+        });
+        var context = await Browser.NewContextAsync();
+        Page = await context.NewPageAsync();
+        ServerUri = uri;
+        TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
     }
-
-    public async Task LogIn()
-    {
-        await LogIn(CreatedUser, "123456");
-    }
-    public async Task LogIn(string user, string password = "123456")
-    {
-        await Page.FillAsync("#Email", user);
-        await Page.FillAsync("#Password", password);
-        await Page.ClickAsync("#LoginButton");    }
-
 
     public async Task GoToUrl(string relativeUrl)
     {
         await Page.GotoAsync(Link(relativeUrl));
     }
-
 
     public string Link(string relativeLink)
     {
@@ -159,7 +137,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
 
         return (name, storeId);
     }
-
 
     public async Task GoToWalletSettingsAsync(string cryptoCode = "BTC")
     {
@@ -253,7 +230,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
             await locator.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
             var visibleElements = await locator.AllAsync();
             var visibleElement = visibleElements.FirstOrDefault(el => el.IsVisibleAsync().GetAwaiter().GetResult());
-
             if (visibleElement != null)
                 return Page.Locator(className).First;
 
@@ -261,7 +237,26 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         }
         catch (TimeoutException)
         {
-            // If no element found, throw exception
+            throw new TimeoutException($"Unable to find {className}");
+        }
+    }
+
+    public async Task<ILocator> FindAlertMessageAsync(StatusMessageModel.StatusSeverity[] severity, IPage page)
+    {
+        var className = string.Join(", ", severity.Select(statusSeverity => $".alert-{StatusMessageModel.ToString(statusSeverity)}"));
+        var locator = page.Locator(className);
+        try
+        {
+            await locator.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
+            var visibleElements = await locator.AllAsync();
+            var visibleElement = visibleElements.FirstOrDefault(el => el.IsVisibleAsync().GetAwaiter().GetResult());
+            if (visibleElement != null)
+                return page.Locator(className).First;
+
+            return locator.First;
+        }
+        catch (TimeoutException)
+        {
             throw new TimeoutException($"Unable to find {className}");
         }
     }
