@@ -29,7 +29,8 @@ jobs:
 
       - name: Restore dependencies
         run: |
-          dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
+          dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout  
+          dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
           dotnet restore ConfigBuilder
           dotnet restore BTCPayServer.Plugins.Tests
 
@@ -38,7 +39,8 @@ jobs:
 
       - name: Build projects and run ConfigBuilder
         run: |
-          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
+          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout   
+          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
           dotnet build BTCPayServer.Plugins.Tests
           dotnet build ConfigBuilder
           dotnet run --project ConfigBuilder
