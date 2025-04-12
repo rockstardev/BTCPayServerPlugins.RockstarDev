@@ -1,26 +1,23 @@
-﻿using BTCPayServer.Tests;
+using BTCPayServer.Tests;
 using Xunit;
 using Xunit.Abstractions;
-using static BTCPayServer.Plugins.Tests.CashPluginTests.CashPluginUITest;
+using static BTCPayServer.Plugins.Tests.CashPluginUITest;
 
-namespace BTCPayServer.Plugins.Tests.CashPluginTests;
+namespace BTCPayServer.Plugins.Tests;
 
-public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFixture>
+public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServerTesterFixture>
 {
-    public ServerTester ServerTester { get; private set; }
-    public string TestDir { get; private set; }
+    private readonly CashPluginServerTesterFixture _fixture;
 
-    private readonly ServerTesterFixture _fixture;
-
-    public CashPluginUITest(ServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
+    public CashPluginUITest(CashPluginServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
     {
         _fixture = fixture;
-        if (_fixture.ServerTester == null)
-        {
-            _fixture.Initialize(this);
-        }
+        if (_fixture.ServerTester == null) _fixture.Initialize(this);
         ServerTester = _fixture.ServerTester;
     }
+
+    public ServerTester ServerTester { get; }
+    public string TestDir { get; private set; }
 
     [Fact]
     public async Task EnableCashPaymentTest()
@@ -32,7 +29,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
-        bool isChecked = await checkBox.IsCheckedAsync();
+        var isChecked = await checkBox.IsCheckedAsync();
         if (!isChecked)
             await checkBox.CheckAsync();
 
@@ -52,7 +49,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
-        bool isChecked = await checkBox.IsCheckedAsync();
+        var isChecked = await checkBox.IsCheckedAsync();
         if (!isChecked)
             await checkBox.CheckAsync();
 
@@ -60,7 +57,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
-        var invoiceId = await CreateInvoice(amount: 0.001m, currency: "BTC", refundEmail: "a@x.com");
+        var invoiceId = await CreateInvoice(0.001m, "BTC", "a@x.com");
         var invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         await Page.WaitForSelectorAsync("iframe[name='btcpay']");
@@ -84,7 +81,6 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         Assert.Equal(new Uri(ServerTester.PayTester.ServerUri, $"tests/index.html?invoice={invoiceId}").ToString(), Page.Url);
     }
 
-
     [Fact]
     public async Task DisableCashPaymentTest()
     {
@@ -95,7 +91,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
-        bool isDisabled = !await checkBox.IsCheckedAsync();
+        var isDisabled = !await checkBox.IsCheckedAsync();
         if (!isDisabled)
             await checkBox.CheckAsync();
 
@@ -106,22 +102,24 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<ServerTesterFi
     }
 
 
-    public class ServerTesterFixture : IDisposable
+    public class CashPluginServerTesterFixture : IDisposable
     {
         public ServerTester ServerTester { get; private set; }
+
+        public void Dispose()
+        {
+            ServerTester?.Dispose();
+            ServerTester = null;
+        }
 
         public void Initialize(PlaywrightBaseTest testInstance)
         {
             if (ServerTester == null)
             {
                 var testDir = Path.Combine(Directory.GetCurrentDirectory(), "CashPluginUITest");
-                ServerTester = testInstance.CreateServerTester(testDir, newDb: true);
+                ServerTester = testInstance.CreateServerTester(testDir, true);
                 ServerTester.StartAsync().GetAwaiter().GetResult();
             }
-        }
-        public void Dispose()
-        {
-            ServerTester?.Dispose();
         }
     }
 }

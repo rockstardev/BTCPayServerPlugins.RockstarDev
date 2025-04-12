@@ -162,6 +162,12 @@ Thank you,
                 return View(model);
             }
 
+            if (model.Password != model.ConfirmPassword)
+            {
+                ModelState.AddModelError(nameof(model.ConfirmPassword), "Password fields don't match");
+                return View(model);
+            }
+
             dbUser.Password = hasher.HashPassword(uid, model.Password);
             dbPlugins.Add(dbUser);
             await dbPlugins.SaveChangesAsync();
