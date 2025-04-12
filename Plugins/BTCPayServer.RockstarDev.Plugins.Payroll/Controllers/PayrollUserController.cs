@@ -161,6 +161,7 @@ Thank you,
                 ModelState.AddModelError(nameof(model.Password), "Password cannot be empty");
                 return View(model);
             }
+
             if (model.Password != model.ConfirmPassword)
             {
                 ModelState.AddModelError(nameof(model.ConfirmPassword), "Password fields don't match");

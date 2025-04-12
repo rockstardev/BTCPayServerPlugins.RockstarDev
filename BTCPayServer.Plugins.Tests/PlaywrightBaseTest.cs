@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
@@ -7,12 +8,14 @@ using Microsoft.Playwright;
 using NBitcoin;
 using Xunit;
 using Xunit.Abstractions;
-using System.Text.RegularExpressions;
 
 namespace BTCPayServer.Plugins.Tests;
 
 public class PlaywrightBaseTest : UnitTestBase, IDisposable
 {
+    private string CreatedUser;
+    private string InvoiceId;
+
     public PlaywrightBaseTest(ITestOutputHelper helper) : base(helper)
     {
     }
@@ -26,16 +29,15 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     public string StoreId { get; private set; }
     public bool IsAdmin { get; private set; }
 
-    string CreatedUser;
-    string InvoiceId;
-
     public void Dispose()
     {
         static void Try(Action action)
         {
             try
-            { action(); }
-            catch {}
+            {
+                action();
+            }
+            catch { }
         }
 
         Try(() =>
@@ -112,15 +114,13 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
             if (WalletId != null)
                 WalletId = new WalletId(storeId, WalletId.CryptoCode);
         }
+
         await Page.Locator($"#StoreNav-{storeNavPage}").ClickAsync();
     }
 
     public async Task<(string storeName, string storeId)> CreateNewStoreAsync(bool keepId = true)
     {
-        if (await Page.Locator("#StoreSelectorToggle").IsVisibleAsync())
-        {
-            await Page.Locator("#StoreSelectorToggle").ClickAsync();
-        }
+        if (await Page.Locator("#StoreSelectorToggle").IsVisibleAsync()) await Page.Locator("#StoreSelectorToggle").ClickAsync();
         await GoToUrl("/stores/create");
         var name = "Store" + RandomUtils.GetUInt64();
         TestLogs.LogInformation($"Created store {name}");
@@ -142,23 +142,18 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     {
         await Page.ClickAsync($"#StoreNav-Wallet{cryptoCode}");
         var walletNavSettings = Page.Locator("#WalletNav-Settings");
-        if (await walletNavSettings.CountAsync() > 0)
-        {
-            await walletNavSettings.ClickAsync();
-        }
+        if (await walletNavSettings.CountAsync() > 0) await walletNavSettings.ClickAsync();
     }
 
     /// <summary>
-    /// Assume to be in store's settings
+    ///     Assume to be in store's settings
     /// </summary>
     /// <param name="cryptoCode"></param>
     /// <param name="derivationScheme"></param>
-    public async Task AddDerivationScheme(string cryptoCode = "BTC", string derivationScheme = "tpubD6NzVbkrYhZ4XxNXjYTcRujMc8z8734diCthtFGgDMimbG5hUsKBuSTCuUyxWL7YwP7R4A5StMTRQiZnb6vE4pdHWPgy9hbiHuVJfBMumUu-[legacy]")
+    public async Task AddDerivationScheme(string cryptoCode = "BTC",
+        string derivationScheme = "tpubD6NzVbkrYhZ4XxNXjYTcRujMc8z8734diCthtFGgDMimbG5hUsKBuSTCuUyxWL7YwP7R4A5StMTRQiZnb6vE4pdHWPgy9hbiHuVJfBMumUu-[legacy]")
     {
-        if (!(await Page.ContentAsync()).Contains($"Setup {cryptoCode} Wallet"))
-        {
-            await GoToWalletSettingsAsync(cryptoCode);
-        }
+        if (!(await Page.ContentAsync()).Contains($"Setup {cryptoCode} Wallet")) await GoToWalletSettingsAsync(cryptoCode);
 
         await Page.Locator("#ImportWalletOptionsLink").ClickAsync();
         await Page.Locator("#ImportXpubLink").ClickAsync();
@@ -169,14 +164,14 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     }
 
     public async Task<string> CreateInvoice(decimal? amount = 10, string currency = "USD",
-        string refundEmail = "", string defaultPaymentMethod = null,
+        string refundEmail = "", string? defaultPaymentMethod = null,
         StatusMessageModel.StatusSeverity expectedSeverity = StatusMessageModel.StatusSeverity.Success)
     {
         return await CreateInvoice(null, amount, currency, refundEmail, defaultPaymentMethod, expectedSeverity);
     }
 
     public async Task<string> CreateInvoice(string storeId, decimal? amount = 10, string currency = "USD",
-        string refundEmail = "", string defaultPaymentMethod = null,
+        string refundEmail = "", string? defaultPaymentMethod = null,
         StatusMessageModel.StatusSeverity expectedSeverity = StatusMessageModel.StatusSeverity.Success)
     {
         await GoToInvoices(storeId);
@@ -203,11 +198,11 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         return inv;
     }
 
-    public async Task GoToInvoices(string storeId = null)
+    public async Task GoToInvoices(string? storeId = null)
     {
         if (storeId is null)
         {
-            await Page.Locator("#StoreNav-Invoices").ClickAsync();;
+            await Page.Locator("#StoreNav-Invoices").ClickAsync();
         }
         else
         {
@@ -263,7 +258,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
 
     public async Task ClickPagePrimary()
     {
-        await Page.WaitForSelectorAsync("#page-primary", new() { State = WaitForSelectorState.Visible });
+        await Page.WaitForSelectorAsync("#page-primary", new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });
         await Page.Locator("#page-primary").ClickAsync();
     }
 
