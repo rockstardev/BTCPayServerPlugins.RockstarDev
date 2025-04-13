@@ -5,7 +5,8 @@ using BTCPayServer.Services.Stores;
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 
-public class CashStatusProvider(StoreRepository storeRepository,
+public class CashStatusProvider(
+    StoreRepository storeRepository,
     PaymentMethodHandlerDictionary handlers)
 {
     public async Task<bool> CashEnabled(string storeId)
@@ -17,7 +18,7 @@ public class CashStatusProvider(StoreRepository storeRepository,
                 storeData.GetPaymentMethodConfig<CashPaymentMethodConfig>(CashCheckoutPlugin.CashPmid, handlers);
             if (currentPaymentMethodConfig == null)
                 return false;
-            
+
             var excludeFilters = storeData.GetStoreBlob().GetExcludedPaymentMethods();
             var enabled = !excludeFilters.Match(CashCheckoutPlugin.CashPmid);
 

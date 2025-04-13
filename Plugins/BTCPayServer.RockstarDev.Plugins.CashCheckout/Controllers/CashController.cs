@@ -4,7 +4,6 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
-using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
 using BTCPayServer.RockstarDev.Plugins.CashCheckout.ViewModels;
 using BTCPayServer.Services.Invoices;
@@ -25,18 +24,15 @@ public class CashController(
     CashStatusProvider cashStatusProvider) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
-    
+
     [HttpGet]
     public async Task<IActionResult> StoreConfig()
     {
-        var model = new CashStoreViewModel
-        {
-            Enabled = await cashStatusProvider.CashEnabled(StoreData.Id)
-        };
-        
+        var model = new CashStoreViewModel { Enabled = await cashStatusProvider.CashEnabled(StoreData.Id) };
+
         return View(model);
     }
-    
+
     [HttpPost]
     public async Task<IActionResult> StoreConfig(CashStoreViewModel viewModel)
     {
@@ -45,7 +41,7 @@ public class CashController(
         var paymentMethodId = CashCheckoutPlugin.CashPmid;
         var currentPaymentMethodConfig = StoreData.GetPaymentMethodConfig<CashPaymentMethodConfig>(paymentMethodId, handlers);
         currentPaymentMethodConfig ??= new CashPaymentMethodConfig();
-        
+
         blob.SetExcluded(paymentMethodId, !viewModel.Enabled);
 
         StoreData.SetPaymentMethodConfig(handlers[paymentMethodId], currentPaymentMethodConfig);
@@ -64,9 +60,7 @@ public class CashController(
 
         if (invoice.StoreId != storeId ||
             invoice.Status != InvoiceStatus.New)
-        {
             return Redirect(returnUrl);
-        }
 
         // Add Payment in Cash to Invoice
         var handler = handlers[CashCheckoutPlugin.CashPmid];
@@ -80,16 +74,14 @@ public class CashController(
             Amount = invoice.Price,
             PaymentMethodId = handler.PaymentMethodId.ToString()
         }.Set(invoice, handler, new object());
-        
+
         var payment = await paymentService.AddPayment(paymentData);
         if (payment != null)
-        {
             if (!await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled))
             {
                 //ModelState.AddModelError(nameof(request.Status),
                 //    "Status can only be marked to invalid or settled within certain conditions.");
             }
-        }
 
         return Redirect(returnUrl);
     }

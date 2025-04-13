@@ -5,6 +5,7 @@ using BTCPayServer.Payments;
 using BTCPayServer.Services.Rates;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
 #pragma warning disable CS8603 // Possible null reference return.
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers;
@@ -21,7 +22,7 @@ public class CashPaymentMethodHandler(CurrencyNameTable currencyNameTable) : IPa
     public Task BeforeFetchingRates(PaymentMethodContext context)
     {
         var currency = currencyNameTable.GetCurrencyData(context.InvoiceEntity.Currency, false);
-     
+
         context.Prompt.Currency = currency.Code;
         context.Prompt.Divisibility = currency.Divisibility;
         context.Prompt.RateDivisibility = currency.Divisibility;
@@ -29,6 +30,7 @@ public class CashPaymentMethodHandler(CurrencyNameTable currencyNameTable) : IPa
     }
 
     public JsonSerializer Serializer { get; } = BlobSerializer.CreateSerializer().Serializer;
+
     public object ParsePaymentPromptDetails(JToken details)
     {
         return details.ToObject<CashPaymentMethodDetails>(Serializer);

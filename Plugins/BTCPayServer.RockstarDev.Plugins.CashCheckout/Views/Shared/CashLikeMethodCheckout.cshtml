@@ -1,4 +1,3 @@
-@using BTCPayServer.RockstarDev.Plugins.CashCheckout.PaymentHandlers
 @model BTCPayServer.Models.InvoicingModels.CheckoutModel
 
 <template id="@CashCheckoutModelExtension.CheckoutBodyComponentName">
@@ -9,15 +8,15 @@
 </template>
 
 <script>
-	Vue.component(@Safe.Json(CashCheckoutModelExtension.CheckoutBodyComponentName), {
-		props: ['model', 'nfcSupported', 'nfcScanning', 'nfcErrorMessage', 'nfcWarningMessage'],
-		template: @Safe.Json("#" + CashCheckoutModelExtension.CheckoutBodyComponentName),
+    Vue.component(@Safe.Json(CashCheckoutModelExtension.CheckoutBodyComponentName), {
+        props: ['model', 'nfcSupported', 'nfcScanning', 'nfcErrorMessage', 'nfcWarningMessage'],
+        template: @Safe.Json("#" + CashCheckoutModelExtension.CheckoutBodyComponentName),
         components: {
             qrcode: VueQrcode
         },
-        data () {
+        data() {
             // currentTab is needed for backwards-compatibility with old plugin versions
-            return { currentTab: undefined };
+            return {currentTab: undefined};
         }
     });
 </script>

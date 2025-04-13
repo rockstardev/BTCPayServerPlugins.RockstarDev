@@ -12,7 +12,7 @@
 {
     var isEnabled = await CashStatusProvider.CashEnabled(storeId);
     var isActive = Context.Request.Path.Value?.Contains("/cash?") == true;
-    
+
     <li class="nav-item">
         <a class="nav-link @(isActive ? "active" : "")"
            asp-route-storeId="@storeId"
