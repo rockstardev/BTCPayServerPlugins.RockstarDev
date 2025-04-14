@@ -10,7 +10,8 @@ using Stripe;
 
 namespace BTCPayServer.RockstarDev.Plugins.Stripe.Logic;
 
-public class StripeClientFactory(StripeDbContextFactory dbContextFactory,
+public class StripeClientFactory(
+    StripeDbContextFactory dbContextFactory,
     IServiceProvider serviceProvider,
     ILoggerFactory loggerFactory)
 {
@@ -62,16 +63,11 @@ public class StripeClientFactory(StripeDbContextFactory dbContextFactory,
         var payouts = new PayoutService();
         var options = new PayoutListOptions
         {
-            Limit = limit,
-            StartingAfter = startingAfter // Fetch from this ID onward
+            Limit = limit, StartingAfter = startingAfter // Fetch from this ID onward
         };
 
         var allPayouts = await payouts.ListAsync(options);
-        var resp = new PayoutsAllResp
-        {
-            HasNext = allPayouts.HasMore,
-            Payouts = allPayouts.Data
-        };
+        var resp = new PayoutsAllResp { HasNext = allPayouts.HasMore, Payouts = allPayouts.Data };
         return resp;
     }
 
@@ -80,5 +76,4 @@ public class StripeClientFactory(StripeDbContextFactory dbContextFactory,
         public List<Payout> Payouts { get; set; }
         public bool HasNext { get; set; }
     }
-    
 }

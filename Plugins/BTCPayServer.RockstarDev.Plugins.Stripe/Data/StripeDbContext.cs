@@ -7,9 +7,9 @@ public class StripeDbContext(DbContextOptions<StripeDbContext> options, bool des
     : DbContext(options)
 {
     public const string DefaultPluginSchema = "BTCPayServer.RockstarDev.Plugins.Stripe";
-    
+
     public DbSet<DbSetting> Settings { get; set; }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

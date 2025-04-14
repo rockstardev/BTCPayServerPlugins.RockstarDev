@@ -31,10 +31,7 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
     public async Task<IActionResult> Configuration()
     {
         await using var db = stripeDbContextFactory.CreateContext();
-        var model = new ConfigurationViewModel
-        {
-            StripeApiKey = db.Settings.SingleOrDefault(a => a.Key == DbSetting.StripeApiKey)?.Value
-        };
+        var model = new ConfigurationViewModel { StripeApiKey = db.Settings.SingleOrDefault(a => a.Key == DbSetting.StripeApiKey)?.Value };
         return View(model);
     }
 
@@ -44,17 +41,12 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
         if (!ModelState.IsValid) return View(model);
         var validKey = await stripeClientFactory.TestAndSaveApiKeyAsync(model.StripeApiKey);
         if (!validKey)
-        {
             ModelState.AddModelError(nameof(model.StripeApiKey), "Invalid API key.");
-        }
         else
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel()
+            TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = $"Strike API key saved successfully.",
-                Severity = StatusMessageModel.StatusSeverity.Success
+                Message = "Strike API key saved successfully.", Severity = StatusMessageModel.StatusSeverity.Success
             });
-        }
 
         return View(model);
     }
@@ -63,7 +55,7 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
     public async Task<IActionResult> Payouts(string startingAfter)
     {
         const string cookieKey = "PayoutsHistory";
-    
+
         // Retrieve history from cookies
         var history = Request.Cookies[cookieKey] != null
             ? Request.Cookies[cookieKey].Split(',').ToList()
@@ -71,7 +63,7 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
         if (string.IsNullOrEmpty(startingAfter))
             history = new List<string>();
 
-        bool isGoingBack = !string.IsNullOrEmpty(startingAfter) && history.Any(a=>a == startingAfter);
+        var isGoingBack = !string.IsNullOrEmpty(startingAfter) && history.Any(a => a == startingAfter);
 
         if (isGoingBack)
         {
@@ -110,18 +102,17 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
         Response.Cookies.Append(cookieKey, string.Join(",", history), new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,  // Ensure secure transmission
+            Secure = true, // Ensure secure transmission
             Expires = DateTime.UtcNow.AddHours(1) // Adjust expiration as needed
         });
 
         return View(model);
     }
-
 }
 
 public class PayoutsViewModel
 {
-    public List<Item> Payouts { get; set; } = new List<Item>();
+    public List<Item> Payouts { get; set; } = new();
     public string HasPrev { get; set; }
     public string HasNext { get; set; }
 

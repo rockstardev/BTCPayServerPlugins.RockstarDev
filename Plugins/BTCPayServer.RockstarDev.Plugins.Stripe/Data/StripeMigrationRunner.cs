@@ -15,13 +15,10 @@ internal class StripeMigrationRunner(StripeDbContextFactory dbContextFactory) : 
         await using var ctx = dbContextFactory.CreateContext();
         await using var dbContext = dbContextFactory.CreateContext();
         await ctx.Database.MigrateAsync(cancellationToken);
-        
+
         // initialize stripe api key if needed
         var apiKey = dbContext.Settings.SingleOrDefault(a => a.Key == DbSetting.StripeApiKey)?.Value;
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            StripeConfiguration.ApiKey = apiKey;
-        }
+        if (!string.IsNullOrEmpty(apiKey)) StripeConfiguration.ApiKey = apiKey;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

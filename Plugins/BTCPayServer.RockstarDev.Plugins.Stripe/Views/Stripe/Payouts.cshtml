@@ -1,5 +1,4 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.RockstarDev.Plugins.Stripe
 @model BTCPayServer.RockstarDev.Plugins.Stripe.Controllers.PayoutsViewModel
 @{
     ViewData.SetActivePage(StripePlugin.PluginNavKey, "Stripe Payouts", "StripePayouts");
@@ -40,7 +39,7 @@
             </tbody>
         </table>
     </div>
-    
+
     <nav aria-label="..." class="d-flex flex-wrap gap-3 justify-content-between">
         <ul class="pagination me-auto">
             @if (Model.HasPrev != null)
@@ -49,7 +48,7 @@
                     <a class="page-link" tabindex="-1" asp-route-startingAfter="@Model.HasPrev" text-translate="true">Prev</a>
                 </li>
             }
-            
+
             @if (Model.HasNext != null)
             {
                 <li class="page-item">

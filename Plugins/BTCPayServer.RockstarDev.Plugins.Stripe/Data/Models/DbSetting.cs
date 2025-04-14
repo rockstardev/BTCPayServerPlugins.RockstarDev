@@ -11,11 +11,11 @@ public class DbSetting
 
     public string Value { get; set; }
 
+    public static string StripeApiKey => DbSettingKeys.StripeApiKey.ToString();
+
     public static void OnModelCreating(ModelBuilder modelBuilder)
     {
     }
-
-    public static string StripeApiKey => DbSettingKeys.StripeApiKey.ToString();
 }
 
 public enum DbSettingKeys
