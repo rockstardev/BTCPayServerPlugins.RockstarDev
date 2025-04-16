@@ -22,7 +22,8 @@ public class ProductController : Controller
         _dbContext = dbContext;
     }
 
-    [FromRoute] public string StoreId { get; set; }
+    [FromRoute]
+    public string StoreId { get; set; }
 
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -53,8 +54,7 @@ public class ProductController : Controller
 
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Success,
-            Message = $"Product {product.Name} successfully created"
+            Severity = StatusMessageModel.StatusSeverity.Success, Message = $"Product {product.Name} successfully created"
         });
 
         return RedirectToAction(nameof(Index), new { StoreId });

@@ -19,7 +19,8 @@ public class SubscriptionReminder
 
     public DateTimeOffset? ClickedAt { get; set; }
 
-    [MaxLength(36)] public string? PaymentRequestId { get; set; }
+    [MaxLength(36)]
+    public string? PaymentRequestId { get; set; }
 
     public string? DebugAdditionalData { get; set; }
 

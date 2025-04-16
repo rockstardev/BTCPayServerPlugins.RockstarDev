@@ -9,11 +9,11 @@
 <div class="sticky-header d-flex align-items-center justify-content-between">
     <h2 class="mb-0">@ViewData["Title"]</h2>
     <div class="d-flex gap-3 mt-3 mt-sm-0">
-        <input type="submit" class="btn btn-primary" value="Send Reminders" form="mainForm"/>
+        <input type="submit" class="btn btn-primary" value="Send Reminders" form="mainForm" />
     </div>
 </div>
 
-<partial name="_StatusMessage"/>
+<partial name="_StatusMessage" />
 
 <form method="post" asp-action="SendReminders" asp-route-storeid="@storeId" enctype="multipart/form-data" id="mainForm">
     <div class="row">
@@ -30,14 +30,14 @@
             {
                 <div class="form-group">
                     <label asp-for="SubscriptionCustomer" class="form-label"></label>
-                    <input asp-for="SubscriptionCustomer" class="form-control" readonly="readonly"/>
+                    <input asp-for="SubscriptionCustomer" class="form-control" readonly="readonly" />
                     <span asp-validation-for="SubscriptionCustomer" class="text-danger"></span>
                     @Html.HiddenFor(a => a.SubscriptionId)
                 </div>
             }
             <div class="form-group">
                 <label asp-for="Subject" class="form-label"></label>
-                <input asp-for="Subject" class="form-control"/>
+                <input asp-for="Subject" class="form-control" />
                 <span asp-validation-for="Subject" class="text-danger"></span>
             </div>
             <div class="form-group">

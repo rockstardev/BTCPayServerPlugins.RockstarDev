@@ -29,12 +29,15 @@ public class Subscription
     public DateTimeOffset Expires { get; set; }
 
     // for shopify and other systems
-    [MaxLength(50)] public string ExternalId { get; set; }
+    [MaxLength(50)]
+    public string ExternalId { get; set; }
 
-    [MaxLength(10)] public SubscriptionStates State { get; set; }
+    [MaxLength(10)]
+    public SubscriptionStates State { get; set; }
 
     // for shopify and other systems
-    [MaxLength(50)] public string PaymentRequestId { get; set; }
+    [MaxLength(50)]
+    public string PaymentRequestId { get; set; }
 
     // TODO: Define entity
 

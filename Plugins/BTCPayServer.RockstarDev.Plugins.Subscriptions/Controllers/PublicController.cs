@@ -26,7 +26,8 @@ public class PublicController : Controller
         _paymentRequestRepository = paymentRequestRepository;
     }
 
-    [FromRoute] public string StoreId { get; set; }
+    [FromRoute]
+    public string StoreId { get; set; }
 
     [HttpGet("click/{srid}")]
     public async Task<IActionResult> Click(string srid)
@@ -61,8 +62,7 @@ public class PublicController : Controller
                 AdditionalData = new Dictionary<string, JToken>
                 {
                     //{ "appId", JToken.FromObject(appId) },
-                    { "source", JToken.FromObject("subscription") },
-                    { "url", HttpContext.Request.GetAbsoluteRoot() }
+                    { "source", JToken.FromObject("subscription") }, { "url", HttpContext.Request.GetAbsoluteRoot() }
                 }
             });
 

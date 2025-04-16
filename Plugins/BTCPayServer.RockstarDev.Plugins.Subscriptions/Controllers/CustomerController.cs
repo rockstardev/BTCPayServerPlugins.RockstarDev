@@ -21,7 +21,8 @@ public class CustomerController : Controller
         _dbContext = dbContext;
     }
 
-    [FromRoute] public string StoreId { get; set; }
+    [FromRoute]
+    public string StoreId { get; set; }
 
     [HttpGet]
     public async Task<IActionResult> Index()

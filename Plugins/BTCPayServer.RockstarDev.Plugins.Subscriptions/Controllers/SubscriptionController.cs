@@ -35,7 +35,8 @@ public class SubscriptionController : Controller
         _emailService = emailService;
     }
 
-    [FromRoute] public string StoreId { get; set; }
+    [FromRoute]
+    public string StoreId { get; set; }
 
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -255,8 +256,7 @@ public class SubscriptionController : Controller
         await _dbContext.SaveChangesAsync();
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Success,
-            Message = subscriptionList.Count + " Subscriptions imported successfully!"
+            Severity = StatusMessageModel.StatusSeverity.Success, Message = subscriptionList.Count + " Subscriptions imported successfully!"
         });
         return RedirectToAction("Index", new { storeId = StoreId });
     }
@@ -289,8 +289,7 @@ public class SubscriptionController : Controller
 
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Success,
-            Message = "All subscriptions, products, and customers have been removed."
+            Severity = StatusMessageModel.StatusSeverity.Success, Message = "All subscriptions, products, and customers have been removed."
         });
         return RedirectToAction("Index", new { storeId = StoreId });
     }
@@ -399,8 +398,7 @@ Thank you,
 
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Success,
-            Message = subscriptions.Count + " subscription reminders have been sent"
+            Severity = StatusMessageModel.StatusSeverity.Success, Message = subscriptions.Count + " subscription reminders have been sent"
         });
         return RedirectToAction(nameof(Index), new { storeId = StoreId });
     }
