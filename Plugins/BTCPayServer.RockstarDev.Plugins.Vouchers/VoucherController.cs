@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Client.Models;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
@@ -17,7 +14,6 @@ using BTCPayServer.HostedServices;
 using BTCPayServer.ModelBinders;
 using BTCPayServer.Models;
 using BTCPayServer.Models.WalletViewModels;
-using BTCPayServer.Payments;
 using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
@@ -29,7 +25,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using NBitcoin;
 using NBitcoin.DataEncoders;
 
@@ -37,16 +32,17 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
 public class VoucherController : Controller
 {
-    private readonly PullPaymentHostedService _pullPaymentHostedService;
-    private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
+    private const string CURRENCY = "USD";
+    private readonly AppService _appService;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
-    private readonly UriResolver _uriResolver;
-    private readonly PayoutMethodHandlerDictionary _payoutHandlers;
-    private readonly StoreRepository _storeRepository;
-    private readonly RateFetcher _rateFetcher;
     private readonly BTCPayNetworkProvider _networkProvider;
-    private readonly AppService _appService;
+    private readonly PayoutMethodHandlerDictionary _payoutHandlers;
+    private readonly PullPaymentHostedService _pullPaymentHostedService;
+    private readonly RateFetcher _rateFetcher;
+    private readonly StoreRepository _storeRepository;
+    private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
+    private readonly UriResolver _uriResolver;
 
     public VoucherController(PullPaymentHostedService pullPaymentHostedService,
         UIStorePullPaymentsController uiStorePullPaymentsController,
@@ -54,7 +50,7 @@ public class VoucherController : Controller
         DefaultRulesCollection defaultRulesCollection,
         UriResolver uriResolver,
         PayoutMethodHandlerDictionary payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
-            AppService appService)
+        AppService appService)
     {
         _pullPaymentHostedService = pullPaymentHostedService;
         _uiStorePullPaymentsController = uiStorePullPaymentsController;
@@ -68,20 +64,15 @@ public class VoucherController : Controller
         _appService = appService;
     }
 
-    private const string CURRENCY = "USD";
-
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
     public IActionResult Keypad(string storeId)
     {
-        var settings = new PointOfSaleSettings
-        {
-            Title = "Bitcoin Vouchers"
-        };
+        var settings = new PointOfSaleSettings { Title = "Bitcoin Vouchers" };
         var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(CURRENCY);
-        double step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
+        var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
         //var store = new Data.StoreData();
         //var storeBlob = new StoreBlob();
 
@@ -118,7 +109,7 @@ public class VoucherController : Controller
             //CustomCSSLink = settings.CustomCSSLink,
             //CustomLogoLink = storeBlob.CustomLogo,
             //AppId = "vouchers",
-            StoreId = storeId,
+            StoreId = storeId
             //Description = settings.Description,
             //EmbeddedCSS = settings.EmbeddedCSS,
             //RequiresRefundEmail = settings.RequiresRefundEmail
@@ -129,11 +120,8 @@ public class VoucherController : Controller
     [Authorize(Policy = Policies.CanCreateNonApprovedPullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> CreateSatsBill(string storeId, int amount, string image)
     {
-        var selectedPaymentMethodIds = new PayoutMethodId[] {
-                PayoutMethodId.Parse("BTC-CHAIN"),
-                PayoutMethodId.Parse("BTC-LN")
-            };
-        var res = await _pullPaymentHostedService.CreatePullPayment(new HostedServices.CreatePullPayment()
+        var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
+        var res = await _pullPaymentHostedService.CreatePullPayment(new CreatePullPayment
         {
             Name = $"Voucher {amount} Sats",
             Description = image,
@@ -161,22 +149,16 @@ public class VoucherController : Controller
             .Include(data => data.Payouts)
             .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
 
-        if (pp == null)
-        {
-            return NotFound();
-        }
+        if (pp == null) return NotFound();
 
         var blob = pp.GetBlob();
-        if (!blob.Name.StartsWith("Voucher"))
-        {
-            return NotFound();
-        }
+        if (!blob.Name.StartsWith("Voucher")) return NotFound();
 
         var now = DateTimeOffset.UtcNow;
         var store = await _storeRepository.FindStore(pp.StoreId);
         var storeBlob = store.GetStoreBlob();
         var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
-        return View(await new VoucherViewModel()
+        return View(await new VoucherViewModel
         {
             Amount = pp.Limit,
             Currency = pp.Currency,
@@ -191,13 +173,10 @@ public class VoucherController : Controller
     }
 
 
-
-
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> ListVouchers(string storeId)
     {
-
         var now = DateTimeOffset.UtcNow;
         await using var ctx = _dbContextFactory.CreateContext();
         var ppsQuery = await ctx.PullPayments
@@ -212,12 +191,12 @@ public class VoucherController : Controller
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = "You must enable at least one payment method before creating a voucher.",
-                Severity = StatusMessageModel.StatusSeverity.Error
+                Message = "You must enable at least one payment method before creating a voucher.", Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
-        return View(vouchers.Select(tuple => new VoucherViewModel()
+
+        return View(vouchers.Select(tuple => new VoucherViewModel
         {
             Amount = tuple.PullPayment.Limit,
             Currency = tuple.PullPayment.Currency,
@@ -238,24 +217,24 @@ public class VoucherController : Controller
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = "You must enable at least one payment method before creating a voucher.",
-                Severity = StatusMessageModel.StatusSeverity.Error
+                Message = "You must enable at least one payment method before creating a voucher.", Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
+
         return View();
     }
 
     [HttpPost("~/plugins/{storeId}/vouchers/create")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> CreateVoucher(string storeId,
-        [ModelBinder(typeof(InvariantDecimalModelBinder))] decimal amount)
+        [ModelBinder(typeof(InvariantDecimalModelBinder))]
+        decimal amount)
     {
         ModelState.Clear();
         var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
         if (!paymentMethods.Any())
         {
-
             TempData[WellKnownTempData.ErrorMessage] = "You must enable at least one payment method before creating a voucher.";
 
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
@@ -278,15 +257,12 @@ public class VoucherController : Controller
             return View();
         }
 
-        string description = string.Empty;
+        var description = string.Empty;
         var satsAmount = Math.Floor(amount * rate.BidAsk.Bid * 100_000_000);
         var amountInBtc = satsAmount / 100_000_000;
-        if (currency != "BTC")
-        {
-            description = $"{amount} {currency} voucher redeemable for {amountInBtc} BTC";
-        }
+        if (currency != "BTC") description = $"{amount} {currency} voucher redeemable for {amountInBtc} BTC";
 
-        var pp = await _pullPaymentHostedService.CreatePullPayment(new CreatePullPayment()
+        var pp = await _pullPaymentHostedService.CreatePullPayment(new CreatePullPayment
         {
             Amount = amountInBtc,
             Currency = "BTC",
@@ -302,29 +278,23 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/vouchers/{id}")]
     [AllowAnonymous]
-    public async new Task<IActionResult> View(string id)
+    public new async Task<IActionResult> View(string id)
     {
         await using var ctx = _dbContextFactory.CreateContext();
         var pp = await ctx.PullPayments
             .Include(data => data.Payouts)
             .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
 
-        if (pp == null)
-        {
-            return NotFound();
-        }
+        if (pp == null) return NotFound();
 
         var blob = pp.GetBlob();
-        if (!blob.Name.StartsWith("Voucher"))
-        {
-            return NotFound();
-        }
+        if (!blob.Name.StartsWith("Voucher")) return NotFound();
 
         var now = DateTimeOffset.UtcNow;
         var store = await _storeRepository.FindStore(pp.StoreId);
         var storeBlob = store.GetStoreBlob();
         var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
-        return View(await new VoucherViewModel()
+        return View(await new VoucherViewModel
         {
             Amount = pp.Limit,
             Currency = pp.Currency,
@@ -337,8 +307,6 @@ public class VoucherController : Controller
             Description = blob.Description
         }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
-
-
 
 
     public class VoucherViewModel
@@ -355,6 +323,7 @@ public class VoucherController : Controller
         public string CssUrl { get; set; }
         public bool SupportsLNURL { get; set; }
         public string Description { get; set; }
+
         public async Task<VoucherViewModel> SetStoreBranding(HttpRequest request, UriResolver uriResolver, StoreBlob storeBlob)
         {
             var branding = await StoreBrandingViewModel.CreateAsync(request, uriResolver, storeBlob);

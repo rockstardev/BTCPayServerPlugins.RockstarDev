@@ -1,13 +1,14 @@
-﻿@model BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel
-@using BTCPayServer.Client
-@using BTCPayServer.Services
-@using Microsoft.AspNetCore.Mvc.TagHelpers
-@using BTCPayServer.Abstractions.TagHelpers
-@inject BTCPayServer.Security.ContentSecurityPolicies Csp
-@inject BTCPayServerEnvironment Env
-@inject DisplayFormatter DisplayFormatter
+﻿@using BTCPayServer.Abstractions.TagHelpers
 @using BTCPayServer.Components.QRCode
 @using BTCPayServer.Models
+@using BTCPayServer.Security
+@using BTCPayServer.Services
+@using LNURL
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel
+@inject ContentSecurityPolicies Csp
+@inject BTCPayServerEnvironment Env
+@inject DisplayFormatter DisplayFormatter
 @{
     Layout = null;
     ViewData["Title"] = Model.Name;
@@ -15,7 +16,7 @@
     string lnurl = null;
     if (Model.SupportsLNURL)
     {
-        lnurl = LNURL.LNURL.EncodeBech32(new Uri(Url.Action("GetLNURLForPullPayment", "UILNURL", new { cryptoCode = "BTC", pullPaymentId = Model.Id }, Context.Request.Scheme, Context.Request.Host.ToString())));
+        lnurl = LNURL.EncodeBech32(new Uri(Url.Action("GetLNURLForPullPayment", "UILNURL", new { cryptoCode = "BTC", pullPaymentId = Model.Id }, Context.Request.Scheme, Context.Request.Host.ToString())));
     }
 
     var fullView = Url.Action("ViewPullPayment", "UIPullPayment", new { pullPaymentId = Model.Id }, Context.Request.Scheme, Context.Request.Host.ToString());
@@ -60,6 +61,7 @@
                 margin: 1mm !important;
             }
         }
+
         /* this line is needed for fixing Chrome's bug */
         @@page {
             margin-left: 0px;
@@ -71,68 +73,70 @@
 </head>
 
 <body class="m-0 p-0 bg-white">
-    <center>
-        <partial name="_StoreHeader" model="(Model.Name, new StoreBrandingViewModel())" />
+<center>
+    <partial name="_StoreHeader" model="(Model.Name, new StoreBrandingViewModel())" />
 
-        <div id="InvoiceSummary" style="max-width:600px">
-            @if (!@Model.SupportsLNURL)
-            {
-                <div class="lead text-center fw-semibold" id="invoice-processing">
-                    This Pull Payment is not Printable
-                </div>
-            }
-            else
-            {
-                <div id="PaymentDetails">
+    <div id="InvoiceSummary" style="max-width:600px">
+        @if (!Model.SupportsLNURL)
+        {
+            <div class="lead text-center fw-semibold" id="invoice-processing">
+                This Pull Payment is not Printable
+            </div>
+        }
+        else
+        {
+            <div id="PaymentDetails">
 
-                    <hr class="w-100 my-0 bg-none" />
+                <hr class="w-100 my-0 bg-none" />
 
-                    <table class="table table-borderless table-sm small my-0">
-                        <tr>
-                            <td class="text-nowrap text-secondary">Amount</td>
-                            <td class="text-end fw-semibold">@DisplayFormatter.Currency(Model.Amount, Model.Currency, DisplayFormatter.CurrencyFormat.Symbol)</td>
-                        </tr>
+                <table class="table table-borderless table-sm small my-0">
+                    <tr>
+                        <td class="text-nowrap text-secondary">Amount</td>
+                        <td class="text-end fw-semibold">@DisplayFormatter.Currency(Model.Amount, Model.Currency, DisplayFormatter.CurrencyFormat.Symbol)</td>
+                    </tr>
 
-                        <tr>
-                            <td colspan="2">
-                                @if (lnurl != null)
-                                {
-                                    <div class="m-2 text-center">
-                                        <vc:qr-code data="@lnurl" size="178"></vc:qr-code>
-                                        <div>
-                                            @if (!string.IsNullOrEmpty(Model.Description))
-                                            {
-                                                <span>@Model.Description</span>
+                    <tr>
+                        <td colspan="2">
+                            @if (lnurl != null)
+                            {
+                                <div class="m-2 text-center">
+                                    <vc:qr-code data="@lnurl" size="178"></vc:qr-code>
+                                    <div>
+                                        @if (!string.IsNullOrEmpty(Model.Description))
+                                        {
+                                            <span>@Model.Description</span>
 
-                                                <br />
-                                            }
-                                            Scan with LNURLw compatible Bitcoin Wallet to redeem
-                                        </div>
+                                            <br />
+                                        }
+                                        Scan with LNURLw compatible Bitcoin Wallet to redeem
                                     </div>
-                                }
-                            </td>
-                        </tr>
+                                </div>
+                            }
+                        </td>
+                    </tr>
 
-                    </table>
+                </table>
 
-                    <hr class="w-100 my-0 p-1 bg-none" />
+                <hr class="w-100 my-0 p-1 bg-none" />
 
-                    <div class="my-2 text-center small">
-                        <a href="@fullView">
-                            <vc:qr-code data="@fullView" size="128"></vc:qr-code>
-                        </a>
-                        <div>Scan to open this link in browser for the full redemption option list</div>
-                    </div>
+                <div class="my-2 text-center small">
+                    <a href="@fullView">
+                        <vc:qr-code data="@fullView" size="128"></vc:qr-code>
+                    </a>
+                    <div>Scan to open this link in browser for the full redemption option list</div>
                 </div>
-            }
-        </div>
+            </div>
+        }
+    </div>
 
-        <hr class="w-100 my-0 p-1 bg-none" />
+    <hr class="w-100 my-0 p-1 bg-none" />
 
-        <div class="store-footer p-2">
-            <a class="store-powered-by" style="color:#000;">Powered by <partial name="_StoreFooterLogo" /></a>
-        </div>
-    </center>
+    <div class="store-footer p-2">
+        <a class="store-powered-by" style="color:#000;">Powered by
+            <partial name="_StoreFooterLogo" />
+        </a>
+    </div>
+</center>
 </body>
 <script>
     window.print();

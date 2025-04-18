@@ -1,10 +1,10 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+﻿@inject IScopeProvider ScopeProvider
+@inject DisplayFormatter DisplayFormatter
 @using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.Services
-@inject IScopeProvider ScopeProvider
-@inject DisplayFormatter DisplayFormatter
 @model List<BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel>
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
@@ -22,14 +22,19 @@
 
             <form asp-action="CreateSatsBill" method="get" class="">
                 <div class="dropdown">
-                    <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                         <span>Print Bill</span>
                     </button>
                     <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-jack.png" class="dropdown-item">1000 Sats Jack</a>
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-odell.png" class="dropdown-item">1000 Sats Odell</a>
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-giacomo.png" class="dropdown-item">1000 Sats Giacomo</a>
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-luke.png" class="dropdown-item">1000 Sats Luke</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-jack.png"
+                           class="dropdown-item">1000 Sats Jack</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-odell.png"
+                           class="dropdown-item">1000 Sats Odell</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-giacomo.png"
+                           class="dropdown-item">1000 Sats Giacomo</a>
+                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-luke.png"
+                           class="dropdown-item">1000 Sats Luke</a>
                     </div>
                 </div>
             </form>
@@ -40,7 +45,7 @@
     </div>
 
 
-    <partial name="_StatusMessage"/>
+    <partial name="_StatusMessage" />
 
 
     @if (Model.Any())
@@ -48,17 +53,17 @@
         @foreach (var pp in Model)
         {
             <script id="tooptip_template_@pp.Id" type="text/template">
-            <span>Awaiting:&nbsp;<span class="float-end">@pp.Progress.AwaitingFormatted</span></span>
-            <br />
-            <span>Completed:&nbsp;<span class="float-end">@pp.Progress.CompletedFormatted</span></span>
-            <br />
-            <span>Limit:&nbsp;<span class="float-end">@pp.Progress.LimitFormatted</span></span>
-            @if (pp.Progress.EndIn != null)
-            {
+                <span>Awaiting:&nbsp;<span class="float-end">@pp.Progress.AwaitingFormatted</span></span>
                 <br />
-                <span>Expires in:&nbsp;<span class="float-end">@pp.Progress.EndIn</span></span>
-            }
-        </script>
+                <span>Completed:&nbsp;<span class="float-end">@pp.Progress.CompletedFormatted</span></span>
+                <br />
+                <span>Limit:&nbsp;<span class="float-end">@pp.Progress.LimitFormatted</span></span>
+                @if (pp.Progress.EndIn != null)
+                {
+                    <br />
+                    <span>Expires in:&nbsp;<span class="float-end">@pp.Progress.EndIn</span></span>
+                }
+            </script>
         }
 
         <div class="table-responsive">
@@ -88,10 +93,12 @@
                         <td class="align-middle">
                             <div class="progress ppProgress" data-pp="@pp.Id" data-bs-toggle="tooltip" data-bs-html="true">
                                 <div class="progress-bar" role="progressbar" aria-valuenow="@pp.Progress.CompletedPercent"
-                                     aria-valuemin="0" aria-valuemax="100" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width:@(pp.Progress.CompletedPercent)%;">
+                                     aria-valuemin="0" aria-valuemax="100"
+                                     style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width:@(pp.Progress.CompletedPercent)%;">
                                 </div>
                                 <div class="progress-bar" role="progressbar" aria-valuenow="@pp.Progress.AwaitingPercent"
-                                     aria-valuemin="0" aria-valuemax="100" style="background-color:orange; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width:@(pp.Progress.AwaitingPercent)%;">
+                                     aria-valuemin="0" aria-valuemax="100"
+                                     style="background-color:orange; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width:@(pp.Progress.AwaitingPercent)%;">
                                 </div>
                             </div>
                         </td>
@@ -113,14 +120,16 @@
                                 Full view
                             </a>
                             <span> - </span>
-                            @if (pp.Description.EndsWith(".png")) {
+                            @if (pp.Description.EndsWith(".png"))
+                            {
                                 <a asp-action="ViewPrintSatsBill"
                                    asp-controller="Voucher"
                                    asp-route-id="@pp.Id">
                                     Print view
                                 </a>
                             }
-                            else {
+                            else
+                            {
                                 <a asp-action="View"
                                    asp-controller="Voucher"
                                    asp-route-id="@pp.Id">
@@ -134,18 +143,18 @@
             </table>
         </div>
 
-        <partial name="_Confirm" model="@(new ConfirmModel("Archive pull payment", "Do you really want to archive the pull payment?", "Archive"))"/>
+        <partial name="_Confirm" model="@(new ConfirmModel("Archive pull payment", "Do you really want to archive the pull payment?", "Archive"))" />
 
         @section PageFootContent {
             <script>
-            const ppProgresses = document.getElementsByClassName("ppProgress");
-            for (var i = 0; i < ppProgresses.length; i++) {
-                var pp = ppProgresses[i];
-                var ppId = pp.getAttribute("data-pp");
-                var template = document.getElementById("tooptip_template_" + ppId);
-                pp.setAttribute("title", template.innerHTML);
-            }
-        </script>
+                const ppProgresses = document.getElementsByClassName("ppProgress");
+                for (var i = 0; i < ppProgresses.length; i++) {
+                    var pp = ppProgresses[i];
+                    var ppId = pp.getAttribute("data-pp");
+                    var template = document.getElementById("tooptip_template_" + ppId);
+                    pp.setAttribute("title", template.innerHTML);
+                }
+            </script>
         }
     }
     else

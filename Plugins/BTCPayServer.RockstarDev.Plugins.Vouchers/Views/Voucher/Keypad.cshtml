@@ -1,36 +1,41 @@
-@inject BTCPayServer.Security.ContentSecurityPolicies Csp
+@inject ContentSecurityPolicies Csp
+@inject DisplayFormatter DisplayFormatter
 @using BTCPayServer.Abstractions.TagHelpers
 @using BTCPayServer.Client
 @using BTCPayServer.Client.Models
 @using BTCPayServer.Models
+@using BTCPayServer.Security
 @using BTCPayServer.Services
 @using BTCPayServer.TagHelpers
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@using Microsoft.Extensions.Localization
 @using Newtonsoft.Json.Linq
-@inject DisplayFormatter DisplayFormatter
 @model BTCPayServer.Plugins.PointOfSale.Models.ViewPointOfSaleViewModel
 @{
     Layout = "PointOfSale/Public/_Layout";
-	Csp.UnsafeEval();
+    Csp.UnsafeEval();
 }
+
 @section PageHeadContent {
     <link href="~/pos/keypad.css" asp-append-version="true" rel="stylesheet" />
 }
+
 @section PageFootContent {
-    <script>var srvModel = @Safe.Json(Model); console.log(srvModel);</script>
+    <script>var srvModel = @Safe.Json(Model);
+        console.log(srvModel);</script>
     <script src="~/vendor/vuejs/vue.min.js" asp-append-version="true"></script>
     <script>Vue.config.devtools = true;
         Vue.config.productionTip = true;</script>
     <script src="~/pos/common.js" asp-append-version="true"></script>
     <script src="~/pos/keypad.js" asp-append-version="true"></script>
 }
+
 <div class="public-page-wrap">
     <partial name="_StatusMessage" />
     <partial name="_StoreHeader" model="(Model.Title, new StoreBrandingViewModel())" />
 
 
     @functions {
+
         private string GetItemPriceFormatted(AppItem item)
         {
             if (item.PriceType == AppItemPriceType.Topup) return "any amount";
@@ -38,9 +43,11 @@
             var formatted = DisplayFormatter.Currency(item.Price ?? 0, Model.CurrencyCode, DisplayFormatter.CurrencyFormat.Symbol);
             return item.PriceType == AppItemPriceType.Minimum ? $"{formatted} minimum" : formatted;
         }
+
     }
-    
-    <form id="app" method="post" asp-action="CreateVoucher" asp-route-storeId="@Model.StoreId" asp-antiforgery="true" v-on:submit="handleFormSubmit" class="d-flex flex-column gap-4 my-auto" v-cloak>
+
+    <form id="app" method="post" asp-action="CreateVoucher" asp-route-storeId="@Model.StoreId" asp-antiforgery="true" v-on:submit="handleFormSubmit"
+          class="d-flex flex-column gap-4 my-auto" v-cloak>
         <input type="hidden" name="amount" :value="totalNumeric">
         <input type="hidden" name="tip" :value="tipNumeric">
         <input type="hidden" name="discount" :value="discountPercentNumeric">
@@ -51,12 +58,14 @@
             <div class="text-muted text-center mt-2" id="Calculation">{{ calculation }}</div>
         </div>
         <div id="ModeTabs" class="tab-content mb-n2" v-if="showDiscount || enableTips">
-            <div id="Mode-Discount" class="tab-pane fade px-2" :class="{ show: mode === 'discount', active: mode === 'discount' }" role="tabpanel" aria-labelledby="ModeTablist-Discount" v-if="showDiscount">
+            <div id="Mode-Discount" class="tab-pane fade px-2" :class="{ show: mode === 'discount', active: mode === 'discount' }" role="tabpanel"
+                 aria-labelledby="ModeTablist-Discount" v-if="showDiscount">
                 <div class="h4 fw-semibold text-muted text-center" id="Discount">
                     <span class="h3 text-body me-1">{{discountPercent || 0}}%</span> discount
                 </div>
             </div>
-            <div id="Mode-Tip" class="tab-pane fade px-2" :class="{ show: mode === 'tip', active: mode === 'tip' }" role="tabpanel" aria-labelledby="ModeTablist-Tip" v-if="enableTips">
+            <div id="Mode-Tip" class="tab-pane fade px-2" :class="{ show: mode === 'tip', active: mode === 'tip' }" role="tabpanel"
+                 aria-labelledby="ModeTablist-Tip" v-if="enableTips">
                 <div class="btcpay-pills d-flex flex-wrap align-items-center justify-content-center gap-2">
                     <template v-if="customTipPercentages">
                         <button
@@ -79,21 +88,29 @@
                         </button>
                     </template>
                     <div v-else class="h5 fw-semibold text-muted text-center">
-                        Amount<template v-if="tip">: {{formatCurrency(tip, true)}}</template>
+                        Amount
+                        <template v-if="tip">: {{formatCurrency(tip, true)}}</template>
                     </div>
                 </div>
             </div>
         </div>
         <div id="ModeTablist" class="nav btcpay-pills align-items-center justify-content-center mb-n2 pb-1" role="tablist" v-if="modes.length > 1">
             <template v-for="m in modes" :key="m.value">
-                <input :id="`ModeTablist-${m.type}`" name="mode" :value="m.type" type="radio" role="tab" data-bs-toggle="pill" :data-bs-target="`#Mode-${m.type}`" :disabled="m.type != 'amounts' && amountNumeric == 0" :aria-controls="`Mode-${m.type}`" :aria-selected="mode === m.type" :checked="mode === m.type" v-on:click="mode = m.type">
+                <input :id="`ModeTablist-${m.type}`" name="mode" :value="m.type" type="radio" role="tab" data-bs-toggle="pill"
+                       :data-bs-target="`#Mode-${m.type}`" :disabled="m.type != 'amounts' && amountNumeric == 0" :aria-controls="`Mode-${m.type}`"
+                       :aria-selected="mode === m.type" :checked="mode === m.type" v-on:click="mode = m.type">
                 <label :for="`ModeTablist-${m.type}`">{{ m.title }}</label>
             </template>
         </div>
         <div class="keypad">
-            <button v-for="k in keys" :key="k" :disabled="k === '+' && mode !== 'amounts'" v-on:click.prevent="keyPressed(k)" v-on:dblclick.prevent="doubleClick(k)" type="button" class="btn btn-secondary btn-lg" :data-key="k">
-                <template v-if="k === 'C'"><vc:icon symbol="keypad-clear"/></template>
-                <template v-else-if="k === '+'"><vc:icon symbol="keypad-plus"/></template>
+            <button v-for="k in keys" :key="k" :disabled="k === '+' && mode !== 'amounts'" v-on:click.prevent="keyPressed(k)"
+                    v-on:dblclick.prevent="doubleClick(k)" type="button" class="btn btn-secondary btn-lg" :data-key="k">
+                <template v-if="k === 'C'">
+                    <vc:icon symbol="keypad-clear" />
+                </template>
+                <template v-else-if="k === '+'">
+                    <vc:icon symbol="keypad-plus" />
+                </template>
                 <template v-else>{{ k }}</template>
             </button>
         </div>
@@ -105,17 +122,20 @@
                 <span text-translate="true">Charge</span>
             </template>
         </button>
-        <partial name="PointOfSale/Public/RecentTransactions" model="Model"/>
-        <button type="button" class="btn btn-light rounded-circle" data-bs-toggle="modal" data-bs-target="#RecentTransactions" id="RecentTransactionsToggle" permission="@Policies.CanViewInvoices">
-            <vc:icon symbol="nav-transactions"/>
+        <partial name="PointOfSale/Public/RecentTransactions" model="Model" />
+        <button type="button" class="btn btn-light rounded-circle" data-bs-toggle="modal" data-bs-target="#RecentTransactions" id="RecentTransactionsToggle"
+                permission="@Policies.CanViewInvoices">
+            <vc:icon symbol="nav-transactions" />
         </button>
-        <button type="button" class="btn btn-light rounded-circle" data-bs-toggle="offcanvas" data-bs-target="#ItemsListOffcanvas" id="ItemsListToggle" aria-controls="ItemsList" v-if="showItems">
-            <vc:icon symbol="nav-products"/>
+        <button type="button" class="btn btn-light rounded-circle" data-bs-toggle="offcanvas" data-bs-target="#ItemsListOffcanvas" id="ItemsListToggle"
+                aria-controls="ItemsList" v-if="showItems">
+            <vc:icon symbol="nav-products" />
         </button>
-        <div class="offcanvas offcanvas-end" data-bs-backdrop="static" tabindex="-1"  id="ItemsListOffcanvas" aria-labelledby="ItemsListToggle" v-if="showItems">
+        <div class="offcanvas offcanvas-end" data-bs-backdrop="static" tabindex="-1" id="ItemsListOffcanvas" aria-labelledby="ItemsListToggle" v-if="showItems">
             <div class="offcanvas-header justify-content-between flex-wrap p-3">
                 <h5 class="offcanvas-title" id="offcanvasExampleLabel">Products</h5>
-                <button type="button" class="btn btn-sm rounded-pill" :class="{ 'btn-primary': cart.length > 0, 'btn-outline-secondary': cart.length === 0}" data-bs-dismiss="offcanvas" v-text="cart.length > 0 ? 'Apply' : 'Close'"></button>
+                <button type="button" class="btn btn-sm rounded-pill" :class="{ 'btn-primary': cart.length > 0, 'btn-outline-secondary': cart.length === 0}"
+                        data-bs-dismiss="offcanvas" v-text="cart.length > 0 ? 'Apply' : 'Close'"></button>
                 @if (Model.ShowSearch)
                 {
                     <div class="w-100 mt-3">
@@ -124,10 +144,13 @@
                 }
                 @if (Model.ShowCategories)
                 {
-                    <div id="Categories" ref="categories" v-if="showCategories && allCategories" class="w-100 mt-3 btcpay-pills d-flex flex-wrap align-items-center justify-content-center gap-2" :class="{ 'scrollable': categoriesScrollable }">
+                    <div id="Categories" ref="categories" v-if="showCategories && allCategories"
+                         class="w-100 mt-3 btcpay-pills d-flex flex-wrap align-items-center justify-content-center gap-2"
+                         :class="{ 'scrollable': categoriesScrollable }">
                         <nav class="btcpay-pills d-flex align-items-center gap-3" ref="categoriesNav">
                             <template v-for="cat in allCategories">
-                                <input :id="`Category-${cat.value}`" type="radio" name="category" autocomplete="off" v-model="displayCategory" :value="cat.value">
+                                <input :id="`Category-${cat.value}`" type="radio" name="category" autocomplete="off" v-model="displayCategory"
+                                       :value="cat.value">
                                 <label :for="`Category-${cat.value}`" class="btcpay-pill text-nowrap">{{ cat.text }}</label>
                             </template>
                         </nav>
@@ -143,7 +166,8 @@
                         var inStock = item.Inventory is null or > 0;
                         var displayed = item.PriceType == AppItemPriceType.Fixed && inStock ? "true" : "false";
                         var categories = new JArray(item.Categories ?? new object[] { });
-                        <div class="posItem p-3" :class="{ 'posItem--inStock': inStock(@index), 'posItem--displayed': @displayed }" data-index="@index" data-search="@Safe.RawEncode(item.Title + " " + item.Description)" data-categories='@Safe.Json(categories)' v-show="@displayed">
+                        <div class="posItem p-3" :class="{ 'posItem--inStock': inStock(@index), 'posItem--displayed': @displayed }" data-index="@index"
+                             data-search="@Safe.RawEncode(item.Title + " " + item.Description)" data-categories='@Safe.Json(categories)' v-show="@displayed">
                             <div class="d-flex align-items-start w-100 gap-3">
                                 @if (!string.IsNullOrWhiteSpace(item.Image))
                                 {
@@ -178,11 +202,13 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 ms-auto quantities">
-                                    <button type="button" v-on:click="updateQuantity(`@Safe.Raw(item.Id)`, -1, true)" class="btn btn-minus" :disabled="getQuantity(`@Safe.Raw(item.Id)`) <= 0">
+                                    <button type="button" v-on:click="updateQuantity(`@Safe.Raw(item.Id)`, -1, true)" class="btn btn-minus"
+                                            :disabled="getQuantity(`@Safe.Raw(item.Id)`) <= 0">
                                         <span><vc:icon symbol="minus" /></span>
                                     </button>
                                     <div class="quantity text-center fs-5" style="width:2rem">{{ getQuantity(`@Safe.Raw(item.Id)`) }}</div>
-                                    <button type="button" v-on:click="updateQuantity(`@Safe.Raw(item.Id)`, +1, true)" class="btn btn-plus" :disabled="!inStock(@index)">
+                                    <button type="button" v-on:click="updateQuantity(`@Safe.Raw(item.Id)`, +1, true)" class="btn btn-plus"
+                                            :disabled="!inStock(@index)">
                                         <span><vc:icon symbol="plus" /></span>
                                     </button>
                                 </div>
@@ -198,7 +224,8 @@
 
     <footer class="store-footer">
         <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
-            Powered by <partial name="_StoreFooterLogo" />
+            Powered by
+            <partial name="_StoreFooterLogo" />
         </a>
     </footer>
 </div>
