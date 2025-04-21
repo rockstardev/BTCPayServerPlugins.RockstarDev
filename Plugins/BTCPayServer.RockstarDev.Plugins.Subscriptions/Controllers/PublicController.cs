@@ -48,13 +48,12 @@ public class PublicController : Controller
             {
                 StoreDataId = product.StoreId,
                 Archived = false,
-                Status = Client.Models.PaymentRequestData.PaymentRequestStatus.Pending
-            };
-            req.SetBlob(new CreatePaymentRequestRequest
-            {
-                Amount = product.Price,
+                Status = PaymentRequestStatus.Pending,
                 Currency = product.Currency,
-                ExpiryDate = null,
+                Amount = product.Price,
+            };
+            req.SetBlob(new()
+            {
                 Description = "",
                 Title = product.Name + " Renewal",
                 FormId = product.FormId,

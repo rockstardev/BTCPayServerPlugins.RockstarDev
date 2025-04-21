@@ -1,0 +1,38 @@
+﻿@using BTCPayServer.Blazor.VaultBridge
+@using Microsoft.Extensions.Localization
+@inherits BTCPayServer.Blazor.VaultBridge.VaultElement
+
+
+<h4 class="mb-3">Public Key Information</h4>
+<div class="form-group">
+    <label for="DerivationScheme" class="form-label"></label>
+    <textarea for="DerivationScheme" @bind="DerivationScheme" class="form-control store-derivation-scheme font-monospace py-2" rows="3" readonly></textarea>
+    <!-- Hidden text area to copy the information -->
+    <textarea class="input-hidden" style="display: none;" readonly="readonly" id="mainCode">@CopiedInformation</textarea>
+    <button class="mt-2 btn btn-outline-secondary btcpay-butt" id="btnCopy" data-clipboard-target="#mainCode">
+        <Icon Symbol="actions-copy"></Icon>&nbsp;<span>@ui.StringLocalizer["Copy Information"]</span>
+    </button>
+</div>
+<div class="form-group">
+    <label for="RootFingerprint" class="form-label"></label>
+    <input for="RootFingerprint" @bind="RootFingerprint" class="form-control" readonly />
+</div>
+<div class="form-group">
+    <label for="KeyPath" class="form-label"></label>
+    <input asp-for="KeyPath" @bind="KeyPath" class="form-control" readonly />
+</div>
+
+@code {
+    private readonly VaultBridgeUI ui;
+
+    public ShowXPubVaultElement(VaultBridgeUI ui)
+    {
+        this.ui = ui;
+    }
+    public string DerivationScheme { get; set; }
+    public string RootFingerprint { get; set; }
+    public string KeyPath { get; set; }
+
+    public string CopiedInformation => $"Derivation Scheme: {DerivationScheme}\nRoot Fingerprint: {RootFingerprint}\nKey Path: {KeyPath}";
+
+}

@@ -9,7 +9,6 @@ using BTCPayServer.RockstarDev.Plugins.Subscriptions.Data.Models;
 using BTCPayServer.Services.PaymentRequests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using PaymentRequestData = BTCPayServer.Client.Models.PaymentRequestData;
 
 namespace BTCPayServer.RockstarDev.Plugins.Subscriptions.Services;
 
@@ -100,7 +99,7 @@ public class SubscriptionService(
 
             case PaymentRequestEvent { Type: PaymentRequestEvent.StatusChanged } payreq:
             {
-                if (payreq.Data.Status == PaymentRequestData.PaymentRequestStatus.Completed)
+                if (payreq.Data.Status == PaymentRequestStatus.Completed)
                 {
                     var subscriptionReminder = await dbContext.SubscriptionReminders
                         .Include(a => a.Subscription)
