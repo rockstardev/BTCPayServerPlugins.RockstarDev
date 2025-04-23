@@ -52,17 +52,18 @@ public class PublicController : Controller
                 Currency = product.Currency,
                 Amount = product.Price,
             };
-            req.SetBlob(new()
+            req.SetBlob(new PaymentRequestBlob()
             {
                 Description = "",
                 Title = product.Name + " Renewal",
                 FormId = product.FormId,
                 AllowCustomPaymentAmounts = false,
-                AdditionalData = new Dictionary<string, JToken>
-                {
-                    //{ "appId", JToken.FromObject(appId) },
-                    { "source", JToken.FromObject("subscription") }, { "url", HttpContext.Request.GetAbsoluteRoot() }
-                }
+                // TODO: Nicolas removed AdditionalData property not sure how to handle this, commenting for now
+                // AdditionalData = new Dictionary<string, JToken>
+                // {
+                //     //{ "appId", JToken.FromObject(appId) },
+                //     { "source", JToken.FromObject("subscription") }, { "url", HttpContext.Request.GetAbsoluteRoot() }
+                // }
             });
 
             var pr = await _paymentRequestRepository.CreateOrUpdatePaymentRequest(req);
