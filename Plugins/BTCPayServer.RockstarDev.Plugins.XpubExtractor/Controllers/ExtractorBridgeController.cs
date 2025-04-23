@@ -50,6 +50,6 @@ public class ExtractorBridgeController : HWIController
             KeyPath = keyPath.ToString(),
             RootFingerprint = fingerprint.ToString(),
         });
-        ui.ShowRetry();
+        //ui.ShowRetry();
     }
 }
