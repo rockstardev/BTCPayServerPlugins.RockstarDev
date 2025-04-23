@@ -121,14 +121,13 @@ public class VoucherController : Controller
     public async Task<IActionResult> CreateSatsBill(string storeId, int amount, string image)
     {
         var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
-        var res = await _pullPaymentHostedService.CreatePullPayment(new CreatePullPayment
+        var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
         {
             Name = $"Voucher {amount} Sats",
             Description = image,
             Amount = amount,
             Currency = "SATS",
-            StoreId = storeId,
-            PayoutMethods = selectedPaymentMethodIds,
+            PayoutMethods = selectedPaymentMethodIds.Select(c => c.ToString()).ToArray(),
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
@@ -246,7 +245,8 @@ public class VoucherController : Controller
             return View();
         }
 
-        var storeBlob = HttpContext.GetStoreData().GetStoreBlob();
+        var store = HttpContext.GetStoreData();
+        var storeBlob = store.GetStoreBlob();
         var currency = CURRENCY;
 
         var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, "BTC"),
@@ -262,14 +262,13 @@ public class VoucherController : Controller
         var amountInBtc = satsAmount / 100_000_000;
         if (currency != "BTC") description = $"{amount} {currency} voucher redeemable for {amountInBtc} BTC";
 
-        var pp = await _pullPaymentHostedService.CreatePullPayment(new CreatePullPayment
+        var pp = await _pullPaymentHostedService.CreatePullPayment(store, new()
         {
             Amount = amountInBtc,
             Currency = "BTC",
             Name = "Voucher " + Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
             Description = description,
-            StoreId = storeId,
-            PayoutMethods = paymentMethods.ToArray(),
+            PayoutMethods = paymentMethods.Select(c => c.ToString()).ToArray(),
             AutoApproveClaims = true
         });
 

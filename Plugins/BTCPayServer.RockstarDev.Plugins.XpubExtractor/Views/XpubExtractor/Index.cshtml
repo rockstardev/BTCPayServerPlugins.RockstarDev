@@ -1,210 +1,40 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.TagHelpers
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers.XpubExtractorController.IndexViewModel
+@using BTCPayServer.Blazor.VaultBridge
+@using BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers
+
 @{
-    Layout = "_Layout";
+    Layout = "Views/UIStores/_LayoutWalletSetup";
     ViewData.SetActivePage("XpubExtractor", "Xpub Extractor", "XpubExtractor");
+    this.ViewData.SetBlazorAllowed(true);
 }
 
-<h2 class="mt-1">@ViewData["Title"]</h2>
-<div class="text-secondary">In order to securely connect to your hardware wallet you must first
-    <a href="https://github.com/btcpayserver/BTCPayServer.Vault/releases/latest" target="_blank">
-        download, install, and run the BTCPay Server Vault.
+@section Navbar {
+    <a asp-controller="UIHome" asp-action="Index">
+        <vc:icon symbol="back" />
     </a>
-</div>
-
-
-@if (!ViewContext.ModelState.IsValid)
-{
-<div asp-validation-summary="All"></div>
 }
 
-<partial name="LocalhostBrowserSupport" />
+<header class="text-center">
+    <h1>@ViewData["Title"]</h1>
+    <p class="lead text-secondary mt-3">
+        In order to securely connect to your hardware wallet you must first download, install,
+        and run the <a href="https://github.com/btcpayserver/BTCPayServer.Vault/releases">BTCPay Server Vault</a>.
+    </p>
+</header>
 
-<div class="row mt-4 mb-4">
-    <div class="col-md-8">
-        <div id="vault-status" class="mb-4"></div>
-        <div id="vault-xpub" class="mt-4" style="display:none;">
-            <div class="form-group">
-                <label for="signatureType" class="form-label">Signature type</label>
-                <select id="signatureType" name="signatureType" class="form-select w-auto">
-                    <option value="singlesig">Singlesig</option>
-                    <option value="multisig">Multisig</option>
-                    <option value="custom">Custom</option>
-                </select>
-            </div>
-            <div class="form-group" id="divAddressType">
-                <label for="addressType" class="form-label">Address type</label>
-                <select id="addressType" name="addressType" class="form-select w-auto">
-                    <option value="segwit">Segwit (Recommended, cheapest fee)</option>
-                    <option value="segwitWrapped">Segwit wrapped (Compatible with old wallets)</option>
-                    <option value="legacy">Legacy (Not recommended)</option>
-                    <option value="taproot">Taproot (ONLY FOR DEVELOPMENT)</option>
-                </select>
-            </div>
-            <div class="form-group" id="divAccount">
-                <label for="accountNumber" class="form-label">Account</label>
-                <input id="accountNumber" class="form-control" name="accountNumber" type="number" value="0" min="0" step="1" style="max-width:12ch;" />
-            </div>
-            <div class="form-group">
-                <label for="customKeyPath" class="form-label">Key Path</label>
-                <input id="customKeyPath" class="form-control" name="customKeyPath" type="text" readonly style="max-width:30ch;"
-                       placeholder="Enter custom path (e.g. m/84'/0'/4')"/>
-            </div>
-        </div>
-        <div>
-            <button type="submit" id="vault-confirm" class="btn btn-primary" style="display:none;"></button>
-            <button type="button" id="vault-retry" class="btn btn-secondary" style="display:none;">Retry</button>
-        </div>
+<div class="row mt-5 mb-4">
+    <div class="col-md-8 mx-auto">
+        <component type="typeof(VaultBridgeUI)"
+                   param-Controller=@(new ExtractorBridgeController()
+                   {
+                       CryptoCode = "BTC"
+                   })
+                   render-mode="Server"/>
     </div>
 </div>
 
-<form method="post" id="walletInfo" style="display:none;">
-    <input asp-for="Config" type="hidden" />
-    <input asp-for="CryptoCode" type="hidden" />
-    <input asp-for="AccountKey" type="hidden" />
-    <input asp-for="Source" type="hidden" value="Vault"/>
-    <input asp-for="DerivationSchemeFormat" type="hidden" value="BTCPay" />
-    
-    <div class="row mt-4 mb-4">
-        <div class="col-md-8">
-            <h4 class="mb-3">Public Key Information</h4>
-            <div class="form-group">
-                <label asp-for="DerivationScheme" class="form-label"></label>
-                <textarea asp-for="DerivationScheme" class="form-control store-derivation-scheme font-monospace py-2" rows="3" readonly></textarea>
-                <!-- Hidden text area to copy the information -->
-                <textarea class="input-hidden" style="display: none;" readonly="readonly" id="mainCode"></textarea>
-            </div>
-            <div class="form-group">
-                <label asp-for="RootFingerprint" class="form-label"></label>
-                <input asp-for="RootFingerprint" class="form-control" readonly />
-            </div>
-            <div class="form-group">
-                <label asp-for="KeyPath" class="form-label"></label>
-                <input asp-for="KeyPath" class="form-control" readonly />
-            </div>
-            <button class="btn btn-primary" id="btnCopy" data-clipboard-target="#mainCode">
-                <vc:icon symbol="actions-copy"/>&nbsp;Copy Information
-            </button>
-            <button name="command" type="button" class="btn btn-outline-secondary" id="fetchAnother">Fetch Another xpub</button>
-        </div>
-    </div>
-</form>
-
-<script>
-    document.getElementById('btnCopy').addEventListener('click', function() {
-    });
-
-    document.getElementById('fetchAnother').addEventListener('click', function() {
-        // Reload the page to fetch another xpub
-        location.reload();
-    });
-</script>
-
-
-<!-- This script below initializes the VaultBridgeUI object and listens for the beforeunload event to close the bridge. -->
 @section PageFootContent {
-    <partial name="_ValidationScriptsPartial"/>
-    <partial name="VaultElements"/>
-
-    <script src="~/Resources/js/plugin-vaultbridge.js" defer asp-append-version="true"></script>
-    <script src="~/Resources/js/plugin-vaultbridge.ui.js" defer asp-append-version="true"></script>
-
-    <script>
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const signatureTypeSelect = document.getElementById("signatureType");
-        const divAddressType = document.getElementById("divAddressType");
-        const addressTypeSelect = document.getElementById("addressType");
-        const divAccount = document.getElementById("divAccount");
-        const accountNumberInput = document.getElementById("accountNumber");
-        const customKeyPathInput = document.getElementById("customKeyPath");
-        
-        function updateKeyPath() {
-            const signatureType = signatureTypeSelect.value.toLowerCase();
-            const addressType = addressTypeSelect.value;
-            const accountNumber = accountNumberInput.value;
-            
-            if (signatureType === "custom") {
-                customKeyPathInput.readOnly = false;
-                divAccount.style.display = "none";
-                customKeyPathInput.value = "m/21'/21'/21'";
-            } else {
-                customKeyPathInput.readOnly = true;
-                divAccount.style.display = "block";
-                
-                if (signatureType === "singlesig") {
-                    switch (addressType) {
-                        case "segwit":
-                            customKeyPathInput.value = `m/84'/0'/${accountNumber}'`;
-                            break;
-                        case "segwitWrapped":
-                            customKeyPathInput.value = `m/49'/0'/${accountNumber}'`;
-                            break;
-                        case "legacy":
-                            customKeyPathInput.value = `m/44'/0'/${accountNumber}'`;
-                            break;
-                        case "taproot":
-                            customKeyPathInput.value = `m/86'/0'/${accountNumber}'`;
-                            break;
-                    }
-                } else if (signatureType === "multisig") {
-                    switch (addressType) {
-                        case "segwit":
-                            customKeyPathInput.value = `m/48'/0'/${accountNumber}'/2'`;
-                            break;
-                        case "segwitWrapped":
-                            customKeyPathInput.value = `m/48'/0'/${accountNumber}'/1'`;
-                            break;
-                        case "legacy":
-                            customKeyPathInput.value = `m/45'/0'/${accountNumber}'`;
-                            break;
-                        case "taproot":
-                            customKeyPathInput.value = `m/48'/0'/${accountNumber}'/3'`;
-                            break;
-                    }
-                }
-            }
-        }
-        
-        signatureTypeSelect.addEventListener("change", updateKeyPath);
-        addressTypeSelect.addEventListener("change", updateKeyPath);
-        accountNumberInput.addEventListener("change", updateKeyPath);
-        accountNumberInput.addEventListener("input", updateKeyPath);
-        
-        updateKeyPath();
-    });
-
-    window.addEventListener("load", async () => {
-        const wsPath = "@Url.Action("VaultBridgeConnection", "VaultBridge", new { cryptoCode = Model.CryptoCode })";
-        const wsProto = location.protocol.replace(/^http/, "ws");
-        const vaultUI = new vaultui.VaultBridgeUI(`${wsProto}//${location.host}${wsPath}`);
-
-        document.getElementById("vault-status").innerHTML = document.getElementById("VaultConnection").innerHTML;
-
-        window.addEventListener("beforeunload", () => {
-            vaultUI.closeBridge();
-        });
-
-        while (!await vaultUI.askForDevice() || !await vaultUI.askForXPubs()) {
-            // wait
-        }
-
-        const { xpub: { strategy, fingerprint, accountKey, keyPath } } = vaultUI;
-
-        document.getElementById("DerivationScheme").value = strategy;
-        document.getElementById("RootFingerprint").value = fingerprint;
-        document.getElementById("AccountKey").value = accountKey;
-        document.getElementById("KeyPath").value = keyPath;
-        document.getElementById("walletInfo").style = null;
-
-        const textToCopy = `
-Derivation Scheme: ${strategy}
-Root Fingerprint: ${fingerprint}
-Key Path: ${keyPath}
-        `;
-
-        document.getElementById("mainCode").value = textToCopy.trim();
-    });
-    </script>
+    <script src="~/js/vaultbridge.js" asp-append-version="true"></script>
 }
