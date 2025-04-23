@@ -9,8 +9,8 @@ namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers;
 [Authorize(Policy = Policies.CanViewInvoices, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class XpubExtractorController : Controller
 {
-    [HttpGet("~/plugins/xpubextractor/")]
-    public IActionResult Index()
+    [HttpGet("~/plugins/{storeId}/xpubextractor/")]
+    public IActionResult Index(string storeId)
     {
         return View();
     }
