@@ -7,9 +7,9 @@ namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor
     public class XpubExtractorPlugin : BaseBTCPayServerPlugin
     {
         public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
-        {
-            new() {Identifier = nameof(BTCPayServer), Condition = ">=2.1.1"}
-        };
+        [
+            new() { Identifier = nameof(BTCPayServer), Condition = ">=2.1.1" }
+        ];
 
         public override void Execute(IServiceCollection serviceCollection)
         {

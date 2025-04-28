@@ -2,14 +2,14 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>10</LangVersion>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
         <Product>Xpub Extractor</Product>
         <Description>Plugin that enables you to easily extract xpub from hardware wallets using BTCPayServer Vault</Description>
-        <Version>0.0.9</Version>
+        <Version>0.1.0</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
