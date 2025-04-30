@@ -7,9 +7,7 @@ var repoRoot = Path.GetFullPath(Path.Combine(currentDirectory, ".."));
 while (!Directory.Exists(Path.Combine(repoRoot, ".git")) &&
        !Directory.Exists(Path.Combine(repoRoot, ".github")) &&
        Directory.GetParent(repoRoot) != null)
-{
     repoRoot = Directory.GetParent(repoRoot).FullName;
-}
 var pluginsDirectory = Path.Combine(repoRoot, "Plugins");
 if (!Directory.Exists(pluginsDirectory))
 {
@@ -22,6 +20,7 @@ if (!Directory.Exists(pluginsDirectory))
             pluginsDirectory = possiblePluginsDir;
             break;
         }
+
         searchDirectory = Directory.GetParent(searchDirectory)?.FullName;
     }
 }
