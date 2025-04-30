@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Blazor.VaultBridge;
@@ -13,7 +12,8 @@ namespace BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers;
 
 public class ExtractorBridgeController : HWIController
 {
-    private XPubSelectorVaultElement xpubSelect = null;
+    private XPubSelectorVaultElement xpubSelect;
+
     protected override async Task Run(VaultBridgeUI ui, HwiClient hwi, HwiDeviceClient device, HDFingerprint fingerprint, BTCPayNetwork network,
         CancellationToken cancellationToken)
     {
@@ -21,11 +21,8 @@ public class ExtractorBridgeController : HWIController
         var xpubInfo = await xpubSelect.GetXPubSelect();
         var scriptPubKeyTypeType = xpubInfo.ToScriptPubKeyType();
         ui.ShowFeedback(FeedbackType.Loading, ui.StringLocalizer["Fetching public keys..."]);
-        KeyPath keyPath = xpubInfo.ToKeyPath();
-        if (!xpubInfo.IsCustom)
-        {
-            keyPath = keyPath.Derive(network.CoinType).Derive(xpubInfo.AccountNumber, true);
-        }
+        var keyPath = xpubInfo.ToKeyPath();
+        if (!xpubInfo.IsCustom) keyPath = keyPath.Derive(network.CoinType).Derive(xpubInfo.AccountNumber, true);
         if (xpubInfo.IsMultiSig && scriptPubKeyTypeType != ScriptPubKeyType.Legacy)
         {
             var scriptPubIndex = scriptPubKeyTypeType switch
@@ -37,18 +34,18 @@ public class ExtractorBridgeController : HWIController
             };
             keyPath = keyPath.Derive(scriptPubIndex, true);
         }
-        
-        BitcoinExtPubKey xpub = await device.GetXPubAsync(keyPath, cancellationToken);
+
+        var xpub = await device.GetXPubAsync(keyPath, cancellationToken);
 
         var factory = network.NBXplorerNetwork.DerivationStrategyFactory;
-        var strategy = factory.CreateDirectDerivationStrategy(xpub, new DerivationStrategyOptions() { ScriptPubKeyType = scriptPubKeyTypeType });
+        var strategy = factory.CreateDirectDerivationStrategy(xpub, new DerivationStrategyOptions { ScriptPubKeyType = scriptPubKeyTypeType });
         ui.ShowFeedback(FeedbackType.Success, ui.StringLocalizer["Public keys successfully fetched."]);
-        
+
         ui.AddElement(new ShowXPubVaultElement(ui)
         {
             DerivationScheme = strategy.ToString(),
             KeyPath = keyPath.ToString(),
-            RootFingerprint = fingerprint.ToString(),
+            RootFingerprint = fingerprint.ToString()
         });
         //ui.ShowRetry();
     }

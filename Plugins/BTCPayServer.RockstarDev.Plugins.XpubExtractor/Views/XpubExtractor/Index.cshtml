@@ -1,13 +1,10 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.TagHelpers
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @using BTCPayServer.Blazor.VaultBridge
 @using BTCPayServer.RockstarDev.Plugins.XpubExtractor.Controllers
-
 @{
     Layout = "Views/UIStores/_LayoutWalletSetup";
     ViewData.SetActivePage("XpubExtractor", "Xpub Extractor", "XpubExtractor");
-    this.ViewData.SetBlazorAllowed(true);
+    ViewData.SetBlazorAllowed(true);
 }
 
 @section Navbar {
@@ -27,11 +24,11 @@
 <div class="row mt-5 mb-4">
     <div class="col-md-8 mx-auto">
         <component type="typeof(VaultBridgeUI)"
-                   param-Controller=@(new ExtractorBridgeController()
-                   {
+                   param-Controller=@(new ExtractorBridgeController
+                                    {
                        CryptoCode = "BTC"
                    })
-                   render-mode="Server"/>
+                   render-mode="Server" />
     </div>
 </div>
 

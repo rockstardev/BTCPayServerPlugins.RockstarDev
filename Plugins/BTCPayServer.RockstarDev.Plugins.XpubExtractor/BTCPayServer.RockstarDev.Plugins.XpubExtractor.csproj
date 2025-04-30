@@ -29,11 +29,11 @@
 
 
     <ItemGroup>
-        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
     </ItemGroup>
 
 
     <ItemGroup>
-        <EmbeddedResource Include="Resources\**" />
+        <EmbeddedResource Include="Resources\**"/>
     </ItemGroup>
 </Project>
