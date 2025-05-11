@@ -43,6 +43,10 @@
 @if (Model.BTCBalance != null && Model.USDBalance != null)
 {
     <div>Balances: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD
+        @if (!string.IsNullOrEmpty(Model.ProfitUSD))
+        {
+            <span>- Profit: <b>@Model.ProfitUSD</b> USD</span>
+        }
         @* <a href="#">Withdraw</a> *@
     </div>
 }

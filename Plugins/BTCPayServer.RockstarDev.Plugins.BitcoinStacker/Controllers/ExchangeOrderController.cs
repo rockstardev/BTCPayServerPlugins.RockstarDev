@@ -52,6 +52,23 @@ public class ExchangeOrderController(
                 balancesViewModel.FirstOrDefault(a => a.Currency == Currency.Usd)?.Total.ToString("N2");
         }
 
+        var exchangeRates = db.SettingFetch(StoreId, DbSettingKeys.StrikeExchangeRates);
+        if (exchangeRates != null)
+        {
+            var exchangeRatesViewModel = JsonConvert.DeserializeObject<ResponseCollection<ConversionAmount>>(exchangeRates.Value);
+            var exchangeRate = exchangeRatesViewModel.FirstOrDefault(a =>
+                a.SourceCurrency == Currency.Btc && a.TargetCurrency == Currency.Usd)?.Amount;
+
+            if (exchangeRate.HasValue)
+            {
+                var totalCost = list.Sum(a => a.Amount);
+                var totalBitcoin = list.Sum(a => a.TargetAmount);
+                
+                var totalBitcoinIsUsd = totalBitcoin ?? 0 * exchangeRate.Value;
+                viewModel.ProfitUSD = (totalBitcoinIsUsd - totalCost).ToString("N2");
+            }
+        }
+
         return View(viewModel);
     }
 
@@ -147,7 +164,7 @@ public class ExchangeOrderController(
 
         var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
         await ExchangeOrderHeartbeatService.ExecuteConversionOrder(db, order, strikeClient, CancellationToken.None);
-        await ExchangeOrderHeartbeatService.UpdateStrikeBalanceCache(db, order.StoreId, strikeClient,
+        await ExchangeOrderHeartbeatService.UpdateStrikeCache(db, order.StoreId, strikeClient,
             CancellationToken.None);
 
         TempData[WellKnownTempData.SuccessMessage] = $"Exchange Order {id} has been forced";

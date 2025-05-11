@@ -232,7 +232,7 @@ public class ExchangeOrderHeartbeatService(
                 }
             }
 
-            await UpdateStrikeBalanceCache(db, ppe.StoreId, strikeClient, cancellationToken);
+            await UpdateStrikeCache(db, ppe.StoreId, strikeClient, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -240,13 +240,20 @@ public class ExchangeOrderHeartbeatService(
         }
     }
 
-    public static async Task UpdateStrikeBalanceCache(PluginDbContext db, string storeId, StrikeClient strikeClient,
+    public static async Task UpdateStrikeCache(PluginDbContext db, string storeId, StrikeClient strikeClient,
         CancellationToken cancellationToken)
     {
         var strikeBalances = await strikeClient.Balances.GetBalances();
         if (strikeBalances.IsSuccessStatusCode)
         {
             db.SettingAddOrUpdate(storeId, DbSettingKeys.StrikeBalances, strikeBalances);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        var exchangeRates = await strikeClient.Rates.GetRatesTicker();
+        if (exchangeRates.IsSuccessStatusCode)
+        {
+            db.SettingAddOrUpdate(storeId, DbSettingKeys.StrikeExchangeRates, exchangeRates);
             await db.SaveChangesAsync(cancellationToken);
         }
     }

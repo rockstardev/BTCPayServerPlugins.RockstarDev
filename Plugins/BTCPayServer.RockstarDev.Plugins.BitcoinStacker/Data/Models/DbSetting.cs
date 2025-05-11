@@ -24,5 +24,6 @@ public class DbSetting
 public enum DbSettingKeys
 {
     ExchangeOrderSettings,
-    StrikeBalances
+    StrikeBalances,
+    StrikeExchangeRates
 }
