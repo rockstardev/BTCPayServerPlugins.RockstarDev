@@ -3,22 +3,25 @@ using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
+using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.PluginCounter;
 using BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StoreData = BTCPayServer.Data.StoreData;
 
 namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.Controllers;
 
-[Route("stores/server/counter")]
+[Route("server/stores/counter")]
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PluginCounterController(
     StoreRepository storeRepository,
     SettingsRepository settingsRepository,
+    UserManager<ApplicationUser> userManager,
     InvoiceRepository invoiceRepository) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
@@ -34,6 +37,7 @@ public class PluginCounterController(
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             AllStores = model.AllStores,
+            Password = model.Password,
             Enabled = model.Enabled,
             SelectedStores = model.SelectedStores,
             Stores = stores
@@ -54,8 +58,10 @@ public class PluginCounterController(
             StartDate = viewModel.StartDate,
             EndDate = viewModel.EndDate,
             Enabled = viewModel.Enabled,
+            Password = viewModel.Password,
             AllStores = viewModel.AllStores,
-            SelectedStores = viewModel.SelectedStores.Where(c => c.Enabled).ToArray() 
+            AdminUserId = GetUserId(),
+            SelectedStores = viewModel.SelectedStores.Where(c => c.Enabled).ToArray()
         };
         await settingsRepository.UpdateSetting(settings);
         TempData[WellKnownTempData.SuccessMessage] = "Plugin counter configuration updated successfully";
@@ -85,4 +91,7 @@ public class PluginCounterController(
         var vm = new CounterViewModel {  TransactionCount = invoiceCount };
         return View(vm);
     }
+
+
+    private string GetUserId() => userManager.GetUserId(User);
 }

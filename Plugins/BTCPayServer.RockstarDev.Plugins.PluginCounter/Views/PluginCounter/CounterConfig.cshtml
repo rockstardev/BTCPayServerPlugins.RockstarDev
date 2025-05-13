@@ -1,11 +1,12 @@
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.CashCheckout
+@using BTCPayServer.RockstarDev.Plugins.PluginCounter
 @using BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @using System.Globalization
 @model CounterConfigViewModel
 @{
-	ViewData.SetActivePage(CounterPlugin.PluginNavKey, "Counter Configuration", "Configuration");
+	ViewData.SetActivePage(PluginNavPages.Counter, "Counter Configuration");
 }
 
 @section PageHeadContent {
@@ -37,8 +38,17 @@
 
                             <div class="info-note mt-2 text-warning" role="alert">
                                 <vc:icon symbol="warning" />
-                                <span text-translate="true">This would display the transaction count of all stores. To select specific stores, turn off the toggle below and select stores of choice.</span>
+								<span text-translate="true">This would display the transaction count of all stores. To select specific stores, turn off the toggle below and select stores of choice.</span>
                             </div>
+							<div class="info-note mt-2 text-warning" role="alert">
+								<span text-translate="true">Click the</span>
+								<a asp-controller="PublicCounter" asp-action="Counter" target="_blank" rel="noopener noreferrer">link</a>
+								<span text-translate="true">to view transaction count.</span>
+								<span text-translate="true">And on this</span>
+								<a asp-controller="PublicCounter" asp-action="ApiCounter" target="_blank" rel="noopener noreferrer">link</a>
+								<span text-translate="true">to view transaction count API.</span>
+                            </div>
+
                             <div class="subsettings">
                                 <div class="d-flex my-3">
                                     <input asp-for="AllStores" type="checkbox" class="btcpay-toggle me-3"/>
@@ -66,7 +76,7 @@
 										<label asp-for="StartDate" class="form-label"></label>
 										<div class="input-group flex-nowrap">
 											<input type="datetime-local" asp-for="StartDate"
-												   value="@(Model.StartDate?.ToString("u", CultureInfo.InvariantCulture))"
+												   value="@(Model.StartDate.ToString("u", CultureInfo.InvariantCulture))"
 												   class="form-control flatdtpicker"
 												   placeholder="No start date has been set" />
 											<button class="btn btn-secondary input-group-clear px-3" type="button" title="Clear">
@@ -88,6 +98,12 @@
 									</div>
 									<span asp-validation-for="StartDate" class="text-danger"></span>
 									<span asp-validation-for="EndDate" class="text-danger"></span>
+								</div>
+
+								<div class="form-group">
+									<label asp-for="Password" class="form-label"></label>
+									<input asp-for="Password" class="form-control" />
+									<span asp-validation-for="Password" class="text-danger"></span>
 								</div>
                             </div>
                         </div>
