@@ -50,7 +50,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Strike.Client", "submodules
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.Subscriptions", "Plugins\BTCPayServer.RockstarDev.Plugins.Subscriptions\BTCPayServer.RockstarDev.Plugins.Subscriptions.csproj", "{DE36D273-3C26-4B97-83D3-956037F938C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.PluginCounter", "Plugins\BTCPayServer.RockstarDev.Plugins.PluginCounter\BTCPayServer.RockstarDev.Plugins.PluginCounter.csproj", "{2BD60D68-B2EB-4DCA-954F-7C81C49F4A2D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.TransactionCounter", "Plugins\BTCPayServer.RockstarDev.Plugins.TransactionCounter\BTCPayServer.RockstarDev.Plugins.TransactionCounter.csproj", "{2BD60D68-B2EB-4DCA-954F-7C81C49F4A2D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

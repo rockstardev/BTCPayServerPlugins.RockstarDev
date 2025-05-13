@@ -1,11 +1,11 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
-using BTCPayServer.RockstarDev.Plugins.PluginCounter;
-using BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
@@ -14,11 +14,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using StoreData = BTCPayServer.Data.StoreData;
 
-namespace BTCPayServer.RockstarDev.Plugins.CashCheckout.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Controllers;
 
 [Route("server/stores/counter")]
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PluginCounterController(
+public class TransactionCounterController(
     StoreRepository storeRepository,
     SettingsRepository settingsRepository,
     UserManager<ApplicationUser> userManager,
@@ -40,6 +40,8 @@ public class PluginCounterController(
             Password = model.Password,
             Enabled = model.Enabled,
             SelectedStores = model.SelectedStores,
+            CustomHtmlTemplate = model.CustomHtmlTemplate,
+            BackgroundVideoUrl = model.BackgroundVideoUrl,
             Stores = stores
         };
         return View(vm);
@@ -48,6 +50,10 @@ public class PluginCounterController(
     [HttpPost]
     public async Task<IActionResult> CounterConfig(CounterConfigViewModel viewModel)
     {
+        if (!string.IsNullOrEmpty(viewModel.BackgroundVideoUrl) && !IsValidUrl(viewModel.BackgroundVideoUrl))
+        {
+            ModelState.AddModelError(nameof(viewModel.BackgroundVideoUrl), "Please enter a valid URL.");
+        }
         if (viewModel.AllStores)
         {
             foreach (var item in viewModel.SelectedStores)
@@ -55,6 +61,8 @@ public class PluginCounterController(
         }
         var settings = new CounterPluginSettings
         {
+            CustomHtmlTemplate = viewModel.CustomHtmlTemplate,
+            BackgroundVideoUrl = viewModel.BackgroundVideoUrl,
             StartDate = viewModel.StartDate,
             EndDate = viewModel.EndDate,
             Enabled = viewModel.Enabled,
@@ -92,6 +100,11 @@ public class PluginCounterController(
         return View(vm);
     }
 
-
     private string GetUserId() => userManager.GetUserId(User);
+    private static bool IsValidUrl(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
+            && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+    }
+
 }

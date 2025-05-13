@@ -1,7 +1,7 @@
 using System;
-using BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels;
 
-namespace BTCPayServer.RockstarDev.Plugins.PluginCounter;
+namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter;
 
 public class CounterPluginSettings
 {
@@ -10,6 +10,8 @@ public class CounterPluginSettings
     public bool Enabled { get; set; }
     public bool AllStores { get; set; }
     public string? Password { get; set; }
+    public string? CustomHtmlTemplate { get; set; }
+    public string? BackgroundVideoUrl { get; set; }
     public string AdminUserId { get; set; }
     public SelectedStoreViewModel[] SelectedStores { get; set; }
 }

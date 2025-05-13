@@ -1,9 +1,8 @@
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Payments;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BTCPayServer.RockstarDev.Plugins.CashCheckout;
+namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter;
 
 public class CounterPlugin : BaseBTCPayServerPlugin
 {

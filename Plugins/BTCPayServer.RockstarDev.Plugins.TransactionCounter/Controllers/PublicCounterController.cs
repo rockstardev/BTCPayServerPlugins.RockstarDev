@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels;
-using BTCPayServer.RockstarDev.Plugins.PluginCounter;
+using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +10,7 @@ using BTCPayServer.Models;
 using BTCPayServer.Services.Stores;
 using BTCPayServer.Data;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Controllers;
 
 [AllowAnonymous]
 [Route("server/stores/")]
@@ -45,7 +44,11 @@ public class PublicCounterController(
                     .ToArray()
         };
         var invoiceCount = await invoiceRepository.GetInvoiceCount(query);
-        var vm = new CounterViewModel { TransactionCount = invoiceCount };
+        var vm = new CounterViewModel { 
+            TransactionCount = invoiceCount, 
+            BackgroundVideoUrl = model.BackgroundVideoUrl,
+            CustomHtmlTemplate = model.CustomHtmlTemplate
+        };
         return View(vm);
     }
 

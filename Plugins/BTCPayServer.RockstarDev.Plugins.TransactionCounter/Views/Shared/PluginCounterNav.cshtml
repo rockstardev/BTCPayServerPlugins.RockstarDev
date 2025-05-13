@@ -1,7 +1,7 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Data
-@using BTCPayServer.RockstarDev.Plugins.PluginCounter
+@using BTCPayServer.RockstarDev.Plugins.TransactionCounter
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject SignInManager<ApplicationUser> SignInManager;
@@ -14,7 +14,7 @@
     <li class="nav-item">
         <a class="nav-link @ViewData.ActivePageClass(PluginNavPages.Counter)"
 		   asp-action="CounterConfig"
-           asp-controller="PluginCounter">
+           asp-controller="TransactionCounter">
             <span class="me-2"></span>
             <span>Transaction Counter</span>
         </a>

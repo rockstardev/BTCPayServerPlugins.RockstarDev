@@ -1,6 +1,6 @@
 using BTCPayServer.Models;
 
-namespace BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels;
+namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels;
 
 public class BaseCounterPublicViewModel
 {

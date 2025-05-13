@@ -8,7 +8,7 @@
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Plugin Counter</Product>
+        <Product>Transaction Counter</Product>
         <Description>This plugin gives server admin a view of the total transaction count done across store instance</Description>
         <Version>1.0.0</Version>
     </PropertyGroup>
@@ -33,6 +33,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Views\PluginCounter\" />
+      <Folder Include="Views\TransactionCounter\" />
     </ItemGroup>
 </Project>

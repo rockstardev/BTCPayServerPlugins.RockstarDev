@@ -1,7 +1,6 @@
 @using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.RockstarDev.Plugins.CashCheckout
-@using BTCPayServer.RockstarDev.Plugins.PluginCounter
-@using BTCPayServer.RockstarDev.Plugins.PluginCounter.ViewModels
+@using BTCPayServer.RockstarDev.Plugins.TransactionCounter
+@using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @using System.Globalization
 @model CounterConfigViewModel
@@ -37,7 +36,6 @@
 							<span asp-validation-for="Enabled" class="text-danger"></span>
 
                             <div class="info-note mt-2 text-warning" role="alert">
-                                <vc:icon symbol="warning" />
 								<span text-translate="true">This would display the transaction count of all stores. To select specific stores, turn off the toggle below and select stores of choice.</span>
                             </div>
 							<div class="info-note mt-2 text-warning" role="alert">
@@ -104,6 +102,21 @@
 									<label asp-for="Password" class="form-label"></label>
 									<input asp-for="Password" class="form-control" />
 									<span asp-validation-for="Password" class="text-danger"></span>
+								</div>
+
+								<div class="form-group">
+									<label asp-for="BackgroundVideoUrl" class="form-label"></label>
+									<input asp-for="BackgroundVideoUrl" class="form-control" />
+									<small class="form-text text-muted">Replace the default background video.</small>
+									<span asp-validation-for="BackgroundVideoUrl" class="text-danger"></span>
+								</div>
+
+								<div class="form-group">
+									<label asp-for="CustomHtmlTemplate" class="form-label"></label>
+									<textarea asp-for="CustomHtmlTemplate" class="form-control" rows="10"></textarea>
+									<small class="form-text text-muted">
+										Use <code>{COUNTER}</code> where the number should be inserted.
+									</small>
 								</div>
                             </div>
                         </div>
