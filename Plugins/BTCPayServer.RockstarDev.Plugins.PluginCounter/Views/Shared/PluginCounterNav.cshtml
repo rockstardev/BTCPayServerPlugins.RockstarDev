@@ -1,0 +1,22 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Data
+@using BTCPayServer.RockstarDev.Plugins.PluginCounter
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@inject SignInManager<ApplicationUser> SignInManager;
+@inject IScopeProvider ScopeProvider
+@{
+	var storeId = ScopeProvider.GetCurrentStoreId();
+}
+@if (SignInManager.IsSignedIn(User) && !string.IsNullOrEmpty(storeId))
+{
+    <li class="nav-item">
+        <a class="nav-link @ViewData.ActivePageClass(PluginNavPages.Counter)"
+		   asp-action="CounterConfig"
+           asp-controller="PluginCounter">
+            <span class="me-2"></span>
+            <span>Plugin Counter</span>
+        </a>
+    </li>
+}
