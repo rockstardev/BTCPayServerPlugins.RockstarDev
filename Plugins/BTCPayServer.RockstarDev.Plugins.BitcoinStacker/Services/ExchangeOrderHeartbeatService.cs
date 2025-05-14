@@ -32,40 +32,99 @@ public class ExchangeOrderHeartbeatService(
 
     public Task Do(CancellationToken cancellationToken)
     {
+        // NEW LOG: Indicate Do method has started
+        Logs.PayServer.LogInformation($"{GetType().Name}: Do method invoked.");
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            // NEW LOG: Cancellation requested at the start of Do
+            Logs.PayServer.LogInformation($"{GetType().Name}: Cancellation requested at the very start of Do method. Exiting.");
+            return Task.CompletedTask;
+        }
+
         if (_isItFirstRun)
         {
             _isItFirstRun = false;
-            return Task.CompletedTask; // do not run the service when server is starting
+            // NEW LOG: First run skipped
+            Logs.PayServer.LogInformation($"{GetType().Name}: First run after service start, skipping actual work in Do method as intended.");
+            return Task.CompletedTask;
         }
 
+        List<DbSetting> stores;
         try
         {
             using var db = strikeDbContextFactory.CreateContext();
-            var stores = db.Settings.Where(a => a.Key == DbSettingKeys.ExchangeOrderSettings.ToString()).ToList();
-
-            foreach (var store in stores)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                if (!_lastRunForStore.TryGetValue(store.StoreId, out var lastRun)) lastRun = DateTimeOffset.MinValue;
-
-                var setting = SettingsViewModel.FromDbSettings(store);
-                if (!setting.AutoEnabled)
-                    continue;
-
-                if (lastRun.AddMinutes(setting.MinutesHeartbeatInterval) < DateTimeOffset.UtcNow)
-                {
-                    _lastRunForStore[store.StoreId] = DateTimeOffset.UtcNow;
-                    PushEvent(new PeriodProcessEvent { StoreId = store.StoreId, Setting = setting });
-                }
-            }
+            stores = db.Settings.Where(a => a.Key == nameof(DbSettingKeys.ExchangeOrderSettings)).ToList();
+            // NEW LOG: Number of stores fetched
+            Logs.PayServer.LogInformation($"{GetType().Name}: Fetched {stores.Count} store settings objects.");
         }
         catch (Exception ex)
         {
-            Logs.PayServer.LogError("ExchangeOrderHeartbeatService: Error during Do method execution {0}", ex);
+            Logs.PayServer.LogError(ex, $"{GetType().Name}: Error fetching stores in Do method. Service will not process any stores in this cycle.");
+            return Task.CompletedTask; 
         }
 
+        if (!stores.Any())
+        {
+            Logs.PayServer.LogInformation($"{GetType().Name}: No stores found with ExchangeOrderSettings. Do method exiting.");
+            return Task.CompletedTask;
+        }
+
+        int eventsPushedThisCycle = 0; // NEW COUNTER
+        foreach (var store in stores)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Logs.PayServer.LogInformation($"{GetType().Name}: Cancellation requested mid-loop in Do method while processing store {store?.StoreId}. Exiting loop.");
+                break;
+            }
+
+            try
+            {
+                // NEW LOG: Processing a specific store
+                Logs.PayServer.LogInformation($"{GetType().Name}: Processing store {store.StoreId} in Do method.");
+
+                if (!_lastRunForStore.TryGetValue(store.StoreId, out var lastRun))
+                {
+                    lastRun = DateTimeOffset.MinValue;
+                    Logs.PayServer.LogInformation($"{GetType().Name}: Store {store.StoreId} not in _lastRunForStore. Initialized lastRun to MinValue.");
+                }
+
+                var setting = SettingsViewModel.FromDbSettings(store);
+                if (!setting.AutoEnabled)
+                {
+                    // NEW LOG: AutoExecute not enabled
+                    Logs.PayServer.LogInformation($"{GetType().Name}: AutoExecute not enabled for store {store.StoreId}. Skipping.");
+                    continue;
+                }
+
+                var nextRunTime = lastRun.AddMinutes(setting.MinutesHeartbeatInterval);
+                var currentTime = DateTimeOffset.UtcNow;
+
+                // NEW LOG: Detailed timing information
+                Logs.PayServer.LogInformation($"{GetType().Name}: Store {store.StoreId} - LastRun: {lastRun:o}, Interval: {setting.MinutesHeartbeatInterval} mins, Calculated NextRunTime: {nextRunTime:o}, CurrentTime: {currentTime:o}");
+
+                if (nextRunTime < currentTime)
+                {
+                    Logs.PayServer.LogInformation($"{GetType().Name}: Time condition met for store {store.StoreId}. Pushing PeriodProcessEvent. (NextRunTime {nextRunTime:o} < CurrentTime {currentTime:o})");
+                    _lastRunForStore[store.StoreId] = currentTime; // Update with current time when pushing
+                    PushEvent(new PeriodProcessEvent { StoreId = store.StoreId, Setting = setting });
+                    eventsPushedThisCycle++; // NEW: Increment counter
+                }
+                else
+                {
+                    // NEW LOG: Time condition not met
+                    Logs.PayServer.LogInformation($"{GetType().Name}: Time condition NOT met for store {store.StoreId}. Next run in approx. {(nextRunTime - currentTime).TotalMinutes:F2} minutes.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logs.PayServer.LogError(ex, $"{GetType().Name}: Error processing store {store?.StoreId} in Do method's inner try-catch. Skipping this store for this cycle.");
+            }
+        }
+
+        // NEW LOG: Do method finished
+        Logs.PayServer.LogInformation($"{GetType().Name}: Do method finished. Pushed {eventsPushedThisCycle} events this cycle. CancellationRequested: {cancellationToken.IsCancellationRequested}");
         return Task.CompletedTask;
     }
 
