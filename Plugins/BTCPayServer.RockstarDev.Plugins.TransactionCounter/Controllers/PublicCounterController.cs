@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Client.Models;
@@ -9,21 +11,23 @@ using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Controllers;
 
 [AllowAnonymous]
-[Route("server/stores/")]
+[Route("txcounter/")]
 public class PublicCounterController(
     UriResolver uriResolver,
     StoreRepository storeRepo,
+    StoreRepository storeRepository,
     SettingsRepository settingsRepository,
     InvoiceRepository invoiceRepository) : Controller
 {
-    [HttpGet("tx-counter")]
+    [HttpGet("html")]
     public async Task<IActionResult> Counter([FromQuery] string password)
     {
-        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new CounterPluginSettings { AllStores = true };
+        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new();
         if (!model.Enabled)
             return NotFound();
 
@@ -33,34 +37,23 @@ public class PublicCounterController(
             if (validationResult != null)
                 return validationResult;
         }
-
-        var query = new InvoiceQuery
+        if (string.IsNullOrEmpty(model.HtmlTemplate) ||
+            !model.HtmlTemplate.Contains("{COUNTER}") ||
+            !model.HtmlTemplate.Contains("<html", StringComparison.OrdinalIgnoreCase) ||
+            !model.HtmlTemplate.Contains("<body", StringComparison.OrdinalIgnoreCase))
         {
-            StartDate = model.StartDate,
-            EndDate = model.EndDate,
-            Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            StoreId = model.AllStores
-                ? null
-                : model.SelectedStores?
-                    .Where(s => s.Enabled)
-                    .Select(s => s.Id)
-                    .ToArray()
-        };
-        var invoiceCount = await invoiceRepository.GetInvoiceCount(query);
-        var vm = new CounterViewModel
-        {
-            TransactionCount = invoiceCount,
-            BackgroundVideoUrl = model.BackgroundVideoUrl,
-            CustomHtmlTemplate = model.CustomHtmlTemplate
-        };
-        return View(vm);
+            return BadRequest("Invalid HTML template or missing {COUNTER} placeholder");
+        }
+        var transactionCount = await TransactionCountQuery(model);
+        string htmlContent = model.HtmlTemplate.Replace("{COUNTER}", transactionCount.ToString());
+        return Content(htmlContent, "text/html");
     }
 
 
-    [HttpGet("tx-counter/api/count")]
+    [HttpGet("api")]
     public async Task<IActionResult> ApiCounter([FromQuery] string password)
     {
-        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new CounterPluginSettings { AllStores = true };
+        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new();
         if (!model.Enabled)
             return NotFound();
 
@@ -70,23 +63,57 @@ public class PublicCounterController(
             if (validationResult != null)
                 return validationResult;
         }
+        var transactionCount = await TransactionCountQuery(model);
+        return Json(new { count = transactionCount });
+    }
 
+    private async Task<int> TransactionCountQuery(CounterPluginSettings model)
+    {
+        var stores = await storeRepository.GetStores();
+        var allStoreIds = stores.Where(c => !c.Archived).Select(s => s.Id).ToArray();
+        var excludedStoreIds = (model.ExcludedStoreIds ?? "").Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var includedStoreIds = allStoreIds.Where(id => !excludedStoreIds.Contains(id)).ToArray();
         var query = new InvoiceQuery
         {
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            StoreId = model.AllStores
-                ? null
-                : model.SelectedStores?
-                    .Where(s => s.Enabled)
-                    .Select(s => s.Id)
-                    .ToArray()
+            StoreId = includedStoreIds.Length > 0 ? includedStoreIds : allStoreIds
         };
-        var invoiceCount = await invoiceRepository.GetInvoiceCount(query);
-        return Json(new { count = invoiceCount });
+        var transactionCount = await invoiceRepository.GetInvoiceCount(query);
+        return transactionCount + CalculateExtraTransactionCount(model);
     }
 
+    int CalculateExtraTransactionCount(CounterPluginSettings model)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(model.ExtraTransactions)) 
+                return 0;
+
+            var now = DateTime.UtcNow;
+            var extraTransaction = JsonConvert.DeserializeObject<List<ExtraTransactionEntry>>(model.ExtraTransactions) ?? new();
+            int total = 0;
+            foreach (var txn in extraTransaction)
+            {
+                if (now < txn.Start)
+                    continue;
+                if (now >= txn.End)
+                {
+                    total += txn.Count;
+                }
+                else
+                {
+                    var duration = (txn.End - txn.Start).TotalSeconds;
+                    var elapsed = (now - txn.Start).TotalSeconds;
+                    var ratio = elapsed / duration;
+                    total += (int)(txn.Count * ratio);
+                }
+            }
+            return total;
+        }
+        catch { return 0; }
+    }
 
     private async Task<IActionResult> ValidatePassword(CounterPluginSettings model, string password)
     {
@@ -102,7 +129,6 @@ public class PublicCounterController(
             };
             return View("PasswordRequired", publicModel);
         }
-
         return null;
     }
 }

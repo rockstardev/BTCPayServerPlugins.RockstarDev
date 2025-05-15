@@ -2,12 +2,12 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Abstractions.Extensions;
+using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels;
 using BTCPayServer.Services;
-using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,8 +21,7 @@ namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Controllers;
 public class TransactionCounterController(
     StoreRepository storeRepository,
     SettingsRepository settingsRepository,
-    UserManager<ApplicationUser> userManager,
-    InvoiceRepository invoiceRepository) : Controller
+    UserManager<ApplicationUser> userManager) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
 
@@ -30,18 +29,18 @@ public class TransactionCounterController(
     public async Task<IActionResult> CounterConfig()
     {
         var stores = await storeRepository.GetStores();
-        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new CounterPluginSettings { AllStores = true };
+        stores = stores.Where(c => !c.Archived).ToArray();
+        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new();
         var vm = new CounterConfigViewModel
         {
             StartDate = model.StartDate,
             EndDate = model.EndDate,
-            AllStores = model.AllStores,
             Password = model.Password,
             Enabled = model.Enabled,
-            SelectedStores = model.SelectedStores,
-            CustomHtmlTemplate = model.CustomHtmlTemplate,
-            BackgroundVideoUrl = model.BackgroundVideoUrl,
-            Stores = stores
+            HtmlTemplate = model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
+            ExtraTransactions = model.ExtraTransactions,
+            Stores = stores,
+            ExcludedStoreIds = model.ExcludedStoreIds?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>(),
         };
         return View(vm);
     }
@@ -49,58 +48,37 @@ public class TransactionCounterController(
     [HttpPost]
     public async Task<IActionResult> CounterConfig(CounterConfigViewModel viewModel)
     {
-        if (!string.IsNullOrEmpty(viewModel.BackgroundVideoUrl) && !IsValidUrl(viewModel.BackgroundVideoUrl))
-            ModelState.AddModelError(nameof(viewModel.BackgroundVideoUrl), "Please enter a valid URL.");
-        if (viewModel.AllStores)
-            foreach (var item in viewModel.SelectedStores)
-                item.Enabled = true;
+        if (string.IsNullOrEmpty(viewModel.HtmlTemplate))
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = "HTML Template cannot be empty. A default has been prefilled. Click save to use",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(CounterConfig));
+        }
+        var stores = await storeRepository.GetStores();
+        var allStoreIds = stores.Select(s => s.Id).ToArray();
+
+        var selectedStoreIds = Request.Form["IncludedStoreIds"].ToArray() ?? Array.Empty<string>();
+        var excludedIds = allStoreIds.Except(selectedStoreIds, StringComparer.OrdinalIgnoreCase);
         var settings = new CounterPluginSettings
         {
-            CustomHtmlTemplate = viewModel.CustomHtmlTemplate,
-            BackgroundVideoUrl = viewModel.BackgroundVideoUrl,
+            HtmlTemplate = viewModel.HtmlTemplate,
             StartDate = viewModel.StartDate,
             EndDate = viewModel.EndDate,
             Enabled = viewModel.Enabled,
+            ExtraTransactions = viewModel.ExtraTransactions,
             Password = viewModel.Password,
-            AllStores = viewModel.AllStores,
             AdminUserId = GetUserId(),
-            SelectedStores = viewModel.SelectedStores.Where(c => c.Enabled).ToArray()
+            ExcludedStoreIds = string.Join(",", excludedIds)
         };
         await settingsRepository.UpdateSetting(settings);
         TempData[WellKnownTempData.SuccessMessage] = "Plugin counter configuration updated successfully";
         return RedirectToAction(nameof(CounterConfig));
     }
 
-
-    [HttpGet("tx-counter")]
-    [AllowAnonymous]
-    public async Task<IActionResult> Counter()
-    {
-        var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new CounterPluginSettings { AllStores = true };
-        if (!model.Enabled)
-            return NotFound();
-
-        var query = new InvoiceQuery
-        {
-            StartDate = model.StartDate,
-            EndDate = model.EndDate,
-            Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            StoreId = model.AllStores
-                ? null
-                : model.SelectedStores?
-                    .Where(s => s.Enabled)
-                    .Select(s => s.Id)
-                    .ToArray()
-        };
-        var invoiceCount = await invoiceRepository.GetInvoiceCount(query);
-        var vm = new CounterViewModel { TransactionCount = invoiceCount };
-        return View(vm);
-    }
-
-    private string GetUserId()
-    {
-        return userManager.GetUserId(User);
-    }
+    private string GetUserId() => userManager.GetUserId(User);
 
     private static bool IsValidUrl(string url)
     {

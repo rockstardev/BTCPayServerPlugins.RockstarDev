@@ -60,31 +60,22 @@
                             </div>
 
                             <div class="subsettings">
-                                <div class="d-flex my-3">
-                                    <input asp-for="AllStores" type="checkbox" class="btcpay-toggle me-3"/>
-                                    <label asp-for="AllStores" class="form-check-label"></label>
-                                    <span asp-validation-for="AllStores" class="text-danger"></span>
-                                </div>
-                                <div class="form-group mt-3" id="store-selection"
-                                     style="display: @(Model.AllStores ? "none" : "block")">
-                                    <label asp-for="SelectedStores" class="form-check-label"></label>
-                                    @for (var i = 0; i < Model.Stores.Length; i++)
-                                    {
-                                        var store = Model.Stores[i];
-                                        var isEnabled = Model.AllStores || (Model.SelectedStores?.Any(s => s.Id == store.Id) ?? false);
-
-                                        <div
-                                            class="d-flex justify-content-between align-items-center border-bottom py-2">
-                                            <span>@store.StoreName</span>
-                                            <input type="hidden" name="SelectedStores[@i].Name"
-                                                   value="@store.StoreName"/>
-                                            <input type="hidden" name="SelectedStores[@i].Id" value="@store.Id"/>
-                                            <input type="checkbox" class="btcpay-toggle"
-                                                   name="SelectedStores[@i].Enabled" value="true"
-                                                   @(isEnabled ? "checked" : "")/>
-                                        </div>
-                                    }
-                                </div>
+								<div class="form-group mt-3" id="store-selection">
+									<label>Select Stores</label>
+									@for (var i = 0; i < Model.Stores.Length; i++)
+									{
+										var store = Model.Stores[i];
+										var isExcluded = Model.ExcludedStoreIds.Contains(store.Id, StringComparer.OrdinalIgnoreCase);
+										<div class="d-flex justify-content-between align-items-center border-bottom py-2">
+											<span>@store.StoreName</span>
+											<input type="checkbox"
+												   class="btcpay-toggle"
+												   name="IncludedStoreIds"
+												   value="@store.Id"
+											@(isExcluded ? "" : "checked") />
+										</div>
+									}
+								</div>
 
                                 <div class="d-flex my-3">
                                     <div class="form-group mb-0 w-250px">
@@ -124,19 +115,29 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label asp-for="BackgroundVideoUrl" class="form-label"></label>
-                                    <input asp-for="BackgroundVideoUrl" class="form-control"/>
-                                    <small class="form-text text-muted">Replace the default background video.</small>
-                                    <span asp-validation-for="BackgroundVideoUrl" class="text-danger"></span>
-                                </div>
-
-                                <div class="form-group">
-                                    <label asp-for="CustomHtmlTemplate" class="form-label"></label>
-                                    <textarea asp-for="CustomHtmlTemplate" class="form-control" rows="10"></textarea>
+                                    <label asp-for="HtmlTemplate" class="form-label"></label>
+                                    <textarea asp-for="HtmlTemplate" class="form-control" rows="10"></textarea>
                                     <small class="form-text text-muted">
                                         Use <code>{COUNTER}</code> where the number should be inserted.
                                     </small>
                                 </div>
+
+								<div class="form-group mt-4">
+									<label asp-for="ExtraTransactions" class="form-label"></label>
+									<small class="form-text text-muted">
+										Add manual transactions as a JSON array. Must be a valid JSON array. Times are in UTC.
+									</small>
+									<textarea asp-for="ExtraTransactions"
+											  id="extra-transactions-json"
+											  class="form-control"
+											  rows="8"
+											  placeholder='[{"source": "bar", "start": "2025-06-19T14:00:00Z", "end": "2025-06-21T17:00:00Z", "count": 100}]'></textarea>
+									<span asp-validation-for="ExtraTransactions" class="text-danger"></span>
+									<div class="mt-2 d-flex align-items-center">
+										<button type="button" class="btn btn-sm btn-secondary me-2" onclick="validateAndPreview()">Test JSON</button>
+										<small id="json-feedback-text" class="form-text"></small>
+									</div>
+								</div>
                             </div>
                         </div>
                     </div>
@@ -149,21 +150,27 @@
 
 
 @section PageFootContent {
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const toggle = document.querySelector('input[name="AllStores"]');
-            const storeSelection = document.getElementById('store-selection');
+	<script>
+		function validateAndPreview() {
+			const input = document.getElementById("extra-transactions-json").value;
+			const feedbackText = document.getElementById("json-feedback-text");
 
-            function toggleStoreList() {
-                if (toggle.checked) {
-                    storeSelection.style.display = 'none';
-                } else {
-                    storeSelection.style.display = 'block';
-                }
-            }
-
-            toggle.addEventListener('change', toggleStoreList);
-            toggleStoreList();
-        });
-    </script>
+			try {
+				const data = JSON.parse(input);
+				if (!Array.isArray(data)) {
+					throw new Error("Input must be a JSON array.");
+				}
+				data.forEach((item, index) => {
+					if (!item.source || !item.start || !item.end || typeof item.count !== 'number') {
+						throw new Error(`Missing or invalid properties in entry ${index + 1}`);
+					}
+				});
+				feedbackText.textContent = "JSON is valid.";
+				feedbackText.className = "form-text text-success";
+			} catch (err) {
+				feedbackText.textContent = "Invalid JSON: " + err.message;
+				feedbackText.className = "form-text text-danger";
+			}
+		}
+	</script>
 }
