@@ -1,14 +1,14 @@
 using System.Linq;
 using System.Threading.Tasks;
+using BTCPayServer.Client.Models;
+using BTCPayServer.Data;
+using BTCPayServer.Models;
 using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using BTCPayServer.Client.Models;
-using BTCPayServer.Models;
-using BTCPayServer.Services.Stores;
-using BTCPayServer.Data;
 
 namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Controllers;
 
@@ -33,19 +33,23 @@ public class PublicCounterController(
             if (validationResult != null)
                 return validationResult;
         }
+
         var query = new InvoiceQuery
         {
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            StoreId = model.AllStores ? null : model.SelectedStores?
+            StoreId = model.AllStores
+                ? null
+                : model.SelectedStores?
                     .Where(s => s.Enabled)
                     .Select(s => s.Id)
                     .ToArray()
         };
         var invoiceCount = await invoiceRepository.GetInvoiceCount(query);
-        var vm = new CounterViewModel { 
-            TransactionCount = invoiceCount, 
+        var vm = new CounterViewModel
+        {
+            TransactionCount = invoiceCount,
             BackgroundVideoUrl = model.BackgroundVideoUrl,
             CustomHtmlTemplate = model.CustomHtmlTemplate
         };
@@ -66,12 +70,15 @@ public class PublicCounterController(
             if (validationResult != null)
                 return validationResult;
         }
+
         var query = new InvoiceQuery
         {
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            StoreId = model.AllStores ? null : model.SelectedStores?
+            StoreId = model.AllStores
+                ? null
+                : model.SelectedStores?
                     .Where(s => s.Enabled)
                     .Select(s => s.Id)
                     .ToArray()
@@ -91,10 +98,11 @@ public class PublicCounterController(
             {
                 StoreId = storeData.Id,
                 StoreName = storeData?.StoreName,
-                StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, storeData.GetStoreBlob()),
+                StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, storeData.GetStoreBlob())
             };
             return View("PasswordRequired", publicModel);
         }
+
         return null;
     }
 }

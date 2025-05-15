@@ -29,7 +29,6 @@ public class TransactionCounterController(
     [HttpGet]
     public async Task<IActionResult> CounterConfig()
     {
-
         var stores = await storeRepository.GetStores();
         var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new CounterPluginSettings { AllStores = true };
         var vm = new CounterConfigViewModel
@@ -51,14 +50,10 @@ public class TransactionCounterController(
     public async Task<IActionResult> CounterConfig(CounterConfigViewModel viewModel)
     {
         if (!string.IsNullOrEmpty(viewModel.BackgroundVideoUrl) && !IsValidUrl(viewModel.BackgroundVideoUrl))
-        {
             ModelState.AddModelError(nameof(viewModel.BackgroundVideoUrl), "Please enter a valid URL.");
-        }
         if (viewModel.AllStores)
-        {
             foreach (var item in viewModel.SelectedStores)
                 item.Enabled = true;
-        }
         var settings = new CounterPluginSettings
         {
             CustomHtmlTemplate = viewModel.CustomHtmlTemplate,
@@ -90,21 +85,26 @@ public class TransactionCounterController(
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            StoreId = model.AllStores ? null : model.SelectedStores?
+            StoreId = model.AllStores
+                ? null
+                : model.SelectedStores?
                     .Where(s => s.Enabled)
                     .Select(s => s.Id)
                     .ToArray()
         };
         var invoiceCount = await invoiceRepository.GetInvoiceCount(query);
-        var vm = new CounterViewModel {  TransactionCount = invoiceCount };
+        var vm = new CounterViewModel { TransactionCount = invoiceCount };
         return View(vm);
     }
 
-    private string GetUserId() => userManager.GetUserId(User);
+    private string GetUserId()
+    {
+        return userManager.GetUserId(User);
+    }
+
     private static bool IsValidUrl(string url)
     {
         return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
-            && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+               && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
-
 }

@@ -29,10 +29,10 @@
     </ItemDefinitionGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Views\TransactionCounter\" />
+        <Folder Include="Views\TransactionCounter\"/>
     </ItemGroup>
 </Project>

@@ -1,133 +1,131 @@
-@using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels
-@model CounterViewModel
+@model BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels.CounterViewModel
 @{
-	Layout = null;
-	var finalCount = Model.TransactionCount;
-	var hasCustomTemplate = !string.IsNullOrWhiteSpace(Model.CustomHtmlTemplate) &&
-							Model.CustomHtmlTemplate.Contains("{COUNTER}", StringComparison.OrdinalIgnoreCase);
+    Layout = null;
+    var finalCount = Model.TransactionCount;
+    var hasCustomTemplate = !string.IsNullOrWhiteSpace(Model.CustomHtmlTemplate) &&
+                            Model.CustomHtmlTemplate.Contains("{COUNTER}", StringComparison.OrdinalIgnoreCase);
 
-	var isFullHtmlDocument = Model.CustomHtmlTemplate?.Contains("<html", StringComparison.OrdinalIgnoreCase) == true;
-	var videoUrl = string.IsNullOrWhiteSpace(Model.BackgroundVideoUrl)
-		? "https://v.nostr.build/MlvwiKZlMbCmrjsU.mp4"
-		: Model.BackgroundVideoUrl;
+    var isFullHtmlDocument = Model.CustomHtmlTemplate?.Contains("<html", StringComparison.OrdinalIgnoreCase) == true;
+    var videoUrl = string.IsNullOrWhiteSpace(Model.BackgroundVideoUrl)
+        ? "https://v.nostr.build/MlvwiKZlMbCmrjsU.mp4"
+        : Model.BackgroundVideoUrl;
 }
 
 @if (hasCustomTemplate)
 {
-	var injected = Model.CustomHtmlTemplate.Replace(
-		"{COUNTER}", "<span id=\"tx-count\">0</span>", StringComparison.OrdinalIgnoreCase
-	);
+    var injected = Model.CustomHtmlTemplate.Replace(
+        "{COUNTER}", "<span id=\"tx-count\">0</span>", StringComparison.OrdinalIgnoreCase
+    );
 
-	@Html.Raw(injected)
+    @Html.Raw(injected)
 
-	<script>
-		const finalCount = @finalCount;
-		const duration = finalCount <= 10 ? 1000 : 2000000;
-		const frameRate = 60;
-		const totalFrames = Math.round(duration / (1000 / frameRate));
-		let frame = 0;
-		const easeOutQuad = t => t * (2 - t);
+    <script>
+        const finalCount = @finalCount;
+        const duration = finalCount <= 10 ? 1000 : 2000000;
+        const frameRate = 60;
+        const totalFrames = Math.round(duration / (1000 / frameRate));
+        let frame = 0;
+        const easeOutQuad = t => t * (2 - t);
 
-		const counter = document.getElementById('tx-count');
+        const counter = document.getElementById('tx-count');
 
-		const updateCounter = () => {
-			const progress = frame / totalFrames;
-			const currentCount = Math.round(finalCount * easeOutQuad(progress));
-			counter.textContent = currentCount.toLocaleString();
-			if (frame < totalFrames) {
-				frame++;
-				requestAnimationFrame(updateCounter);
-			}
-		};
-		updateCounter();
-	</script>
+        const updateCounter = () => {
+            const progress = frame / totalFrames;
+            const currentCount = Math.round(finalCount * easeOutQuad(progress));
+            counter.textContent = currentCount.toLocaleString();
+            if (frame < totalFrames) {
+                frame++;
+                requestAnimationFrame(updateCounter);
+            }
+        };
+        updateCounter();
+    </script>
 }
 else
 {
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<meta charset="UTF-8">
-		<title>Store Transactions</title>
-		<style>
-			html, body {
-				margin: 0;
-				padding: 0;
-				overflow: hidden;
-				height: 100%;
-				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			}
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Store Transactions</title>
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                height: 100%;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
 
-			video.bg-video {
-				position: fixed;
-				right: 0;
-				bottom: 0;
-				min-width: 100%;
-				min-height: 100%;
-				z-index: -1;
-				object-fit: cover;
-			}
+            video.bg-video {
+                position: fixed;
+                right: 0;
+                bottom: 0;
+                min-width: 100%;
+                min-height: 100%;
+                z-index: -1;
+                object-fit: cover;
+            }
 
-			.counter-box {
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				text-align: center;
-				font-size: 4em;
-				font-weight: bold;
-				color: white;
-				text-shadow: 0 0 10px #000;
-				animation: fadeIn 2s ease-out;
-			}
+            .counter-box {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                font-size: 4em;
+                font-weight: bold;
+                color: white;
+                text-shadow: 0 0 10px #000;
+                animation: fadeIn 2s ease-out;
+            }
 
-			@@keyframes fadeIn {
-				from {
-					opacity: 0;
-					transform: translate(-50%, -40%);
-				}
+            @@keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -40%);
+                }
 
-				to {
-					opacity: 1;
-					transform: translate(-50%, -50%);
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<video class="bg-video" autoplay muted loop playsinline>
-			<source src="@videoUrl" type="video/mp4">
-			Your browser does not support the video tag.
-		</video>
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%);
+                }
+            }
+        </style>
+    </head>
+    <body>
+    <video class="bg-video" autoplay muted loop playsinline>
+        <source src="@videoUrl" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 
-		<div class="counter-box">
-			<span id="tx-count">0</span>
-		</div>
+    <div class="counter-box">
+        <span id="tx-count">0</span>
+    </div>
 
-		<script>
-			const finalCount = @finalCount;
-			const duration = finalCount <= 10 ? 1000 : 2000000;
-			const frameRate = 60;
-			const totalFrames = Math.round(duration / (1000 / frameRate));
-			let frame = 0;
-			const easeOutQuad = t => t * (2 - t);
+    <script>
+        const finalCount = @finalCount;
+        const duration = finalCount <= 10 ? 1000 : 2000000;
+        const frameRate = 60;
+        const totalFrames = Math.round(duration / (1000 / frameRate));
+        let frame = 0;
+        const easeOutQuad = t => t * (2 - t);
 
-			const counter = document.getElementById('tx-count');
+        const counter = document.getElementById('tx-count');
 
-			const updateCounter = () => {
-				const progress = frame / totalFrames;
-				const currentCount = Math.round(finalCount * easeOutQuad(progress));
-				counter.textContent = currentCount.toLocaleString();
-				if (frame < totalFrames) {
-					frame++;
-					requestAnimationFrame(updateCounter);
-				}
-			};
-			updateCounter();
-		</script>
+        const updateCounter = () => {
+            const progress = frame / totalFrames;
+            const currentCount = Math.round(finalCount * easeOutQuad(progress));
+            counter.textContent = currentCount.toLocaleString();
+            if (frame < totalFrames) {
+                frame++;
+                requestAnimationFrame(updateCounter);
+            }
+        };
+        updateCounter();
+    </script>
 
-	</body>
-	</html>
-
+    </body>
+    </html>
 }
 

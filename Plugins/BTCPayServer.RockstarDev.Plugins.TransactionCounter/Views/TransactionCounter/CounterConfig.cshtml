@@ -1,148 +1,169 @@
+@using System.Globalization
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.TransactionCounter
-@using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels
-@using Microsoft.AspNetCore.Mvc.TagHelpers
-@using System.Globalization
-@model CounterConfigViewModel
+@model BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels.CounterConfigViewModel
 @{
-	ViewData.SetActivePage(PluginNavPages.Counter, "Stores Transaction Counter");
+    ViewData.SetActivePage(PluginNavPages.Counter, "Stores Transaction Counter");
 }
 
 @section PageHeadContent {
     <style>
         input[type="checkbox"] ~ div > .info-note,
-        input[type="checkbox"] ~ div > .subsettings { display: none; }
-        input[type="checkbox"]:checked ~ div > .info-note { display: flex; max-width: 44em; }
-        input[type="checkbox"]:checked ~ div > .subsettings { display: block; }
-        .subsettings > :last-child { margin-bottom: 0 !important; }
+        input[type="checkbox"] ~ div > .subsettings {
+            display: none;
+        }
+
+        input[type="checkbox"]:checked ~ div > .info-note {
+            display: flex;
+            max-width: 44em;
+        }
+
+        input[type="checkbox"]:checked ~ div > .subsettings {
+            display: block;
+        }
+
+        .subsettings > :last-child {
+            margin-bottom: 0 !important;
+        }
     </style>
 }
 
 <form method="post">
-	<div class="sticky-header d-flex align-items-center justify-content-between">
+    <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2>@ViewData["Title"]</h2>
-		<button id="page-primary" type="submit" class="btn btn-primary" name="command" value="Save">Save</button>
+        <button id="page-primary" type="submit" class="btn btn-primary" name="command" value="Save">Save</button>
     </div>
-    <partial name="_StatusMessage" />
+    <partial name="_StatusMessage"/>
 
     <div class="row">
         <div class="col-xl-10 col-xxl-constrain">
             <div class="d-flex flex-column">
                 <div class="form-group mb-5">
                     <div class="d-flex gap-3">
-                        <input asp-for="Enabled" type="checkbox" class="btcpay-toggle" />
+                        <input asp-for="Enabled" type="checkbox" class="btcpay-toggle"/>
                         <div>
-							<label asp-for="Enabled" class="form-label mb-0"></label>
-							<span asp-validation-for="Enabled" class="text-danger"></span>
+                            <label asp-for="Enabled" class="form-label mb-0"></label>
+                            <span asp-validation-for="Enabled" class="text-danger"></span>
 
                             <div class="info-note mt-2 text-warning" role="alert">
-								<span text-translate="true">This would display the transaction count of all stores. To select specific stores, turn off the toggle below and select stores of choice.</span>
+                                <span text-translate="true">This would display the transaction count of all stores. To select specific stores, turn off the toggle below and select stores of choice.</span>
                             </div>
-							<div class="info-note mt-2 text-warning" role="alert">
-								<span text-translate="true">Click the</span>
-								<a asp-controller="PublicCounter" asp-action="Counter" target="_blank" rel="noopener noreferrer">link</a>
-								<span text-translate="true">to view transaction count.</span>
-								<span text-translate="true">And on this</span>
-								<a asp-controller="PublicCounter" asp-action="ApiCounter" target="_blank" rel="noopener noreferrer">link</a>
-								<span text-translate="true">to view transaction count API.</span>
+                            <div class="info-note mt-2 text-warning" role="alert">
+                                <span text-translate="true">Click the</span>
+                                <a asp-controller="PublicCounter" asp-action="Counter" target="_blank"
+                                   rel="noopener noreferrer">link</a>
+                                <span text-translate="true">to view transaction count.</span>
+                                <span text-translate="true">And on this</span>
+                                <a asp-controller="PublicCounter" asp-action="ApiCounter" target="_blank"
+                                   rel="noopener noreferrer">link</a>
+                                <span text-translate="true">to view transaction count API.</span>
                             </div>
 
                             <div class="subsettings">
                                 <div class="d-flex my-3">
                                     <input asp-for="AllStores" type="checkbox" class="btcpay-toggle me-3"/>
-									<label asp-for="AllStores" class="form-check-label"></label>
-									<span asp-validation-for="AllStores" class="text-danger"></span>
+                                    <label asp-for="AllStores" class="form-check-label"></label>
+                                    <span asp-validation-for="AllStores" class="text-danger"></span>
                                 </div>
-								<div class="form-group mt-3" id="store-selection" style="display: @(Model.AllStores ? "none" : "block")">
-									<label asp-for="SelectedStores" class="form-check-label"></label>
-									@for (int i = 0; i < Model.Stores.Length; i++)
-									{
-										var store = Model.Stores[i];
-										var isEnabled = Model.AllStores || (Model.SelectedStores?.Any(s => s.Id == store.Id) ?? false);
+                                <div class="form-group mt-3" id="store-selection"
+                                     style="display: @(Model.AllStores ? "none" : "block")">
+                                    <label asp-for="SelectedStores" class="form-check-label"></label>
+                                    @for (var i = 0; i < Model.Stores.Length; i++)
+                                    {
+                                        var store = Model.Stores[i];
+                                        var isEnabled = Model.AllStores || (Model.SelectedStores?.Any(s => s.Id == store.Id) ?? false);
 
-										<div class="d-flex justify-content-between align-items-center border-bottom py-2">
-											<span>@store.StoreName</span>
-											<input type="hidden" name="SelectedStores[@i].Name" value="@store.StoreName" />
-											<input type="hidden" name="SelectedStores[@i].Id" value="@store.Id" />
-											<input type="checkbox" class="btcpay-toggle" name="SelectedStores[@i].Enabled" value="true" @(isEnabled ? "checked" : "") />
-										</div>
-									}
-								</div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                            <span>@store.StoreName</span>
+                                            <input type="hidden" name="SelectedStores[@i].Name"
+                                                   value="@store.StoreName"/>
+                                            <input type="hidden" name="SelectedStores[@i].Id" value="@store.Id"/>
+                                            <input type="checkbox" class="btcpay-toggle"
+                                                   name="SelectedStores[@i].Enabled" value="true"
+                                                   @(isEnabled ? "checked" : "")/>
+                                        </div>
+                                    }
+                                </div>
 
-								<div class="d-flex my-3">
-									<div class="form-group mb-0 w-250px">
-										<label asp-for="StartDate" class="form-label"></label>
-										<div class="input-group flex-nowrap">
-											<input type="datetime-local" asp-for="StartDate"
-												   value="@(Model.StartDate.ToString("u", CultureInfo.InvariantCulture))"
-												   class="form-control flatdtpicker"
-												   placeholder="No start date has been set" />
-											<button class="btn btn-secondary input-group-clear px-3" type="button" title="Clear">
-												<vc:icon symbol="close" />
-											</button>
-										</div>
-									</div>
-									<div class="form-group mb-0 w-250px">
-										<label asp-for="EndDate" class="form-label"></label>
-										<div class="input-group flex-nowrap">
-											<input type="datetime-local" asp-for="EndDate"
-												   value="@(Model.EndDate?.ToString("u", CultureInfo.InvariantCulture))"
-												   class="form-control flatdtpicker"
-												   placeholder="No end date has been set" />
-											<button class="btn btn-secondary input-group-clear px-3" type="button" title="Clear">
-												<vc:icon symbol="close" />
-											</button>
-										</div>
-									</div>
-									<span asp-validation-for="StartDate" class="text-danger"></span>
-									<span asp-validation-for="EndDate" class="text-danger"></span>
-								</div>
+                                <div class="d-flex my-3">
+                                    <div class="form-group mb-0 w-250px">
+                                        <label asp-for="StartDate" class="form-label"></label>
+                                        <div class="input-group flex-nowrap">
+                                            <input type="datetime-local" asp-for="StartDate"
+                                                   value="@(Model.StartDate.ToString("u", CultureInfo.InvariantCulture))"
+                                                   class="form-control flatdtpicker"
+                                                   placeholder="No start date has been set"/>
+                                            <button class="btn btn-secondary input-group-clear px-3" type="button"
+                                                    title="Clear">
+                                                <vc:icon symbol="close"/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group mb-0 w-250px">
+                                        <label asp-for="EndDate" class="form-label"></label>
+                                        <div class="input-group flex-nowrap">
+                                            <input type="datetime-local" asp-for="EndDate"
+                                                   value="@(Model.EndDate?.ToString("u", CultureInfo.InvariantCulture))"
+                                                   class="form-control flatdtpicker"
+                                                   placeholder="No end date has been set"/>
+                                            <button class="btn btn-secondary input-group-clear px-3" type="button"
+                                                    title="Clear">
+                                                <vc:icon symbol="close"/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <span asp-validation-for="StartDate" class="text-danger"></span>
+                                    <span asp-validation-for="EndDate" class="text-danger"></span>
+                                </div>
 
-								<div class="form-group">
-									<label asp-for="Password" class="form-label"></label>
-									<input asp-for="Password" class="form-control" />
-									<span asp-validation-for="Password" class="text-danger"></span>
-								</div>
+                                <div class="form-group">
+                                    <label asp-for="Password" class="form-label"></label>
+                                    <input asp-for="Password" class="form-control"/>
+                                    <span asp-validation-for="Password" class="text-danger"></span>
+                                </div>
 
-								<div class="form-group">
-									<label asp-for="BackgroundVideoUrl" class="form-label"></label>
-									<input asp-for="BackgroundVideoUrl" class="form-control" />
-									<small class="form-text text-muted">Replace the default background video.</small>
-									<span asp-validation-for="BackgroundVideoUrl" class="text-danger"></span>
-								</div>
+                                <div class="form-group">
+                                    <label asp-for="BackgroundVideoUrl" class="form-label"></label>
+                                    <input asp-for="BackgroundVideoUrl" class="form-control"/>
+                                    <small class="form-text text-muted">Replace the default background video.</small>
+                                    <span asp-validation-for="BackgroundVideoUrl" class="text-danger"></span>
+                                </div>
 
-								<div class="form-group">
-									<label asp-for="CustomHtmlTemplate" class="form-label"></label>
-									<textarea asp-for="CustomHtmlTemplate" class="form-control" rows="10"></textarea>
-									<small class="form-text text-muted">
-										Use <code>{COUNTER}</code> where the number should be inserted.
-									</small>
-								</div>
+                                <div class="form-group">
+                                    <label asp-for="CustomHtmlTemplate" class="form-label"></label>
+                                    <textarea asp-for="CustomHtmlTemplate" class="form-control" rows="10"></textarea>
+                                    <small class="form-text text-muted">
+                                        Use <code>{COUNTER}</code> where the number should be inserted.
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-			</div>
-		</div>
-	</div>
+            </div>
+        </div>
+    </div>
 </form>
 
 
 
 @section PageFootContent {
-	<script>
-		document.addEventListener('DOMContentLoaded', function () {
-			const toggle = document.querySelector('input[name="AllStores"]');
-			const storeSelection = document.getElementById('store-selection');
-			function toggleStoreList() {
-				if (toggle.checked) {
-					storeSelection.style.display = 'none';
-				} else {
-					storeSelection.style.display = 'block';
-				}
-			}
-			toggle.addEventListener('change', toggleStoreList);
-			toggleStoreList();
-		});
-	</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggle = document.querySelector('input[name="AllStores"]');
+            const storeSelection = document.getElementById('store-selection');
+
+            function toggleStoreList() {
+                if (toggle.checked) {
+                    storeSelection.style.display = 'none';
+                } else {
+                    storeSelection.style.display = 'block';
+                }
+            }
+
+            toggle.addEventListener('change', toggleStoreList);
+            toggleStoreList();
+        });
+    </script>
 }
