@@ -60,21 +60,16 @@
                             </div>
 
                             <div class="subsettings">
-								<div class="form-group mt-3" id="store-selection">
-									<label>Select Stores</label>
-									@for (var i = 0; i < Model.Stores.Length; i++)
-									{
-										var store = Model.Stores[i];
-										var isExcluded = Model.ExcludedStoreIds.Contains(store.Id, StringComparer.OrdinalIgnoreCase);
-										<div class="d-flex justify-content-between align-items-center border-bottom py-2">
-											<span>@store.StoreName</span>
-											<input type="checkbox"
-												   class="btcpay-toggle"
-												   name="IncludedStoreIds"
-												   value="@store.Id"
-											@(isExcluded ? "" : "checked") />
-										</div>
-									}
+								<div class="form-group mt-3">
+									<label asp-for="ExcludedStoreIds">Excluded Stores from transaction counter</label>
+									<textarea asp-for="ExcludedStoreIds"
+											  class="form-control"
+											  rows="3"
+											  placeholder="storeId1,storeId2,storeId3"></textarea>
+									<span asp-validation-for="ExcludedStoreIds" class="text-danger"></span>
+									<small class="form-text text-muted">
+										Enter comma-separated store IDs to exclude from the transaction counter.
+									</small>
 								</div>
 
                                 <div class="d-flex my-3">

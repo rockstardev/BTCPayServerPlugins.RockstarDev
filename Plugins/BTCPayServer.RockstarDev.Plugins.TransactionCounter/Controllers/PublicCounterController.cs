@@ -45,8 +45,12 @@ public class PublicCounterController(
             return BadRequest("Invalid HTML template or missing {COUNTER} placeholder");
         }
         var transactionCount = await TransactionCountQuery(model);
-        string htmlContent = model.HtmlTemplate.Replace("{COUNTER}", transactionCount.ToString());
-        return Content(htmlContent, "text/html");
+        var viewModel = new CounterViewModel
+        {
+            HtmlTemplate = model.HtmlTemplate,
+            InitialCount = transactionCount
+        };
+        return View(viewModel);
     }
 
 

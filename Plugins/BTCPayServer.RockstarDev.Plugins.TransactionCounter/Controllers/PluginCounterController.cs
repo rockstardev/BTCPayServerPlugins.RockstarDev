@@ -40,7 +40,7 @@ public class TransactionCounterController(
             HtmlTemplate = model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
             ExtraTransactions = model.ExtraTransactions,
             Stores = stores,
-            ExcludedStoreIds = model.ExcludedStoreIds?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>(),
+            ExcludedStoreIds = model.ExcludedStoreIds,
         };
         return View(vm);
     }
@@ -57,11 +57,6 @@ public class TransactionCounterController(
             });
             return RedirectToAction(nameof(CounterConfig));
         }
-        var stores = await storeRepository.GetStores();
-        var allStoreIds = stores.Select(s => s.Id).ToArray();
-
-        var selectedStoreIds = Request.Form["IncludedStoreIds"].ToArray() ?? Array.Empty<string>();
-        var excludedIds = allStoreIds.Except(selectedStoreIds, StringComparer.OrdinalIgnoreCase);
         var settings = new CounterPluginSettings
         {
             HtmlTemplate = viewModel.HtmlTemplate,
@@ -71,7 +66,7 @@ public class TransactionCounterController(
             ExtraTransactions = viewModel.ExtraTransactions,
             Password = viewModel.Password,
             AdminUserId = GetUserId(),
-            ExcludedStoreIds = string.Join(",", excludedIds)
+            ExcludedStoreIds = viewModel.ExcludedStoreIds
         };
         await settingsRepository.UpdateSetting(settings);
         TempData[WellKnownTempData.SuccessMessage] = "Plugin counter configuration updated successfully";

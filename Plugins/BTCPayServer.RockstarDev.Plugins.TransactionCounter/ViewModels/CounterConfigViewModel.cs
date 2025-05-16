@@ -22,7 +22,7 @@ public class CounterConfigViewModel
 
     [Display(Name = "Custom Transactions")]
     public string ExtraTransactions { get; set; }
-    public string[] ExcludedStoreIds { get; set; } = Array.Empty<string>();
+    public string ExcludedStoreIds { get; set; }
 
     public record Defaults
     {
@@ -86,4 +86,11 @@ public class ExtraTransactionEntry
     public DateTime Start { get; set; }
     public DateTime End { get; set; }
     public int Count { get; set; }
+}
+
+
+public class CounterViewModel : BaseCounterPublicViewModel
+{
+    public string HtmlTemplate { get; set; }
+    public int InitialCount { get; set; }
 }
