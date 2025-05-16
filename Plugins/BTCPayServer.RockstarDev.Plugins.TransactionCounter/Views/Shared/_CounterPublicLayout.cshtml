@@ -1,0 +1,21 @@
+@inject BTCPayServerEnvironment Env
+@using BTCPayServer.Services
+@model BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels.BaseCounterPublicViewModel
+@{
+    Layout = null;
+    ViewData["StoreBranding"] = Model.StoreBranding;
+}
+<!DOCTYPE html>
+<html lang="en" @(Env.IsDeveloping ? " data-devenv" : "")>
+<head>
+    <partial name="LayoutHead" />
+    <meta name="robots" content="noindex,nofollow">
+</head>
+<body class="min-vh-100">
+@RenderBody()
+
+<partial name="LayoutFoot" />
+<partial name="_ValidationScriptsPartial" />
+@RenderSection("PageFootContent", required: false)
+</body>
+</html>
