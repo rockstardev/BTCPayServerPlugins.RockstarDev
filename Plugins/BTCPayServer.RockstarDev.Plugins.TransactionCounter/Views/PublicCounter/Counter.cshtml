@@ -6,23 +6,3 @@
 }
 
 @Html.Raw(template)
-
-@section PageFootContent {
-	<script>
-		document.addEventListener('DOMContentLoaded', function () {
-			async function updateCounter() {
-				try {
-					const res = await fetch('/txcounter/api');
-					if (!res.ok) throw new Error('Failed to fetch');
-					const data = await res.json();
-					const span = document.getElementById('tx-count');
-					if (span) span.textContent = data.count;
-				} catch (err) {
-					console.error('Error updating counter...', err);
-				}
-			}
-			updateCounter();
-			setInterval(updateCounter, 1000);
-		});
-	</script>
-}

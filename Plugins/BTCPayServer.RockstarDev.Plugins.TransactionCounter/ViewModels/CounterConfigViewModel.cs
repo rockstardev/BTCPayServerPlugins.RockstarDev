@@ -14,6 +14,7 @@ public class CounterConfigViewModel
 
     [Display(Name = "Enable transaction counter configuration")]
     public bool Enabled { get; set; }
+
     public string? Password { get; set; }
     public StoreData[] Stores { get; set; }
 
@@ -22,6 +23,7 @@ public class CounterConfigViewModel
 
     [Display(Name = "Custom Transactions")]
     public string ExtraTransactions { get; set; }
+
     public string ExcludedStoreIds { get; set; }
 
     public record Defaults
@@ -37,7 +39,7 @@ public class CounterConfigViewModel
       padding: 0;
       overflow: hidden;
       height: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     video.bg-video {
       position: fixed;
@@ -67,14 +69,31 @@ public class CounterConfigViewModel
   </style>
 </head>
 <body>
-  <!-- Replace with your own .mp4 URL -->
-  <video class=""bg-video"" autoplay muted loop playsinline>
+    <!-- Replace with your own .mp4 URL -->
+    <video class=""bg-video"" autoplay muted loop playsinline>
     <source src=""https://v.nostr.build/MlvwiKZlMbCmrjsU.mp4"" type=""video/mp4"">
     Your browser does not support the video tag.
-  </video>
-  <div class=""counter-box"">
+    </video>
+    <div class=""counter-box"">
     <span id=""tx-count"">{COUNTER}</span>
-  </div>
+    </div>
+    <script>
+	    document.addEventListener('DOMContentLoaded', function () {
+		    async function updateCounter() {
+			    try {
+				    const res = await fetch('/txcounter/api');
+				    if (!res.ok) throw new Error('Failed to fetch');
+				    const data = await res.json();
+				    const span = document.getElementById('tx-count');
+				    if (span) span.textContent = data.count;
+			    } catch (err) {
+				    console.error('Error updating counter...', err);
+			    }
+		    }
+		    updateCounter();
+		    setInterval(updateCounter, 1000);
+	    });
+    </script>
 </body>
 </html>";
     }
@@ -87,7 +106,6 @@ public class ExtraTransactionEntry
     public DateTime End { get; set; }
     public int Count { get; set; }
 }
-
 
 public class CounterViewModel : BaseCounterPublicViewModel
 {
