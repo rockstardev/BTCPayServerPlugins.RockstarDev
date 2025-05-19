@@ -53,6 +53,9 @@ jobs:
           export PATH="$PATH:$HOME/.dotnet/tools"
           playwright install --with-deps
 
+      - name: Cleanup before starting
+        run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" down --volumes || true
+
       - name: Start containers
         run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev
 
