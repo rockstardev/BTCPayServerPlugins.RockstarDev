@@ -7,6 +7,7 @@ using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 
@@ -19,20 +20,27 @@ public class VendorPayEmailReminderService(
 {
     public async Task Do(CancellationToken cancellationToken)
     {
-        await using var db = pluginDbContextFactory.CreateContext();
-
-        var stores = db.PayrollSettings.Select(a => a.StoreId).ToList();
-
-        foreach (var storeId in stores)
+        try
         {
-            if (await emailService.IsEmailSettingsConfigured(storeId) == false)
-                continue;
+            await using var db = pluginDbContextFactory.CreateContext();
 
-            var settings = await db.GetSettingAsync(storeId);
-            if (settings == null || !settings.EmailReminders)
-                continue;
+            var stores = db.PayrollSettings.Select(a => a.StoreId).ToList();
 
-            PushEvent(new PeriodProcessEvent { StoreId = storeId, Setting = settings });
+            foreach (var storeId in stores)
+            {
+                if (await emailService.IsEmailSettingsConfigured(storeId) == false)
+                    continue;
+
+                var settings = await db.GetSettingAsync(storeId);
+                if (settings == null || !settings.EmailReminders)
+                    continue;
+
+                PushEvent(new PeriodProcessEvent { StoreId = storeId, Setting = settings });
+            }
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            Logs.PayServer.LogInformation("Skipping task: PayrollSettings table not created yet.");
         }
     }
 

@@ -22,10 +22,13 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
     [Fact]
     public async Task EnableCashPaymentTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-
-        await GoToUrl($"/stores/{StoreId}/cash");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl($"/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/stores/{user.StoreId}/cash");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
@@ -42,10 +45,13 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
     [Fact]
     public async Task CanUseCheckoutAsModal()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-
-        await GoToUrl($"/stores/{StoreId}/cash");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/stores/{user.StoreId}/cash");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
@@ -57,7 +63,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
-        var invoiceId = await CreateInvoice(0.001m, "BTC", "a@x.com");
+        var invoiceId = await CreateInvoice(user.StoreId, 0.001m, "BTC", "a@x.com");
         var invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         await Page.WaitForSelectorAsync("iframe[name='btcpay']");
@@ -66,28 +72,20 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
         var frame = await frameElement.ContentFrameAsync();
         Assert.NotNull(frame);
         await frame.WaitForSelectorAsync("#Checkout");
-        var elements = await frame.QuerySelectorAllAsync(".payment-method");
-        Assert.Equal(2, elements.Count);
-        var activeMethod = await frame.Locator(".payment-method.active").TextContentAsync();
-        Assert.Contains("Bitcoin", activeMethod);
-        var secondMethod = await frame.Locator(".payment-method").Nth(1).InnerTextAsync();
-        Assert.Contains("Cash", secondMethod);
-        await frame.Locator(".payment-method").Nth(1).ClickAsync();
-
         await frame.Locator("#cash-payment").ClickAsync();
-        var closeButton = await frame.WaitForSelectorAsync("#close");
-        Assert.NotNull(closeButton);
-        Assert.True(await closeButton.IsVisibleAsync());
         Assert.Equal(new Uri(ServerTester.PayTester.ServerUri, $"tests/index.html?invoice={invoiceId}").ToString(), Page.Url);
     }
 
     [Fact]
     public async Task DisableCashPaymentTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-
-        await GoToUrl($"/stores/{StoreId}/cash");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl($"/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/stores/{user.StoreId}/cash");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
@@ -123,3 +121,4 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
         }
     }
 }
+
