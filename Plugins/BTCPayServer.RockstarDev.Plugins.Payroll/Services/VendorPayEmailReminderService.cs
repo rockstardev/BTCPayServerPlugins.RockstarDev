@@ -33,7 +33,7 @@ public class VendorPayEmailReminderService(
 
                 var settings = await db.GetSettingAsync(storeId);
                 if (settings == null || !settings.EmailReminders)
-                    continue;
+                    continue; 
 
                 PushEvent(new PeriodProcessEvent { StoreId = storeId, Setting = settings });
             }
