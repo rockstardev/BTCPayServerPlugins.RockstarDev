@@ -10,6 +10,7 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -37,6 +38,7 @@ public class PublicCounterController(
             if (validationResult != null)
                 return validationResult;
         }
+
         if (string.IsNullOrEmpty(model.HtmlTemplate) ||
             !model.HtmlTemplate.Contains("{COUNTER}") ||
             !model.HtmlTemplate.Contains("<html", StringComparison.OrdinalIgnoreCase) ||
@@ -44,12 +46,9 @@ public class PublicCounterController(
         {
             return BadRequest("Invalid HTML template or missing {COUNTER} placeholder");
         }
+
         var transactionCount = await TransactionCountQuery(model);
-        var viewModel = new CounterViewModel
-        {
-            HtmlTemplate = model.HtmlTemplate,
-            InitialCount = transactionCount
-        };
+        var viewModel = new CounterViewModel { HtmlTemplate = model.HtmlTemplate, InitialCount = transactionCount };
         return View(viewModel);
     }
 
@@ -57,6 +56,11 @@ public class PublicCounterController(
     [HttpGet("api")]
     public async Task<IActionResult> ApiCounter([FromQuery] string password)
     {
+        // Add CORS headers directly to the response
+        Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        Response.Headers.Append("Access-Control-Allow-Headers", "*");
+        Response.Headers.Append("Access-Control-Allow-Methods", "GET");
+
         var model = await settingsRepository.GetSettingAsync<CounterPluginSettings>() ?? new();
         if (!model.Enabled)
             return NotFound();
@@ -67,6 +71,7 @@ public class PublicCounterController(
             if (validationResult != null)
                 return validationResult;
         }
+
         var transactionCount = await TransactionCountQuery(model);
         return Json(new { count = transactionCount });
     }
@@ -75,7 +80,8 @@ public class PublicCounterController(
     {
         var stores = await storeRepository.GetStores();
         var allStoreIds = stores.Where(c => !c.Archived).Select(s => s.Id).ToArray();
-        var excludedStoreIds = (model.ExcludedStoreIds ?? "").Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var excludedStoreIds = (model.ExcludedStoreIds ?? "").Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var includedStoreIds = allStoreIds.Where(id => !excludedStoreIds.Contains(id)).ToArray();
         var query = new InvoiceQuery
         {
@@ -92,7 +98,7 @@ public class PublicCounterController(
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(model.ExtraTransactions)) 
+            if (string.IsNullOrWhiteSpace(model.ExtraTransactions))
                 return 0;
 
             var now = DateTime.UtcNow;
@@ -114,6 +120,7 @@ public class PublicCounterController(
                     total += (int)(txn.Count * ratio);
                 }
             }
+
             return total;
         }
         catch { return 0; }
@@ -133,6 +140,7 @@ public class PublicCounterController(
             };
             return View("PasswordRequired", publicModel);
         }
+
         return null;
     }
 }

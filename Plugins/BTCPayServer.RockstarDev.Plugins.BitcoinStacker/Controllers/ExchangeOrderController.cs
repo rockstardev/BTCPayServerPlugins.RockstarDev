@@ -61,9 +61,9 @@ public class ExchangeOrderController(
 
             if (exchangeRate.HasValue)
             {
-                var totalCost = list.Sum(a => a.Amount);
-                var totalBitcoin = list.Sum(a => a.TargetAmount) ?? 0;
-                
+                var totalCost = list.Where(a => a.TargetAmount.HasValue).Sum(a => a.Amount);
+                var totalBitcoin = list.Where(a => a.TargetAmount.HasValue).Sum(a => a.TargetAmount) ?? 0;
+
                 var totalBitcoinInUsd = totalBitcoin * exchangeRate.Value;
                 viewModel.ProfitUSD = (totalBitcoinInUsd - totalCost).ToString("N2");
             }
