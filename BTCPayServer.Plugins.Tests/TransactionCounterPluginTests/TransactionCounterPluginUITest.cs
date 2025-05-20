@@ -4,10 +4,8 @@ using Xunit.Abstractions;
 using Xunit;
 using static BTCPayServer.Plugins.Tests.TransactionCounterPluginTests.TransactionCounterPluginUITest;
 using Newtonsoft.Json;
-using System.Text.RegularExpressions;
 
 namespace BTCPayServer.Plugins.Tests.TransactionCounterPluginTests;
-
 
 public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<TransactionCounterPluginServerTesterFixture>
 {
@@ -30,7 +28,11 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     public async Task EnableTransactionCounterTest()
     {
         await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
@@ -48,7 +50,11 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     public async Task TransactionCounterPublicUrlTest()
     {
         await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
@@ -81,7 +87,11 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     public async Task TransactionCounterCustomTransactionTest()
     {
         await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
@@ -96,13 +106,13 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
         var count = 100;
         var extraTransactions = new[]
         {
-            new {
-                source = "test",
-                start = start.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                end = end.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                count
-            }
-        };
+                new {
+                    source = "test",
+                    start = start.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    end = end.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    count
+                }
+            };
         var json = JsonConvert.SerializeObject(extraTransactions, Formatting.Indented);
         await Page.Locator("#extra-transactions-json").FillAsync(json);
         await Page.Locator("#Password").FillAsync("");
@@ -131,7 +141,12 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     public async Task TransactionCounterPasswordSetForPublicUrlTest()
     {
         await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var testPassword = "0000";
@@ -170,7 +185,6 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
         Assert.Contains("/txcounter/api", popup2.Url);
         Assert.Contains($"password={testPassword}", popup2.Url);
         await popup2.CloseAsync();
-        await Page.CloseAsync();
     }
 
     private async Task SaveTransactionCounterSuccessMessage()
@@ -204,3 +218,4 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
         }
     }
 }
+

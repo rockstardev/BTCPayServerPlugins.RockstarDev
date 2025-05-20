@@ -28,10 +28,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        run: |
-          dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout  
+        run: | 
+          dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout 
           dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
-          dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
+          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
           dotnet restore ConfigBuilder
           dotnet restore BTCPayServer.Plugins.Tests
 
@@ -40,8 +40,8 @@ jobs:
 
       - name: Build projects and run ConfigBuilder
         run: |
-          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout   
-          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
+          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout 
+          dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.Payroll  
           dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
           dotnet build BTCPayServer.Plugins.Tests
           dotnet build ConfigBuilder
@@ -52,9 +52,6 @@ jobs:
           dotnet tool install --global Microsoft.Playwright.CLI
           export PATH="$PATH:$HOME/.dotnet/tools"
           playwright install --with-deps
-
-      - name: Cleanup before starting
-        run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" down --volumes || true
 
       - name: Start containers
         run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev

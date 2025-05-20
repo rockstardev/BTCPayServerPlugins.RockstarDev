@@ -84,6 +84,14 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         return ServerUri.AbsoluteUri.WithoutEndingSlash() + relativeLink.WithStartingSlash();
     }
 
+
+    public async Task LogIn(string user, string password = "123456")
+    {
+        await Page.Locator("#Email").FillAsync(user);
+        await Page.Locator("#Password").FillAsync(password);
+        await Page.Locator("#LoginButton").ClickAsync();
+    }
+
     public async Task<string> RegisterNewUser(bool isAdmin = false)
     {
         var usr = RandomUtils.GetUInt256().ToString().Substring(64 - 20) + "@a.com";
