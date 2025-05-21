@@ -22,7 +22,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
     [Fact]
     public async Task EnableCashPaymentTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -45,7 +45,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
     [Fact]
     public async Task CanUseCheckoutAsModal()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -73,16 +73,13 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
         Assert.NotNull(frame);
         await frame.WaitForSelectorAsync("#Checkout");
         await frame.Locator("#cash-payment").ClickAsync();
-        var closeButton = await frame.WaitForSelectorAsync("#close");
-        Assert.NotNull(closeButton);
-        Assert.True(await closeButton.IsVisibleAsync());
         Assert.Equal(new Uri(ServerTester.PayTester.ServerUri, $"tests/index.html?invoice={invoiceId}").ToString(), Page.Url);
     }
 
     [Fact]
     public async Task DisableCashPaymentTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);

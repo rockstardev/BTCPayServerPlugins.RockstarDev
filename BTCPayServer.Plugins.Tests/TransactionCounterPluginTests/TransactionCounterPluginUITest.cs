@@ -27,7 +27,7 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     [Fact]
     public async Task EnableTransactionCounterTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -49,7 +49,7 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     [Fact]
     public async Task TransactionCounterPublicUrlTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -86,7 +86,7 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     [Fact]
     public async Task TransactionCounterCustomTransactionTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -140,7 +140,7 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
     [Fact]
     public async Task TransactionCounterPasswordSetForPublicUrlTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
 
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();

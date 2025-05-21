@@ -28,7 +28,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayInvoiceWithoutUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -46,7 +46,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayInvoiceTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -63,7 +63,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayInvoiceTest_InvalidDestinationAddress()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -85,7 +85,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     public async Task DeleteVendorPayInvoiceTest()
     {
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -111,7 +111,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     public async Task CreateVendorPayUserTest()
     {
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -128,7 +128,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayUserTest_PasswordMismatch()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -147,7 +147,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task DisableAndReEnablePayrollUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -180,7 +180,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     public async Task DeletePayrollUserTest()
     {
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin(true);
@@ -202,7 +202,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task EditPayrollUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
@@ -233,7 +233,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task ResetVendorPayUserPasswordTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
@@ -258,7 +258,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task PublicVendorPayUserChangePasswordTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
+        await InitializePlaywright(ServerTester);
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
