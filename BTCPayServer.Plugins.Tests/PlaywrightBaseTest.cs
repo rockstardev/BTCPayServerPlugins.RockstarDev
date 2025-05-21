@@ -28,6 +28,9 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     public string Password { get; private set; }
     public string StoreId { get; private set; }
     public bool IsAdmin { get; private set; }
+    public static bool IsRunningInCI =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
 
     public void Dispose()
     {
@@ -60,17 +63,29 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     }
 
 
-    public async Task InitializePlaywright(Uri uri)
+    public async Task InitializePlaywright(ServerTester serverTester)
     {
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-        Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        var launchOptions = new BrowserTypeLaunchOptions
         {
-            Headless = true, // Set to true for CI/automated environments... and false, for real-time local testing 
-            SlowMo = 50 // Add slight delay between actions to improve stability
-        });
+            Headless = true, // Set to true for CI and to false for real-time local testing 
+            SlowMo = IsRunningInCI ? 100 : 50 // Delay to improve stability
+        };
+        if (serverTester.PayTester.InContainer)
+        {
+            launchOptions.Args = new List<string>
+            {
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-gpu"
+            };
+        }
+        Browser = await Playwright.Chromium.LaunchAsync(launchOptions);
+
         var context = await Browser.NewContextAsync();
         Page = await context.NewPageAsync();
-        ServerUri = uri;
+        ServerUri = serverTester.PayTester.ServerUri;
         TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
     }
 
@@ -82,6 +97,14 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     public string Link(string relativeLink)
     {
         return ServerUri.AbsoluteUri.WithoutEndingSlash() + relativeLink.WithStartingSlash();
+    }
+
+
+    public async Task LogIn(string user, string password = "123456")
+    {
+        await Page.Locator("#Email").FillAsync(user);
+        await Page.Locator("#Password").FillAsync(password);
+        await Page.Locator("#LoginButton").ClickAsync();
     }
 
     public async Task<string> RegisterNewUser(bool isAdmin = false)

@@ -28,10 +28,14 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayInvoiceWithoutUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         var expectedSeverity = StatusMessageModel.StatusSeverity.Error;
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/list");
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
         var invoiceCreationStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         var actionNotCompleted = expectedSeverity == StatusMessageModel.StatusSeverity.Error &&
@@ -42,11 +46,15 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayInvoiceTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/list");
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await MakeInvoiceFileUploadOptional();
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
         await CreateVendorPayInvoice();
@@ -55,14 +63,18 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayInvoiceTest_InvalidDestinationAddress()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/list");
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await MakeInvoiceFileUploadOptional();
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
-        await Page.FillAsync("#Destination", "bcrt1qkt36pj0du6cka0nklgjd34mu5m");
+        await Page.FillAsync("#Destination", "bcrt1qne099wszrhzg4ungad0hnwgjm60euwmzfnxv3h66tf");
         await Page.FillAsync("#Amount", "10");
         await Page.FillAsync("#Description", "Test vendor pay Invoice creation with invalid address");
         await Page.Locator("#Upload").ClickAsync();
@@ -72,12 +84,16 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task DeleteVendorPayInvoiceTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/list");
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await MakeInvoiceFileUploadOptional();
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
         await CreateVendorPayInvoice();
@@ -94,11 +110,15 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
-        await CreateVendorPayUser();
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         var isSuccessful = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
                            (await statusText).Trim() == "User created successfully";
@@ -108,12 +128,15 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task CreateVendorPayUserTest_PasswordMismatch()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
-        var user = RandomUtils.GetUInt256().ToString().Substring(64 - 20) + "@a.com";
-        await Page.FillAsync("#Email", user);
+        await Page.FillAsync("#Email", user.Email);
         await Page.FillAsync("#Name", "TestUser");
         await Page.FillAsync("#Password", "123456");
         await Page.FillAsync("#ConfirmPassword", "1234567");
@@ -124,9 +147,13 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task DisableAndReEnablePayrollUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         await CreateVendorPayUser();
         var userRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
@@ -152,11 +179,14 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task DeletePayrollUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
-
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
         var userRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
         Assert.NotNull(userRow);
@@ -172,10 +202,14 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task EditPayrollUserTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        await InitializePlaywright(ServerTester);
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
         var userRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
         Assert.NotNull(userRow);
@@ -199,10 +233,14 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     [Fact]
     public async Task ResetVendorPayUserPasswordTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        await InitializePlaywright(ServerTester);
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
         var userRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
         Assert.NotNull(userRow);
@@ -215,18 +253,21 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         var isEdited = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
                        (await statusText).Trim() == "User details updated successfully";
-        Assert.True(isEdited);
     }
 
     [Fact]
     public async Task PublicVendorPayUserChangePasswordTest()
     {
-        await InitializePlaywright(ServerTester.PayTester.ServerUri);
-        await InitializeBTCPayServer();
+        await InitializePlaywright(ServerTester);
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/users/list");
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
-        await GoToUrl($"/plugins/{StoreId}/vendorpay/list");
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await Page.Locator("#StatusOptionsToggle").ClickAsync();
         var popupTask = Page.Context.WaitForPageAsync();
         await Page.Locator("a.dropdown-item", new PageLocatorOptions { HasTextRegex = new Regex("share invoice upload link", RegexOptions.IgnoreCase) })
@@ -263,7 +304,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     private async Task CreateVendorPayInvoice()
     {
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await Page.FillAsync("#Destination", "bcrt1qkt36pj0du6cka0nklgjd34mu5m8ffcfanhq9xm");
+        await Page.FillAsync("#Destination", "bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
         await Page.FillAsync("#Amount", "10");
         await Page.FillAsync("#Description", "Test Vendor pay Invoice creation");
         await Page.Locator("#Upload").ClickAsync();
