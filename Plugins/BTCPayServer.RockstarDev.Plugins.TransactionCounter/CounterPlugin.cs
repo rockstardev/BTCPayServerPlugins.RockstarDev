@@ -1,5 +1,6 @@
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.RockstarDev.Plugins.TransactionCounter.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter;
@@ -14,6 +15,7 @@ public class CounterPlugin : BaseBTCPayServerPlugin
     public override void Execute(IServiceCollection services)
     {
         services.AddUIExtension("server-nav", "PluginCounterNav");
+        services.AddSingleton<TransactionCounter>();
         base.Execute(services);
     }
 }
