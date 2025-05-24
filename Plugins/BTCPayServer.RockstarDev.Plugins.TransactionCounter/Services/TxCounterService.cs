@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Services
 {
-    public class TransactionCounter
+    public class TxCounterService
     {
         private readonly StoreRepository _storeRepository;
         private readonly InvoiceRepository _invoiceRepository;
@@ -21,7 +21,7 @@ namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Services
         private static readonly object _lockObject = new();
         private static readonly TimeSpan _cacheExpiration = TimeSpan.FromMilliseconds(750);
 
-        public TransactionCounter(
+        public TxCounterService(
             StoreRepository storeRepository,
             InvoiceRepository invoiceRepository)
         {

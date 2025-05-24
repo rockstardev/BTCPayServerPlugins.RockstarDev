@@ -23,7 +23,7 @@ public class PublicCounterController(
     UriResolver uriResolver,
     StoreRepository storeRepo,
     SettingsRepository settingsRepository,
-    TransactionCounter transactionCounter) : Controller
+    Services.TxCounterService transactionCounter) : Controller
 {
 
     [HttpGet("html")]
