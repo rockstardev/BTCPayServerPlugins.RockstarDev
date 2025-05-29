@@ -14,7 +14,7 @@ public class CounterPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection services)
     {
-        services.AddUIExtension("server-nav", "PluginCounterNav");
+        services.AddUIExtension("store-integrations-nav", "PluginCounterNav");
         services.AddSingleton<Services.TxCounterService>();
         base.Execute(services);
     }
