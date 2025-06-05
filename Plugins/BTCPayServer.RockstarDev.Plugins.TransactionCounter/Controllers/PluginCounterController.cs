@@ -40,7 +40,7 @@ public class TransactionCounterController(
             HtmlTemplate = model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
             ExtraTransactions = model.ExtraTransactions,
             Stores = stores,
-            ExcludedStoreIds = model.ExcludedStoreIds,
+            ExcludedStoreIds = model.ExcludedStoreIds
         };
         return View(vm);
     }
@@ -57,6 +57,7 @@ public class TransactionCounterController(
             });
             return RedirectToAction(nameof(CounterConfig));
         }
+
         var settings = new CounterPluginSettings
         {
             HtmlTemplate = viewModel.HtmlTemplate,

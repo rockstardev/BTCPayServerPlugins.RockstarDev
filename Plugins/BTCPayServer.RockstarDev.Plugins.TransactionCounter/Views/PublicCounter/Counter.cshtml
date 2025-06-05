@@ -1,7 +1,6 @@
-@using BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels
-@model CounterViewModel
+@model BTCPayServer.RockstarDev.Plugins.TransactionCounter.ViewModels.CounterViewModel
 @{
     Layout = null;
-	var template = Model.HtmlTemplate.Replace("{COUNTER}", Model.InitialCount.ToString());
+    var template = Model.HtmlTemplate.Replace("{COUNTER}", Model.InitialCount.ToString());
 }
 @Html.Raw(template)
