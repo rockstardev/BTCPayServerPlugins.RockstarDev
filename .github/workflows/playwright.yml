@@ -28,7 +28,8 @@ jobs:
                     dotnet-version: 8.0.x
 
             -   name: Restore dependencies
-                run: |
+                run: |                
+                    dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
                     dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
                     dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
                     dotnet restore BTCPayServer.Plugins.Tests
@@ -38,7 +39,8 @@ jobs:
                 run: dotnet clean
 
             -   name: Build projects and run ConfigBuilder
-                run: |
+                run: |                
+                    dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
                     dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
                     dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
                     dotnet build BTCPayServer.Plugins.Tests
