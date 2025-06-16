@@ -1,15 +1,15 @@
 using BTCPayServer.Tests;
 using Xunit;
 using Xunit.Abstractions;
-using static BTCPayServer.Plugins.Tests.CashPluginUITest;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServerTesterFixture>
+[Collection("Plugin Tests")]
+public class CashPluginUITest : PlaywrightBaseTest
 {
-    private readonly CashPluginServerTesterFixture _fixture;
+    private readonly SharedPluginTestFixture _fixture;
 
-    public CashPluginUITest(CashPluginServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
+    public CashPluginUITest(SharedPluginTestFixture fixture, ITestOutputHelper helper) : base(helper)
     {
         _fixture = fixture;
         if (_fixture.ServerTester == null) _fixture.Initialize(this);
@@ -17,6 +17,7 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
     }
 
     public ServerTester ServerTester { get; }
+
     public string TestDir { get; private set; }
 
     [Fact]
@@ -98,27 +99,4 @@ public class CashPluginUITest : PlaywrightBaseTest, IClassFixture<CashPluginServ
         Assert.NotNull(checkBox);
         Assert.False(await checkBox.IsCheckedAsync());
     }
-
-
-    public class CashPluginServerTesterFixture : IDisposable
-    {
-        public ServerTester ServerTester { get; private set; }
-
-        public void Dispose()
-        {
-            ServerTester?.Dispose();
-            ServerTester = null;
-        }
-
-        public void Initialize(PlaywrightBaseTest testInstance)
-        {
-            if (ServerTester == null)
-            {
-                var testDir = Path.Combine(Directory.GetCurrentDirectory(), "CashPluginUITest");
-                ServerTester = testInstance.CreateServerTester(testDir, true);
-                ServerTester.StartAsync().GetAwaiter().GetResult();
-            }
-        }
-    }
 }
-

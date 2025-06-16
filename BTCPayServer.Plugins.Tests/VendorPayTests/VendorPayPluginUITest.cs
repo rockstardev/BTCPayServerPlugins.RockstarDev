@@ -5,15 +5,15 @@ using Microsoft.Playwright;
 using NBitcoin;
 using Xunit;
 using Xunit.Abstractions;
-using static BTCPayServer.Plugins.Tests.VendorPayTests.VendorPayPluginUITest;
 
-namespace BTCPayServer.Plugins.Tests.VendorPayTests;
+namespace BTCPayServer.Plugins.Tests;
 
-public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPayPluginServerTesterFixture>
+[Collection("Plugin Tests")]
+public class VendorPayPluginUITest : PlaywrightBaseTest
 {
-    private readonly VendorPayPluginServerTesterFixture _fixture;
+    private readonly SharedPluginTestFixture _fixture;
 
-    public VendorPayPluginUITest(VendorPayPluginServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
+    public VendorPayPluginUITest(SharedPluginTestFixture fixture, ITestOutputHelper helper) : base(helper)
     {
         _fixture = fixture;
         if (_fixture.ServerTester == null) _fixture.Initialize(this);
@@ -21,6 +21,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
     }
 
     public ServerTester ServerTester { get; }
+
     public string TestDir { get; private set; }
     public string VendorPayUserName { get; private set; }
     public string VendorPayUserEmail { get; set; }
@@ -325,26 +326,5 @@ public class VendorPayPluginUITest : PlaywrightBaseTest, IClassFixture<VendorPay
         var isSuccessful = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
                            (await statusText).Trim() == "Vendor pay settings updated successfully";
         Assert.True(isSuccessful);
-    }
-
-    public class VendorPayPluginServerTesterFixture : IDisposable
-    {
-        public ServerTester ServerTester { get; private set; }
-
-        public void Dispose()
-        {
-            ServerTester?.Dispose();
-            ServerTester = null;
-        }
-
-        public void Initialize(PlaywrightBaseTest testInstance)
-        {
-            if (ServerTester == null)
-            {
-                var testDir = Path.Combine(Directory.GetCurrentDirectory(), "VendorPayPluginUITest");
-                ServerTester = testInstance.CreateServerTester(testDir, true);
-                ServerTester.StartAsync().GetAwaiter().GetResult();
-            }
-        }
     }
 }

@@ -2,24 +2,24 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
 using Xunit.Abstractions;
 using Xunit;
-using static BTCPayServer.Plugins.Tests.TransactionCounterPluginUITest;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<TransactionCounterPluginServerTesterFixture>
+[Collection("Plugin Tests")]
+public class TransactionCounterPluginUITest : PlaywrightBaseTest
 {
-    private readonly TransactionCounterPluginServerTesterFixture _fixture;
+    private readonly SharedPluginTestFixture _fixture;
 
-    public TransactionCounterPluginUITest(TransactionCounterPluginServerTesterFixture fixture, ITestOutputHelper helper) : base(helper)
+    public TransactionCounterPluginUITest(SharedPluginTestFixture fixture, ITestOutputHelper helper) : base(helper)
     {
         _fixture = fixture;
-        if (_fixture.ServerTester == null)
-            _fixture.Initialize(this);
+        if (_fixture.ServerTester == null) _fixture.Initialize(this);
         ServerTester = _fixture.ServerTester;
     }
 
     public ServerTester ServerTester { get; }
+
     public string TestDir { get; private set; }
     public string VendorPayUserName { get; private set; }
     public string VendorPayUserEmail { get; set; }
@@ -196,26 +196,4 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest, IClassFixture<
                                (await invoiceCreationStatusText).Trim() == "Plugin counter configuration updated successfully";
         Assert.True(isSaved);
     }
-
-    public class TransactionCounterPluginServerTesterFixture : IDisposable
-    {
-        public ServerTester ServerTester { get; private set; }
-
-        public void Dispose()
-        {
-            ServerTester?.Dispose();
-            ServerTester = null;
-        }
-
-        public void Initialize(PlaywrightBaseTest testInstance)
-        {
-            if (ServerTester == null)
-            {
-                var testDir = Path.Combine(Directory.GetCurrentDirectory(), "TransactionCounterPluginUITest");
-                ServerTester = testInstance.CreateServerTester(testDir, true);
-                ServerTester.StartAsync().GetAwaiter().GetResult();
-            }
-        }
-    }
 }
-
