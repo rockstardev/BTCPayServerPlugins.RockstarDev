@@ -58,7 +58,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await MakeInvoiceFileUploadOptional();
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
-        await CreateVendorPayInvoice();
+        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await MakeInvoiceFileUploadOptional();
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
-        await CreateVendorPayInvoice();
+        await CreateVendorPayInvoice("bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw");
         var deleteLink = await Page.QuerySelectorAsync("tr:has-text('AwaitingApproval') >> text=Delete");
         Assert.NotNull(deleteLink);
         await deleteLink.ClickAsync();
@@ -302,10 +302,10 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.Locator("#Create").ClickAsync();
     }
 
-    private async Task CreateVendorPayInvoice()
+    private async Task CreateVendorPayInvoice(string destWallet)
     {
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
-        await Page.FillAsync("#Destination", "bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
+        await Page.FillAsync("#Destination", destWallet);
         await Page.FillAsync("#Amount", "10");
         await Page.FillAsync("#Description", "Test Vendor pay Invoice creation");
         await Page.Locator("#Upload").ClickAsync();
