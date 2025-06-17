@@ -50,17 +50,21 @@ public class RockstarStrikeUtilsController(
     [HttpPost("Configuration")]
     public async Task<IActionResult> Configuration(ConfigurationViewModel model)
     {
-        if (!ModelState.IsValid)
-            return View(model);
-
-        var validKey = await strikeClientFactory.TestAndSaveApiKeyAsync(model.StrikeApiKey);
-        if (!validKey)
-            ModelState.AddModelError(nameof(model.StrikeApiKey), "Invalid API key.");
+        if (string.IsNullOrEmpty(model.StrikeApiKey))
+        {
+            await strikeClientFactory.SaveApiKey("");
+        }
         else
-            TempData.SetStatusMessageModel(new StatusMessageModel
-            {
-                Message = "Strike API key saved successfully.", Severity = StatusMessageModel.StatusSeverity.Success
-            });
+        {
+            var validKey = await strikeClientFactory.TestAndSaveApiKeyAsync(model.StrikeApiKey);
+            if (!validKey)
+                ModelState.AddModelError(nameof(model.StrikeApiKey), "Invalid API key.");
+            else
+                TempData.SetStatusMessageModel(new StatusMessageModel
+                {
+                    Message = "Strike API key saved successfully.", Severity = StatusMessageModel.StatusSeverity.Success
+                });
+        }
 
         return View(model);
     }

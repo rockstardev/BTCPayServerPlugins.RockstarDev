@@ -34,26 +34,31 @@ public class StrikeClientFactory(
                 return false;
             }
 
-            await using var db = strikeDbContextFactory.CreateContext();
-            var setting = await db.Settings.SingleOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey);
-
-            if (setting is null)
-                db.Settings.Add(new DbSetting
-                {
-                    Key = DbSetting.StrikeApiKey,
-                    StoreId = StoreId,
-                    Value = apiKey
-                });
-            else
-                setting.Value = apiKey;
-
-            await db.SaveChangesAsync();
+            await SaveApiKey(apiKey);
             return true;
         }
         catch
         {
             return false;
         }
+    }
+
+    public async Task SaveApiKey(string apiKey)
+    {
+        await using var db = strikeDbContextFactory.CreateContext();
+        var setting = await db.Settings.SingleOrDefaultAsync(a => a.StoreId == StoreId && a.Key == DbSetting.StrikeApiKey);
+
+        if (setting is null)
+            db.Settings.Add(new DbSetting
+            {
+                Key = DbSetting.StrikeApiKey,
+                StoreId = StoreId,
+                Value = apiKey
+            });
+        else
+            setting.Value = apiKey;
+
+        await db.SaveChangesAsync();
     }
 
     public async Task<bool> ClientExistsAsync()

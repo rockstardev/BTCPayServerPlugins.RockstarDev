@@ -4,6 +4,5 @@ namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.ViewModels.Rockst
 
 public class ConfigurationViewModel
 {
-    [Required]
     public string StrikeApiKey { get; set; }
 }
