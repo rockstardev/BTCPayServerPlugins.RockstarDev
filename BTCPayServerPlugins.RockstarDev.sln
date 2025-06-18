@@ -1,4 +1,3 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
@@ -27,6 +26,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Tests", "submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj", "{4146B6DF-7BEE-4BD0-B6B1-77E7630A1B81}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Plugins.Tests", "BTCPayServer.Plugins.Tests\BTCPayServer.Plugins.Tests.csproj", "{C6E671F6-5417-4F2F-A5A2-0A7D307BA1F7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Plugins.POSTester", "BTCPayServer.Plugins.POSTester\BTCPayServer.Plugins.POSTester.csproj", "{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.RockstarDev.Plugins.Vouchers", "Plugins\BTCPayServer.RockstarDev.Plugins.Vouchers\BTCPayServer.RockstarDev.Plugins.Vouchers.csproj", "{ED061A37-488F-429C-A291-6A5188A47443}"
 EndProject
@@ -140,6 +141,14 @@ Global
 		{C6E671F6-5417-4F2F-A5A2-0A7D307BA1F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6E671F6-5417-4F2F-A5A2-0A7D307BA1F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6E671F6-5417-4F2F-A5A2-0A7D307BA1F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Altcoins-Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Altcoins-Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Altcoins-Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Altcoins-Release|Any CPU.Build.0 = Debug|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8A1D2E3-4B5C-6789-A0F1-E2D3C4B5A678}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ED061A37-488F-429C-A291-6A5188A47443}.Altcoins-Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ED061A37-488F-429C-A291-6A5188A47443}.Altcoins-Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED061A37-488F-429C-A291-6A5188A47443}.Altcoins-Release|Any CPU.ActiveCfg = Debug|Any CPU
