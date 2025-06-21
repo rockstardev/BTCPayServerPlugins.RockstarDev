@@ -10,6 +10,7 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Strike.Client;
 using Strike.Client.CurrencyExchanges;
@@ -30,32 +31,31 @@ public class ExchangeOrderHeartbeatService(
 
     private bool _isItFirstRun = true;
 
-    public Task Do(CancellationToken cancellationToken)
+    public async Task Do(CancellationToken cancellationToken)
     {
         // NEW LOG: Indicate Do method has started
         Logs.PayServer.LogInformation($"{GetType().Name}: Do method invoked.");
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return Task.CompletedTask;
-        }
+        if (cancellationToken.IsCancellationRequested) 
+            return;
 
         if (_isItFirstRun)
         {
             _isItFirstRun = false;
-            return Task.CompletedTask;
+            return;
         }
 
         List<DbSetting> stores;
         try
         {
-            using var db = strikeDbContextFactory.CreateContext();
-            stores = db.Settings.Where(a => a.Key == nameof(DbSettingKeys.ExchangeOrderSettings)).ToList();
+            await using var db = strikeDbContextFactory.CreateContext();
+            stores = await db.Settings.Where(a => a.Key == nameof(DbSettingKeys.ExchangeOrderSettings))
+                .ToListAsync(cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
             Logs.PayServer.LogError(ex, $"{GetType().Name}: Error fetching stores in Do method. Service will not process any stores in this cycle.");
-            return Task.CompletedTask; 
+            return; 
         }
 
         foreach (var store in stores)
@@ -85,8 +85,6 @@ public class ExchangeOrderHeartbeatService(
                 Logs.PayServer.LogError(ex, $"{GetType().Name}: Error processing store {store?.StoreId} in Do method's inner try-catch. Skipping this store for this cycle.");
             }
         }
-        
-        return Task.CompletedTask;
     }
 
     protected override void SubscribeToEvents()
