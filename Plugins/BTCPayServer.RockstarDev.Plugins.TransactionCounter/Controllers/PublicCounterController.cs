@@ -40,8 +40,12 @@ public class PublicCounterController(
             !model.HtmlTemplate.Contains("<body", StringComparison.OrdinalIgnoreCase))
             return BadRequest("Invalid HTML template or missing {COUNTER} placeholder");
 
-        var transactionCount = await TransactionCountQuery(model);
-        var viewModel = new CounterViewModel { HtmlTemplate = model.HtmlTemplate, InitialCount = transactionCount };
+        var invoiceTransactions = await InvoiceTransactionQuery(model);
+        var viewModel = new CounterViewModel { 
+            HtmlTemplate = model.HtmlTemplate, 
+            InitialCount = invoiceTransactions.TransactionCount, 
+            InitialVolumeByCurrency = invoiceTransactions.VolumeByCurrency 
+        };
         return View(viewModel);
     }
 
@@ -65,11 +69,15 @@ public class PublicCounterController(
                 return validationResult;
         }
 
-        var transactionCount = await TransactionCountQuery(model);
-        return Json(new { count = transactionCount });
+        var transactionResult = await InvoiceTransactionQuery(model);
+        return Json(new
+        {
+            count = transactionResult.TransactionCount,
+            volumeByCurrency = transactionResult.VolumeByCurrency
+        });
     }
 
-    private Task<int> TransactionCountQuery(CounterPluginSettings model)
+    private Task<InvoiceTransactionResult> InvoiceTransactionQuery(CounterPluginSettings model)
     {
         return transactionCounter.GetTransactionCountAsync(model);
     }

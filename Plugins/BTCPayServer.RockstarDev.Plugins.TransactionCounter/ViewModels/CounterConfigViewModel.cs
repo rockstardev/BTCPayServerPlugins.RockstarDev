@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using BTCPayServer.Data;
 
@@ -75,7 +76,8 @@ public class CounterConfigViewModel
     Your browser does not support the video tag.
     </video>
     <div class=""counter-box"">
-    <span id=""tx-count"">{COUNTER}</span>
+        <div><span id=""tx-count"">{COUNTER}</span></div>
+        <div id=""volume-container"" style=""font-size: 0.3em; margin-top: 10px;"">{VOLUME_PLACEHOLDER}</div>
     </div>
     <script>
 	    document.addEventListener('DOMContentLoaded', function () {
@@ -86,10 +88,31 @@ public class CounterConfigViewModel
 				    const data = await res.json();
 				    const span = document.getElementById('tx-count');
 				    if (span) span.textContent = data.count;
+                    if (data.volumeByCurrency) updateVolumeDisplay(data.volumeByCurrency);
 			    } catch (err) {
 				    console.error('Error updating counter...', err);
 			    }
 		    }
+
+            function updateVolumeDisplay(volumeData) {
+                const container = document.getElementById('volume-container');
+                if (!container || !volumeData) return;
+                
+                const sortedCurrencies = Object.entries(volumeData).sort(([,a], [,b]) => b - a);
+                let volumeHtml = '';
+                for (let i = 0; i < sortedCurrencies.length; i += 3) {
+                    const rowItems = sortedCurrencies
+                        .slice(i, i + 3)
+                        .map(([currency, amount]) => 
+                            `<span class=""volume-item"">
+                                <span class=""currency"">${currency.toUpperCase()}</span>:
+                                <span class=""amount"">${amount}</span>
+                            </span>`
+                        ).join('');
+                    volumeHtml += `<div class=""volume-row"">${rowItems}</div>`;
+                }
+                container.innerHTML = volumeHtml;
+            }
 		    updateCounter();
 		    setInterval(updateCounter, 1000);
 	    });
@@ -111,4 +134,5 @@ public class CounterViewModel : BaseCounterPublicViewModel
 {
     public string HtmlTemplate { get; set; }
     public int InitialCount { get; set; }
+    public Dictionary<string, decimal> InitialVolumeByCurrency { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
