@@ -26,7 +26,7 @@ public class TransactionCounterController(
     private StoreData StoreData => HttpContext.GetStoreData();
 
     [HttpGet]
-    public async Task<IActionResult> CounterConfig()
+    public async Task<IActionResult> CounterConfig(bool useLocalTemplate)
     {
         var stores = await storeRepository.GetStores();
         stores = stores.Where(c => !c.Archived).ToArray();
@@ -37,7 +37,7 @@ public class TransactionCounterController(
             EndDate = model.EndDate,
             Password = model.Password,
             Enabled = model.Enabled,
-            HtmlTemplate = model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
+            HtmlTemplate = useLocalTemplate ? CounterConfigViewModel.Defaults.HtmlTemplate : model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
             ExtraTransactions = model.ExtraTransactions,
             Stores = stores,
             ExcludedStoreIds = model.ExcludedStoreIds
@@ -55,7 +55,7 @@ public class TransactionCounterController(
                 Message = "HTML Template cannot be empty. A default has been prefilled. Click save to use",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
-            return RedirectToAction(nameof(CounterConfig));
+            return RedirectToAction(nameof(CounterConfig), new { useLocalTemplate = true });
         }
 
         var settings = new CounterPluginSettings
