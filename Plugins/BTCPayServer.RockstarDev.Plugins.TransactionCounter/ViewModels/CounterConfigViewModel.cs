@@ -16,6 +16,9 @@ public class CounterConfigViewModel
     [Display(Name = "Enable transaction counter configuration")]
     public bool Enabled { get; set; }
 
+    [Display(Name = "Include archived invoices")]
+    public bool IncludeArchived { get; set; }
+
     public string? Password { get; set; }
     public StoreData[] Stores { get; set; }
 
