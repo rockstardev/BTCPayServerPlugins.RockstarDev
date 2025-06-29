@@ -38,7 +38,7 @@ public class PublicCounterController(
             !model.HtmlTemplate.Contains("{COUNTER}") ||
             !model.HtmlTemplate.Contains("<html", StringComparison.OrdinalIgnoreCase) ||
             !model.HtmlTemplate.Contains("<body", StringComparison.OrdinalIgnoreCase))
-            return BadRequest("Invalid HTML template or missing {COUNTER} placeholder");
+            return BadRequest("Invalid HTML template, or missing {COUNTER} placeholder. If you updated plugin version, make sure to update the HTML template as well.");
 
         var invoiceTransactions = await InvoiceTransactionQuery(model);
         var viewModel = new CounterViewModel { 

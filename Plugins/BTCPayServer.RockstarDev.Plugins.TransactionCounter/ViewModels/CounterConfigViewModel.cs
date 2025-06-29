@@ -79,8 +79,8 @@ public class CounterConfigViewModel
     Your browser does not support the video tag.
     </video>
     <div class=""counter-box"">
-        <div><span id=""tx-count"">{COUNTER}</span></div>
-        <div id=""volume-container"" style=""font-size: 0.3em; margin-top: 10px;"">{VOLUME_PLACEHOLDER}</div>
+        <div id=""tx-count-container"">{COUNTER}</div>
+        <div id=""volume-container"" style=""font-size: 0.3em; margin-top: 10px;"">{VOLUME}</div>
     </div>
     <script>
 	    document.addEventListener('DOMContentLoaded', function () {
@@ -89,18 +89,18 @@ public class CounterConfigViewModel
 				    const res = await fetch('/txcounter/api');
 				    if (!res.ok) throw new Error('Failed to fetch');
 				    const data = await res.json();
-				    const span = document.getElementById('tx-count');
-				    if (span) span.textContent = data.count;
-                    if (data.volumeByCurrency) updateVolumeDisplay(data.volumeByCurrency);
+
+				    const containerTxCount = document.getElementById('tx-count-container');
+				    if (containerTxCount) containerTxCount.textContent = data.count;
+
+                    const containerVolume = document.getElementById('volume-container');
+                    if (containerVolume && data.volumeByCurrency) updateVolumeDisplay(data.volumeByCurrency);
 			    } catch (err) {
 				    console.error('Error updating counter...', err);
 			    }
 		    }
 
             function updateVolumeDisplay(volumeData) {
-                const container = document.getElementById('volume-container');
-                if (!container || !volumeData) return;
-                
                 const sortedCurrencies = Object.entries(volumeData).sort(([,a], [,b]) => b - a);
                 let volumeHtml = '';
                 for (let i = 0; i < sortedCurrencies.length; i += 3) {

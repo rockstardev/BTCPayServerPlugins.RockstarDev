@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -26,7 +27,14 @@ public class TransactionCounterController(
     private StoreData StoreData => HttpContext.GetStoreData();
 
     [HttpGet]
-    public async Task<IActionResult> CounterConfig(bool useLocalTemplate)
+    [Route("DefaultHtmlTemplate")]
+    public IActionResult DefaultHtmlTemplate()
+    {
+        return Content(CounterConfigViewModel.Defaults.HtmlTemplate);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CounterConfig()
     {
         var stores = await storeRepository.GetStores();
         stores = stores.Where(c => !c.Archived).ToArray();
@@ -38,7 +46,7 @@ public class TransactionCounterController(
             Password = model.Password,
             Enabled = model.Enabled,
             IncludeArchived = model.IncludeArchived,
-            HtmlTemplate = useLocalTemplate ? CounterConfigViewModel.Defaults.HtmlTemplate : model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
+            HtmlTemplate = string.IsNullOrWhiteSpace(model.HtmlTemplate) ? CounterConfigViewModel.Defaults.HtmlTemplate : model.HtmlTemplate,
             ExtraTransactions = model.ExtraTransactions,
             Stores = stores,
             ExcludedStoreIds = model.ExcludedStoreIds
@@ -53,10 +61,10 @@ public class TransactionCounterController(
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = "HTML Template cannot be empty. A default has been prefilled. Click save to use",
+                Message = "HTML Template cannot be empty.",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
-            return RedirectToAction(nameof(CounterConfig), new { useLocalTemplate = true });
+            return RedirectToAction(nameof(CounterConfig));
         }
 
         var settings = new CounterPluginSettings
