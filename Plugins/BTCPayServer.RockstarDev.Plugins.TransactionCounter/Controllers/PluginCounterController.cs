@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -26,6 +27,13 @@ public class TransactionCounterController(
     private StoreData StoreData => HttpContext.GetStoreData();
 
     [HttpGet]
+    [Route("DefaultHtmlTemplate")]
+    public IActionResult DefaultHtmlTemplate()
+    {
+        return Content(HtmlTemplates.Default);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> CounterConfig()
     {
         var stores = await storeRepository.GetStores();
@@ -37,7 +45,8 @@ public class TransactionCounterController(
             EndDate = model.EndDate,
             Password = model.Password,
             Enabled = model.Enabled,
-            HtmlTemplate = model.HtmlTemplate ?? CounterConfigViewModel.Defaults.HtmlTemplate,
+            IncludeArchived = model.IncludeArchived,
+            HtmlTemplate = string.IsNullOrWhiteSpace(model.HtmlTemplate) ? HtmlTemplates.Default : model.HtmlTemplate,
             ExtraTransactions = model.ExtraTransactions,
             Stores = stores,
             ExcludedStoreIds = model.ExcludedStoreIds
@@ -52,7 +61,7 @@ public class TransactionCounterController(
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
-                Message = "HTML Template cannot be empty. A default has been prefilled. Click save to use",
+                Message = "HTML Template cannot be empty.",
                 Severity = StatusMessageModel.StatusSeverity.Error
             });
             return RedirectToAction(nameof(CounterConfig));
@@ -64,6 +73,7 @@ public class TransactionCounterController(
             StartDate = viewModel.StartDate,
             EndDate = viewModel.EndDate,
             Enabled = viewModel.Enabled,
+            IncludeArchived = viewModel.IncludeArchived,
             ExtraTransactions = viewModel.ExtraTransactions,
             Password = viewModel.Password,
             AdminUserId = GetUserId(),

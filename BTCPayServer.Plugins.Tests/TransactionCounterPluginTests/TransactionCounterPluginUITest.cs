@@ -110,6 +110,8 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest
                     source = "test",
                     start = start.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                     end = end.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    amount = 21,
+                    currency = "NGN",
                     count
                 }
             };
@@ -130,10 +132,14 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest
         jsonText = jsonText.Trim();
         Assert.StartsWith("{", jsonText);
         Assert.EndsWith("}", jsonText);
-        var parsed = JsonConvert.DeserializeObject<Dictionary<string, int>>(jsonText);
+        var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonText);
         Assert.NotNull(parsed);
-        Assert.True(parsed.TryGetValue("count", out int apiCount));
-        Assert.Equal(count + 1, apiCount); // we have +1 transaction from another test state
+        Assert.True(parsed.TryGetValue("count", out object countObj));
+        Assert.Equal(count + 1, Convert.ToInt32(countObj)); // we have +1 transaction from another test state
+        Assert.True(parsed.TryGetValue("volumeByCurrency", out object volumeObj));
+        var volumeByCurrency = JsonConvert.DeserializeObject<Dictionary<string, decimal>>(volumeObj.ToString());
+        Assert.True(volumeByCurrency.TryGetValue("NGN", out decimal eurVolume));
+        Assert.Equal(21, eurVolume);
         await popup1.CloseAsync();
     }
 

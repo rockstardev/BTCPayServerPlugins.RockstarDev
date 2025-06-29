@@ -2,5 +2,27 @@
 @{
     Layout = null;
     var template = Model.HtmlTemplate.Replace("{COUNTER}", Model.InitialCount.ToString());
+
+    var volumeHtml = "";
+    if (Model.InitialVolumeByCurrency?.Any() == true)
+    {
+        var sortedVolumes = Model.InitialVolumeByCurrency.OrderByDescending(x => x.Value).ToList();
+        var volumeRows = new List<string>();
+        for (int i = 0; i < sortedVolumes.Count; i += 3)
+        {
+            var rowItems = sortedVolumes
+                .Skip(i).Take(3)
+                .Select(x => $@"<span class=""volume-item"">
+                    <span class=""currency"">{x.Key.ToUpper()}</span>:
+                    <span class=""amount"">{x.Value}</span>
+                </span>");
+            var rowHtml = $@"<div class=""volume-row"">{string.Join("", rowItems)}</div>";
+            volumeRows.Add(rowHtml);
+        }
+
+        volumeHtml = string.Join("", volumeRows);
+    }
+
+    template = template.Replace("{VOLUME}", volumeHtml);
 }
 @Html.Raw(template)

@@ -10,6 +10,7 @@ public class CounterPluginSettings
     public string? Password { get; set; }
     public string? HtmlTemplate { get; set; }
     public string AdminUserId { get; set; }
+    public bool IncludeArchived { get; set; }
     public string ExcludedStoreIds { get; set; }
     public string ExtraTransactions { get; set; }
 }

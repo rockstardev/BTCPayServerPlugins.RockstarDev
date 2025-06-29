@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <title>Bitcoin Transactions</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 900;
+            color: white;
+            font-size: 5vw;
+            text-transform: uppercase;
+        }
+        video.bg-video {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1;
+            object-fit: cover;
+            object-position: center;
+        }
+        .frame {
+            position: absolute;
+            width: 100vw;
+            left: 0;
+        }
+        .frame-top {
+            top: 0;
+        }
+        .frame-bottom {
+            bottom: 0;
+        }
+        .container {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .counter-box {
+            font-size: 10vw;
+            margin-right: -2vw;
+        }
+
+        #tx-targer{
+            font-size: 5vw;
+        }
+
+        .cycling-text {
+            transition: opacity 0.2s ease-in-out;
+            opacity: 1;
+            min-height: 1.2em; /* Prevent layout shift */
+            display: inline-block;
+        }
+
+        .cycling-text.animating {
+            opacity: 0;
+        }
+
+        .cycling-text .letter {
+            display: inline-block;
+            transform: translateY(0.5em);
+            opacity: 0;
+            animation: fade-in 500ms ease-in-out var(--delay) forwards;
+        }
+
+        @keyframes fade-in {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Ensure proper spacing between letters */
+        .cycling-text .letter + .letter {
+            margin-left: 0.05em;
+        }
+
+        /* Add Swiper specific styles */
+        .swiper {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .swiper-slide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+<!-- Replace with your own .mp4 URL -->
+<video class="bg-video" autoplay muted loop playsinline>
+    <source src="https://blossom.primal.net/f1666bd125a7d88a4bcc444ac45082db2a35775290dfd950fe98ee9e1bfc437c.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+</video>
+
+
+<img class="frame frame-top" src="https://blossom.primal.net/00c4f659f04b6177ef5de470e26c24e23a7310885224b77b8516265e261f90ec.png" />
+
+<img class="frame frame-bottom" src="https://blossom.primal.net/77571023de44b6b384a747a6ce6db3caf7e0769f57e72000de6b153ed8e8d7ac.png" />
+
+
+<div class="swiper">
+    <div class="swiper-wrapper">
+        <!-- Slide 1: Counter -->
+        <div class="swiper-slide">
+            <div class="container">
+                <div class="cycling-text" data-messages='["Record Attempt", "Making History"]'>
+
+                </div>
+                <div class="counter-box">
+                    <span id="tx-count">{COUNTER}</span><span id="tx-targer"> / 4,000</span>
+                </div>
+            </div>
+        </div>
+        <div class="swiper-slide">
+            <div class="container">
+                <div class="cycling-text" data-messages='["Scan to buy", "Collect at the store"]'>
+
+                </div>
+                <img style="width: 30vw;" src="https://blossom.primal.net/fdcbd53fceb58779bd0ece2370ce27a2bd3a5d1d22f2b287399a0147ca8fb528.png" />
+            </div>
+        </div>
+        <div class="swiper-slide">
+            <div class="container">
+                <div class="cycling-text" data-messages='["World Record in Progress", "Join the Movement"]'>
+
+                </div>
+                <img style="width: 20vw;" src="https://blossom.primal.net/ed7287e4a7399c11f1745bc0c876736c134e6d0e255f4ca5808bc4ceeba4d392.png " />
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        class CyclingText {
+            constructor(element) {
+                this.element = element;
+                this.messages = JSON.parse(element.dataset.messages);
+                this.currentIndex = 0;
+                this.isAnimating = false;
+            }
+
+            wrapLettersInSpans(text) {
+                return text.split('')
+                    .map((letter, index) => {
+                        const content = letter === ' ' ? '&nbsp;' : letter;
+                        return `<span class="letter" style="--delay: ${index * 50}ms">${content}</span>`;
+                    })
+                    .join('');
+            }
+
+            update() {
+                if (this.isAnimating) return;
+
+                this.isAnimating = true;
+                this.element.classList.add('animating');
+
+                // Wait for fade out
+                setTimeout(() => {
+                    this.element.innerHTML = this.wrapLettersInSpans(this.messages[this.currentIndex]);
+
+                    // Wait for next frame to ensure DOM update
+                    requestAnimationFrame(() => {
+                        // Remove animating class to start fade in
+                        this.element.classList.remove('animating');
+
+                        // Wait for all letters to animate
+                        const maxDelay = this.messages[this.currentIndex].length * 50 + 500;
+                        setTimeout(() => {
+                            this.currentIndex = (this.currentIndex + 1) % this.messages.length;
+                            this.isAnimating = false;
+                        }, maxDelay);
+                    });
+                }, 200);
+            }
+
+            start() {
+                this.update();
+                this.interval = setInterval(() => this.update(), 5000);
+            }
+
+            stop() {
+                if (this.interval) {
+                    clearInterval(this.interval);
+                    this.interval = null;
+                }
+                // Ensure we're not in the middle of an animation
+                this.isAnimating = false;
+                this.element.classList.remove('animating');
+            }
+        }
+
+        // Initialize all cycling text instances
+        const cyclingTexts = Array.from(document.querySelectorAll('.cycling-text'))
+            .map(element => new CyclingText(element));
+
+        // Initialize Swiper
+        const swiper = new Swiper('.swiper', {
+            effect: 'creative',
+            creativeEffect: {
+                prev: {
+                    opacity: 0,
+                    translate: [0, 0, -1000],
+                },
+                next: {
+                    opacity: 0,
+                    translate: [0, 0, 1000],
+                },
+            },
+            loop: true,
+            autoplay: {
+                delay: 10000,
+                disableOnInteraction: false,
+            },
+            on: {
+                beforeInit: function() {
+                    // Stop all cycling texts before initialization
+                    cyclingTexts.forEach(ct => ct.stop());
+                },
+                slideChangeTransitionStart: function () {
+                    // Stop all cycling texts immediately when transition starts
+                    cyclingTexts.forEach(ct => {
+                        ct.stop();
+                        // Force fade out any currently visible text
+                        ct.element.classList.add('animating');
+                    });
+                },
+                slideChangeTransitionEnd: function () {
+                    // Small delay to ensure slide transition is fully complete
+                    setTimeout(() => {
+                        // Start cycling text only for the current slide
+                        const currentCyclingText = cyclingTexts[this.realIndex];
+                        if (currentCyclingText) {
+                            // Remove animating class to make text visible
+                            currentCyclingText.element.classList.remove('animating');
+                            // Start the cycling animation
+                            currentCyclingText.start();
+                        }
+                    }, 100); // Small delay to ensure smooth transition
+                },
+                init: function () {
+                    // Start cycling text for initial slide after a small delay
+                    setTimeout(() => {
+                        const initialCyclingText = cyclingTexts[this.realIndex];
+                        if (initialCyclingText) {
+                            initialCyclingText.element.classList.remove('animating');
+                            initialCyclingText.start();
+                        }
+                    }, 100);
+                }
+            }
+        });
+
+        // Add arrow key navigation for Swiper
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                swiper.slidePrev();
+            } else if (e.key === 'ArrowRight') {
+                swiper.slideNext();
+            }
+        });
+
+        // Update counter logic
+        async function updateCounter() {
+            try {
+                const res = await fetch('/txcounter/api');
+                if (!res.ok) throw new Error('Failed to fetch');
+                const data = await res.json();
+                const span = document.getElementById('tx-count');
+                if (span) span.textContent = data.count.toLocaleString();
+            } catch (err) {
+                console.error('Error updating counter...', err);
+            }
+        }
+        updateCounter();
+        setInterval(updateCounter, 1000);
+    });
+</script>
+</body>
+</html>

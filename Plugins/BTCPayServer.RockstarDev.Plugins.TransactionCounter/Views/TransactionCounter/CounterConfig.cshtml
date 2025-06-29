@@ -61,17 +61,22 @@
                             </div>
 
                             <div class="subsettings">
-                                <div class="form-group mt-3">
-                                    <label asp-for="ExcludedStoreIds">Excluded Stores from transaction counter</label>
-                                    <textarea asp-for="ExcludedStoreIds"
-                                              class="form-control"
-                                              rows="3"
-                                              placeholder="storeId1,storeId2,storeId3"></textarea>
-                                    <span asp-validation-for="ExcludedStoreIds" class="text-danger"></span>
-                                    <small class="form-text text-muted">
-                                        Enter comma-separated store IDs to exclude from the transaction counter.
-                                    </small>
-                                </div>
+								<div class="form-group mt-3">
+									<label asp-for="ExcludedStoreIds">Excluded Stores from transaction counter</label>
+									<textarea asp-for="ExcludedStoreIds"
+											  class="form-control"
+											  rows="3"
+											  placeholder="storeId1,storeId2,storeId3"></textarea>
+									<span asp-validation-for="ExcludedStoreIds" class="text-danger"></span>
+									<small class="form-text text-muted">
+										Enter comma-separated store IDs to exclude from the transaction counter.
+									</small>
+								</div>
+
+								<div class="d-flex align-items-center my-3">
+									<input type="checkbox" asp-for="IncludeArchived" class="btcpay-toggle me-3" />
+									<label class="form-check-label" asp-for="IncludeArchived" text-translate="true"></label>
+								</div>
 
                                 <div class="d-flex my-3">
                                     <div class="form-group mb-0 w-250px">
@@ -114,7 +119,8 @@
                                     <label asp-for="HtmlTemplate" class="form-label"></label>
                                     <textarea asp-for="HtmlTemplate" class="form-control" rows="10"></textarea>
                                     <small class="form-text text-muted">
-                                        Use <code>{COUNTER}</code> where the number should be inserted.
+                                        Use <code>{COUNTER}</code> where the number should be inserted. 
+                                        To see usage, reference <a asp-action="DefaultHtmlTemplate">Default HTML Template</a>.
                                     </small>
                                 </div>
 
@@ -129,7 +135,7 @@
                                               rows="8"
                                               placeholder="[{count1},{count2}]"></textarea>
                                     <small id="emailHelp" class="form-text text-muted">Example:[{"source": "bar", "start": "2025-06-19T14:00:00Z", "end":
-                                        "2025-06-21T17:00:00Z", "count": 100}]</small>
+                                        "2025-06-21T17:00:00Z", "count": 100, "currency": "USD", "amount": 21}]</small>
                                     <span asp-validation-for="ExtraTransactions" class="text-danger"></span>
                                     <div class="mt-2 d-flex align-items-center">
                                         <button type="button" class="btn btn-sm btn-secondary me-2" onclick="validateAndPreview()">Test JSON</button>
