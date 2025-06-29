@@ -19,7 +19,6 @@ public class TxCounterService
     // Static cache variables
     private static InvoiceTransactionResult _cachedTransactionCount;
     private static DateTime _lastFetchTime = DateTime.MinValue;
-    private static readonly object _lockObject = new();
     private static readonly TimeSpan _cacheExpiration = TimeSpan.FromMilliseconds(750);
     private readonly InvoiceRepository _invoiceRepository;
     private readonly StoreRepository _storeRepository;
@@ -44,17 +43,12 @@ public class TxCounterService
         var now = DateTime.UtcNow;
         if (now - _lastFetchTime < _cacheExpiration)
             return _cachedTransactionCount;
+        
+        // updating the cache
+        _cachedTransactionCount = await FetchAndCacheTransactionCount(model);
+        _lastFetchTime = DateTime.UtcNow;
 
-        // Need to refresh the cache
-        lock (_lockObject)
-        {
-            // Double-check in case another thread updated while we were waiting
-            if (now - _lastFetchTime < _cacheExpiration)
-                return _cachedTransactionCount;
-
-            // We need to refresh the cache
-            return FetchAndCacheTransactionCount(model).GetAwaiter().GetResult();
-        }
+        return _cachedTransactionCount;
     }
 
     private async Task<InvoiceTransactionResult> FetchAndCacheTransactionCount(CounterPluginSettings model)
@@ -64,6 +58,7 @@ public class TxCounterService
         var excludedStoreIds = (model.ExcludedStoreIds ?? "").Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var includedStoreIds = allStoreIds.Where(id => !excludedStoreIds.Contains(id)).ToArray();
+
         var query = new InvoiceQuery
         {
             StartDate = model.StartDate,
@@ -73,30 +68,34 @@ public class TxCounterService
             ExceptionStatus = new[] { InvoiceExceptionStatus.PaidLate.ToString(), InvoiceExceptionStatus.PaidOver.ToString() },
             StoreId = includedStoreIds.Length > 0 ? includedStoreIds : allStoreIds
         };
-        var transactions = await GetInvoiceQuery(query);
-        var volumeByCurrency = transactions
-            .GroupBy(tx => tx.Currency.ToUpperInvariant())
-            .ToDictionary(
-                g => g.Key,
-                g => g.Sum(tx => Math.Round(tx.Amount.Value, _currencyNameTable.GetNumberFormatInfo(tx.Currency)?.CurrencyDecimalDigits ?? 2)));
-
-        var extra = CalculateExtraTransactionCount(model);
-        foreach (var kvp in extra.VolumeByCurrency)
+        InvoiceTransactionResult result = null;
+        if (model.IncludeTransactionVolume)
         {
-            if (volumeByCurrency.ContainsKey(kvp.Key))
-                volumeByCurrency[kvp.Key] += kvp.Value;
-            else
-                volumeByCurrency[kvp.Key] = kvp.Value;
+            var transactions = await GetInvoiceQuery(query);
+            var volumeByCurrency = transactions
+                .GroupBy(tx => tx.Currency.ToUpperInvariant())
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Sum(tx => Math.Round(tx.Amount.Value, _currencyNameTable.GetNumberFormatInfo(tx.Currency)?.CurrencyDecimalDigits ?? 2)));
+
+            var extra = CalculateExtraTransactionCount(model);
+            foreach (var kvp in extra.VolumeByCurrency)
+            {
+                if (volumeByCurrency.ContainsKey(kvp.Key))
+                    volumeByCurrency[kvp.Key] += kvp.Value;
+                else
+                    volumeByCurrency[kvp.Key] = kvp.Value;
+            }
+
+            result = new InvoiceTransactionResult { TransactionCount = transactions.Count() + extra.TransactionCount, VolumeByCurrency = volumeByCurrency };
         }
-        var result = new InvoiceTransactionResult
+        else
         {
-            TransactionCount = transactions.Count() + extra.TransactionCount,
-            VolumeByCurrency = volumeByCurrency
-        };
+            var transactionCount = await _invoiceRepository.GetInvoiceCount(query);
+            var total = transactionCount + CalculateExtraTransactionCount(model).TransactionCount;
 
-        // Update the cache
-        _cachedTransactionCount = result;
-        _lastFetchTime = DateTime.UtcNow;
+            result = new InvoiceTransactionResult { TransactionCount = total };
+        }
 
         return result;
     }
@@ -105,8 +104,7 @@ public class TxCounterService
     {
         var result = new InvoiceTransactionResult
         {
-            TransactionCount = 0,
-            VolumeByCurrency = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            TransactionCount = 0, VolumeByCurrency = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
         };
         if (string.IsNullOrWhiteSpace(model.ExtraTransactions))
             return result;
@@ -114,7 +112,8 @@ public class TxCounterService
         try
         {
             var now = DateTime.UtcNow;
-            var extraTransaction = JsonConvert.DeserializeObject<List<ExtraTransactionEntry>>(model.ExtraTransactions) ?? new List<ExtraTransactionEntry>();
+            var extraTransaction = JsonConvert.DeserializeObject<List<ExtraTransactionEntry>>(model.ExtraTransactions) ?? 
+                                   new List<ExtraTransactionEntry>();
             foreach (var txn in extraTransaction)
             {
                 if (now < txn.Start)
@@ -129,6 +128,7 @@ public class TxCounterService
                 result.VolumeByCurrency.TryAdd(txn.Currency.ToUpperInvariant(), 0);
                 result.VolumeByCurrency[txn.Currency.ToUpperInvariant()] += amount;
             }
+
             return result;
         }
         catch { return result; }
@@ -142,6 +142,7 @@ public class TxCounterService
         {
             query = query.Where(i => !i.Archived);
         }
+
         if (queryObject.StoreId is { Length: > 0 })
         {
             if (queryObject.StoreId.Length > 1)
@@ -155,6 +156,7 @@ public class TxCounterService
                 query = query.Where(i => i.StoreDataId == storeId);
             }
         }
+
         if (queryObject.StartDate != null)
             query = query.Where(i => queryObject.StartDate.Value <= i.Created);
 
@@ -182,6 +184,7 @@ public class TxCounterService
             {
                 statusExpression = i => statusSet.Contains(i.Status);
             }
+
             var predicate = (statusExpression, exceptionStatusExpression) switch
             {
                 ({ } a, { } b) => (Expression)Expression.Or(a.Body, b.Body),
@@ -193,6 +196,7 @@ public class TxCounterService
             expression = expression.ReplaceParameterRef();
             query = query.Where(expression);
         }
+
         return query.ToArray();
     }
 

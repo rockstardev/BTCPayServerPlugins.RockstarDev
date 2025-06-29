@@ -22,6 +22,9 @@ public class CounterConfigViewModel
     [Display(Name = "Include archived invoices")]
     public bool IncludeArchived { get; set; }
 
+    [Display(Name = "Include Transaction Volume Data (more expensive queries)")]
+    public bool IncludeTransactionVolume { get; set; }
+
     public string? Password { get; set; }
     public StoreData[] Stores { get; set; }
 

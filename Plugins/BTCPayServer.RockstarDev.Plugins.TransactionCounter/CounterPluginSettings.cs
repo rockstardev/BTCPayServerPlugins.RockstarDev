@@ -11,6 +11,7 @@ public class CounterPluginSettings
     public string? HtmlTemplate { get; set; }
     public string AdminUserId { get; set; }
     public bool IncludeArchived { get; set; }
+    public bool IncludeTransactionVolume { get; set; }
     public string ExcludedStoreIds { get; set; }
     public string ExtraTransactions { get; set; }
 }
