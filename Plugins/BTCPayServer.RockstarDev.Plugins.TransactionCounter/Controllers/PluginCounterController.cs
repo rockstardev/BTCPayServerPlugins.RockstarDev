@@ -30,7 +30,7 @@ public class TransactionCounterController(
     [Route("DefaultHtmlTemplate")]
     public IActionResult DefaultHtmlTemplate()
     {
-        return Content(CounterConfigViewModel.Defaults.HtmlTemplate);
+        return Content(HtmlTemplates.Default);
     }
 
     [HttpGet]
@@ -46,7 +46,7 @@ public class TransactionCounterController(
             Password = model.Password,
             Enabled = model.Enabled,
             IncludeArchived = model.IncludeArchived,
-            HtmlTemplate = string.IsNullOrWhiteSpace(model.HtmlTemplate) ? CounterConfigViewModel.Defaults.HtmlTemplate : model.HtmlTemplate,
+            HtmlTemplate = string.IsNullOrWhiteSpace(model.HtmlTemplate) ? HtmlTemplates.Default : model.HtmlTemplate,
             ExtraTransactions = model.ExtraTransactions,
             Stores = stores,
             ExcludedStoreIds = model.ExcludedStoreIds
