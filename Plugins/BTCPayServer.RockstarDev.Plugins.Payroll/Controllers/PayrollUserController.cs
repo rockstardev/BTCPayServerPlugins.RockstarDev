@@ -270,7 +270,7 @@ Thank you,
         user.Name = string.IsNullOrEmpty(model.Name) ? user.Name : model.Name;
 
         user.EmailReminder = string.IsNullOrEmpty(model.EmailReminder)
-            ? user.EmailReminder
+            ? null
             : string.Join(",", model.EmailReminder.Split(',')
                 .Select(r => r.Trim()).Where(r => !string.IsNullOrEmpty(r))
                 .Distinct().OrderBy(int.Parse));
