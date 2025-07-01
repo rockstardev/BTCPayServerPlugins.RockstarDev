@@ -11,6 +11,7 @@ using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using NBXplorer.Models;
 using Newtonsoft.Json;
+using InvoiceData = BTCPayServer.Data.InvoiceData;
 
 namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Services;
 
@@ -71,7 +72,9 @@ public class TxCounterService
         InvoiceTransactionResult result = null;
         if (model.IncludeTransactionVolume)
         {
-            var transactions = await GetInvoiceQuery(query);
+            await using var context = _applicationDbContextFactory.CreateContext();
+            var invoices = new InvoiceQueryWrapper().GetInvoiceQuery(context, query);
+            var transactions = invoices.ToArray();
             var volumeByCurrency = transactions
                 .GroupBy(tx => tx.Currency.ToUpperInvariant())
                 .ToDictionary(
@@ -133,14 +136,36 @@ public class TxCounterService
         }
         catch { return result; }
     }
+}
 
-    private async Task<Data.InvoiceData[]> GetInvoiceQuery(InvoiceQuery queryObject)
+// This class has been extracted from the InvoiceRepository to avoid do tweaks
+public class InvoiceQueryWrapper
+{
+    public IQueryable<InvoiceData> GetInvoiceQuery(ApplicationDbContext context, InvoiceQuery queryObject)
     {
-        await using var context = _applicationDbContextFactory.CreateContext();
-        IQueryable<Data.InvoiceData> query = context.Invoices.Where(c => c.Amount > 0);
+        IQueryable<InvoiceData> query = queryObject.UserId is null
+            ? context.Invoices
+            : context.UserStore
+                .Where(u => u.ApplicationUserId == queryObject.UserId)
+                .SelectMany(c => c.StoreData.Invoices);
+
         if (!queryObject.IncludeArchived)
         {
             query = query.Where(i => !i.Archived);
+        }
+
+        if (queryObject.InvoiceId is { Length: > 0 })
+        {
+            if (queryObject.InvoiceId.Length > 1)
+            {
+                var idSet = queryObject.InvoiceId.ToHashSet().ToArray();
+                query = query.Where(i => idSet.Contains(i.Id));
+            }
+            else
+            {
+                var invoiceId = queryObject.InvoiceId.First();
+                query = query.Where(i => i.Id == invoiceId);
+            }
         }
 
         if (queryObject.StoreId is { Length: > 0 })
@@ -150,11 +175,21 @@ public class TxCounterService
                 var stores = queryObject.StoreId.ToHashSet().ToArray();
                 query = query.Where(i => stores.Contains(i.StoreDataId));
             }
+            // Big performant improvement to use Where rather than Contains when possible
+            // In our test, the first gives  720.173 ms vs 40.735 ms
             else
             {
                 var storeId = queryObject.StoreId.First();
                 query = query.Where(i => i.StoreDataId == storeId);
             }
+        }
+
+        if (!string.IsNullOrEmpty(queryObject.TextSearch))
+        {
+            var text = queryObject.TextSearch.Truncate(512);
+#pragma warning disable CA1310 // Specify StringComparison
+            query = query.Where(i => i.InvoiceSearchData.Any(data => data.Value.StartsWith(text)));
+#pragma warning restore CA1310 // Specify StringComparison
         }
 
         if (queryObject.StartDate != null)
@@ -163,18 +198,42 @@ public class TxCounterService
         if (queryObject.EndDate != null)
             query = query.Where(i => i.Created <= queryObject.EndDate.Value);
 
+        if (queryObject.OrderId is { Length: > 0 })
+        {
+            if (queryObject.OrderId is [var orderId])
+            {
+                query = query.Where(i => InvoiceData.GetOrderId(i.Blob2) == orderId);
+            }
+            else
+            {
+                var orderIdSet = queryObject.OrderId.ToHashSet().ToArray();
+                query = query.Where(i => orderIdSet.Contains(InvoiceData.GetOrderId(i.Blob2)));
+            }
+        }
+        if (queryObject.ItemCode is { Length: > 0 })
+        {
+            if (queryObject.ItemCode is [var itemCode])
+            {
+                query = query.Where(i => InvoiceData.GetItemCode(i.Blob2) == itemCode);
+            }
+            else
+            {
+                var itemCodeSet = queryObject.ItemCode.ToHashSet().ToArray();
+                query = query.Where(i => itemCodeSet.Contains(InvoiceData.GetItemCode(i.Blob2)));
+            }
+        }
+
         var statusSet = queryObject.Status is { Length: > 0 }
             ? queryObject.Status.Select(NormalizeStatus).Where(n => n is not null).ToHashSet()
             : new HashSet<string>();
-
         var exceptionStatusSet = queryObject.ExceptionStatus is { Length: > 0 }
             ? queryObject.ExceptionStatus.Select(NormalizeExceptionStatus).Where(n => n is not null).ToHashSet()
             : new HashSet<string>();
 
         if (statusSet.Any() || exceptionStatusSet.Any())
         {
-            Expression<Func<Data.InvoiceData, bool>> statusExpression = null;
-            Expression<Func<Data.InvoiceData, bool>> exceptionStatusExpression = null;
+            Expression<Func<InvoiceData, bool>> statusExpression = null;
+            Expression<Func<InvoiceData, bool>> exceptionStatusExpression = null;
             if (statusSet.Count is 1)
             {
                 var status = statusSet.First();
@@ -185,6 +244,15 @@ public class TxCounterService
                 statusExpression = i => statusSet.Contains(i.Status);
             }
 
+            if (exceptionStatusSet.Count is 1)
+            {
+                var exceptionStatus = exceptionStatusSet.First();
+                exceptionStatusExpression = i => i.ExceptionStatus == exceptionStatus;
+            }
+            else if (exceptionStatusSet.Count is > 1)
+            {
+                exceptionStatusExpression = i => exceptionStatusSet.Contains(i.ExceptionStatus);
+            }
             var predicate = (statusExpression, exceptionStatusExpression) switch
             {
                 ({ } a, { } b) => (Expression)Expression.Or(a.Body, b.Body),
@@ -192,12 +260,29 @@ public class TxCounterService
                 (null, { } b) => b.Body,
                 _ => throw new NotSupportedException()
             };
-            var expression = Expression.Lambda<Func<Data.InvoiceData, bool>>(predicate, Expression.Parameter(typeof(Data.InvoiceData), "i"));
+            var expression = Expression.Lambda<Func<InvoiceData, bool>>(predicate, Expression.Parameter(typeof(InvoiceData), "i"));
             expression = expression.ReplaceParameterRef();
             query = query.Where(expression);
         }
 
-        return query.ToArray();
+        if (queryObject.Unusual != null)
+        {
+            var unusual = queryObject.Unusual.Value;
+            query = query.Where(i => unusual == (i.Status == "Invalid" || !string.IsNullOrEmpty(i.ExceptionStatus)));
+        }
+
+        if (queryObject.OrderByDesc)
+            query = query.OrderByDescending(q => q.Created);
+        else
+            query = query.OrderBy(q => q.Created);
+
+        if (queryObject.Skip != null)
+            query = query.Skip(queryObject.Skip.Value);
+
+        if (queryObject.Take != null)
+            query = query.Take(queryObject.Take.Value);
+
+        return query;
     }
 
     private string NormalizeStatus(string status)
