@@ -21,7 +21,6 @@ public class TxCounterService
     private static InvoiceTransactionResult _cachedTransactionCount;
     private static DateTime _lastFetchTime = DateTime.MinValue;
     private static readonly TimeSpan _cacheExpiration = TimeSpan.FromMilliseconds(750);
-    private readonly InvoiceRepository _invoiceRepository;
     private readonly StoreRepository _storeRepository;
     private readonly CurrencyNameTable _currencyNameTable;
     private readonly ApplicationDbContextFactory _applicationDbContextFactory;
@@ -29,12 +28,10 @@ public class TxCounterService
     public TxCounterService(
         StoreRepository storeRepository,
         CurrencyNameTable currencyNameTable,
-        InvoiceRepository invoiceRepository,
         ApplicationDbContextFactory applicationDbContextFactory)
     {
         _storeRepository = storeRepository;
         _currencyNameTable = currencyNameTable;
-        _invoiceRepository = invoiceRepository;
         _applicationDbContextFactory = applicationDbContextFactory;
     }
 
@@ -65,8 +62,8 @@ public class TxCounterService
             StartDate = model.StartDate,
             EndDate = model.EndDate,
             IncludeArchived = model.IncludeArchived,
-            Status = new[] { InvoiceStatus.Processing.ToString(), InvoiceStatus.Settled.ToString() },
-            ExceptionStatus = new[] { InvoiceExceptionStatus.PaidLate.ToString(), InvoiceExceptionStatus.PaidOver.ToString() },
+            Status = [nameof(InvoiceStatus.Processing), nameof(InvoiceStatus.Settled)],
+            ExceptionStatus = [nameof(InvoiceExceptionStatus.PaidLate), nameof(InvoiceExceptionStatus.PaidOver)],
             StoreId = includedStoreIds.Length > 0 ? includedStoreIds : allStoreIds
         };
         InvoiceTransactionResult result = null;
@@ -94,8 +91,9 @@ public class TxCounterService
         }
         else
         {
-            var transactionCount = await _invoiceRepository.GetInvoiceCount(query);
-            var total = transactionCount + CalculateExtraTransactionCount(model).TransactionCount;
+            await using var context = _applicationDbContextFactory.CreateContext();
+            var invoices = new InvoiceQueryWrapper().GetInvoiceQuery(context, query);
+            var total = invoices.Count() + CalculateExtraTransactionCount(model).TransactionCount;
 
             result = new InvoiceTransactionResult { TransactionCount = total };
         }
@@ -139,6 +137,7 @@ public class TxCounterService
 }
 
 // This class has been extracted from the InvoiceRepository to avoid do tweaks
+// InvoiceReposirory.GetInvoiceQuery#604
 public class InvoiceQueryWrapper
 {
     public IQueryable<InvoiceData> GetInvoiceQuery(ApplicationDbContext context, InvoiceQuery queryObject)
