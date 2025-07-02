@@ -358,7 +358,10 @@ public class PayrollInvoiceController(
         var csvData = new StringBuilder();
         // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
         csvData.AppendLine(
-            "Created Date,Transaction Date,Name,InvoiceDesc,Address,Currency,Amount,Balance,BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,PaidInWallet");
+            "Created Date,Transaction Date,Name,InvoiceDesc,"+
+            "Address,Currency,Amount,Balance,"+
+            "BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,"+
+            "PaidInWallet");
         var empty = string.Empty;
         decimal usdRate = 0;
         foreach (var invoice in invoices)
@@ -373,8 +376,9 @@ public class PayrollInvoiceController(
             {
                 csvData.AppendLine(
                     $"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? empty},{invoice.User.Name},{formattedDesc}," +
-                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{empty}" +
-                    $",{usdRate},{empty},{empty},false");
+                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{empty}"+
+                    $"{usdRate},{empty},{empty},{empty},"+
+                    $"false");
             }
             else
             {
@@ -390,8 +394,9 @@ public class PayrollInvoiceController(
 
                 csvData.AppendLine(
                     $"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? empty)},{invoice.User.Name},{formattedDesc}," +
-                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{usdRate},{empty}" +
-                    $",-{invoice.BtcPaid},{empty},{invoice.TxnId},true");
+                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{empty},"+
+                    $"{usdRate},{empty},-{invoice.BtcPaid},{invoice.TxnId},"+
+                    $"true");
             }
         }
 
