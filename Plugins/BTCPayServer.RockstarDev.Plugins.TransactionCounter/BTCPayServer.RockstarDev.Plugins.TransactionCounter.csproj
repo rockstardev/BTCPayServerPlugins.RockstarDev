@@ -10,7 +10,7 @@
     <PropertyGroup>
         <Product>Transaction Counter</Product>
         <Description>This plugin gives server admin a view of the total transaction count done across store instance</Description>
-        <Version>1.0.3</Version>
+        <Version>1.0.4</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
