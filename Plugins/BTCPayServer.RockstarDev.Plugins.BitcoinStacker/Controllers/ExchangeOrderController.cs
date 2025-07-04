@@ -118,8 +118,8 @@ public class ExchangeOrderController(
     }
 
     // IndexLogs
-    // TODO: Switch to HTTPPOST
-    [HttpGet("SwitchState")]
+    [HttpPost("SwitchState")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> SwitchState(Guid id, DbExchangeOrder.States state)
     {
         var db = pluginDbContextFactory.CreateContext();

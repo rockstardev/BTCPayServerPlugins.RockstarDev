@@ -24,10 +24,9 @@
                 <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
                     @foreach (var item in Enum.GetNames(typeof(DbExchangeOrder.States)))
                     {
-                        <a asp-action="SwitchState" asp-route-state="@item" asp-route-id="@Model.Item.Id"
-                           asp-route-storeId="@storeId" class="dropdown-item">
-                            @item
-                        </a>
+                        <form asp-action="SwitchState" asp-route-state="@item" asp-route-id="@Model.Item.Id" asp-route-storeId="@storeId" method="post">
+                            <button type="submit" class="dropdown-item">@item</button>
+                        </form>
                     }
                 </div>
             </div>
