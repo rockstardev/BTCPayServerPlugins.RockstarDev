@@ -1,4 +1,4 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Extensions
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model SettingsViewModel
 @{
@@ -8,7 +8,7 @@
 <form method="post">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
-        <input type="submit" value="Update" class="btn btn-primary" id="Update" />
+        <button type="submit" class="btn btn-primary" id="Update" value="Update">Update</button>
     </div>
 
     <partial name="_StatusMessage" />

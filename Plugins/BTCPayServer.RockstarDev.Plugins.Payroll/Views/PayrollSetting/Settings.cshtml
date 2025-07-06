@@ -1,4 +1,4 @@
-﻿@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.TagHelpers
 @using BTCPayServer.TagHelpers
@@ -15,7 +15,7 @@
 <form method="post" asp-action="Settings">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
-        <input type="submit" value="Save Changes" class="btn btn-primary" id="Edit" />
+        <button type="submit" class="btn btn-primary" id="Edit" value="Save Changes">Save Changes</button>
     </div>
 
     <partial name="_StatusMessage" />
