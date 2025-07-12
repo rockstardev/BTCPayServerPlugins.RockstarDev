@@ -37,7 +37,7 @@ public class CashPluginUITest : PlaywrightBaseTest
         if (!isChecked)
             await checkBox.CheckAsync();
 
-        await Page.Locator("input#Submit").ClickAsync();
+        await Page.Locator("button#Submit").ClickAsync();
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
@@ -60,7 +60,7 @@ public class CashPluginUITest : PlaywrightBaseTest
         if (!isChecked)
             await checkBox.CheckAsync();
 
-        await Page.Locator("input#Submit").ClickAsync();
+        await Page.Locator("button#Submit").ClickAsync();
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
@@ -94,7 +94,7 @@ public class CashPluginUITest : PlaywrightBaseTest
         if (!isDisabled)
             await checkBox.CheckAsync();
 
-        await Page.Locator("input#Submit").ClickAsync();
+        await Page.Locator("button#Submit").ClickAsync();
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.False(await checkBox.IsCheckedAsync());
