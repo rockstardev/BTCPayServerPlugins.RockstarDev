@@ -100,6 +100,12 @@ public class TransactionCounterPluginUITest : PlaywrightBaseTest
         if (!isChecked)
             await checkBox.CheckAsync();
 
+        var includeTransactionVolumeCheckBox = await Page.QuerySelectorAsync("input#IncludeTransactionVolume");
+        Assert.NotNull(includeTransactionVolumeCheckBox);
+        isChecked = await includeTransactionVolumeCheckBox.IsCheckedAsync();
+        if (!isChecked)
+            await includeTransactionVolumeCheckBox.CheckAsync();
+            
         var now = DateTime.UtcNow;
         var start = now.AddHours(-4);
         var end = now.AddHours(-1);
