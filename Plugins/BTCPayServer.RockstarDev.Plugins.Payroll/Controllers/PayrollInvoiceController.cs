@@ -37,7 +37,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 public class PayrollInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,
-    InvoiceRepository invoiceRepository,
     RateFetcher rateFetcher,
     PaymentMethodHandlerDictionary handlers,
     BTCPayNetworkProvider networkProvider,
@@ -63,11 +62,6 @@ public class PayrollInvoiceController(
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == PayrollUserState.Active).ToList();
-
-        /*if (payrollInvoices.Count > 0)
-        {
-            var invoice = await invoiceRepository.GetInvoice(payrollInvoices.First().Id);
-        }*/
 
         // triggering saving of admin user id if needed
         var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
