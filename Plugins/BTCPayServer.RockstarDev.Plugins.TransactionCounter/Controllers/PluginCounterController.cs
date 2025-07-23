@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -13,7 +12,6 @@ using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using StoreData = BTCPayServer.Data.StoreData;
 
 namespace BTCPayServer.RockstarDev.Plugins.TransactionCounter.Controllers;
 
@@ -24,7 +22,6 @@ public class TransactionCounterController(
     SettingsRepository settingsRepository,
     UserManager<ApplicationUser> userManager) : Controller
 {
-    private StoreData StoreData => HttpContext.GetStoreData();
 
     [HttpGet]
     [Route("DefaultHtmlTemplate")]
@@ -87,10 +84,4 @@ public class TransactionCounterController(
     }
 
     private string GetUserId() => userManager.GetUserId(User);
-
-    private static bool IsValidUrl(string url)
-    {
-        return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
-               && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
-    }
 }
