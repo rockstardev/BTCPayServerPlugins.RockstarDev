@@ -21,6 +21,120 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
 
     public ServerTester ServerTester { get; }
 
+
+    [Fact]
+    public async Task EnableTransactionCounterTest()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/server/stores/counter");
+        var checkboxSelector = "input#Enabled";
+        var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+        var isChecked = await checkBox.IsCheckedAsync();
+        if (!isChecked)
+            await checkBox.CheckAsync();
+
+        await SaveTransactionCounterSuccessMessage();
+        checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+    }
+
+
+
+    [Fact]
+    public async Task TransactionCounterPublicUrlTest()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/server/stores/counter");
+        var checkboxSelector = "input#Enabled";
+        var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+        var isChecked = await checkBox.IsCheckedAsync();
+        if (!isChecked)
+            await checkBox.CheckAsync();
+
+        await SaveTransactionCounterSuccessMessage();
+        checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+        var links = Page.Locator(".info-note a");
+
+        var popup1Task = Page.WaitForPopupAsync();
+        await links.Nth(0).ClickAsync();
+        var popup1 = await popup1Task;
+        await popup1.WaitForLoadStateAsync();
+        Assert.Contains("/txcounter/html", popup1.Url);
+        await popup1.CloseAsync();
+
+        var popup2Task = Page.WaitForPopupAsync();
+        await links.Nth(1).ClickAsync();
+        var popup2 = await popup2Task;
+        await popup2.WaitForLoadStateAsync();
+        Assert.Contains("/txcounter/api", popup2.Url);
+        await popup2.CloseAsync();
+    }
+
+
+    [Fact]
+    public async Task TransactionCounterPasswordSetForPublicUrlTest()
+    {
+        await InitializePlaywright(ServerTester);
+
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/server/stores/counter");
+        var checkboxSelector = "input#Enabled";
+        var testPassword = "0000";
+        var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+        var isChecked = await checkBox.IsCheckedAsync();
+        if (!isChecked)
+            await checkBox.CheckAsync();
+
+        await Page.Locator("#Password").FillAsync(testPassword);
+        await SaveTransactionCounterSuccessMessage();
+        checkBox = await Page.QuerySelectorAsync(checkboxSelector);
+        Assert.NotNull(checkBox);
+        var links = Page.Locator(".info-note a");
+
+        var popup1Task = Page.WaitForPopupAsync();
+        await links.Nth(0).ClickAsync();
+        var popup1 = await popup1Task;
+        await popup1.WaitForLoadStateAsync();
+        var passwordInputLinkeOne = await popup1.QuerySelectorAsync("input[name='password']");
+        Assert.NotNull(passwordInputLinkeOne);
+        await passwordInputLinkeOne.FillAsync(testPassword);
+        await popup1.Locator("button[type='submit']").ClickAsync();
+        Assert.Contains("/txcounter/html", popup1.Url);
+        Assert.Contains($"password={testPassword}", popup1.Url);
+        await popup1.CloseAsync();
+
+        var popup2Task = Page.WaitForPopupAsync();
+        await links.Nth(1).ClickAsync();
+        var popup2 = await popup2Task;
+        await popup2.WaitForLoadStateAsync();
+        var passwordInputLinkTwo = await popup2.QuerySelectorAsync("input[name='password']");
+        Assert.NotNull(passwordInputLinkTwo);
+        await passwordInputLinkTwo.FillAsync(testPassword);
+        await popup2.Locator("button[type='submit']").ClickAsync();
+        Assert.Contains("/txcounter/api", popup2.Url);
+        Assert.Contains($"password={testPassword}", popup2.Url);
+        await popup2.CloseAsync();
+    }
+
+
     [Fact]
     public async Task TransactionCounterCustomTransactionTest()
     {
