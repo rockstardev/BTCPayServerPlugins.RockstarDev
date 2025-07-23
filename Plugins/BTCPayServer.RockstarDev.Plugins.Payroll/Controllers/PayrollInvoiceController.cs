@@ -37,6 +37,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 public class PayrollInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,
+    InvoiceRepository invoiceRepository,
     RateFetcher rateFetcher,
     PaymentMethodHandlerDictionary handlers,
     BTCPayNetworkProvider networkProvider,
@@ -62,6 +63,11 @@ public class PayrollInvoiceController(
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == PayrollUserState.Active).ToList();
+
+        /*if (payrollInvoices.Count > 0)
+        {
+            var invoice = await invoiceRepository.GetInvoice(payrollInvoices.First().Id);
+        }*/
 
         // triggering saving of admin user id if needed
         var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
@@ -350,7 +356,6 @@ public class PayrollInvoiceController(
             });
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
-
         var transactionIds = invoices.Where(a => a.BtcPaid != null).Select(a => a.TxnId).Distinct().ToList();
         var walletTxnInfo = transactionIds.Any() ? await GetWalletTransactions(transactionIds) : null;
         var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
@@ -359,11 +364,11 @@ public class PayrollInvoiceController(
         // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
         csvData.AppendLine(
             "Created Date,Transaction Date,Name,InvoiceDesc,"+
-            "Address,Currency,Amount,Balance,"+
-            "BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,"+
+            "Address,Currency,Amount,"+
+            "BTC-Currency Rate,Amount in BTC,TransactionId," +
             "PaidInWallet");
         var empty = string.Empty;
-        decimal usdRate = 0;
+        decimal currencyRate = 0;
         foreach (var invoice in invoices)
         {
             var desc = $"{invoice.Description ?? empty}";
@@ -376,8 +381,8 @@ public class PayrollInvoiceController(
             {
                 csvData.AppendLine(
                     $"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? empty},{invoice.User.Name},{formattedDesc}," +
-                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{empty}"+
-                    $"{usdRate},{empty},{empty},{empty},"+
+                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},"+
+                    $"{currencyRate},{empty},{empty},"+
                     $"false");
             }
             else
@@ -388,14 +393,14 @@ public class PayrollInvoiceController(
                 var btcPaid = Convert.ToDecimal(invoice.BtcPaid);
                 if (btcPaid > 0)
                 {
-                    usdRate = Math.Floor(Convert.ToDecimal(invoice.Amount) / btcPaid);
-                    usdRate = Math.Abs(usdRate);
+                    currencyRate = Math.Floor(Convert.ToDecimal(invoice.Amount) / btcPaid);
+                    currencyRate = Math.Abs(currencyRate);
                 }
 
                 csvData.AppendLine(
                     $"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? empty)},{invoice.User.Name},{formattedDesc}," +
-                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{empty},"+
-                    $"{usdRate},{empty},-{invoice.BtcPaid},{invoice.TxnId},"+
+                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},"+
+                    $"{currencyRate},-{invoice.BtcPaid},{invoice.TxnId},"+
                     $"true");
             }
         }
