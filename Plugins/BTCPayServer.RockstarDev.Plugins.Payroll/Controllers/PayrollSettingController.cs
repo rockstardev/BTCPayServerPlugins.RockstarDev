@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -34,6 +34,8 @@ public class PayrollSettingController(
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
+            EnableInvoiceAdjustmentSpread = settings.EnableInvoiceAdjustmentSpread,
+            InvoiceAdjustmentSpreadPercentage = settings.InvoiceAdjustmentSpreadPercentage,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
@@ -57,6 +59,9 @@ public class PayrollSettingController(
         if (model.EmailReminders && string.IsNullOrEmpty(model.EmailRemindersBody))
             ModelState.AddModelError(nameof(model.EmailRemindersBody), "Value cannot be empty. Kindly include an email body");
 
+        if (model.EnableInvoiceAdjustmentSpread && model.InvoiceAdjustmentSpreadPercentage <= 0)
+            ModelState.AddModelError(nameof(model.InvoiceAdjustmentSpreadPercentage), "Value must be greater than 0");
+
         if (!ModelState.IsValid)
         {
             ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -79,6 +84,8 @@ public class PayrollSettingController(
             EmailOnInvoicePaid = model.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = model.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
+            EnableInvoiceAdjustmentSpread = model.EnableInvoiceAdjustmentSpread,
+            InvoiceAdjustmentSpreadPercentage = model.InvoiceAdjustmentSpreadPercentage,
             VendorPayPublicLink = link
         };
 

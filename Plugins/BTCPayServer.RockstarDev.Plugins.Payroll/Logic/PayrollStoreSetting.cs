@@ -13,6 +13,8 @@ public class PayrollStoreSetting
     public bool EmailReminders { get; set; }
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
+    public bool EnableInvoiceAdjustmentSpread { get; set; }
+    public double InvoiceAdjustmentSpreadPercentage { get; set; }
 
     // automatically set to be referenced in different places
     public string VendorPayPublicLink { get; set; }

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
@@ -21,6 +21,10 @@ public class PayrollSettingViewModel
 
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
+    [Display(Name = "Enable invoice adjustment spread")]
+    public bool EnableInvoiceAdjustmentSpread { get; set; }
+    [Display(Name = "Invoice adjustment spread percentage")]
+    public double InvoiceAdjustmentSpreadPercentage { get; set; }
 
     public record Defaults
     {

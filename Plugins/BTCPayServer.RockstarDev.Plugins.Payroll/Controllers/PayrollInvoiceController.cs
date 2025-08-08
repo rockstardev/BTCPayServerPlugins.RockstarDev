@@ -189,6 +189,12 @@ public class PayrollInvoiceController(
 
         // initialize exchange rates
         var rates = new Dictionary<string, decimal>();
+        var settings = await pluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
+        var defaultRateRules = CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection);
+        if (settings?.EnableInvoiceAdjustmentSpread == true)
+        {
+            defaultRateRules.Spread = (decimal)settings.InvoiceAdjustmentSpreadPercentage / 100.0m;
+        } 
         var currencies = invoices.Select(a => a.Currency).Distinct().ToList();
         foreach (var currency in currencies)
             if (currency == PayrollPluginConst.BTC_CRYPTOCODE)
@@ -198,7 +204,7 @@ public class PayrollInvoiceController(
             else
             {
                 var rate = await rateFetcher.FetchRate(new CurrencyPair(currency, PayrollPluginConst.BTC_CRYPTOCODE),
-                    CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection), new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
+                    defaultRateRules, new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
                 if (rate.BidAsk == null) throw new Exception("Currency is not supported");
 
                 rates.Add(currency, rate.BidAsk.Bid);
