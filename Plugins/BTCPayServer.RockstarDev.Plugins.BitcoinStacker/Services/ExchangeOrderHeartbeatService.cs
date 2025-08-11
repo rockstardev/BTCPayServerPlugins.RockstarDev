@@ -116,12 +116,14 @@ public class ExchangeOrderHeartbeatService(
 
             var settings = ppe.Setting;
 
-            var dateToFetch =
-                lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
-
             // create list of orders to execute from payouts
             if (!string.IsNullOrEmpty(settings.StripeApiKey))
             {
+                var dateToFetch =
+                    lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
+                if (settings.StartDateExchangeOrders > dateToFetch)
+                    dateToFetch = settings.StartDateExchangeOrders.Value;
+                
                 var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
                 payouts = payouts.OrderBy(a => a.Created).ToList();
                 foreach (var payout in payouts)
