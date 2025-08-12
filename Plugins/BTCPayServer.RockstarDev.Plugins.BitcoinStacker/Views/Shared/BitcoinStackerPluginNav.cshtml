@@ -15,7 +15,6 @@
            asp-controller="ExchangeOrder" asp-action="Index" asp-route-storeId="@storeId"
            class="nav-link @ViewData.ActivePageClass(BitcoinStackerPlugin.PluginNavKey, null, "Index")">
 
-
             <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 433.886 433.886" xml:space="preserve"
                  fill="currentColor">
                 <path
@@ -27,4 +26,13 @@
             <span>Bitcoin Stacker</span>
         </a>
     </li>
+    
+    @if (isActive)
+    {
+        <li class="nav-item nav-item-sub">
+            <a permission="@Policies.CanModifyServerSettings"
+               asp-controller="ExchangeOrder" asp-action="Settings" asp-route-storeId="@storeId"
+               class="nav-link @ViewData.ActivePageClass(BitcoinStackerPlugin.PluginNavKey, null, "ExchangeOrdersSettings")">Settings</a>
+        </li>
+    }
 }

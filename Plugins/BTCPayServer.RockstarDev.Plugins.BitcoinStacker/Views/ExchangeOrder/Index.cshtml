@@ -6,7 +6,7 @@
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, "Exchange Orders", "ExchangeOrder");
+    ViewData.SetActivePage(BitcoinStackerPlugin.PluginNavKey, "Exchange Orders", "Index");
 }
 
 <div class="sticky-header-setup"></div>
@@ -19,9 +19,6 @@
                 <span>Options</span>
             </button>
             <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
-                <a asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
-                    Settings
-                </a>
                 <form id="RunHeartbeatNowForm" asp-action="RunHeartbeatNow" asp-route-storeId="@storeId" method="post" style="display:none;"></form>
                 <a href="#" class="dropdown-item" onclick="event.preventDefault(); document.getElementById('RunHeartbeatNowForm').submit();">
                     Run Heartbeat Now
