@@ -190,11 +190,6 @@ public class PayrollInvoiceController(
         // initialize exchange rates
         var rates = new Dictionary<string, decimal>();
         var settings = await pluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
-        var defaultRateRules = CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection);
-        if (settings?.EnableInvoiceAdjustmentSpread == true)
-        {
-            defaultRateRules.Spread = (decimal)settings.InvoiceAdjustmentSpreadPercentage / 100.0m;
-        } 
         var currencies = invoices.Select(a => a.Currency).Distinct().ToList();
         foreach (var currency in currencies)
             if (currency == PayrollPluginConst.BTC_CRYPTOCODE)
@@ -204,7 +199,7 @@ public class PayrollInvoiceController(
             else
             {
                 var rate = await rateFetcher.FetchRate(new CurrencyPair(currency, PayrollPluginConst.BTC_CRYPTOCODE),
-                    defaultRateRules, new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
+                    CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection), new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
                 if (rate.BidAsk == null) throw new Exception("Currency is not supported");
 
                 rates.Add(currency, rate.BidAsk.Bid);
@@ -214,6 +209,10 @@ public class PayrollInvoiceController(
         var bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
+            if (settings?.EnableInvoiceAdjustmentSpread == true)
+            {
+                invoice.Amount = ApplyAdjustment(invoice.Amount, settings.InvoiceAdjustmentSpreadPercentage);
+            }
             var satsAmount = Math.Ceiling(invoice.Amount * rates[invoice.Currency] * 100_000_000);
             var amountInBtc = satsAmount / 100_000_000;
 
@@ -237,6 +236,8 @@ public class PayrollInvoiceController(
         return new RedirectToActionResult("WalletSend", "UIWallets",
             new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
+
+    private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent) => originalAmount * (1 + (decimal)adjustmentPercent / 100m);
 
     [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)

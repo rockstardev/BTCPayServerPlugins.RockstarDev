@@ -59,9 +59,6 @@ public class PayrollSettingController(
         if (model.EmailReminders && string.IsNullOrEmpty(model.EmailRemindersBody))
             ModelState.AddModelError(nameof(model.EmailRemindersBody), "Value cannot be empty. Kindly include an email body");
 
-        if (model.EnableInvoiceAdjustmentSpread && model.InvoiceAdjustmentSpreadPercentage <= 0)
-            ModelState.AddModelError(nameof(model.InvoiceAdjustmentSpreadPercentage), "Value must be greater than 0");
-
         if (!ModelState.IsValid)
         {
             ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
