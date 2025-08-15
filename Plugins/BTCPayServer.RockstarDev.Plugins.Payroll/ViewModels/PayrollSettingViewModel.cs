@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 
@@ -21,6 +21,10 @@ public class PayrollSettingViewModel
 
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
+    [Display(Name = "Invoice fiat conversion adjustment")]
+    public bool InvoiceFiatConversionAdjustment { get; set; }
+    [Display(Name = "Invoice fiat conversion adjustment percentage")]
+    public double InvoiceFiatConversionAdjustmentPercentage { get; set; }
 
     public record Defaults
     {

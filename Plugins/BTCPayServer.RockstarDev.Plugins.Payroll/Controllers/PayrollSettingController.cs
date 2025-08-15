@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -34,6 +34,8 @@ public class PayrollSettingController(
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
+            InvoiceFiatConversionAdjustment = settings.InvoiceFiatConversionAdjustment,
+            InvoiceFiatConversionAdjustmentPercentage = settings.InvoiceFiatConversionAdjustmentPercentage,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
@@ -79,6 +81,8 @@ public class PayrollSettingController(
             EmailOnInvoicePaid = model.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = model.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
+            InvoiceFiatConversionAdjustment = model.InvoiceFiatConversionAdjustment,
+            InvoiceFiatConversionAdjustmentPercentage = model.InvoiceFiatConversionAdjustmentPercentage,
             VendorPayPublicLink = link
         };
 

@@ -189,6 +189,7 @@ public class PayrollInvoiceController(
 
         // initialize exchange rates
         var rates = new Dictionary<string, decimal>();
+        var settings = await pluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
         var currencies = invoices.Select(a => a.Currency).Distinct().ToList();
         foreach (var currency in currencies)
             if (currency == PayrollPluginConst.BTC_CRYPTOCODE)
@@ -201,14 +202,20 @@ public class PayrollInvoiceController(
                     CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection), new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
                 if (rate.BidAsk == null) throw new Exception("Currency is not supported");
 
-                rates.Add(currency, rate.BidAsk.Bid);
+                var adjustedRate = rate.BidAsk.Bid;
+                if (settings?.InvoiceFiatConversionAdjustment == true)
+                    adjustedRate = ApplyAdjustment(adjustedRate, settings.InvoiceFiatConversionAdjustmentPercentage);
+                
+                rates.Add(currency, adjustedRate);
             }
 
         var network = networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
         var bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
-            var satsAmount = Math.Ceiling(invoice.Amount * rates[invoice.Currency] * 100_000_000);
+            var rate = rates[invoice.Currency];
+            
+            var satsAmount = Math.Ceiling(invoice.Amount * rate * 100_000_000);
             var amountInBtc = satsAmount / 100_000_000;
 
             var bip21New = network.GenerateBIP21(invoice.Destination, amountInBtc);
@@ -225,12 +232,14 @@ public class PayrollInvoiceController(
         var strRates = string.Join(", ", rates.Select(a => $"BTC/{a.Key}:{Math.Ceiling(100 / a.Value) / 100}"));
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Info, Message = $"Payroll on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
+            Severity = StatusMessageModel.StatusSeverity.Info, Message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
         });
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
             new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
+
+    private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent) => originalAmount * (1 + (decimal)adjustmentPercent / 100m);
 
     [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)
