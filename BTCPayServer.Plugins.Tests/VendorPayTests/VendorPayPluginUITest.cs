@@ -327,4 +327,83 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
                            (await statusText).Trim() == "Vendor pay settings updated successfully";
         Assert.True(isSuccessful);
     }
+
+    [Fact]
+    public async Task VendorPay_PayInvoices_ConversionAdjustment_AppliesOnePercent()
+    {
+        // Arrange: login and create a vendor user
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin(true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser();
+        
+        // Ensure wallet is set up to avoid 404 on wallet send page and to surface the status alert
+        await GoToStore(user.StoreId);
+        await AddDerivationScheme();
+        // Return to Vendor Pay list to continue the flow
+
+        // Navigate to list and ensure upload file is optional
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await MakeInvoiceFileUploadOptional();
+
+        // 1) Baseline (no adjustment)
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1q57aydcw3l7pssaxwz2s3lw4n95qfcnnj6lqyk0");
+        var baselineStatus = await PayFirstInvoiceAndGetStatusMessage();
+        var baselineDisplayedRate = ExtractFirstDisplayedRate(baselineStatus);
+
+        // 2) Enable +1% adjustment
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await EnableFiatConversionAdjustment(1);
+
+        // Create another invoice and pay again
+        var adjustedStatus = await PayFirstInvoiceAndGetStatusMessage();
+        var adjustedDisplayedRate = ExtractFirstDisplayedRate(adjustedStatus);
+
+        // Because the display shows USD per BTC (1 / effectiveRate), increasing BTC by 1% reduces the displayed value by ~1%.
+        Assert.True(adjustedDisplayedRate < baselineDisplayedRate,
+            $"Expected displayed rate to decrease after +1% BTC adjustment. Before: {baselineDisplayedRate}, After: {adjustedDisplayedRate}. Status: '{adjustedStatus}'");
+
+        var relativeDrop = (baselineDisplayedRate - adjustedDisplayedRate) / baselineDisplayedRate;
+        // Allow some tolerance due to rounding in the displayed rate (ceil to 2 decimals)
+        Assert.True(relativeDrop > 0.005m && relativeDrop < 0.02m,
+            $"Expected ~1% decrease; actual change: {(relativeDrop * 100m):F2}% (Before: {baselineDisplayedRate}, After: {adjustedDisplayedRate})");
+        
+        async Task EnableFiatConversionAdjustment(double percent)
+        {
+            await Page.Locator("#StatusOptionsToggle").ClickAsync();
+            await Page.Locator("a.dropdown-item", new PageLocatorOptions { HasTextString = "Settings" }).ClickAsync();
+            await Page.Locator("#InvoiceFiatConversionAdjustment").CheckAsync();
+            await Page.FillAsync("#InvoiceFiatConversionAdjustmentPercentage", percent.ToString());
+            await Page.Locator("#Edit").ClickAsync();
+            var statusText = (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+            Assert.True((await statusText).Trim() == "Vendor pay settings updated successfully");
+        }
+
+        async Task<string> PayFirstInvoiceAndGetStatusMessage()
+        {
+            // Select the first invoice row and click Pay Invoices
+            var firstRowCheckbox = Page.Locator("tbody tr.mass-action-row").First.Locator("input.mass-action-select");
+            await firstRowCheckbox.CheckAsync();
+            await Page.ClickAsync("#payinvoices");
+            await Page.WaitForURLAsync(new Regex("/wallets/.+/send", RegexOptions.IgnoreCase), new PageWaitForURLOptions { Timeout = 15000 });
+
+            // The action redirects to the wallet send page where the TempData status is shown
+            var alert = await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Info);
+            var text = (await alert.TextContentAsync())?.Trim() ?? string.Empty;
+            return text;
+        }
+
+        static decimal ExtractFirstDisplayedRate(string statusText)
+        {
+            // Example: "Vendor Pay on 2025-08-14 for 1 invoices. BTC/USD:100000"
+            var m = Regex.Match(statusText ?? string.Empty, @"BTC\/[A-Z]{3}:(?<rate>[0-9]+(?:\.[0-9]+)?)");
+            Assert.True(m.Success, $"Could not find displayed rate in status: '{statusText}'");
+            return decimal.Parse(m.Groups["rate"].Value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
 }
