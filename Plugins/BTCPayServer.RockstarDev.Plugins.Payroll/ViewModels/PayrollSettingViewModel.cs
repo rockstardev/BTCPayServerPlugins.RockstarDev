@@ -21,10 +21,10 @@ public class PayrollSettingViewModel
 
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
-    [Display(Name = "Enable invoice adjustment spread")]
-    public bool EnableInvoiceAdjustmentSpread { get; set; }
-    [Display(Name = "Invoice adjustment spread percentage")]
-    public double InvoiceAdjustmentSpreadPercentage { get; set; }
+    [Display(Name = "Invoice fiat conversion adjustment")]
+    public bool InvoiceFiatConversionAdjustment { get; set; }
+    [Display(Name = "Invoice fiat conversion adjustment percentage")]
+    public double InvoiceFiatConversionAdjustmentPercentage { get; set; }
 
     public record Defaults
     {

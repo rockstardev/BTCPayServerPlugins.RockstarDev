@@ -34,8 +34,8 @@ public class PayrollSettingController(
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
-            EnableInvoiceAdjustmentSpread = settings.EnableInvoiceAdjustmentSpread,
-            InvoiceAdjustmentSpreadPercentage = settings.InvoiceAdjustmentSpreadPercentage,
+            InvoiceFiatConversionAdjustment = settings.InvoiceFiatConversionAdjustment,
+            InvoiceFiatConversionAdjustmentPercentage = settings.InvoiceFiatConversionAdjustmentPercentage,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
@@ -81,8 +81,8 @@ public class PayrollSettingController(
             EmailOnInvoicePaid = model.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = model.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
-            EnableInvoiceAdjustmentSpread = model.EnableInvoiceAdjustmentSpread,
-            InvoiceAdjustmentSpreadPercentage = model.InvoiceAdjustmentSpreadPercentage,
+            InvoiceFiatConversionAdjustment = model.InvoiceFiatConversionAdjustment,
+            InvoiceFiatConversionAdjustmentPercentage = model.InvoiceFiatConversionAdjustmentPercentage,
             VendorPayPublicLink = link
         };
 
