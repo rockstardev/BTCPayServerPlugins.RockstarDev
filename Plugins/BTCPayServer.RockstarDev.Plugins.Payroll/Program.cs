@@ -14,7 +14,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
-        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.1.5" }
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.2.0" }
     ];
 
     public override void Execute(IServiceCollection serviceCollection)
@@ -42,6 +42,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
             factory.ConfigureBuilder(o);
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
+        serviceCollection.AddReportProvider<VendorPayReportProvider>();
 
         base.Execute(serviceCollection);
     }

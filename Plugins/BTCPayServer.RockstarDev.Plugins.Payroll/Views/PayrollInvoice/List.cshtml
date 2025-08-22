@@ -2,6 +2,7 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
 @model PayrollInvoiceListViewModel
 @{
@@ -16,6 +17,17 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a
+                id="view-report"
+                permission="@Policies.CanViewReports"
+                asp-controller="UIReports"
+                asp-action="StoreReports"
+                asp-route-storeId="@storeId"
+                asp-route-viewName="Vendor Pay"
+                class="btn btn-secondary">
+                <vc:icon symbol="nav-reporting" />
+                <span text-translate="true">Reporting</span>
+            </a>
             <div class="dropdown">
                 <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown"
                         aria-expanded="false">
@@ -113,10 +125,6 @@
                                 <button type="submit" name="command" value="markpaid" id="markpaid" class="btn btn-link">
                                     <vc:icon symbol="checkmark" />
                                     Mark Paid
-                                </button>
-                                <button type="submit" name="command" value="export" id="export" class="btn btn-link">
-                                    <vc:icon symbol="checkmark" />
-                                    Export CSV
                                 </button>
                             </div>
                         </div>

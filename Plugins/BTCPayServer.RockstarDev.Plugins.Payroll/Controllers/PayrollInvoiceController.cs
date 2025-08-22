@@ -38,13 +38,9 @@ public class PayrollInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,
     RateFetcher rateFetcher,
-    PaymentMethodHandlerDictionary handlers,
     BTCPayNetworkProvider networkProvider,
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
-    BTCPayWalletProvider walletProvider,
-    WalletRepository walletRepository,
-    LabelService labelService,
     EmailService emailService,
     PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper)
@@ -112,10 +108,10 @@ public class PayrollInvoiceController(
             return NotSupported("No invoice has been selected");
 
         var ctx = pluginDbContextFactory.CreateContext();
-        var invoices = ctx.PayrollInvoices
+        var invoices = await ctx.PayrollInvoices
             .Include(a => a.User)
             .Where(a => selectedItems.Contains(a.Id))
-            .ToList();
+            .ToListAsync();
 
         switch (command)
         {
@@ -158,9 +154,6 @@ public class PayrollInvoiceController(
                 }
 
                 return await invoicesDownloadHelper.Process(invoicesWithFile, HttpContext.Request.GetAbsoluteRootUri());
-
-            case "export":
-                return await ExportInvoices(invoices);
         }
 
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
@@ -344,110 +337,6 @@ public class PayrollInvoiceController(
         TempData.SetStatusMessageModel(
             new StatusMessageModel { Message = "Invoice deleted successfully", Severity = StatusMessageModel.StatusSeverity.Success });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
-    }
-
-    private async Task<IActionResult> ExportInvoices(List<PayrollInvoice> invoices)
-    {
-        if (CurrentStore is null)
-            return NotFound();
-
-        if (!invoices.Any())
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel
-            {
-                Message = "No invoice transaction found", Severity = StatusMessageModel.StatusSeverity.Error
-            });
-            return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
-        }
-
-        var transactionIds = invoices.Where(a => a.BtcPaid != null).Select(a => a.TxnId).Distinct().ToList();
-        var walletTxnInfo = transactionIds.Any() ? await GetWalletTransactions(transactionIds) : null;
-        var fileName = $"PayrollInvoices-{DateTime.Now:yyyy_MM_dd-HH_mm_ss}.csv";
-
-        var csvData = new StringBuilder();
-        // We preserve this format with duplicate fields because Emperor Nicolas Dorier uses it, maybe in future we add compatibility mode
-        csvData.AppendLine(
-            "Created Date,Transaction Date,Name,InvoiceDesc,"+
-            "Address,Currency,Amount,Balance,"+
-            "BTCUSD Rate,BTCJPY Rate,Balance,TransactionId,"+
-            "PaidInWallet");
-        var empty = string.Empty;
-        decimal usdRate = 0;
-        foreach (var invoice in invoices)
-        {
-            var desc = $"{invoice.Description ?? empty}";
-            if (!string.IsNullOrEmpty(invoice.PurchaseOrder))
-                desc = $"{invoice.PurchaseOrder} - {desc}";
-
-            var formattedDesc = "\"" + desc.Replace("\"", "\"\"") + "\"";
-
-            if (invoice.BtcPaid == null)
-            {
-                csvData.AppendLine(
-                    $"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm") ?? empty},{invoice.User.Name},{formattedDesc}," +
-                    $"{invoice.Destination},{invoice.Currency},-{invoice.Amount},{empty}"+
-                    $"{usdRate},{empty},{empty},{empty},"+
-                    $"false");
-            }
-            else
-            {
-                var txn = walletTxnInfo?.Transactions?.SingleOrDefault(a => a.Id == invoice.TxnId);
-                //string balance = string.IsNullOrEmpty(transaction.Balance) ? "" : transaction.Balance;
-
-                var btcPaid = Convert.ToDecimal(invoice.BtcPaid);
-                if (btcPaid > 0)
-                {
-                    usdRate = Math.Floor(Convert.ToDecimal(invoice.Amount) / btcPaid);
-                    usdRate = Math.Abs(usdRate);
-                }
-
-                csvData.AppendLine(
-                    $"{invoice.CreatedAt:MM/dd/yy HH:mm},{invoice.PaidAt?.ToString("MM/dd/yy HH:mm" ?? empty)},{invoice.User.Name},{formattedDesc}," +
-                    $",{invoice.Destination},{invoice.Currency},-{invoice.Amount},{empty},"+
-                    $"{usdRate},{empty},-{invoice.BtcPaid},{invoice.TxnId},"+
-                    $"true");
-            }
-        }
-
-        var fileBytes = Encoding.UTF8.GetBytes(csvData.ToString());
-        return File(fileBytes, "text/csv", fileName);
-    }
-
-    private async Task<ListTransactionsViewModel> GetWalletTransactions(List<string> transactionIds)
-    {
-        var model = new ListTransactionsViewModel();
-        var walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE);
-        var paymentMethod = CurrentStore.GetDerivationSchemeSettings(handlers, walletId.CryptoCode);
-
-        var wallet = walletProvider.GetWallet(walletId.CryptoCode);
-        var walletTransactionsInfo = await walletRepository.GetWalletTransactionsInfo(
-            walletId, transactionIds.ToArray());
-
-        // TODO: This will only select first 100 transactions, fix it
-        foreach (var transactionId in transactionIds)
-        {
-            var txnIdUid = uint256.Parse(transactionId);
-
-            var tx = await wallet.FetchTransaction(paymentMethod.AccountDerivation, txnIdUid);
-            var vm = new ListTransactionsViewModel.TransactionViewModel
-            {
-                Id = tx.TransactionId.ToString(),
-                Timestamp = tx.SeenAt,
-                Balance = tx.BalanceChange.ShowMoney(wallet.Network),
-                IsConfirmed = tx.Confirmations != 0
-            };
-
-            if (walletTransactionsInfo.TryGetValue(tx.TransactionId.ToString(), out var transactionInfo))
-            {
-                var labels = labelService.CreateTransactionTagModels(transactionInfo, Request);
-                vm.Tags.AddRange(labels);
-                vm.Comment = transactionInfo.Comment;
-            }
-
-            model.Transactions.Add(vm);
-        }
-
-        return model;
     }
 
     private IActionResult NoUserResult(string storeId)
