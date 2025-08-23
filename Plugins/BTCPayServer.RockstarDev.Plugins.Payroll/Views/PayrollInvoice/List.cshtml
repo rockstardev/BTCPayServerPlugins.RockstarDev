@@ -282,7 +282,6 @@
                     const markPaidButton = document.getElementById('markpaid') instanceof HTMLElement;
                     const payInvoicesButton = document.getElementById('payinvoices') instanceof HTMLElement;
                     const downloadButton = document.getElementById('download') instanceof HTMLElement;
-                    const exportInvoicesButton = document.getElementById('export') instanceof HTMLElement;
 
                     const allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
                     if (allCheckedItems.length > 0) {
@@ -290,13 +289,11 @@
                         markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
                         payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
                         downloadButton.style.display = 'inline-block';
-                        exportInvoicesButton.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
                     } else {
                         emailConfirmation.style.display = 'none';
                         markPaidButton.style.display = 'none';
                         payInvoicesButton.style.display = 'none';
                         downloadButton.style.display = 'none';
-                        exportInvoicesButton.style.display = 'none';
                     }
                 }
 
