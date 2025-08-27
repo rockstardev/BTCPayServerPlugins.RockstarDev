@@ -1,0 +1,25 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@inject SignInManager<ApplicationUser> SignInManager;
+@inject IScopeProvider ScopeProvider
+@inject CreditStatusProvider CreditStatusProvider
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+}
+@if (SignInManager.IsSignedIn(User) && !string.IsNullOrEmpty(storeId))
+{
+    var isEnabled = await CreditStatusProvider.CreditEnabled(storeId);
+    var isActive = Context.Request.Path.Value?.Contains("/credit?") == true;
+
+    <li class="nav-item">
+        <a class="nav-link @(isActive ? "active" : "")"
+           asp-route-storeId="@storeId"
+           asp-action="StoreConfig"
+           asp-controller="Credit">
+            <span class="me-2 btcpay-status btcpay-status--@(isEnabled ? "enabled" : "pending")"></span>
+            <span>Credit</span>
+        </a>
+    </li>
+}

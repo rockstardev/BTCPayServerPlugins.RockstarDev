@@ -1,0 +1,22 @@
+@model BTCPayServer.Models.InvoicingModels.CheckoutModel
+
+<template id="@CreditCheckoutModelExtension.CheckoutBodyComponentName">
+    <div>
+        <a class="btn btn-primary rounded-pill w-100 mt-4" id="credit-payment"
+           :href="model.invoiceBitcoinUrl" title="Mark Settled">Mark Settled</a>
+    </div>
+</template>
+
+<script>
+    Vue.component(@Safe.Json(CreditCheckoutModelExtension.CheckoutBodyComponentName), {
+        props: ['model', 'nfcSupported', 'nfcScanning', 'nfcErrorMessage', 'nfcWarningMessage'],
+        template: @Safe.Json("#" + CreditCheckoutModelExtension.CheckoutBodyComponentName),
+        components: {
+            qrcode: VueQrcode
+        },
+        data() {
+            // currentTab is needed for backwards-compatibility with old plugin versions
+            return {currentTab: undefined};
+        }
+    });
+</script>
