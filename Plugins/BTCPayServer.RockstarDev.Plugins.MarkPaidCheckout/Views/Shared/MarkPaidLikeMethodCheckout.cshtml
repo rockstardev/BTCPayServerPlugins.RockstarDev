@@ -1,0 +1,24 @@
+@using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.PaymentHandlers
+@model BTCPayServer.Models.InvoicingModels.CheckoutModel
+@inject BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.MarkPaidMethodsRegistry Registry
+@inject BTCPayServer.Abstractions.Services.Safe Safe
+
+@foreach (var m in Registry.Methods)
+{
+    var component = MarkPaidUi.ComponentNameFor(m);
+    <text>
+<template id="@component">
+    <div>
+        <a class="btn btn-primary rounded-pill w-100 mt-4" :href="model.invoiceBitcoinUrl" title="Mark Settled">Mark Settled (@m)</a>
+    </div>
+</template>
+<script>
+    Vue.component(@Safe.Json("@component"), {
+        props: ['model', 'nfcSupported', 'nfcScanning', 'nfcErrorMessage', 'nfcWarningMessage'],
+        template: @Safe.Json("#" + "@component"),
+        components: { qrcode: VueQrcode },
+        data() { return { currentTab: undefined }; }
+    });
+</script>
+    </text>
+}

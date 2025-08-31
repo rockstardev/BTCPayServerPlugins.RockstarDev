@@ -1,0 +1,7 @@
+@using BTCPayServer.Client
+@model BTCPayServer.Components.MainNav.MainNavViewModel
+<li class="nav-item" permission="@Policies.CanModifyServerSettings">
+    <a asp-area="" asp-controller="MarkPaidServer" asp-action="Index" class="nav-link" id="Nav-MarkPaid">
+        <span>MarkPaid</span>
+    </a>
+</li>

@@ -1,0 +1,21 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Data
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager;
+@inject IScopeProvider ScopeProvider
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+}
+@if (SignInManager.IsSignedIn(User) && !string.IsNullOrEmpty(storeId))
+{
+    var isActive = Context.Request.Path.Value?.Contains("/markpaid") == true;
+    <li class="nav-item">
+        <a class="nav-link @(isActive ? "active" : "")"
+           asp-route-storeId="@storeId"
+           asp-action="StoreConfig"
+           asp-controller="MarkPaidStore">
+            <span class="me-2 btcpay-status btcpay-status--enabled"></span>
+            <span>MarkPaid</span>
+        </a>
+    </li>
+}
