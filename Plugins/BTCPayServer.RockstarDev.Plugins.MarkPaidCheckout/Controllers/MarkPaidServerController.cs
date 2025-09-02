@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Client;
 using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server;
 using BTCPayServer.Services;
 using Microsoft.AspNetCore.Authorization;

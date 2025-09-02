@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
@@ -27,8 +28,16 @@ public class MarkPaidStoreController(
 {
     private StoreData StoreData => HttpContext.GetStoreData();
 
-    public class StoreMethodItem { public string Method { get; set; } = string.Empty; public bool Enabled { get; set; } }
-    public class StoreConfigVm { public List<StoreMethodItem> Methods { get; set; } = new(); }
+    public class StoreMethodItem
+    {
+        public string Method { get; set; } = string.Empty;
+        public bool Enabled { get; set; }
+    }
+
+    public class StoreConfigVm
+    {
+        public List<StoreMethodItem> Methods { get; set; } = new();
+    }
 
     [HttpGet]
     public IActionResult StoreConfig()
@@ -44,6 +53,7 @@ public class MarkPaidStoreController(
             var enabled = !blob.GetExcludedPaymentMethods().Match(pmid);
             vm.Methods.Add(new StoreMethodItem { Method = m, Enabled = enabled });
         }
+
         return View("StoreConfig", vm);
     }
 
@@ -52,13 +62,15 @@ public class MarkPaidStoreController(
     {
         var store = StoreData;
         var blob = store.GetStoreBlob();
-        var methodsSet = new HashSet<string>(vm.Methods?.Where(x => x.Enabled).Select(x => x.Method) ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        var methodsSet = new HashSet<string>(vm.Methods?.Where(x => x.Enabled).Select(x => x.Method) ?? Array.Empty<string>(),
+            StringComparer.OrdinalIgnoreCase);
         foreach (var m in registry.Methods)
         {
             var pmid = new PaymentMethodId(m);
             var enabled = methodsSet.Contains(m);
             blob.SetExcluded(pmid, !enabled);
         }
+
         store.SetStoreBlob(blob);
         await storeRepository.UpdateStore(store);
         return RedirectToAction(nameof(StoreConfig), new { storeId = store.Id });
@@ -88,6 +100,7 @@ public class MarkPaidStoreController(
         {
             await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
         }
+
         return Redirect(returnUrl);
     }
 }
