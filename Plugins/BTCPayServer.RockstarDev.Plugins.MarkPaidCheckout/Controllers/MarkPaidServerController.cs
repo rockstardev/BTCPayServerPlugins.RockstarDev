@@ -16,7 +16,7 @@ public class MarkPaidServerController(SettingsRepository settings) : Controller
     public async Task<IActionResult> Index()
     {
         var s = await settings.GetSettingAsync<MarkPaidSettings>(MarkPaidCheckoutPlugin.SettingKey) ?? new MarkPaidSettings();
-        return View("MarkPaid/ServerConfig", s);
+        return View("Views/MarkPaid/ServerConfig", s);
     }
 
     [HttpPost]

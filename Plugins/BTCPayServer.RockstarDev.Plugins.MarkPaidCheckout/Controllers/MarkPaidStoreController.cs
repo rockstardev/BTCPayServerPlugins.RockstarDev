@@ -18,7 +18,7 @@ using StoreData = BTCPayServer.Data.StoreData;
 namespace BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Controllers;
 
 [Route("stores/{storeId}/markpaid")]
-[Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class MarkPaidStoreController(
     StoreRepository storeRepository,
     InvoiceRepository invoiceRepository,
@@ -54,7 +54,7 @@ public class MarkPaidStoreController(
             vm.Methods.Add(new StoreMethodItem { Method = m, Enabled = enabled });
         }
 
-        return View("StoreConfig", vm);
+        return View("Views/MarkPaid/StoreConfig", vm);
     }
 
     [HttpPost]
