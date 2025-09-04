@@ -39,6 +39,12 @@ public class MarkPaidStoreController(
         public List<StoreMethodItem> Methods { get; set; } = new();
     }
 
+    public class MethodConfigVm
+    {
+        public string Method { get; set; } = string.Empty;
+        public bool Enabled { get; set; }
+    }
+
     [HttpGet]
     public IActionResult StoreConfig()
     {
@@ -48,8 +54,6 @@ public class MarkPaidStoreController(
         foreach (var m in registry.Methods)
         {
             var pmid = new PaymentMethodId(m);
-            var cfg = store.GetPaymentMethodConfig<MarkPaidPaymentMethodConfig>(pmid, handlers) ?? new MarkPaidPaymentMethodConfig();
-            store.SetPaymentMethodConfig(handlers[pmid], cfg);
             var enabled = !blob.GetExcludedPaymentMethods().Match(pmid);
             vm.Methods.Add(new StoreMethodItem { Method = m, Enabled = enabled });
         }
@@ -69,11 +73,59 @@ public class MarkPaidStoreController(
             var pmid = new PaymentMethodId(m);
             var enabled = methodsSet.Contains(m);
             blob.SetExcluded(pmid, !enabled);
+            if (enabled)
+            {
+                EnsureConfigEntry(store, pmid);
+            }
         }
 
         store.SetStoreBlob(blob);
         await storeRepository.UpdateStore(store);
         return RedirectToAction(nameof(StoreConfig), new { storeId = store.Id });
+    }
+
+    [HttpGet("method/{method}")]
+    public IActionResult MethodConfig(string method)
+    {
+        if (string.IsNullOrWhiteSpace(method) || !registry.Methods.Contains(method, StringComparer.OrdinalIgnoreCase))
+            return NotFound();
+
+        var store = StoreData;
+        var blob = store.GetStoreBlob();
+        var pmid = new PaymentMethodId(method);
+        var enabled = !blob.GetExcludedPaymentMethods().Match(pmid);
+        var vm = new MethodConfigVm { Method = pmid.ToString(), Enabled = enabled };
+        return View("Views/MarkPaid/MethodConfig", vm);
+    }
+
+    [HttpPost("method/{method}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MethodConfig(string method, MethodConfigVm vm)
+    {
+        if (string.IsNullOrWhiteSpace(method) || !registry.Methods.Contains(method, StringComparer.OrdinalIgnoreCase))
+            return NotFound();
+
+        var store = StoreData;
+        var blob = store.GetStoreBlob();
+        var pmid = new PaymentMethodId(method);
+        blob.SetExcluded(pmid, !vm.Enabled);
+        if (vm.Enabled)
+        {
+            EnsureConfigEntry(store, pmid);
+        }
+        store.SetStoreBlob(blob);
+        await storeRepository.UpdateStore(store);
+        return RedirectToAction(nameof(MethodConfig), new { storeId = store.Id, method });
+    }
+
+    private void EnsureConfigEntry(StoreData store, PaymentMethodId pmid)
+    {
+        // Ensure there is a config entry so BTCPay counts this method as available
+        var existing = store.GetPaymentMethodConfig(pmid, handlers);
+        if (existing is null)
+        {
+            store.SetPaymentMethodConfig(handlers[pmid], new MarkPaidPaymentMethodConfig());
+        }
     }
 
     [HttpGet("MarkAsPaid")]
