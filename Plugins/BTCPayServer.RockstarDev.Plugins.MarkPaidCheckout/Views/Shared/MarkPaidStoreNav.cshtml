@@ -1,9 +1,11 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Data
+@using BTCPayServer.Payments
 @using Microsoft.AspNetCore.Identity
 @using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout
 @inject SignInManager<ApplicationUser> SignInManager;
 @inject IScopeProvider ScopeProvider
+@inject MarkPaidStatusProvider StatusProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
@@ -16,13 +18,14 @@
         foreach (var method in registry.Methods)
         {
             var isActive = path.Contains($"/markpaid/{method}", System.StringComparison.OrdinalIgnoreCase);
+            var isEnabled = await StatusProvider.IsEnabled(storeId, new PaymentMethodId(method));
             <li class="nav-item">
                 <a class="nav-link @(isActive ? "active" : "")"
                    asp-route-storeId="@storeId"
                    asp-route-method="@method"
                    asp-action="MethodConfig"
                    asp-controller="MarkPaidStore">
-                    <span class="me-2 btcpay-status btcpay-status--enabled"></span>
+                    <span class="me-2 btcpay-status btcpay-status--@(isEnabled ? "enabled" : "pending")"></span>
                     <span>@method</span>
                 </a>
             </li>

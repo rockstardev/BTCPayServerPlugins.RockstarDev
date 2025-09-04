@@ -54,7 +54,8 @@ public class MarkPaidStoreController(
         foreach (var m in registry.Methods)
         {
             var pmid = new PaymentMethodId(m);
-            var enabled = !blob.GetExcludedPaymentMethods().Match(pmid);
+            var hasConfig = store.GetPaymentMethodConfig(pmid, handlers) is not null;
+            var enabled = hasConfig && !blob.GetExcludedPaymentMethods().Match(pmid);
             vm.Methods.Add(new StoreMethodItem { Method = m, Enabled = enabled });
         }
 
@@ -93,7 +94,8 @@ public class MarkPaidStoreController(
         var store = StoreData;
         var blob = store.GetStoreBlob();
         var pmid = new PaymentMethodId(method);
-        var enabled = !blob.GetExcludedPaymentMethods().Match(pmid);
+        var hasConfig = store.GetPaymentMethodConfig(pmid, handlers) is not null;
+        var enabled = hasConfig && !blob.GetExcludedPaymentMethods().Match(pmid);
         var vm = new MethodConfigVm { Method = pmid.ToString(), Enabled = enabled };
         return View("Views/MarkPaid/MethodConfig", vm);
     }
