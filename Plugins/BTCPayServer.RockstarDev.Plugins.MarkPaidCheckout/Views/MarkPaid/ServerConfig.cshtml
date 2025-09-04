@@ -9,6 +9,20 @@
         <button type="submit" class="btn btn-primary" id="Submit" value="Submit">Save</button>
     </div>
 
+    <div class="alert alert-warning my-3">
+        <strong>Heads up:</strong> Changing these settings requires a server restart to take effect.
+    </div>
+
+    @if ((TempData["RestartRequired"] as string) == "1")
+    {
+        <div class="alert alert-info mb-4 d-flex align-items-center justify-content-between">
+            <span text-translate="true">You need to restart BTCPay Server in order to apply your MarkPaid settings.</span>
+            <form method="post" asp-controller="UIServer" asp-action="Maintenance" class="mt-2">
+                <button type="submit" name="command" value="soft-restart" class="btn btn-info" text-translate="true">Restart now</button>
+            </form>
+        </div>
+    }
+
     <partial name="_StatusMessage" />
 
     <div class="row">

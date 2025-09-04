@@ -26,6 +26,7 @@ public class MarkPaidServerController(SettingsRepository settings) : Controller
         model.MethodsCsv ??= "CASH";
         await settings.UpdateSetting(model, MarkPaidCheckoutPlugin.SettingKey);
         TempData["StatusMessage"] = "Settings saved. Please restart the server to apply changes.";
+        TempData["RestartRequired"] = "1";
         return RedirectToAction(nameof(Index));
     }
 }
