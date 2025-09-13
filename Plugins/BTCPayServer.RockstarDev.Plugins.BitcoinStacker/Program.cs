@@ -43,8 +43,7 @@ public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
 
         // heartbeat service
         //serviceCollection.AddSingleton<IHostedService, ExchangeOrderHeartbeatService>();
-        serviceCollection.AddSingleton<IHostedService>(provider =>
-            provider.GetService<ExchangeOrderHeartbeatService>());
+        serviceCollection.AddSingleton<IHostedService>(provider => provider.GetService<ExchangeOrderHeartbeatService>());
         serviceCollection.AddScheduledTask<ExchangeOrderHeartbeatService>(TimeSpan.FromMinutes(1));
         base.Execute(serviceCollection);
     }
