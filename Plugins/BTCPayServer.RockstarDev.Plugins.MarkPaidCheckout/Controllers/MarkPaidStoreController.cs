@@ -150,10 +150,12 @@ public class MarkPaidStoreController(
             PaymentMethodId = handler.PaymentMethodId.ToString()
         }.Set(invoice, handler, new object());
         var payment = await paymentService.AddPayment(paymentData);
-        if (payment != null)
-        {
-            await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
-        }
+        // Nicolas wanted to do it this way since we add payment there is no need to manually mark the invoice as settled
+        // the invoice service will do it automatically when it detects that the invoice is fully paid
+        // if (payment != null)
+        // {
+        //     await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
+        // }
 
         return Redirect(returnUrl);
     }
