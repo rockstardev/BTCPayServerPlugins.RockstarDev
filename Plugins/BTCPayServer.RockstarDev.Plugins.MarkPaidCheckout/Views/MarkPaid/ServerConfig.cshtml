@@ -1,6 +1,7 @@
 @model BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server.MarkPaidSettings
+@using BTCPayServer.Abstractions.Extensions
 @{
-    ViewData["Title"] = "MarkPaid – Server Settings";
+    ViewData.SetActivePage(MarkPaidCheckoutPlugin.PluginNavKey, "MarkPaid – Server Settings", "Index");
 }
 
 <form method="post" asp-action="Index">

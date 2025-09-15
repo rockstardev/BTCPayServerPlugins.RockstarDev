@@ -1,7 +1,17 @@
 @using BTCPayServer.Client
+@using BTCPayServer.Abstractions.Extensions
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model BTCPayServer.Components.MainNav.MainNavViewModel
+@{
+    var activeClass = ViewData.ActivePageClass(MarkPaidCheckoutPlugin.PluginNavKey);
+}
 <li class="nav-item" permission="@Policies.CanModifyServerSettings">
-    <a asp-area="" asp-controller="MarkPaidServer" asp-action="Index" class="nav-link" id="Nav-MarkPaid">
+    <a asp-area="" asp-controller="MarkPaidServer" asp-action="Index"
+       class="nav-link @ViewData.ActivePageClass(MarkPaidCheckoutPlugin.PluginNavKey, null, "Index")"
+       id="Nav-MarkPaid">
+        <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m3.97-8.03a.75.75 0 0 0-1.06-1.06L7 9.81 5.53 8.34a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0z"/>
+        </svg>
         <span>MarkPaid</span>
     </a>
 </li>
