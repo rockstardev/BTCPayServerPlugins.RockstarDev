@@ -1,6 +1,7 @@
 @model BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Controllers.MarkPaidStoreController.MethodConfigVm
+@using BTCPayServer.Abstractions.Extensions
 @{
-    ViewData["Title"] = $"MarkPaid – {Model.Method}";
+    ViewData.SetActivePage(MarkPaidCheckoutPlugin.PluginNavKey, $"MarkPaid – {Model.Method}", "MethodConfig");
 }
 
 <form method="post" asp-action="MethodConfig" asp-route-method="@Model.Method">
