@@ -1,17 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
-using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server;
-using BTCPayServer.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Collections.Generic;
 using BTCPayServer.Payments;
-using BTCPayServer.Services.Invoices;
 using BTCPayServer.Payments.Bitcoin;
 using BTCPayServer.Payments.Lightning;
-using BTCPayServer.Payments.LNURLPay;
+using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server;
+using BTCPayServer.Services;
+using BTCPayServer.Services.Invoices;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Controllers;
 
@@ -34,7 +34,7 @@ public class MarkPaidServerController(SettingsRepository settings, PaymentMethod
 
         // Validate that none of the provided keys conflict with built-in BTCPay payment methods
         var tokens = (model.MethodsCsv ?? string.Empty)
-            .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(t => (t ?? string.Empty).Trim())
             .Where(t => !string.IsNullOrEmpty(t))
             .ToList();
@@ -44,15 +44,12 @@ public class MarkPaidServerController(SettingsRepository settings, PaymentMethod
         {
             if (!PaymentMethodId.TryParse(token, out var pmi) || pmi is null)
                 continue;
-            if (paymentHandlers.TryGetValue(pmi, out var handler) && IsBuiltIn(handler))
-            {
-                reserved.Add(token);
-            }
+            if (paymentHandlers.TryGetValue(pmi, out var handler) && IsBuiltIn(handler)) reserved.Add(token);
         }
 
         if (reserved.Count > 0)
         {
-            var unique = reserved.Distinct(System.StringComparer.OrdinalIgnoreCase).ToArray();
+            var unique = reserved.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             ModelState.AddModelError(nameof(MarkPaidSettings.MethodsCsv),
                 $"These method keys are reserved by BTCPay and cannot be used: {string.Join(", ", unique)}");
             return View("Views/MarkPaid/ServerConfig", model);
@@ -64,8 +61,10 @@ public class MarkPaidServerController(SettingsRepository settings, PaymentMethod
         return RedirectToAction(nameof(Index));
     }
 
-    private static bool IsBuiltIn(IPaymentMethodHandler handler) =>
-        handler is BitcoinLikePaymentHandler ||
-        handler is LightningLikePaymentHandler ||
-        handler is LNURLPayPaymentHandler;
+    private static bool IsBuiltIn(IPaymentMethodHandler handler)
+    {
+        return handler is BitcoinLikePaymentHandler ||
+               handler is LightningLikePaymentHandler ||
+               handler is LNURLPayPaymentHandler;
+    }
 }

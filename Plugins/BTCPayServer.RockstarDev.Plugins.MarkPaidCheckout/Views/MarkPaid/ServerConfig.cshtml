@@ -1,5 +1,5 @@
-@model BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server.MarkPaidSettings
 @using BTCPayServer.Abstractions.Extensions
+@model BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server.MarkPaidSettings
 @{
     ViewData.SetActivePage(MarkPaidCheckoutPlugin.PluginNavKey, "MarkPaid – Server Settings", "Index");
 }
@@ -10,7 +10,7 @@
         <button type="submit" class="btn btn-primary" id="Submit" value="Submit">Save</button>
     </div>
 
-    @if ((TempData["RestartRequired"] as string) == "1")
+    @if (TempData["RestartRequired"] as string == "1")
     {
         <div class="alert alert-info mb-4 d-flex align-items-center justify-content-between">
             <span text-translate="true">You need to restart BTCPay Server in order to apply your MarkPaid settings.</span>

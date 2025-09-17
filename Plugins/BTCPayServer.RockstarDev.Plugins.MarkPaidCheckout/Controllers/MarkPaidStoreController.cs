@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -12,7 +11,6 @@ using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using InvoiceData = BTCPayServer.Client.Models.InvoiceData;
 using StoreData = BTCPayServer.Data.StoreData;
 
 namespace BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Controllers;
@@ -27,12 +25,6 @@ public class MarkPaidStoreController(
     MarkPaidMethodsRegistry registry) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
-
-    public class MethodConfigVm
-    {
-        public string Method { get; set; } = string.Empty;
-        public bool Enabled { get; set; }
-    }
 
     [HttpGet("method/{method}")]
     public IActionResult MethodConfig(string method)
@@ -60,10 +52,7 @@ public class MarkPaidStoreController(
         var blob = store.GetStoreBlob();
         var pmid = new PaymentMethodId(method);
         blob.SetExcluded(pmid, !vm.Enabled);
-        if (vm.Enabled)
-        {
-            EnsureConfigEntry(store, pmid);
-        }
+        if (vm.Enabled) EnsureConfigEntry(store, pmid);
         store.SetStoreBlob(blob);
         await storeRepository.UpdateStore(store);
         return RedirectToAction(nameof(MethodConfig), new { storeId = store.Id, method });
@@ -73,10 +62,7 @@ public class MarkPaidStoreController(
     {
         // Ensure there is a config entry so BTCPay counts this method as available
         var existing = store.GetPaymentMethodConfig(pmid, handlers);
-        if (existing is null)
-        {
-            store.SetPaymentMethodConfig(handlers[pmid], new MarkPaidPaymentMethodConfig());
-        }
+        if (existing is null) store.SetPaymentMethodConfig(handlers[pmid], new MarkPaidPaymentMethodConfig());
     }
 
     [HttpGet("MarkAsPaid")]
@@ -107,5 +93,11 @@ public class MarkPaidStoreController(
         // }
 
         return Redirect(returnUrl);
+    }
+
+    public class MethodConfigVm
+    {
+        public string Method { get; set; } = string.Empty;
+        public bool Enabled { get; set; }
     }
 }

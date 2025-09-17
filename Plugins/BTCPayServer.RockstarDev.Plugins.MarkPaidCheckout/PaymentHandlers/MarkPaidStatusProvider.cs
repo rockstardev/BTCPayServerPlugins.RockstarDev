@@ -1,8 +1,8 @@
 using System.Threading.Tasks;
 using BTCPayServer.Data;
+using BTCPayServer.Payments;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
-using BTCPayServer.Payments;
 
 namespace BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.PaymentHandlers;
 

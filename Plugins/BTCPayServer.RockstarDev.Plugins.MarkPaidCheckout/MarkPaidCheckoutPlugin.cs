@@ -5,6 +5,7 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Hosting;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.PaymentHandlers;
+using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Server;
 using BTCPayServer.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,14 +25,14 @@ public class MarkPaidCheckoutPlugin : BaseBTCPayServerPlugin
     public override void Execute(IServiceCollection services)
     {
         // Determine methods list at startup. Priority: env var -> saved settings -> default "CASH"
-        string? csv = Environment.GetEnvironmentVariable(EnvVar);
+        var csv = Environment.GetEnvironmentVariable(EnvVar);
         try
         {
             if (string.IsNullOrWhiteSpace(csv))
             {
                 using var sp = services.BuildServiceProvider();
-                var settings = sp.GetService<BTCPayServer.Services.SettingsRepository>();
-                var saved = settings?.GetSettingAsync<Server.MarkPaidSettings>(SettingKey).GetAwaiter().GetResult();
+                var settings = sp.GetService<SettingsRepository>();
+                var saved = settings?.GetSettingAsync<MarkPaidSettings>(SettingKey).GetAwaiter().GetResult();
                 csv ??= saved?.MethodsCsv;
             }
         }
@@ -42,11 +43,11 @@ public class MarkPaidCheckoutPlugin : BaseBTCPayServerPlugin
 
         csv ??= "CASH";
         var methods = csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                         .Select(s => s.Trim())
-                         .Where(s => !string.IsNullOrWhiteSpace(s))
-                         .Select(s => s.ToUpperInvariant())
-                         .Distinct(StringComparer.OrdinalIgnoreCase)
-                         .ToArray();
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         var registry = new MarkPaidMethodsRegistry(methods);
         services.AddSingleton(registry);
 

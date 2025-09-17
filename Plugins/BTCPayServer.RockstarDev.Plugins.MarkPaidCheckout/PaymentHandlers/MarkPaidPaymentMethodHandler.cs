@@ -12,7 +12,10 @@ public class MarkPaidPaymentMethodHandler(CurrencyNameTable currencyNameTable, P
 {
     public PaymentMethodId PaymentMethodId { get; } = paymentMethodId;
 
-    public Task ConfigurePrompt(PaymentMethodContext context) => Task.CompletedTask;
+    public Task ConfigurePrompt(PaymentMethodContext context)
+    {
+        return Task.CompletedTask;
+    }
 
     public Task BeforeFetchingRates(PaymentMethodContext context)
     {
@@ -25,15 +28,30 @@ public class MarkPaidPaymentMethodHandler(CurrencyNameTable currencyNameTable, P
 
     public JsonSerializer Serializer { get; } = BlobSerializer.CreateSerializer().Serializer;
 
-    public object ParsePaymentPromptDetails(JToken details) => details.ToObject<MarkPaidPaymentMethodDetails>(Serializer)!;
+    public object ParsePaymentPromptDetails(JToken details)
+    {
+        return details.ToObject<MarkPaidPaymentMethodDetails>(Serializer)!;
+    }
 
-    public object ParsePaymentMethodConfig(JToken config) =>
-        config.ToObject<MarkPaidPaymentMethodConfig>(Serializer) ?? throw new FormatException($"Invalid {nameof(MarkPaidPaymentMethodHandler)}");
+    public object ParsePaymentMethodConfig(JToken config)
+    {
+        return config.ToObject<MarkPaidPaymentMethodConfig>(Serializer) ?? throw new FormatException($"Invalid {nameof(MarkPaidPaymentMethodHandler)}");
+    }
 
-    public object ParsePaymentDetails(JToken details) =>
-        details.ToObject<MarkPaidPaymentData>(Serializer) ?? throw new FormatException($"Invalid {nameof(MarkPaidPaymentMethodHandler)}");
+    public object ParsePaymentDetails(JToken details)
+    {
+        return details.ToObject<MarkPaidPaymentData>(Serializer) ?? throw new FormatException($"Invalid {nameof(MarkPaidPaymentMethodHandler)}");
+    }
 }
 
-public class MarkPaidPaymentData { }
-public class MarkPaidPaymentMethodConfig { }
-public class MarkPaidPaymentMethodDetails { }
+public class MarkPaidPaymentData
+{
+}
+
+public class MarkPaidPaymentMethodConfig
+{
+}
+
+public class MarkPaidPaymentMethodDetails
+{
+}
