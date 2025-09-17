@@ -28,61 +28,10 @@ public class MarkPaidStoreController(
 {
     private StoreData StoreData => HttpContext.GetStoreData();
 
-    public class StoreMethodItem
-    {
-        public string Method { get; set; } = string.Empty;
-        public bool Enabled { get; set; }
-    }
-
-    public class StoreConfigVm
-    {
-        public List<StoreMethodItem> Methods { get; set; } = new();
-    }
-
     public class MethodConfigVm
     {
         public string Method { get; set; } = string.Empty;
         public bool Enabled { get; set; }
-    }
-
-    [HttpGet]
-    public IActionResult StoreConfig()
-    {
-        var store = StoreData;
-        var blob = store.GetStoreBlob();
-        var vm = new StoreConfigVm();
-        foreach (var m in registry.Methods)
-        {
-            var pmid = new PaymentMethodId(m);
-            var hasConfig = store.GetPaymentMethodConfig(pmid, handlers) is not null;
-            var enabled = hasConfig && !blob.GetExcludedPaymentMethods().Match(pmid);
-            vm.Methods.Add(new StoreMethodItem { Method = m, Enabled = enabled });
-        }
-
-        return View("Views/MarkPaid/StoreConfig", vm);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> StoreConfig(StoreConfigVm vm)
-    {
-        var store = StoreData;
-        var blob = store.GetStoreBlob();
-        var methodsSet = new HashSet<string>(vm.Methods?.Where(x => x.Enabled).Select(x => x.Method) ?? Array.Empty<string>(),
-            StringComparer.OrdinalIgnoreCase);
-        foreach (var m in registry.Methods)
-        {
-            var pmid = new PaymentMethodId(m);
-            var enabled = methodsSet.Contains(m);
-            blob.SetExcluded(pmid, !enabled);
-            if (enabled)
-            {
-                EnsureConfigEntry(store, pmid);
-            }
-        }
-
-        store.SetStoreBlob(blob);
-        await storeRepository.UpdateStore(store);
-        return RedirectToAction(nameof(StoreConfig), new { storeId = store.Id });
     }
 
     [HttpGet("method/{method}")]
