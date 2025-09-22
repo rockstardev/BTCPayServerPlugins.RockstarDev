@@ -54,8 +54,15 @@
         <table class="table table-hover">
             <thead>
             <tr>
+                <th scope="col" style="width: 170px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <span>Created</span>
+                        <button type="button" class="btn btn-link p-0 switch-time-format only-for-js" title="Switch date format">
+                            <vc:icon symbol="time" />
+                        </button>
+                    </div>
+                </th>
                 <th scope="col" style="width: 190px;">Order ID</th>
-                <th scope="col" style="width: 170px;">Created</th>
                 <th scope="col" style="width: 170px;">For Date</th>
                 <th scope="col">Operation</th>
                 <th scope="col">Amount</th>
@@ -69,12 +76,12 @@
             @foreach (var payout in Model.List)
             {
                 <tr>
+                    <td>@payout.Created.ToBrowserDate()</td>
                     <td>
                         <a asp-action="IndexLogs" asp-route-id="@payout.Id" asp-route-storeId="@storeId">
                             @payout.Id.ToString().Split('-').First()<span>...</span>@payout.Id.ToString().Split('-').Last()
                         </a>
                     </td>
-                    <td>@payout.Created.ToBrowserDate()</td>
                     <td>@payout.CreatedForDate?.ToBrowserDate()</td>
                     <td>@payout.Operation</td>
                     <td>@payout.Amount.ToString("N2")</td>
