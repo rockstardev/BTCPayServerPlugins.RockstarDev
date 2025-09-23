@@ -33,9 +33,6 @@ public class ExchangeOrderHeartbeatService(
 
     public async Task Do(CancellationToken cancellationToken)
     {
-        // NEW LOG: Indicate Do method has started
-        Logs.PayServer.LogInformation($"{GetType().Name}: Do method invoked.");
-
         if (cancellationToken.IsCancellationRequested) 
             return;
 

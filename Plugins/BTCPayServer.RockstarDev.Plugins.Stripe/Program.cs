@@ -3,7 +3,6 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Data;
 using BTCPayServer.RockstarDev.Plugins.Stripe.Logic;
-using BTCPayServer.RockstarDev.Plugins.Stripe.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -34,10 +33,6 @@ public class StripePlugin : BaseBTCPayServerPlugin
         serviceCollection.AddHostedService<StripeMigrationRunner>();
 
         serviceCollection.AddSingleton<StripeClientFactory>();
-
-        // running test event hosted service
-        serviceCollection.AddSingleton<IHostedService>(provider => provider.GetService<StripeTestingService>());
-        serviceCollection.AddScheduledTask<StripeTestingService>(TimeSpan.FromHours(1));
 
         base.Execute(serviceCollection);
     }
