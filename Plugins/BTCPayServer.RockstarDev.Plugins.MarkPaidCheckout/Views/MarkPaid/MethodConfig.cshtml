@@ -1,7 +1,7 @@
 @using BTCPayServer.Abstractions.Extensions
 @model BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.Controllers.MarkPaidStoreController.MethodConfigVm
 @{
-    ViewData.SetActivePage(MarkPaidCheckoutPlugin.PluginNavKey, $"MarkPaid – {Model.Method}", "MethodConfig");
+    ViewData.SetActivePage(MarkPaidCheckoutPlugin.PluginNavKey, $"{Model.Method} - MarkPaid", "MethodConfig");
 }
 
 <form method="post" asp-action="MethodConfig" asp-route-method="@Model.Method">
@@ -19,7 +19,7 @@
                     <input asp-for="Enabled" type="checkbox" id="Enabled" class="btcpay-toggle me-3">
                     <label class="form-check-label" for="Enabled">Enabled</label>
                 </div>
-                <div class="form-text">Enable or disable the @Model.Method MarkPaid method for this store.</div>
+                <div class="form-text">Enabling this toggle will provide @Model.Method payment method with MarkPaid button on checkout.</div>
             </div>
         </div>
     </div>
