@@ -4,7 +4,7 @@
     ViewData.SetActivePage("VendorPay", "Upload Invoice", "VendorPay");
 }
 
-<form method="post" asp-action="Upload" enctype="multipart/form-data" onsubmit="return disableSubmit(this)">
+<form method="post" asp-action="Upload" enctype="multipart/form-data" class="preventdoubleclick">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <input type="submit" value="Upload" class="btn btn-primary" id="Upload" />
@@ -67,14 +67,5 @@
 
 
 @section PageFootContent {
-	<script>
-		function disableSubmit(form) {
-			const button = form.querySelector("input[type='submit']");
-			if (button) {
-				button.disabled = true;
-				button.value = "Uploading...";
-			}
-			return true;
-		}
-	</script>
+	<script src="~/Resources/js/disable_double_click.js"></script>
 }
