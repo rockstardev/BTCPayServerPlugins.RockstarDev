@@ -1,10 +1,10 @@
-﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Extensions
 @model PayrollInvoiceUploadViewModel
 @{
     ViewData.SetActivePage("VendorPay", "Upload Invoice", "VendorPay");
 }
 
-<form method="post" asp-action="Upload" enctype="multipart/form-data">
+<form method="post" asp-action="Upload" enctype="multipart/form-data" class="preventdoubleclick">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <input type="submit" value="Upload" class="btn btn-primary" id="Upload" />
@@ -64,3 +64,8 @@
         </div>
     </div>
 </form>
+
+
+@section PageFootContent {
+	<script src="~/Resources/js/disable_double_click.js"></script>
+}

@@ -13,7 +13,7 @@
 </head>
 <body class="min-vh-100">
 @RenderBody()
-
+@await RenderSectionAsync("PageFootContent", false)
 <partial name="LayoutFoot" />
 <partial name="_ValidationScriptsPartial" />
 </body>

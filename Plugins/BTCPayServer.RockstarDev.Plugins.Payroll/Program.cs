@@ -1,10 +1,13 @@
-﻿using System;
+using System;
+using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll;
@@ -44,6 +47,17 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddHostedService<PluginMigrationRunner>();
         serviceCollection.AddReportProvider<VendorPayReportProvider>();
 
+
+        var assembly = Assembly.GetExecutingAssembly();
+        serviceCollection.PostConfigure<StaticFileOptions>(options =>
+        {
+            var pluginProvider = new ManifestEmbeddedFileProvider(assembly, "Resources");
+
+            options.FileProvider = new CompositeFileProvider(
+                options.FileProvider ?? new NullFileProvider(),
+                pluginProvider
+            );
+        });
         base.Execute(serviceCollection);
     }
 }

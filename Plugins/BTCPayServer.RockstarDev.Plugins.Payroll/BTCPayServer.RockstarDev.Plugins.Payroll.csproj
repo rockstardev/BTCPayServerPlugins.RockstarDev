@@ -29,7 +29,8 @@
         </ProjectReference>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+        <EmbeddedResource Include="Resources\js\disable_double_click.js" />
     </ItemGroup>
 
     <!-- This is all so that we can generate entity framework migrations in design mode -->
@@ -44,10 +45,10 @@
     </Target>
     -->
     <ItemGroup Condition="'$(Configuration)' != 'Release'">
-        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11"/>
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     </ItemGroup>
 </Project>
