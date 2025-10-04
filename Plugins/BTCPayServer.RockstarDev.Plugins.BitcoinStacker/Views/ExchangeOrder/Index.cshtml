@@ -48,7 +48,7 @@
     </div>
 }
 
-@if (Model.List.Any())
+@if (Model.Total > 0)
 {
     <div class="table-responsive-md">
         <table class="table table-hover">
@@ -111,6 +111,8 @@
             </tbody>
         </table>
     </div>
+
+    <vc:pager view-model="Model" />
 
     <partial name="_Confirm"
              model="@(new ConfirmModel("Clear Delay?", "Are you sure you want to clear the delay on this Exchange Order?", "Confirm"))" />

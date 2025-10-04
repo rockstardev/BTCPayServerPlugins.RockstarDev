@@ -31,15 +31,33 @@ public class ExchangeOrderController(
     public string StoreId { get; set; }
 
     [HttpGet("index")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(
+        int skip = 0,
+        int count = 100)
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        var list = db.ExchangeOrders
+        
+        // Get total count for pagination
+        var totalCount = await db.ExchangeOrders
+            .Where(a => a.StoreId == StoreId)
+            .CountAsync();
+        
+        // Get paginated list
+        var list = await db.ExchangeOrders
             .Where(a => a.StoreId == StoreId)
             .OrderByDescending(a => a.CreatedForDate)
             .ThenByDescending(a => a.Created)
-            .ToList();
-        var viewModel = new IndexViewModel { List = list };
+            .Skip(skip)
+            .Take(count)
+            .ToListAsync();
+        
+        var viewModel = new IndexViewModel 
+        { 
+            List = list,
+            Skip = skip,
+            Count = count,
+            Total = totalCount
+        };
 
         // Have the BTC balance on Strike in the database ready to fetch
         var balances = db.SettingFetch(StoreId, DbSettingKeys.StrikeBalances);
@@ -61,8 +79,12 @@ public class ExchangeOrderController(
 
             if (exchangeRate.HasValue)
             {
-                var totalCost = list.Where(a => a.TargetAmount.HasValue).Sum(a => a.Amount);
-                var totalBitcoin = list.Where(a => a.TargetAmount.HasValue).Sum(a => a.TargetAmount) ?? 0;
+                var profitsSource = db.ExchangeOrders
+                    .Where(a => a.StoreId == StoreId)
+                    .Where(a => a.TargetAmount.HasValue);
+                
+                var totalCost = profitsSource.Sum(a => a.Amount);
+                var totalBitcoin = profitsSource.Sum(a => a.TargetAmount) ?? 0;
 
                 var totalBitcoinInUsd = totalBitcoin * exchangeRate.Value;
                 viewModel.ProfitUSD = (totalBitcoinInUsd - totalCost).ToString("N2");
