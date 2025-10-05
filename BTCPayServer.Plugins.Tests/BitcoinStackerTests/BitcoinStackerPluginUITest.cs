@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 namespace BTCPayServer.Plugins.Tests.BitcoinStackerTests;
 
 [Collection("Plugin Tests")]
+[Trait("Category", "PlaywrightUITest")]
 public class BitcoinStackerPluginUITest : PlaywrightBaseTest
 {
     private readonly SharedPluginTestFixture _fixture;

@@ -5,6 +5,7 @@ using Xunit.Abstractions;
 namespace BTCPayServer.Plugins.Tests;
 
 [Collection("Plugin Tests")]
+[Trait("Category", "PlaywrightUITest")]
 public class CashPluginUITest : PlaywrightBaseTest
 {
     private readonly SharedPluginTestFixture _fixture;

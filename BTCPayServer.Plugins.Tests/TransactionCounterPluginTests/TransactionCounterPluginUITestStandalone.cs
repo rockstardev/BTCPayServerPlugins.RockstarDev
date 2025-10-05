@@ -8,6 +8,7 @@ namespace BTCPayServer.Plugins.Tests;
 
 // This test class runs in the "Standalone Tests" collection with a separate database
 [Collection("Standalone Tests")]
+[Trait("Category", "PlaywrightUITest")]
 public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
 {
     private readonly StandalonePluginTestFixture _fixture;

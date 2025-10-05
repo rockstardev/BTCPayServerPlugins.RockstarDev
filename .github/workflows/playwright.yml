@@ -59,7 +59,7 @@ jobs:
                     docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev
 
             -   name: Run tests
-                run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal
+                run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal --filter "Category=PlaywrightUITest"
 
             -   name: Cleanup Docker
                 run: docker compose -f submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml down --volumes
