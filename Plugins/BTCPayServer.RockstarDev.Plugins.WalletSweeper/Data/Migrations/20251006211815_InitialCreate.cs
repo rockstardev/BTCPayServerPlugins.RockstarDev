@@ -22,7 +22,6 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     StoreId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Enabled = table.Column<bool>(type: "boolean", nullable: false),
-                    DestinationType = table.Column<int>(type: "integer", nullable: false),
                     DestinationValue = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     MinimumBalance = table.Column<decimal>(type: "numeric(18,8)", precision: 18, scale: 8, nullable: false),
                     MaximumBalance = table.Column<decimal>(type: "numeric(18,8)", precision: 18, scale: 8, nullable: false),

@@ -77,7 +77,6 @@ public class WalletSweeperController : Controller
         {
             // Update existing
             config.Enabled = model.Enabled;
-            config.DestinationType = SweepConfiguration.DestinationTypes.Address;
             config.DestinationValue = model.DestinationAddress;
             config.MinimumBalance = model.MinimumBalance;
             config.MaximumBalance = model.MaximumBalance;

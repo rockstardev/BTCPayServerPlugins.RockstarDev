@@ -90,7 +90,6 @@ public class ConfigurationViewModel
             Id = Id ?? Guid.NewGuid(),
             StoreId = storeId,
             Enabled = Enabled,
-            DestinationType = SweepConfiguration.DestinationTypes.Address,
             DestinationValue = DestinationAddress,
             MinimumBalance = MinimumBalance,
             MaximumBalance = MaximumBalance,

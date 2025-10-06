@@ -32,9 +32,6 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("DestinationType")
-                        .HasColumnType("integer");
-
                     b.Property<string>("DestinationValue")
                         .IsRequired()
                         .HasMaxLength(200)

@@ -5,12 +5,6 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 
 public class SweepConfiguration
 {
-    public enum DestinationTypes
-    {
-        Store,
-        Address
-    }
-
     public enum FeeRates
     {
         Economy,
@@ -25,9 +19,6 @@ public class SweepConfiguration
     public string StoreId { get; set; }
 
     public bool Enabled { get; set; }
-
-    // Destination
-    public DestinationTypes DestinationType { get; set; }
 
     [StringLength(200)]
     [Required]

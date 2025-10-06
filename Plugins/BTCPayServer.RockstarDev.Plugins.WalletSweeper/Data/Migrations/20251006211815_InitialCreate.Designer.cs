@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
 {
     [DbContext(typeof(PluginDbContext))]
-    [Migration("20251006210009_InitialCreate")]
+    [Migration("20251006211815_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -34,9 +34,6 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
 
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DestinationType")
-                        .HasColumnType("integer");
 
                     b.Property<string>("DestinationValue")
                         .IsRequired()
