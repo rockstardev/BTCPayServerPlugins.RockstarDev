@@ -1,0 +1,161 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels
+@model ConfigurationViewModel
+@inject IScopeProvider ScopeProvider
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    ViewData.SetActivePage("WalletSweeper", "Configure Wallet Sweeper", "WalletSweeper");
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <h2 class="mb-0">
+        <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
+            <i class="fa fa-arrow-left"></i>
+        </a>
+        @ViewData["Title"]
+    </h2>
+    <div class="d-flex gap-3 mt-3 mt-sm-0">
+        <button type="submit" form="ConfigForm" class="btn btn-primary">
+            <i class="fa fa-save"></i> Save Configuration
+        </button>
+    </div>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="row">
+    <div class="col-xxl-constrain col-xl-8">
+        
+        <!-- Wallet Info -->
+        <div class="alert alert-info mb-4">
+            <h5>Current Wallet Status</h5>
+            <p class="mb-1"><strong>Type:</strong> @Model.WalletType</p>
+            <p class="mb-0"><strong>Balance:</strong> @Model.CurrentBalance.ToString("N8") BTC</p>
+        </div>
+
+        <form id="ConfigForm" method="post" asp-action="Save" asp-route-storeId="@storeId">
+            
+            <!-- Enable/Disable -->
+            <div class="form-group mb-4">
+                <div class="form-check">
+                    <input asp-for="Enabled" type="checkbox" class="form-check-input" />
+                    <label asp-for="Enabled" class="form-check-label"></label>
+                    <span class="text-muted ms-2">Enable automatic sweeping</span>
+                </div>
+            </div>
+
+            <!-- Destination Configuration -->
+            <h4 class="mb-3">Destination</h4>
+            
+            <div class="form-group mb-4">
+                <label asp-for="DestinationAddress" class="form-label"></label>
+                <input asp-for="DestinationAddress" class="form-control" placeholder="bc1q..." />
+                <span asp-validation-for="DestinationAddress" class="text-danger"></span>
+                <small class="form-text text-muted">Enter a valid Bitcoin address where funds will be swept</small>
+            </div>
+
+            <!-- Balance Thresholds -->
+            <h4 class="mb-3 mt-4">Balance Thresholds</h4>
+            
+            <div class="form-group mb-3">
+                <label asp-for="MinimumBalance" class="form-label"></label>
+                <input asp-for="MinimumBalance" type="number" step="0.00000001" class="form-control" />
+                <span asp-validation-for="MinimumBalance" class="text-danger"></span>
+                <small class="form-text text-muted">Don't sweep if balance is below this amount</small>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="MaximumBalance" class="form-label"></label>
+                <input asp-for="MaximumBalance" type="number" step="0.00000001" class="form-control" />
+                <span asp-validation-for="MaximumBalance" class="text-danger"></span>
+                <small class="form-text text-muted">Sweep immediately if balance exceeds this amount</small>
+            </div>
+
+            <div class="form-group mb-4">
+                <label asp-for="ReserveAmount" class="form-label"></label>
+                <input asp-for="ReserveAmount" type="number" step="0.00000001" class="form-control" />
+                <span asp-validation-for="ReserveAmount" class="text-danger"></span>
+                <small class="form-text text-muted">Always keep this amount in the source wallet</small>
+            </div>
+
+            <!-- Schedule -->
+            <h4 class="mb-3 mt-4">Schedule</h4>
+            
+            <div class="form-group mb-3">
+                <label asp-for="IntervalDays" class="form-label"></label>
+                <input asp-for="IntervalDays" type="number" min="1" max="365" class="form-control" />
+                <span asp-validation-for="IntervalDays" class="text-danger"></span>
+                <small class="form-text text-muted">How often to check and sweep (in days)</small>
+            </div>
+
+            <!-- Fee Settings -->
+            <h4 class="mb-3 mt-4">Fee Settings</h4>
+            
+            <div class="form-group mb-4">
+                <label asp-for="FeeRate" class="form-label"></label>
+                <select asp-for="FeeRate" asp-items="Model.FeeRateOptions" class="form-select"></select>
+                <span asp-validation-for="FeeRate" class="text-danger"></span>
+            </div>
+
+            <!-- Cold Wallet Support -->
+            @if (!Model.IsHotWallet)
+            {
+                <h4 class="mb-3 mt-4">Cold Wallet Configuration</h4>
+                <div class="alert alert-warning">
+                    <strong>Cold Wallet Detected:</strong> Enter your seed phrase to enable automatic sweeping.
+                    <br /><small>⚠️ This is stored encrypted but is not fully secure. Use at your own risk.</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="SeedPhrase" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="SeedPhrase" type="@(Model.ShowSeedPhrase ? "text" : "password")" class="form-control" 
+                               placeholder="word1 word2 word3 ..." />
+                        <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="SeedPhrase" class="text-danger"></span>
+                    @if (Model.HasEncryptedSeed)
+                    {
+                        <small class="form-text text-success">✓ Seed phrase is configured</small>
+                    }
+                </div>
+
+                <div class="form-group mb-4">
+                    <label asp-for="SeedPassphrase" class="form-label"></label>
+                    <input asp-for="SeedPassphrase" type="password" class="form-control" 
+                           placeholder="Encryption passphrase" />
+                    <span asp-validation-for="SeedPassphrase" class="text-danger"></span>
+                    <small class="form-text text-muted">Used to encrypt the seed phrase</small>
+                </div>
+            }
+
+        </form>
+
+    </div>
+</div>
+
+@section PageFootContent {
+    <script>
+        // Toggle seed phrase visibility
+        const toggleBtn = document.getElementById('ToggleSeedBtn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const input = document.querySelector('input[name="SeedPhrase"]');
+                const icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        }
+    </script>
+}

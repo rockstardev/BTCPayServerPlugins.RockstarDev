@@ -1,154 +1,129 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels
 @using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models
-@model ConfigurationViewModel
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage("WalletSweeper", "Wallet Sweeper", "WalletSweeper");
+    var config = ViewBag.Configuration as SweepConfiguration;
     var history = ViewBag.History as List<SweepHistory> ?? new List<SweepHistory>();
 }
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
     <h2 class="mb-0">@ViewData["Title"]</h2>
-    <div class="d-flex gap-3 mt-3 mt-sm-0">
-        <button type="submit" form="ConfigForm" class="btn btn-primary" id="SaveConfig">
-            Save Configuration
-        </button>
-    </div>
+    @if (config == null)
+    {
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a asp-action="Configure" asp-route-storeId="@storeId" class="btn btn-primary">
+                <i class="fa fa-plus"></i> Create Configuration
+            </a>
+        </div>
+    }
 </div>
 
 <partial name="_StatusMessage" />
 
 <div class="row">
-    <div class="col-xxl-constrain col-xl-8">
+    <div class="col-xxl-constrain col-xl-10">
         
-        <!-- Wallet Info -->
-        <div class="alert alert-info mb-4">
-            <h5>Current Wallet Status</h5>
-            <p class="mb-1"><strong>Type:</strong> @Model.WalletType</p>
-            <p class="mb-0"><strong>Balance:</strong> @Model.CurrentBalance.ToString("N8") BTC</p>
-        </div>
-
-        <form id="ConfigForm" method="post" asp-action="Save" asp-route-storeId="@storeId">
-            
-            <!-- Enable/Disable -->
-            <div class="form-group mb-4">
-                <div class="form-check">
-                    <input asp-for="Enabled" type="checkbox" class="form-check-input" />
-                    <label asp-for="Enabled" class="form-check-label"></label>
-                    <span class="text-muted ms-2">Enable automatic sweeping</span>
-                </div>
-            </div>
-
-            <!-- Destination Configuration -->
-            <h4 class="mb-3">Destination</h4>
-            
-            <div class="form-group mb-4">
-                <label asp-for="DestinationAddress" class="form-label"></label>
-                <input asp-for="DestinationAddress" class="form-control" placeholder="bc1q..." />
-                <span asp-validation-for="DestinationAddress" class="text-danger"></span>
-                <small class="form-text text-muted">Enter a valid Bitcoin address where funds will be swept</small>
-            </div>
-
-            <!-- Balance Thresholds -->
-            <h4 class="mb-3 mt-4">Balance Thresholds</h4>
-            
-            <div class="form-group mb-3">
-                <label asp-for="MinimumBalance" class="form-label"></label>
-                <input asp-for="MinimumBalance" type="number" step="0.00000001" class="form-control" />
-                <span asp-validation-for="MinimumBalance" class="text-danger"></span>
-                <small class="form-text text-muted">Don't sweep if balance is below this amount</small>
-            </div>
-
-            <div class="form-group mb-3">
-                <label asp-for="MaximumBalance" class="form-label"></label>
-                <input asp-for="MaximumBalance" type="number" step="0.00000001" class="form-control" />
-                <span asp-validation-for="MaximumBalance" class="text-danger"></span>
-                <small class="form-text text-muted">Sweep immediately if balance exceeds this amount</small>
-            </div>
-
-            <div class="form-group mb-4">
-                <label asp-for="ReserveAmount" class="form-label"></label>
-                <input asp-for="ReserveAmount" type="number" step="0.00000001" class="form-control" />
-                <span asp-validation-for="ReserveAmount" class="text-danger"></span>
-                <small class="form-text text-muted">Always keep this amount in the source wallet</small>
-            </div>
-
-            <!-- Schedule -->
-            <h4 class="mb-3 mt-4">Schedule</h4>
-            
-            <div class="form-group mb-3">
-                <label asp-for="IntervalDays" class="form-label"></label>
-                <input asp-for="IntervalDays" type="number" min="1" max="365" class="form-control" />
-                <span asp-validation-for="IntervalDays" class="text-danger"></span>
-                <small class="form-text text-muted">How often to check and sweep (in days)</small>
-            </div>
-
-            <!-- Fee Settings -->
-            <h4 class="mb-3 mt-4">Fee Settings</h4>
-            
-            <div class="form-group mb-4">
-                <label asp-for="FeeRate" class="form-label"></label>
-                <select asp-for="FeeRate" asp-items="Model.FeeRateOptions" class="form-select"></select>
-                <span asp-validation-for="FeeRate" class="text-danger"></span>
-            </div>
-
-            <!-- Cold Wallet Support -->
-            @if (!Model.IsHotWallet)
-            {
-                <h4 class="mb-3 mt-4">Cold Wallet Configuration</h4>
-                <div class="alert alert-warning">
-                    <strong>Cold Wallet Detected:</strong> Enter your seed phrase to enable automatic sweeping.
-                    <br /><small>⚠️ This is stored encrypted but is not fully secure. Use at your own risk.</small>
-                </div>
-
-                <div class="form-group mb-3">
-                    <label asp-for="SeedPhrase" class="form-label"></label>
-                    <div class="input-group">
-                        <input asp-for="SeedPhrase" type="@(Model.ShowSeedPhrase ? "text" : "password")" class="form-control" 
-                               placeholder="word1 word2 word3 ..." />
-                        <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                    </div>
-                    <span asp-validation-for="SeedPhrase" class="text-danger"></span>
-                    @if (Model.HasEncryptedSeed)
-                    {
-                        <small class="form-text text-success">✓ Seed phrase is configured</small>
-                    }
-                </div>
-
-                <div class="form-group mb-4">
-                    <label asp-for="SeedPassphrase" class="form-label"></label>
-                    <input asp-for="SeedPassphrase" type="password" class="form-control" 
-                           placeholder="Encryption passphrase" />
-                    <span asp-validation-for="SeedPassphrase" class="text-danger"></span>
-                    <small class="form-text text-muted">Used to encrypt the seed phrase</small>
-                </div>
-            }
-
-        </form>
-
-        <!-- Manual Trigger -->
-        @if (Model.Id.HasValue && Model.Enabled)
+        @if (config == null)
         {
-            <div class="mt-4">
-                <form method="post" asp-action="TriggerManualSweep" asp-route-storeId="@storeId">
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fa fa-bolt"></i> Trigger Manual Sweep Now
-                    </button>
-                    <small class="text-muted ms-2">Bypass schedule and sweep immediately</small>
-                </form>
+            <!-- No Configuration -->
+            <div class="alert alert-info">
+                <h5><i class="fa fa-info-circle"></i> No Configuration Found</h5>
+                <p class="mb-2">You haven't set up wallet sweeping for this store yet.</p>
+                <p class="mb-0">
+                    <a asp-action="Configure" asp-route-storeId="@storeId" class="alert-link">
+                        Click here to create a sweep configuration
+                    </a>
+                </p>
+            </div>
+        }
+        else
+        {
+            <!-- Configuration Status -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sweep Configuration</h5>
+                    <div class="d-flex gap-2">
+                        <form method="post" asp-action="TriggerManualSweep" asp-route-storeId="@storeId" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-warning" @(config.Enabled ? "" : "disabled")>
+                                <i class="fa fa-bolt"></i> Trigger Sweep
+                            </button>
+                        </form>
+                        <div class="vr"></div>
+                        <a asp-action="Configure" asp-route-storeId="@storeId" class="btn btn-sm btn-secondary">
+                            <i class="fa fa-edit"></i> Edit
+                        </a>
+                        <form method="post" asp-action="DeleteConfiguration" asp-route-storeId="@storeId" class="d-inline" 
+                              onsubmit="return confirm('Are you sure you want to delete this configuration?');">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="fa fa-trash"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="mb-0">
+                                <dt>Status</dt>
+                                <dd>
+                                    @if (config.Enabled)
+                                    {
+                                        <span class="badge bg-success">Enabled</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Disabled</span>
+                                    }
+                                </dd>
+                                
+                                <dt>Destination Address</dt>
+                                <dd class="text-break"><code>@config.DestinationValue</code></dd>
+                                
+                                <dt>Balance Thresholds</dt>
+                                <dd>
+                                    Min: <strong>@config.MinimumBalance.ToString("N8") BTC</strong><br/>
+                                    Max: <strong>@config.MaximumBalance.ToString("N8") BTC</strong><br/>
+                                    Reserve: <strong>@config.ReserveAmount.ToString("N8") BTC</strong>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="mb-0">
+                                <dt>Sweep Interval</dt>
+                                <dd>Every <strong>@config.IntervalDays</strong> day(s)</dd>
+                                
+                                <dt>Fee Rate</dt>
+                                <dd><span class="badge bg-info">@config.FeeRate</span></dd>
+                                
+                                <dt>Last Sweep</dt>
+                                <dd>
+                                    @if (config.LastSweepDate.HasValue)
+                                    {
+                                        @config.LastSweepDate.Value.ToBrowserDate()
+                                    }
+                                    else
+                                    {
+                                        <em>Never</em>
+                                    }
+                                </dd>
+                                
+                                <dt>Created</dt>
+                                <dd>@config.Created.ToBrowserDate()</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
             </div>
         }
 
         <!-- Sweep History -->
         @if (history.Any())
         {
-            <h4 class="mb-3 mt-5">Recent Sweep History</h4>
+            <h4 class="mb-3">Sweep History</h4>
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -202,26 +177,3 @@
 
     </div>
 </div>
-
-@section PageFootContent {
-    <script>
-        // Toggle seed phrase visibility
-        const toggleBtn = document.getElementById('ToggleSeedBtn');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function() {
-                const input = document.querySelector('input[name="SeedPhrase"]');
-                const icon = this.querySelector('i');
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    input.type = 'password';
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            });
-        }
-
-    </script>
-}
