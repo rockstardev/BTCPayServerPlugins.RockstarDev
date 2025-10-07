@@ -24,29 +24,17 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Controllers;
 
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Route("~/plugins/{storeId}/walletsweeper")]
-public class WalletSweeperController : Controller
+public class WalletSweeperController(
+    PluginDbContextFactory dbContextFactory,
+    BTCPayNetworkProvider networkProvider,
+    BTCPayWalletProvider walletProvider,
+    PaymentMethodHandlerDictionary handlers)
+    : Controller
 {
-    private readonly PluginDbContextFactory _dbContextFactory;
-    private readonly BTCPayNetworkProvider _networkProvider;
-    private readonly BTCPayWalletProvider _walletProvider;
-    private readonly PaymentMethodHandlerDictionary _handlers;
-
-    public WalletSweeperController(
-        PluginDbContextFactory dbContextFactory,
-        BTCPayNetworkProvider networkProvider,
-        BTCPayWalletProvider walletProvider,
-        PaymentMethodHandlerDictionary handlers)
-    {
-        _dbContextFactory = dbContextFactory;
-        _networkProvider = networkProvider;
-        _walletProvider = walletProvider;
-        _handlers = handlers;
-    }
-
     [HttpGet]
     public async Task<IActionResult> Index(string storeId)
     {
-        await using var db = _dbContextFactory.CreateContext();
+        await using var db = dbContextFactory.CreateContext();
         
         var config = await db.SweepConfigurations
             .FirstOrDefaultAsync(c => c.StoreId == storeId);
@@ -72,7 +60,7 @@ public class WalletSweeperController : Controller
     [HttpGet("configure")]
     public async Task<IActionResult> Configure(string storeId)
     {
-        await using var db = _dbContextFactory.CreateContext();
+        await using var db = dbContextFactory.CreateContext();
         
         var config = await db.SweepConfigurations
             .FirstOrDefaultAsync(c => c.StoreId == storeId);
@@ -98,7 +86,7 @@ public class WalletSweeperController : Controller
         {
             try
             {
-                var network = _networkProvider.GetNetwork<BTCPayNetwork>("BTC");
+                var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
                 Network.Parse<BitcoinAddress>(model.DestinationAddress, network.NBitcoinNetwork);
             }
             catch (Exception)
@@ -112,7 +100,7 @@ public class WalletSweeperController : Controller
             return View("Configure", model);
         }
 
-        await using var db = _dbContextFactory.CreateContext();
+        await using var db = dbContextFactory.CreateContext();
         
         var config = await db.SweepConfigurations
             .FirstOrDefaultAsync(c => c.StoreId == storeId);
@@ -159,7 +147,7 @@ public class WalletSweeperController : Controller
     [HttpPost("delete")]
     public async Task<IActionResult> DeleteConfiguration(string storeId)
     {
-        await using var db = _dbContextFactory.CreateContext();
+        await using var db = dbContextFactory.CreateContext();
         
         var config = await db.SweepConfigurations
             .FirstOrDefaultAsync(c => c.StoreId == storeId);
@@ -177,13 +165,13 @@ public class WalletSweeperController : Controller
     private async Task<(decimal balance, bool isHotWallet)> GetWalletInfo(string storeId)
     {
         var store = HttpContext.GetStoreData();
-        var derivation = store?.GetDerivationSchemeSettings(_handlers, "BTC");
+        var derivation = store?.GetDerivationSchemeSettings(handlers, "BTC");
         
         if (derivation == null)
             return (0m, false);
 
         var isHotWallet = derivation.IsHotWallet;
-        var wallet = _walletProvider.GetWallet("BTC");
+        var wallet = walletProvider.GetWallet("BTC");
         
         try
         {
