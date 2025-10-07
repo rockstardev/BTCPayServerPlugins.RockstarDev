@@ -7,11 +7,18 @@
     ViewData.SetActivePage("WalletSweeper", "Wallet Sweeper", "WalletSweeper");
     var config = ViewBag.Configuration as SweepConfiguration;
     var history = ViewBag.History as List<SweepHistory> ?? new List<SweepHistory>();
+    var walletBalance = ViewBag.WalletBalance as decimal? ?? 0m;
+    var isHotWallet = ViewBag.IsHotWallet as bool? ?? false;
 }
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-    <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div>
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <small class="text-muted">
+            Balance: <strong>@walletBalance.ToString("N8") BTC</strong>
+        </small>
+    </div>
     @if (config == null)
     {
         <div class="d-flex gap-3 mt-3 mt-sm-0">

@@ -10,12 +10,17 @@
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-    <h2 class="mb-0">
-        <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
-            <i class="fa fa-arrow-left"></i>
-        </a>
-        @ViewData["Title"]
-    </h2>
+    <div>
+        <h2 class="mb-0">
+            <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
+                <i class="fa fa-arrow-left"></i>
+            </a>
+            @ViewData["Title"]
+        </h2>
+        <small class="text-muted">
+            Balance: <strong>@Model.CurrentBalance.ToString("N8") BTC</strong>
+        </small>
+    </div>
     <div class="d-flex gap-3 mt-3 mt-sm-0">
         <button type="submit" form="ConfigForm" class="btn btn-primary">
             <i class="fa fa-save"></i> Save Configuration
@@ -27,13 +32,6 @@
 
 <div class="row">
     <div class="col-xxl-constrain col-xl-8">
-        
-        <!-- Wallet Info -->
-        <div class="alert alert-info mb-4">
-            <h5>Current Wallet Status</h5>
-            <p class="mb-1"><strong>Type:</strong> @Model.WalletType</p>
-            <p class="mb-0"><strong>Balance:</strong> @Model.CurrentBalance.ToString("N8") BTC</p>
-        </div>
 
         <form id="ConfigForm" method="post" asp-action="Save" asp-route-storeId="@storeId">
             
@@ -99,13 +97,32 @@
                 <span asp-validation-for="FeeRate" class="text-danger"></span>
             </div>
 
-            <!-- Cold Wallet Support -->
-            @if (!Model.IsHotWallet)
+            <!-- Wallet Type Information -->
+            <h4 class="mb-3 mt-4">Wallet Information</h4>
+            
+            @if (Model.IsHotWallet)
             {
-                <h4 class="mb-3 mt-4">Cold Wallet Configuration</h4>
+                <div class="alert alert-success">
+                    <h5><i class="fa fa-check-circle"></i> Hot Wallet Detected</h5>
+                    <p class="mb-0">
+                        Your wallet is configured as a hot wallet. Automatic sweeping will work seamlessly 
+                        as BTCPay Server has access to the private keys.
+                    </p>
+                </div>
+            }
+            else
+            {
                 <div class="alert alert-warning">
-                    <strong>Cold Wallet Detected:</strong> Enter your seed phrase to enable automatic sweeping.
-                    <br /><small>⚠️ This is stored encrypted but is not fully secure. Use at your own risk.</small>
+                    <h5><i class="fa fa-exclamation-triangle"></i> Cold Wallet Detected</h5>
+                    <p class="mb-2">
+                        Your wallet is configured as a cold wallet. To enable automatic sweeping, you need to provide 
+                        the seed phrase so the plugin can sign transactions.
+                    </p>
+                    <p class="mb-0">
+                        <strong>⚠️ Security Notice:</strong> The seed phrase will be stored encrypted in the database, 
+                        but this is not as secure as a hardware wallet. Use at your own risk and only for wallets 
+                        with small amounts.
+                    </p>
                 </div>
 
                 <div class="form-group mb-3">

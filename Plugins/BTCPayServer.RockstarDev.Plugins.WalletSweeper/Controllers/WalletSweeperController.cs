@@ -1,15 +1,20 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Data;
+using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels;
 using BTCPayServer.Services;
+using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Wallets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,13 +28,19 @@ public class WalletSweeperController : Controller
 {
     private readonly PluginDbContextFactory _dbContextFactory;
     private readonly BTCPayNetworkProvider _networkProvider;
+    private readonly BTCPayWalletProvider _walletProvider;
+    private readonly PaymentMethodHandlerDictionary _handlers;
 
     public WalletSweeperController(
         PluginDbContextFactory dbContextFactory,
-        BTCPayNetworkProvider networkProvider)
+        BTCPayNetworkProvider networkProvider,
+        BTCPayWalletProvider walletProvider,
+        PaymentMethodHandlerDictionary handlers)
     {
         _dbContextFactory = dbContextFactory;
         _networkProvider = networkProvider;
+        _walletProvider = walletProvider;
+        _handlers = handlers;
     }
 
     [HttpGet]
@@ -47,8 +58,13 @@ public class WalletSweeperController : Controller
             .Take(20)
             .ToListAsync();
 
+        // Get wallet info
+        var (balance, isHotWallet) = await GetWalletInfo(storeId);
+
         ViewBag.History = history;
         ViewBag.Configuration = config;
+        ViewBag.WalletBalance = balance;
+        ViewBag.IsHotWallet = isHotWallet;
 
         return View();
     }
@@ -65,10 +81,11 @@ public class WalletSweeperController : Controller
             ? ConfigurationViewModel.FromModel(config) 
             : new ConfigurationViewModel();
 
-        // TODO: Get wallet info (hot/cold, balance)
-        viewModel.IsHotWallet = true; // Placeholder
-        viewModel.WalletType = "Hot Wallet"; // Placeholder
-        viewModel.CurrentBalance = 0.05m; // Placeholder
+        // Get wallet info
+        var (balance, isHotWallet) = await GetWalletInfo(storeId);
+        viewModel.IsHotWallet = isHotWallet;
+        viewModel.WalletType = isHotWallet ? "Hot Wallet" : "Cold Wallet";
+        viewModel.CurrentBalance = balance;
 
         return View(viewModel);
     }
@@ -155,6 +172,36 @@ public class WalletSweeperController : Controller
         }
 
         return RedirectToAction(nameof(Index), new { storeId });
+    }
+
+    private async Task<(decimal balance, bool isHotWallet)> GetWalletInfo(string storeId)
+    {
+        var store = HttpContext.GetStoreData();
+        var derivation = store?.GetDerivationSchemeSettings(_handlers, "BTC");
+        
+        if (derivation == null)
+            return (0m, false);
+
+        var isHotWallet = derivation.IsHotWallet;
+        var wallet = _walletProvider.GetWallet("BTC");
+        
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var balanceData = await wallet.GetBalance(derivation.AccountDerivation, cts.Token);
+            var money = balanceData.Available ?? balanceData.Total;
+            
+            if (money is Money btcMoney)
+            {
+                return (btcMoney.ToDecimal(MoneyUnit.BTC), isHotWallet);
+            }
+        }
+        catch
+        {
+            // Ignore errors, return 0
+        }
+
+        return (0m, isHotWallet);
     }
 
 }
