@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Plugins\BTCPayServer.RockstarDev.Plugins.BitcoinStacker\BTCPayServer.RockstarDev.Plugins.BitcoinStacker.csproj" />
+        <ProjectReference Include="..\Plugins\BTCPayServer.RockstarDev.Plugins.BitcoinStacker\BTCPayServer.RockstarDev.Plugins.BitcoinStacker.csproj"/>
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj"/>
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj"/>
     </ItemGroup>
