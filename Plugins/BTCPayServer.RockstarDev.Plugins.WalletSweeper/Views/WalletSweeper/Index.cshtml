@@ -12,21 +12,13 @@
 }
 
 <div class="sticky-header-setup"></div>
-<div class="sticky-header d-sm-flex align-items-center justify-content-between">
-    <div>
-        <h2 class="mb-0">@ViewData["Title"]</h2>
-        <small class="text-muted">
-            Balance: <strong>@walletBalance.ToString("N8") BTC</strong>
-        </small>
-    </div>
-    @if (config == null)
-    {
-        <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a asp-action="Configure" asp-route-storeId="@storeId" class="btn btn-primary">
-                <i class="fa fa-plus"></i> Create Configuration
-            </a>
+<div class="sticky-header">
+    <a class="unobtrusive-link">
+        <h2 class="my-1">@ViewData["Title"]</h2>
+        <div class="text-muted fw-semibold" data-sensitive>
+            @walletBalance.ToString("N8") BTC
         </div>
-    }
+    </a>
 </div>
 
 <partial name="_StatusMessage" />
