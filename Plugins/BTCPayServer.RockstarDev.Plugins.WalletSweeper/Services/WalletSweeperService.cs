@@ -52,36 +52,63 @@ public class WalletSweeperService(
     {
         logger.LogInformation($"WalletSweeper: Processing config {config.Id} for store {config.StoreId}");
 
-        // Check if enough time has passed since last sweep
+        // Get wallet balance
+        var currentBalance = await GetWalletBalance(config.StoreId, cancellationToken);
+        logger.LogInformation($"WalletSweeper: Store {config.StoreId} balance: {currentBalance} BTC");
+
+        // Determine if sweep should be executed
+        var triggerType = ShouldExecuteSweep(config, currentBalance);
+        if (triggerType != null)
+        {
+            await ExecuteSweep(config, currentBalance, triggerType.Value, cancellationToken);
+        }
+    }
+
+    private SweepHistory.TriggerTypes? ShouldExecuteSweep(
+        SweepConfiguration config,
+        decimal currentBalance)
+    {
+        // Check 1: Balance below minimum threshold
+        if (currentBalance < config.MinimumBalance)
+        {
+            logger.LogInformation($"WalletSweeper: Balance {currentBalance} BTC is below minimum {config.MinimumBalance} BTC, skipping");
+            return null;
+        }
+
+        // Check 2: Balance not high enough above reserve to justify sweep
+        var minViableBalance = config.ReserveAmount + 0.0001m; // Reserve + min dust threshold + estimated fee
+        if (currentBalance <= minViableBalance)
+        {
+            logger.LogInformation(
+                $"WalletSweeper: Balance {currentBalance} BTC is not high enough above reserve {config.ReserveAmount} BTC to justify sweep, skipping");
+            return null;
+        }
+
+        // Check 3: Max threshold exceeded - immediate sweep required
+        if (currentBalance >= config.MaximumBalance)
+        {
+            logger.LogInformation($"WalletSweeper: Max threshold {config.MaximumBalance} BTC exceeded! Sweep required.");
+            return SweepHistory.TriggerTypes.MaxThreshold;
+        }
+
+        // Check 4: Scheduled sweep - verify interval has passed
         if (config.LastSweepDate.HasValue)
         {
             var daysSinceLastSweep = (DateTimeOffset.UtcNow - config.LastSweepDate.Value).TotalDays;
             if (daysSinceLastSweep < config.IntervalDays)
             {
-                logger.LogInformation($"WalletSweeper: Skipping - only {daysSinceLastSweep:F1} days since last sweep (interval: {config.IntervalDays} days)");
-                return;
+                logger.LogInformation(
+                    $"WalletSweeper: Scheduled sweep not due - only {daysSinceLastSweep:F1} days since last sweep (interval: {config.IntervalDays} days)");
+                return null;
+            }
+            else
+            {
+                logger.LogInformation($"WalletSweeper: Scheduled sweep is due, sweep required.");
+                return SweepHistory.TriggerTypes.Scheduled;
             }
         }
 
-        // TODO: Get wallet balance
-        var currentBalance = await GetWalletBalance(config.StoreId, cancellationToken);
-        
-        logger.LogInformation($"WalletSweeper: Store {config.StoreId} balance: {currentBalance} BTC");
-
-        // Check minimum balance threshold
-        if (currentBalance < config.MinimumBalance)
-        {
-            logger.LogInformation($"WalletSweeper: Balance {currentBalance} is below minimum {config.MinimumBalance}, skipping");
-            return;
-        }
-
-        // Determine trigger type
-        var triggerType = currentBalance >= config.MaximumBalance 
-            ? SweepHistory.TriggerTypes.MaxThreshold 
-            : SweepHistory.TriggerTypes.Scheduled;
-
-        // Execute sweep
-        await ExecuteSweep(config, currentBalance, triggerType, cancellationToken);
+        return null;
     }
 
     private async Task<decimal> GetWalletBalance(string storeId, CancellationToken cancellationToken)
@@ -93,8 +120,8 @@ public class WalletSweeperService(
     }
 
     private async Task ExecuteSweep(
-        SweepConfiguration config, 
-        decimal currentBalance, 
+        SweepConfiguration config,
+        decimal currentBalance,
         SweepHistory.TriggerTypes triggerType,
         CancellationToken cancellationToken)
     {
@@ -115,21 +142,24 @@ public class WalletSweeperService(
 
         try
         {
-            // Calculate sweep amount (balance - reserve - estimated fee)
-            var sweepAmount = currentBalance - config.ReserveAmount;
-            
             // TODO: Estimate fee based on config.FeeRate
             var estimatedFee = 0.0001m; // Placeholder
-            
-            sweepAmount -= estimatedFee;
+
+            // Calculate sweep amount: current balance - reserve amount - fee
+            // This leaves exactly the reserve amount in the wallet after the sweep
+            var sweepAmount = currentBalance - config.ReserveAmount - estimatedFee;
 
             if (sweepAmount <= 0)
             {
-                throw new InvalidOperationException("Sweep amount is zero or negative after accounting for reserve and fees");
+                throw new InvalidOperationException(
+                    $"Sweep amount is zero or negative after accounting for reserve and fees. Balance: {currentBalance}, Reserve: {config.ReserveAmount}, Fee: {estimatedFee}");
             }
 
             history.Amount = sweepAmount;
             history.Fee = estimatedFee;
+
+            logger.LogInformation(
+                $"WalletSweeper: Calculated sweep - Balance: {currentBalance} BTC, Reserve: {config.ReserveAmount} BTC, Fee: {estimatedFee} BTC, Sweep Amount: {sweepAmount} BTC");
 
             // TODO: Execute actual transaction
             // 1. Check if hot wallet or decrypt seed
