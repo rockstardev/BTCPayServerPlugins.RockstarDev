@@ -2,16 +2,24 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Data;
 using BTCPayServer.HostedServices;
+using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
+using BTCPayServer.Services.Stores;
+using BTCPayServer.Services.Wallets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 
 public class WalletSweeperService(
     PluginDbContextFactory dbContextFactory,
+    StoreRepository storeRepository,
+    BTCPayWalletProvider walletProvider,
+    PaymentMethodHandlerDictionary handlers,
     ILogger<WalletSweeperService> logger)
     : IPeriodicTask
 {
@@ -113,10 +121,41 @@ public class WalletSweeperService(
 
     private async Task<decimal> GetWalletBalance(string storeId, CancellationToken cancellationToken)
     {
-        // TODO: Implement actual wallet balance fetching
-        // This is a placeholder
-        logger.LogWarning($"WalletSweeper: GetWalletBalance not implemented yet for store {storeId}");
-        return 0m;
+        try
+        {
+            var store = await storeRepository.FindStore(storeId);
+            if (store == null)
+            {
+                logger.LogWarning($"WalletSweeper: Store {storeId} not found");
+                return 0m;
+            }
+
+            var derivation = store.GetDerivationSchemeSettings(handlers, "BTC");
+            if (derivation == null)
+            {
+                logger.LogWarning($"WalletSweeper: No BTC derivation scheme found for store {storeId}");
+                return 0m;
+            }
+
+            var wallet = walletProvider.GetWallet("BTC");
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(10));
+            
+            var balanceData = await wallet.GetBalance(derivation.AccountDerivation, cts.Token);
+            var money = balanceData.Available ?? balanceData.Total;
+            
+            if (money is Money btcMoney)
+            {
+                return btcMoney.ToDecimal(MoneyUnit.BTC);
+            }
+
+            return 0m;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"WalletSweeper: Error fetching wallet balance for store {storeId}");
+            return 0m;
+        }
     }
 
     private async Task ExecuteSweep(
