@@ -11,6 +11,7 @@ using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 using BTCPayServer.Services;
+using BTCPayServer.Services.Fees;
 using BTCPayServer.Services.Stores;
 using BTCPayServer.Services.Wallets;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,7 @@ public class WalletSweeperService(
     BTCPayWalletProvider walletProvider,
     BTCPayNetworkProvider networkProvider,
     ExplorerClientProvider explorerClientProvider,
+    IFeeProviderFactory feeProviderFactory,
     PaymentMethodHandlerDictionary handlers,
     ILogger<WalletSweeperService> logger)
     : IPeriodicTask
@@ -190,8 +192,12 @@ public class WalletSweeperService(
 
         try
         {
-            // TODO: Estimate fee based on config.FeeRate
-            var estimatedFee = 0.0001m; // Placeholder
+            // Get actual fee rate estimate
+            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
+            var feeRate = await GetFeeRateAsync(network, config.FeeRate, cancellationToken);
+            
+            // Estimate fee (rough estimate: ~200 vbytes for typical sweep transaction)
+            var estimatedFee = (feeRate.SatoshiPerByte * 200m) / 100_000_000m; // Convert sat to BTC
 
             // Calculate sweep amount: current balance - reserve amount - fee
             // This leaves exactly the reserve amount in the wallet after the sweep
@@ -262,7 +268,7 @@ public class WalletSweeperService(
                 },
                 FeePreference = new FeePreference
                 {
-                    ExplicitFeeRate = GetFeeRate(config.FeeRate)
+                    ExplicitFeeRate = feeRate
                 }
             };
 
@@ -341,14 +347,41 @@ public class WalletSweeperService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private FeeRate GetFeeRate(SweepConfiguration.FeeRates feeRate)
+    private async Task<FeeRate> GetFeeRateAsync(
+        BTCPayNetwork network,
+        SweepConfiguration.FeeRates feeRateType,
+        CancellationToken cancellationToken)
     {
-        return feeRate switch
+        try
         {
-            SweepConfiguration.FeeRates.Economy => new FeeRate(1.0m), // ~1 sat/vB
-            SweepConfiguration.FeeRates.Normal => new FeeRate(5.0m),  // ~5 sat/vB
-            SweepConfiguration.FeeRates.Priority => new FeeRate(20.0m), // ~20 sat/vB
-            _ => new FeeRate(5.0m)
-        };
+            var feeProvider = feeProviderFactory.CreateFeeProvider(network);
+            
+            // Map fee rate type to block target
+            var blockTarget = feeRateType switch
+            {
+                SweepConfiguration.FeeRates.Economy => 100,   // ~17 hours
+                SweepConfiguration.FeeRates.Normal => 6,      // ~1 hour
+                SweepConfiguration.FeeRates.Priority => 1,    // ~10 minutes
+                _ => 6
+            };
+            
+            var feeRate = await feeProvider.GetFeeRateAsync(blockTarget);
+            logger.LogInformation($"WalletSweeper: Fetched fee rate for {feeRateType} ({blockTarget} blocks): {feeRate.SatoshiPerByte} sat/vB");
+            
+            return feeRate;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, $"WalletSweeper: Failed to fetch dynamic fee rate, using fallback");
+            
+            // Fallback to static rates if fee provider fails
+            return feeRateType switch
+            {
+                SweepConfiguration.FeeRates.Economy => new FeeRate(1.0m),
+                SweepConfiguration.FeeRates.Normal => new FeeRate(5.0m),
+                SweepConfiguration.FeeRates.Priority => new FeeRate(20.0m),
+                _ => new FeeRate(5.0m)
+            };
+        }
     }
 }
