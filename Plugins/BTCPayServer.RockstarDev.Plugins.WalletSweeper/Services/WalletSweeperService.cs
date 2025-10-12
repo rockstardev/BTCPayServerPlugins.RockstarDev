@@ -1,17 +1,24 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Client;
+using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
+using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using BTCPayServer.Services.Wallets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
+using NBXplorer;
+using NBXplorer.DerivationStrategy;
+using NBXplorer.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 
@@ -19,6 +26,8 @@ public class WalletSweeperService(
     PluginDbContextFactory dbContextFactory,
     StoreRepository storeRepository,
     BTCPayWalletProvider walletProvider,
+    BTCPayNetworkProvider networkProvider,
+    ExplorerClientProvider explorerClientProvider,
     PaymentMethodHandlerDictionary handlers,
     ILogger<WalletSweeperService> logger)
     : IPeriodicTask
@@ -200,15 +209,120 @@ public class WalletSweeperService(
             logger.LogInformation(
                 $"WalletSweeper: Calculated sweep - Balance: {currentBalance} BTC, Reserve: {config.ReserveAmount} BTC, Fee: {estimatedFee} BTC, Sweep Amount: {sweepAmount} BTC");
 
-            // TODO: Execute actual transaction
-            // 1. Check if hot wallet or decrypt seed
-            // 2. Create transaction
-            // 3. Sign transaction
-            // 4. Broadcast transaction
-            // 5. Get TxId
+            // Get store and derivation settings
+            var store = await storeRepository.FindStore(config.StoreId);
+            if (store == null)
+            {
+                throw new InvalidOperationException($"Store {config.StoreId} not found");
+            }
 
-            history.TxId = "placeholder_txid"; // TODO: Replace with actual TxId
+            var derivation = store.GetDerivationSchemeSettings(handlers, "BTC");
+            if (derivation == null)
+            {
+                throw new InvalidOperationException($"No BTC wallet configured for store {config.StoreId}");
+            }
+
+            // Check if hot wallet
+            if (!derivation.IsHotWallet)
+            {
+                throw new InvalidOperationException("Cold wallet sweeping is not yet implemented");
+            }
+
+            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
+            var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
+
+            // Get signing key from NBXplorer
+            var signingKeyStr = await explorerClient.GetMetadataAsync<string>(
+                derivation.AccountDerivation,
+                WellknownMetadataKeys.MasterHDKey,
+                cancellationToken);
+
+            if (signingKeyStr == null)
+            {
+                throw new InvalidOperationException("Hot wallet signing key not found in NBXplorer");
+            }
+
+            // Parse destination address
+            var destinationAddress = BitcoinAddress.Create(config.DestinationValue, network.NBitcoinNetwork);
+
+            // Create PSBT
+            var createPSBTRequest = new CreatePSBTRequest
+            {
+                RBF = true,
+                AlwaysIncludeNonWitnessUTXO = derivation.DefaultIncludeNonWitnessUtxo,
+                IncludeGlobalXPub = derivation.IsMultiSigOnServer,
+                Destinations = new List<CreatePSBTDestination>
+                {
+                    new CreatePSBTDestination
+                    {
+                        Destination = destinationAddress.ScriptPubKey,
+                        Amount = Money.Coins(sweepAmount),
+                        SubtractFromAmount = false
+                    }
+                },
+                FeePreference = new FeePreference
+                {
+                    ExplicitFeeRate = GetFeeRate(config.FeeRate)
+                }
+            };
+
+            logger.LogInformation($"WalletSweeper: Creating PSBT for sweep to {config.DestinationValue}");
+            var psbtResponse = await explorerClient.CreatePSBTAsync(derivation.AccountDerivation, createPSBTRequest, cancellationToken);
+            var psbt = psbtResponse.PSBT;
+
+            // Sign the PSBT
+            var extKey = ExtKey.Parse(signingKeyStr, network.NBitcoinNetwork);
+            var signingKeySettings = derivation.GetAccountKeySettingsFromRoot(extKey);
+            if (signingKeySettings == null)
+            {
+                throw new InvalidOperationException("Could not derive signing key from root key");
+            }
+
+            var rootedKeyPath = signingKeySettings.GetRootedKeyPath();
+            if (rootedKeyPath == null)
+            {
+                throw new InvalidOperationException("Could not determine rooted key path");
+            }
+
+            psbt.RebaseKeyPaths(signingKeySettings.AccountKey, rootedKeyPath);
+            var signingKey = extKey.Derive(rootedKeyPath.KeyPath);
+
+            psbt.Settings.SigningOptions = new SigningOptions { EnforceLowR = true };
+            var signed = psbt.SignAll(derivation.AccountDerivation, signingKey, rootedKeyPath);
+
+            if (!signed)
+            {
+                throw new InvalidOperationException("Failed to sign PSBT");
+            }
+
+            // Finalize PSBT
+            if (!psbt.TryFinalize(out var errors))
+            {
+                throw new InvalidOperationException($"Failed to finalize PSBT: {string.Join(", ", errors)}");
+            }
+
+            // Extract and broadcast transaction
+            var transaction = psbt.ExtractTransaction();
+            logger.LogInformation($"WalletSweeper: Broadcasting transaction {transaction.GetHash()}");
+
+            var broadcastResult = await explorerClient.BroadcastAsync(transaction, cancellationToken);
+            if (!broadcastResult.Success)
+            {
+                throw new InvalidOperationException(
+                    $"Broadcast failed: {broadcastResult.RPCCode} {broadcastResult.RPCCodeMessage} {broadcastResult.RPCMessage}");
+            }
+
+            // Update actual fee from transaction
+            var actualFee = psbt.GetFee();
+            history.Fee = actualFee.ToDecimal(MoneyUnit.BTC);
+            history.TxId = transaction.GetHash().ToString();
             history.Status = SweepHistory.SweepStatuses.Success;
+
+            // Invalidate wallet cache
+            var wallet = walletProvider.GetWallet("BTC");
+            wallet.InvalidateCache(derivation.AccountDerivation);
+
+            logger.LogInformation($"WalletSweeper: Sweep successful! TxId: {history.TxId}, Actual Fee: {history.Fee} BTC");
 
             // Update last sweep date
             config.LastSweepDate = DateTimeOffset.UtcNow;
@@ -225,5 +339,16 @@ public class WalletSweeperService(
 
         db.SweepHistories.Add(history);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private FeeRate GetFeeRate(SweepConfiguration.FeeRates feeRate)
+    {
+        return feeRate switch
+        {
+            SweepConfiguration.FeeRates.Economy => new FeeRate(1.0m), // ~1 sat/vB
+            SweepConfiguration.FeeRates.Normal => new FeeRate(5.0m),  // ~5 sat/vB
+            SweepConfiguration.FeeRates.Priority => new FeeRate(20.0m), // ~20 sat/vB
+            _ => new FeeRate(5.0m)
+        };
     }
 }
