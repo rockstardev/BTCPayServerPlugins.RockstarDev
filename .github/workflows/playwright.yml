@@ -36,10 +36,8 @@ jobs:
                 run: |
                     dotnet build -maxcpucount:1
 
-            -   name: Special commands - Restore RockstarDevUtils and Run ConfigBuilder
+            -   name: Special commands - Running Config Builder to init plugins
                 run: |
-                    dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
-                    dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils
                     dotnet run --project ConfigBuilder
                     
             -   name: Install Playwright CLI + browsers
