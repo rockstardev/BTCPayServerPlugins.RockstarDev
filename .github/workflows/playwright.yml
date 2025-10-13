@@ -2,7 +2,7 @@ name: BTCPay Plugin tests
 
 on:
     push:
-        branches: [ "master" ]
+        branches: [ "fixbug" ]
     pull_request:
         branches: [ "master" ]
 
@@ -33,13 +33,21 @@ jobs:
                     dotnet-version: 8.0.414
 
             -   name: Build solution
-                run: dotnet build --configuration Release -maxcpucount:1
+                run: | 
+                    dotnet build -maxcpucount:1
+                    dotnet run --project ConfigBuilder
+                    
+            -   name: Install Playwright CLI + browsers
+                run: |
+                    dotnet tool install --global Microsoft.Playwright.CLI
+                    export PATH="$PATH:$HOME/.dotnet/tools"
+                    playwright install --with-deps
 
             -   name: Start Docker containers
                 run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev --build
 
             -   name: Run tests
-                run: dotnet test BTCPayServer.Plugins.Tests --configuration Release --no-build --verbosity normal --filter "Category=PlaywrightUITest"
+                run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal --filter "Category=PlaywrightUITest"
 
             -   name: Cleanup Docker
                 run: docker compose -f submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml down --volumes
