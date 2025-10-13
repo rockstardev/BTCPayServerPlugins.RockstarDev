@@ -13,6 +13,8 @@ public class MarkPaidStatusProvider(StoreRepository storeRepository, PaymentMeth
         try
         {
             var storeData = await storeRepository.FindStore(storeId);
+            if (storeData == null)
+                return false;
             var currentPaymentMethodConfig = storeData.GetPaymentMethodConfig<MarkPaidPaymentMethodConfig>(pmid, handlers);
             if (currentPaymentMethodConfig == null)
                 return false;
