@@ -56,7 +56,7 @@
     </ItemGroup>
     <Target Name="CopyStrikeFiles" BeforeTargets="AfterBuild">
         <ItemGroup>
-            <StrikeFiles Include="$(NuGetPackageRoot)StrikeWallet.Client\1.3.0\lib\net8.0\*"/>
+            <StrikeFiles Include="$(NuGetPackageRoot)strikewallet.client\1.3.0\lib\net8.0\*"/>
         </ItemGroup>
         <Copy SourceFiles="@(StrikeFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"/>
     </Target>
