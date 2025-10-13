@@ -2,7 +2,7 @@ name: BTCPay Plugin tests
 
 on:
     push:
-        branches: [ "fixbug" ]
+        branches: [ "master" ]
     pull_request:
         branches: [ "master" ]
 
