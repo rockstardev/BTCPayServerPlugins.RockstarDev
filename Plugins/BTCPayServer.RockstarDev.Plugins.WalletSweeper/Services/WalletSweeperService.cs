@@ -37,35 +37,35 @@ public class WalletSweeperService(
 {
     public async Task Do(CancellationToken cancellationToken)
     {
-        logger.LogInformation("WalletSweeper: Starting periodic check");
-
-        try
-        {
-            await using var db = dbContextFactory.CreateContext();
-
-            // Get all enabled configurations
-            var configs = await db.SweepConfigurations
-                .Where(c => c.Enabled)
-                .ToListAsync(cancellationToken);
-
-            logger.LogInformation($"WalletSweeper: Found {configs.Count} enabled configurations");
-
-            foreach (var config in configs)
-            {
-                try
-                {
-                    await ProcessConfiguration(config, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, $"WalletSweeper: Error processing configuration {config.Id} for store {config.StoreId}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "WalletSweeper: Error in periodic task");
-        }
+        // logger.LogInformation("WalletSweeper: Starting periodic check");
+        //
+        // try
+        // {
+        //     await using var db = dbContextFactory.CreateContext();
+        //
+        //     // Get all enabled configurations
+        //     var configs = await db.SweepConfigurations
+        //         .Where(c => c.Enabled)
+        //         .ToListAsync(cancellationToken);
+        //
+        //     logger.LogInformation($"WalletSweeper: Found {configs.Count} enabled configurations");
+        //
+        //     foreach (var config in configs)
+        //     {
+        //         try
+        //         {
+        //             await ProcessConfiguration(config, cancellationToken);
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             logger.LogError(ex, $"WalletSweeper: Error processing configuration {config.Id} for store {config.StoreId}");
+        //         }
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     logger.LogError(ex, "WalletSweeper: Error in periodic task");
+        // }
     }
 
     /// <summary>

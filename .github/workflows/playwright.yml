@@ -9,7 +9,7 @@ on:
 jobs:
     build:
         
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
         env:
             CI: true
             BTCPAY_SERVER_URL: http://localhost:14142
@@ -22,44 +22,24 @@ jobs:
             -   name: Initialize and update submodules
                 run: git submodule update --init --recursive
 
+            -   name: Clean workspace
+                run: |
+                    dotnet clean
+                    git clean -xfd
+
             -   name: Setup .NET
                 uses: actions/setup-dotnet@v4
                 with:
-                    dotnet-version: 8.0.x
+                    dotnet-version: 8.0.414
 
-            -   name: Restore dependencies
-                run: |                
-                    dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
-                    dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
-                    dotnet restore Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
-                    dotnet restore BTCPayServer.Plugins.Tests
-                    dotnet restore ConfigBuilder
+            -   name: Build solution
+                run: dotnet build --configuration Release -maxcpucount:1
 
-            -   name: Clean project
-                run: dotnet clean
-
-            -   name: Build projects and run ConfigBuilder
-                run: |                
-                    dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.TransactionCounter
-                    dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.CashCheckout
-                    dotnet build Plugins/BTCPayServer.RockstarDev.Plugins.Payroll
-                    dotnet build BTCPayServer.Plugins.Tests
-                    dotnet build ConfigBuilder
-                    dotnet run --project ConfigBuilder
-
-            -   name: Install Playwright browsers
-                run: |
-                    dotnet tool install --global Microsoft.Playwright.CLI
-                    export PATH="$PATH:$HOME/.dotnet/tools"
-                    playwright install --with-deps
-
-            -   name: Start containers
-                run: |
-                    docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" build
-                    docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev
+            -   name: Start Docker containers
+                run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev --build
 
             -   name: Run tests
-                run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal --filter "Category=PlaywrightUITest"
+                run: dotnet test BTCPayServer.Plugins.Tests --configuration Release --no-build --verbosity normal --filter "Category=PlaywrightUITest"
 
             -   name: Cleanup Docker
                 run: docker compose -f submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml down --volumes
