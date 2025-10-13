@@ -12,6 +12,7 @@ using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Fees;
+using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using BTCPayServer.Services.Wallets;
 using Microsoft.EntityFrameworkCore;
@@ -258,7 +259,6 @@ public class WalletSweeperService(
                 throw new InvalidOperationException("Cold wallet sweeping is not yet implemented");
             }
 
-            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
             var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
 
             // Get signing key from NBXplorer
@@ -287,7 +287,7 @@ public class WalletSweeperService(
                     {
                         Destination = destinationAddress.ScriptPubKey,
                         Amount = Money.Coins(sweepAmount),
-                        SubtractFromAmount = false
+                        //SweepAll = false
                     }
                 },
                 FeePreference = new FeePreference
@@ -320,7 +320,7 @@ public class WalletSweeperService(
             psbt.Settings.SigningOptions = new SigningOptions { EnforceLowR = true };
             var signed = psbt.SignAll(derivation.AccountDerivation, signingKey, rootedKeyPath);
 
-            if (!signed)
+            if (signed == null)
             {
                 throw new InvalidOperationException("Failed to sign PSBT");
             }
