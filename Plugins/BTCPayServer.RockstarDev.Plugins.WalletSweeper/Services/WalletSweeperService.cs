@@ -67,6 +67,30 @@ public class WalletSweeperService(
         }
     }
 
+    /// <summary>
+    /// Manually trigger a sweep for a specific store
+    /// </summary>
+    public async Task TriggerManualSweep(string storeId, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation($"WalletSweeper: Manual sweep triggered for store {storeId}");
+
+        await using var db = dbContextFactory.CreateContext();
+
+        var config = await db.SweepConfigurations
+            .FirstOrDefaultAsync(c => c.StoreId == storeId && c.Enabled, cancellationToken);
+
+        if (config == null)
+        {
+            throw new InvalidOperationException($"No enabled sweep configuration found for store {storeId}");
+        }
+
+        // Get wallet balance
+        var currentBalance = await GetWalletBalance(config.StoreId, cancellationToken);
+        
+        // Execute sweep with Manual trigger type, bypassing all checks
+        await ExecuteSweep(config, currentBalance, SweepHistory.TriggerTypes.Manual, cancellationToken);
+    }
+
     private async Task ProcessConfiguration(SweepConfiguration config, CancellationToken cancellationToken)
     {
         logger.LogInformation($"WalletSweeper: Processing config {config.Id} for store {config.StoreId}");

@@ -28,7 +28,8 @@ public class WalletSweeperController(
     PluginDbContextFactory dbContextFactory,
     BTCPayNetworkProvider networkProvider,
     BTCPayWalletProvider walletProvider,
-    PaymentMethodHandlerDictionary handlers)
+    PaymentMethodHandlerDictionary handlers,
+    WalletSweeperService sweeperService)
     : Controller
 {
     [HttpGet]
@@ -137,10 +138,18 @@ public class WalletSweeperController(
     }
 
     [HttpPost("trigger")]
-    public async Task<IActionResult> TriggerManualSweep(string storeId)
+    public async Task<IActionResult> TriggerManualSweep(string storeId, CancellationToken cancellationToken)
     {
-        // TODO: Implement manual sweep trigger
-        TempData[WellKnownTempData.SuccessMessage] = "Manual sweep triggered";
+        try
+        {
+            await sweeperService.TriggerManualSweep(storeId, cancellationToken);
+            TempData[WellKnownTempData.SuccessMessage] = "Manual sweep executed successfully. Check the history below for details.";
+        }
+        catch (Exception ex)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = $"Failed to trigger sweep: {ex.Message}";
+        }
+
         return RedirectToAction(nameof(Index), new { storeId });
     }
 
