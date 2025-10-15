@@ -40,6 +40,14 @@ jobs:
                 run: |
                     dotnet run --project ConfigBuilder
                     
+            -   name: Cache Playwright browsers
+                uses: actions/cache@v4
+                with:
+                    path: ~/.cache/ms-playwright
+                    key: ${{ runner.os }}-playwright-${{ hashFiles('**/BTCPayServer.Plugins.Tests.csproj') }}
+                    restore-keys: |
+                        ${{ runner.os }}-playwright-
+
             -   name: Install Playwright CLI + browsers
                 run: |
                     dotnet tool install --global Microsoft.Playwright.CLI
