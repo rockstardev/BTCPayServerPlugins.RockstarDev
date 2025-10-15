@@ -6,8 +6,8 @@
     </PropertyGroup>
     <PropertyGroup>
         <Product>MarkPaid Checkout</Product>
-        <Description>Generalized manual settle checkout: define comma-separated dummy methods and mark invoices paid.</Description>
-        <Version>0.0.1</Version>
+        <Description>Define manual payment methods, allowing you to record payments from other systems directly through BTCPay (Cash, Credit, etc).</Description>
+        <Version>0.1.0</Version>
     </PropertyGroup>
     <PropertyGroup>
         <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
