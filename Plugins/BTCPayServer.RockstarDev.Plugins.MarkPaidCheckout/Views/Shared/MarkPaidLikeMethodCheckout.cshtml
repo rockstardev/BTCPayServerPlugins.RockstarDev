@@ -8,7 +8,7 @@
     <text>
         <template id="@component">
             <div>
-                <a class="btn btn-primary rounded-pill w-100 mt-4" :href="model.invoiceBitcoinUrl" title="Mark Settled">Mark Settled</a>
+                <a class="btn btn-primary rounded-pill w-100 mt-4" href="#" v-on:click.prevent="markAsPaid">Mark Settled</a>
             </div>
         </template>
         <script>
@@ -17,7 +17,21 @@
                 template: @Safe.Json("#" + component),
                 components: {qrcode: VueQrcode},
                 data() {
-                    return {currentTab: undefined};
+                    return {currentTab: undefined, isProcessing: false};
+                },
+                methods: {
+                    async markAsPaid() {
+                        if (this.isProcessing)
+                            return;
+                        this.isProcessing = true;
+                        const response = await fetch(this.model.invoiceBitcoinUrl, {
+                            method: 'POST',
+                            headers: {'X-Requested-With': 'RockstarHttpRequester'}
+                        });
+
+                        if ((await response.json()).success)
+                            this.isProcessing = false;
+                    }
                 }
             });
         </script>

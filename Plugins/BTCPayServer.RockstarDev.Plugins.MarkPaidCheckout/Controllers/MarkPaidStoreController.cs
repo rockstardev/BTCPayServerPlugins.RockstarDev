@@ -67,13 +67,17 @@ public class MarkPaidStoreController(
         if (existing is null) store.SetPaymentMethodConfig(handlers[pmid], new MarkPaidPaymentMethodConfig());
     }
 
-    [HttpGet("MarkAsPaid")]
+    [HttpPost("MarkAsPaid")]
     [AllowAnonymous]
     public async Task<IActionResult> MarkAsPaid(string invoiceId, string storeId, string returnUrl, string method)
     {
+        if (Request.Headers["X-Requested-With"] != "RockstarHttpRequester")
+            return BadRequest();
+
         var invoice = await invoiceRepository.GetInvoice(invoiceId, true);
         if (invoice.StoreId != storeId || invoice.Status != InvoiceStatus.New)
-            return Redirect(returnUrl);
+            return Json(new { success = false, error = "Invoice not found or already paid" });
+
         var pmid = new PaymentMethodId(method);
         var handler = handlers[pmid];
         var paymentData = new PaymentData
@@ -96,13 +100,9 @@ public class MarkPaidStoreController(
         {
             invoice = await invoiceRepository.GetInvoice(invoiceId, true);
             eventAggregator.Publish(new InvoiceEvent(invoice, InvoiceEvent.ReceivedPayment) { Payment = payment });
-            
-            // Small delay to allow the InvoiceWatcher to process the state transition
-            // before redirecting back to the checkout page
-            await Task.Delay(500);
         }
 
-        return Redirect(returnUrl);
+        return Json(new { success = true, status = invoice.Status.ToString() });
     }
 
     public class MethodConfigVm

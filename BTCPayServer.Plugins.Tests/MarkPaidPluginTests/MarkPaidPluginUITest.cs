@@ -95,14 +95,9 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
             await Task.Delay(500); // Wait for component to render
         }
         
-        // Click Mark Settled button
+        // Click Mark Settled button and wait for page reload
         await frame.GetByRole(AriaRole.Link, new() { Name = "Mark Settled" }).ClickAsync();
-        
-        // Verify redirect happened
-        Assert.Equal(new Uri(ServerTester.PayTester.ServerUri, $"tests/index.html?invoice={invoiceId}").ToString(), Page.Url);
-        
-        // Wait a bit for state transition to complete
-        await Task.Delay(1000);
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
         // Verify invoice is now settled
         invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
