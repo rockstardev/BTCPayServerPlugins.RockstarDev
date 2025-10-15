@@ -1,3 +1,7 @@
+using System.Linq;
+using BTCPayServer.Client.Models;
+using BTCPayServer.Data;
+using BTCPayServer.Services.Invoices;
 using BTCPayServer.Tests;
 using Microsoft.Playwright;
 using Xunit;
@@ -66,8 +70,15 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
+        
+        // Create invoice and verify initial state
         var invoiceId = await CreateInvoice(user.StoreId, 0.001m, "BTC", "a@x.com");
         var invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
+        Assert.Equal(InvoiceStatus.New, invoice.Status);
+        var initialPayments = invoice.GetPayments(false);
+        Assert.Empty(initialPayments);
+        
+        // Navigate to checkout
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         await Page.WaitForSelectorAsync("iframe[name='btcpay']");
         var frameElement = await Page.QuerySelectorAsync("iframe[name='btcpay']");
@@ -75,6 +86,7 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         var frame = await frameElement.ContentFrameAsync();
         Assert.NotNull(frame);
         await frame.WaitForSelectorAsync("#Checkout");
+        
         // Select CASH payment method if not already selected
         var cashPaymentMethod = frame.Locator(".payment-method").Filter(new() { HasText = "CASH" });
         if (await cashPaymentMethod.CountAsync() > 0)
@@ -82,8 +94,27 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
             await cashPaymentMethod.ClickAsync();
             await Task.Delay(500); // Wait for component to render
         }
+        
+        // Click Mark Settled button
         await frame.GetByRole(AriaRole.Link, new() { Name = "Mark Settled" }).ClickAsync();
+        
+        // Verify redirect happened
         Assert.Equal(new Uri(ServerTester.PayTester.ServerUri, $"tests/index.html?invoice={invoiceId}").ToString(), Page.Url);
+        
+        // Wait a bit for state transition to complete
+        await Task.Delay(1000);
+        
+        // Verify invoice is now settled
+        invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
+        Assert.Equal(InvoiceStatus.Settled, invoice.Status);
+        
+        // Verify payment was added with correct details
+        var payments = invoice.GetPayments(false);
+        Assert.Single(payments);
+        var payment = payments.First();
+        Assert.Equal(PaymentStatus.Settled, payment.Status);
+        Assert.Equal("CASH", payment.PaymentMethodId.ToString());
+        Assert.Equal(invoice.Price, payment.InvoicePaidAmount.Net);
     }
 
     [Fact]
