@@ -13,9 +13,9 @@
 
     @if (TempData["RestartRequired"] as string == "1")
     {
-        <div class="alert alert-info mb-4 d-flex align-items-center justify-content-between">
+        <div class="alert alert-info d-flex align-items-center justify-content-between">
             <span text-translate="true">You need to restart BTCPay Server in order to apply your MarkPaid settings.</span>
-            <button type="submit" form="RestartForm" class="btn btn-info mt-2" text-translate="true">Restart now</button>
+            <button type="submit" form="RestartForm" class="btn btn-info" text-translate="true">Restart now</button>
         </div>
     }
     else
@@ -31,6 +31,10 @@
     <div class="row">
         <div class="col-xl-8 col-xxl-constrain">
             <div class="form-group">
+                <label class="form-label" for="MethodsCsv">Methods (comma-separated)</label>
+                <input asp-for="MethodsCsv" class="form-control" placeholder="CASH,CREDIT,FLASH" />
+                <span asp-validation-for="MethodsCsv" class="text-danger"></span>
+                <br />
                 <p>
                     Each item in the comma-separated list creates a new payment method. That method will mark payments as settled and provide that specific method as a source of payment.
                     <br />
@@ -38,10 +42,6 @@
                     <br />
                     This way, one payment method records cash and the other credit card transactions.
                 </p>
-                
-                <label class="form-label" for="MethodsCsv">Methods (comma-separated)</label>
-                <input asp-for="MethodsCsv" class="form-control" placeholder="CASH,CREDIT,FLASH" />
-                <span asp-validation-for="MethodsCsv" class="text-danger"></span>
             </div>
         </div>
     </div>
