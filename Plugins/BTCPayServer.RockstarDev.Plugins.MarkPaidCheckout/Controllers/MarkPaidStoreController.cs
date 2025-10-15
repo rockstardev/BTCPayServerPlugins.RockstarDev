@@ -5,6 +5,7 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
+using BTCPayServer.Events;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.PaymentHandlers;
 using BTCPayServer.Services.Invoices;
@@ -22,7 +23,8 @@ public class MarkPaidStoreController(
     InvoiceRepository invoiceRepository,
     PaymentMethodHandlerDictionary handlers,
     PaymentService paymentService,
-    MarkPaidMethodsRegistry registry) : Controller
+    MarkPaidMethodsRegistry registry,
+    EventAggregator eventAggregator) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
 
@@ -85,12 +87,20 @@ public class MarkPaidStoreController(
             PaymentMethodId = handler.PaymentMethodId.ToString()
         }.Set(invoice, handler, new object());
         var payment = await paymentService.AddPayment(paymentData);
-        // Nicolas wanted to do it this way since we add payment there is no need to manually mark the invoice as settled
-        // the invoice service will do it automatically when it detects that the invoice is fully paid
-        // if (payment != null)
-        // {
-        //     await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
-        // }
+        
+        // Previously we were calling: await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
+        // But Nicolas wants to keep the state machine intact, so we do it by adding Settled payment
+        // And then triggering invoice state machine that causes the invoice to transition: New -> Processing -> Settled automatically.
+        // (it doesn't have New -> Settled)
+        if (payment != null)
+        {
+            invoice = await invoiceRepository.GetInvoice(invoiceId, true);
+            eventAggregator.Publish(new InvoiceEvent(invoice, InvoiceEvent.ReceivedPayment) { Payment = payment });
+            
+            // Small delay to allow the InvoiceWatcher to process the state transition
+            // before redirecting back to the checkout page
+            await Task.Delay(500);
+        }
 
         return Redirect(returnUrl);
     }

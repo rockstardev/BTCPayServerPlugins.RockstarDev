@@ -29,7 +29,7 @@ public class MarkPaidCheckoutModelExtension(PaymentMethodId pmid) : ICheckoutMod
         context.Model.ExpirationSeconds = int.MaxValue;
         context.Model.Activated = true;
         context.Model.InvoiceBitcoinUrl =
-            $"/stores/{context.Model.StoreId}/markpaid/MarkAsPaid?invoiceId={context.Model.InvoiceId}&returnUrl=/i/{context.Model.InvoiceId}&method={method}";
+            $"/stores/{context.Model.StoreId}/markpaid/MarkAsPaid?invoiceId={context.Model.InvoiceId}&returnUrl=/i/{context.Model.InvoiceId}?paymentMethodId={method}&method={method}";
         context.Model.ShowPayInWalletButton = true;
     }
 }
