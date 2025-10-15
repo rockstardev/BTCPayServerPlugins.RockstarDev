@@ -22,11 +22,6 @@ jobs:
             -   name: Initialize and update submodules
                 run: git submodule update --init --recursive
 
-            -   name: Clean workspace
-                run: |
-                    dotnet clean
-                    git clean -xfd
-
             -   name: Setup .NET
                 uses: actions/setup-dotnet@v4
                 with:
@@ -42,19 +37,33 @@ jobs:
                     
             -   name: Cache Playwright browsers
                 uses: actions/cache@v4
+                id: playwright-cache
                 with:
                     path: ~/.cache/ms-playwright
                     key: ${{ runner.os }}-playwright-${{ hashFiles('**/BTCPayServer.Plugins.Tests.csproj') }}
                     restore-keys: |
                         ${{ runner.os }}-playwright-
 
-            -   name: Install Playwright CLI + browsers
+            -   name: Install Playwright CLI + browsers (full install)
+                if: steps.playwright-cache.outputs.cache-hit != 'true'
                 run: |
                     dotnet tool install --global Microsoft.Playwright.CLI
                     export PATH="$PATH:$HOME/.dotnet/tools"
                     playwright install --with-deps
 
+            -   name: Install Playwright CLI only (cache hit)
+                if: steps.playwright-cache.outputs.cache-hit == 'true'
+                run: |
+                    dotnet tool install --global Microsoft.Playwright.CLI
+                    export PATH="$PATH:$HOME/.dotnet/tools"
+
             -   name: Start Docker containers
+                env:
+                    # Enable BuildKit for faster builds and better layer caching within the run
+                    # Note: This does NOT persist cache between GitHub Actions runs (ephemeral runners)
+                    # but provides ~5-10s speed improvement from BuildKit's optimized build engine
+                    DOCKER_BUILDKIT: 1
+                    COMPOSE_DOCKER_CLI_BUILD: 1
                 run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev --build
 
             -   name: Run tests
