@@ -98,11 +98,29 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         // Click Mark Settled button and wait for page reload
         await frame.GetByRole(AriaRole.Link, new() { Name = "Mark Settled" }).ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
+
+        // Re-acquire the checkout frame after reload
+        frameElement = await Page.QuerySelectorAsync("iframe[name='btcpay']");
+        Assert.NotNull(frameElement);
+        frame = await frameElement.ContentFrameAsync();
+        Assert.NotNull(frame);
+        await frame.WaitForSelectorAsync("#settled h4");
+        await frame.WaitForTimeoutAsync(500); // Wait for i18n to populate and script to append method
+
+        // Verify settled heading includes payment method on first render
+        var settledHeading = await frame.InnerTextAsync("#settled h4");
+        Assert.Contains(" - CASH", settledHeading);
+
+        // Switch language and ensure heading remains annotated
+        await frame.SelectOptionAsync("#DefaultLang", "it-IT");
+        await frame.WaitForTimeoutAsync(100); // Wait for i18n to update and script to re-append
+        settledHeading = await frame.InnerTextAsync("#settled h4");
+        Assert.Contains(" - CASH", settledHeading);
+
         // Verify invoice is now settled
         invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
         Assert.Equal(InvoiceStatus.Settled, invoice.Status);
-        
+
         // Verify payment was added with correct details
         var payments = invoice.GetPayments(false);
         Assert.Single(payments);

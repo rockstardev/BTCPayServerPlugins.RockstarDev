@@ -85,7 +85,7 @@
             // Listen for i18next language changes
             if (window.i18next) {
                 window.i18next.on('languageChanged', () => {
-                    Vue.nextTick(() => { updateTitle();}); // Small delay for Vue to re-render
+                    Vue.nextTick(() => { updateTitle(); });
                 });
             }
         })();
