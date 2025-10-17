@@ -21,9 +21,13 @@
                 mounted() {
                     const method = this.model.paymentMethodId;
                     const observer = new MutationObserver(() => {
-                        const h4 = document.querySelector('#settled h4');
-                        if (h4 && h4.textContent === 'Invoice Paid') {
-                            h4.textContent = `Invoice Settled - ${method}`;
+                        const settled = document.querySelector('#settled');
+                        if (settled && !settled.dataset.updated) {
+                            const h4 = settled.querySelector('h4');
+                            if (h4) {
+                                h4.textContent = `${h4.textContent} - ${method}`;
+                                settled.dataset.updated = 'true';
+                            }
                         }
                     });
                     observer.observe(document.getElementById('Checkout'), {childList: true, subtree: true});
@@ -48,18 +52,29 @@
     </text>
 }
 
-<!-- Update settled title to show payment method -->
+<!-- Update settled title to show payment method on page reload -->
 <!-- Runs globally because settled view doesn't render payment method components -->
 <script>
-    window.updateSettledTitle = () => {
-        const h4 = document.querySelector('#settled h4');
-        if (h4 && h4.textContent === 'Invoice Paid') {
-            const method = window.location.pathname.split('/').pop();
-            if (method && method !== 'i') h4.textContent = `Invoice Settled - ${method}`;
+    (function() {
+        const updateTitle = () => {
+            const settled = document.querySelector('#settled');
+            if (settled && !settled.dataset.updated) {
+                const method = window.location.pathname.split('/').pop();
+                if (method && method !== 'i') {
+                    const h4 = settled.querySelector('h4');
+                    if (h4 && h4.textContent && h4.textContent.trim()) {
+                        h4.textContent = `${h4.textContent} - ${method}`;
+                        settled.dataset.updated = 'true';
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+        
+        // Try immediately and retry with delays for i18n to load
+        if (!updateTitle()) {
+            setTimeout(() => { if (!updateTitle()) setTimeout(updateTitle, 200); }, 100);
         }
-    };
-    
-    const observer = new MutationObserver(window.updateSettledTitle);
-    observer.observe(document.getElementById('Checkout'), {childList: true, subtree: true});
-    setTimeout(window.updateSettledTitle, 100);
+    })();
 </script>
