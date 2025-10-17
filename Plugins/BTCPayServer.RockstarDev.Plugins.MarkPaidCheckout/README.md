@@ -6,6 +6,10 @@ By default, the plugin provides a **CASH** payment method. No additional configu
 
 If you want to add more payment methods, you can do so by going to the MarkPaid plugin Server settings, and update the textbox to say "CASH,CREDIT". Please be aware you'll need to restart the server for settings to take effect.
 
+## Demo
+
+![MarkPaid Plugin Demo](docs/markpaid_demo_2.mp4)
+
 ## Features
 
 - **Custom Payment Methods**: Add payment methods like CASH, CREDIT, BANK_TRANSFER, or any custom identifier
