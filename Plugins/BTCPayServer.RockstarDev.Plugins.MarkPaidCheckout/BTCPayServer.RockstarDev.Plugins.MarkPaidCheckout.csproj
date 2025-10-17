@@ -7,7 +7,7 @@
     <PropertyGroup>
         <Product>MarkPaid Checkout</Product>
         <Description>Define manual payment methods, allowing you to record payments from other systems directly through BTCPay (Cash, Credit, etc).</Description>
-        <Version>0.1.1</Version>
+        <Version>0.1.2</Version>
     </PropertyGroup>
     <PropertyGroup>
         <AddRazorSupportForMvc>true</AddRazorSupportForMvc>

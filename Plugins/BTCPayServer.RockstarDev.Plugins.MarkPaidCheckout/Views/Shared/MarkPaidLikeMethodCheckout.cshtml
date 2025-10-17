@@ -19,13 +19,12 @@
                     return {isProcessing: false};
                 },
                 mounted() {
-                    const method = this.model.paymentMethodId;
                     const updateSettledTitle = () => {
                         const settled = document.querySelector('#settled');
                         if (settled) {
                             const h4 = settled.querySelector('h4');
-                            if (h4 && h4.textContent && !h4.textContent.includes(` - ${method}`)) {
-                                h4.textContent = `${h4.textContent} - ${method}`;
+                            if (h4 && h4.textContent && !h4.textContent.includes(' - ') && window.markPaidSettledMethod) {
+                                h4.textContent = `${h4.textContent} - ${window.markPaidSettledMethod}`;
                             }
                         }
                     };
@@ -42,7 +41,7 @@
                             headers: {'X-Requested-With': 'RockstarHttpRequester'}
                         });
                         if ((await response.json()).success) {
-
+                            window.markPaidSettledMethod = this.model.paymentMethodId;
                         }
 
                         this.isProcessing = false;
@@ -72,7 +71,7 @@
 
                 // Only run for MarkPaid payment methods
                 if (!markPaidMethods.includes(method)) return;
-                
+
                 const settled = document.querySelector('#settled');
                 if (settled) {
                     const h4 = settled.querySelector('h4');
@@ -85,7 +84,9 @@
             // Listen for i18next language changes
             if (window.i18next) {
                 window.i18next.on('languageChanged', () => {
-                    Vue.nextTick(() => { updateTitle(); });
+                    Vue.nextTick(() => {
+                        updateTitle();
+                    });
                 });
             }
         })();
