@@ -20,17 +20,18 @@
                 },
                 mounted() {
                     const method = this.model.paymentMethodId;
-                    const observer = new MutationObserver(() => {
+                    const updateSettledTitle = () => {
                         const settled = document.querySelector('#settled');
-                        if (settled && !settled.dataset.updated) {
+                        if (settled) {
                             const h4 = settled.querySelector('h4');
-                            if (h4) {
+                            if (h4 && h4.textContent && !h4.textContent.includes(` - ${method}`)) {
                                 h4.textContent = `${h4.textContent} - ${method}`;
-                                settled.dataset.updated = 'true';
                             }
                         }
-                    });
-                    observer.observe(document.getElementById('Checkout'), {childList: true, subtree: true});
+                    };
+
+                    const observer = new MutationObserver(updateSettledTitle);
+                    observer.observe(document.getElementById('Checkout'), {childList: true, subtree: true, characterData: true});
                 },
                 methods: {
                     async markAsPaid() {
@@ -41,7 +42,7 @@
                             headers: {'X-Requested-With': 'RockstarHttpRequester'}
                         });
                         if ((await response.json()).success) {
-                            
+
                         }
 
                         this.isProcessing = false;
@@ -54,27 +55,39 @@
 
 <!-- Update settled title to show payment method on page reload -->
 <!-- Runs globally because settled view doesn't render payment method components -->
+<!-- Only runs once even if multiple MarkPaid methods are registered -->
 <script>
-    (function() {
-        const updateTitle = () => {
-            const settled = document.querySelector('#settled');
-            if (settled && !settled.dataset.updated) {
-                const method = window.location.pathname.split('/').pop();
-                if (method && method !== 'i') {
+    if (!window.markPaidGlobalSetup) {
+        window.markPaidGlobalSetup = true;
+        (function () {
+            // Check if on invoice page
+            if (!window.location.pathname.match(/\/(i|invoice)\//)) return;
+
+            const markPaidMethods = @Safe.Json(Registry.Methods);
+
+            const updateTitle = () => {
+                // Get payment method from srvModel
+                const method = initialSrvModel?.paymentMethodId;
+                if (!method) return;
+
+                // Only run for MarkPaid payment methods
+                if (!markPaidMethods.includes(method)) return;
+                
+                const settled = document.querySelector('#settled');
+                if (settled) {
                     const h4 = settled.querySelector('h4');
-                    if (h4 && h4.textContent && h4.textContent.trim()) {
+                    if (h4 && h4.textContent && h4.textContent.trim() && !h4.textContent.includes(` - ${method}`)) {
                         h4.textContent = `${h4.textContent} - ${method}`;
-                        settled.dataset.updated = 'true';
-                        return true;
                     }
                 }
+            };
+
+            // Listen for i18next language changes
+            if (window.i18next) {
+                window.i18next.on('languageChanged', () => {
+                    Vue.nextTick(() => { updateTitle();}); // Small delay for Vue to re-render
+                });
             }
-            return false;
-        };
-        
-        // Try immediately and retry with delays for i18n to load
-        if (!updateTitle()) {
-            setTimeout(() => { if (!updateTitle()) setTimeout(updateTitle, 200); }, 100);
-        }
-    })();
+        })();
+    }
 </script>
