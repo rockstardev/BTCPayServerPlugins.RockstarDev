@@ -92,14 +92,9 @@ public class MarkPaidStoreController(
         }.Set(invoice, handler, new object());
         var payment = await paymentService.AddPayment(paymentData);
         
-        // Previously we were calling: await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
-        // But Nicolas wants to keep the state machine intact, so we do it by adding Settled payment
-        // And then triggering invoice state machine that causes the invoice to transition: New -> Processing -> Settled automatically.
-        // (it doesn't have New -> Settled)
         if (payment != null)
         {
-            invoice = await invoiceRepository.GetInvoice(invoiceId, true);
-            eventAggregator.Publish(new InvoiceEvent(invoice, InvoiceEvent.ReceivedPayment) { Payment = payment });
+            await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
         }
 
         return Json(new { success = true, status = invoice.Status.ToString() });

@@ -13,27 +13,53 @@
         </template>
         <script>
             Vue.component(@Safe.Json(component), {
-                props: ['model', 'nfcSupported', 'nfcScanning', 'nfcErrorMessage', 'nfcWarningMessage'],
+                props: ['model'],
                 template: @Safe.Json("#" + component),
-                components: {qrcode: VueQrcode},
                 data() {
-                    return {currentTab: undefined, isProcessing: false};
+                    return {isProcessing: false};
+                },
+                mounted() {
+                    const method = this.model.paymentMethodId;
+                    const observer = new MutationObserver(() => {
+                        const h4 = document.querySelector('#settled h4');
+                        if (h4 && h4.textContent === 'Invoice Paid') {
+                            h4.textContent = `Invoice Settled - ${method}`;
+                        }
+                    });
+                    observer.observe(document.getElementById('Checkout'), {childList: true, subtree: true});
                 },
                 methods: {
                     async markAsPaid() {
-                        if (this.isProcessing)
-                            return;
+                        if (this.isProcessing) return;
                         this.isProcessing = true;
                         const response = await fetch(this.model.invoiceBitcoinUrl, {
                             method: 'POST',
                             headers: {'X-Requested-With': 'RockstarHttpRequester'}
                         });
+                        if ((await response.json()).success) {
+                            
+                        }
 
-                        if ((await response.json()).success)
-                            this.isProcessing = false;
+                        this.isProcessing = false;
                     }
                 }
             });
         </script>
     </text>
 }
+
+<!-- Update settled title to show payment method -->
+<!-- Runs globally because settled view doesn't render payment method components -->
+<script>
+    window.updateSettledTitle = () => {
+        const h4 = document.querySelector('#settled h4');
+        if (h4 && h4.textContent === 'Invoice Paid') {
+            const method = window.location.pathname.split('/').pop();
+            if (method && method !== 'i') h4.textContent = `Invoice Settled - ${method}`;
+        }
+    };
+    
+    const observer = new MutationObserver(window.updateSettledTitle);
+    observer.observe(document.getElementById('Checkout'), {childList: true, subtree: true});
+    setTimeout(window.updateSettledTitle, 100);
+</script>
