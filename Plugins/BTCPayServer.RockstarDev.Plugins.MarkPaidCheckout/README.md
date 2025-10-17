@@ -8,7 +8,8 @@ If you want to add more payment methods, you can do so by going to the MarkPaid 
 
 ## Demo
 
-![MarkPaid Plugin Demo](docs/markpaid_demo_2.mp4)
+<video src="docs/markpaid_demo_2.mp4" controls width="600"></video>
+[▶️ Raw MP4 Demo](docs/markpaid_demo_2.mp4)
 
 ## Features
 
