@@ -142,12 +142,37 @@ public class WalletSweeperController(
     {
         try
         {
-            await sweeperService.TriggerManualSweep(storeId, cancellationToken);
-            TempData[WellKnownTempData.SuccessMessage] = "Manual sweep executed successfully. Check the history below for details.";
+            var result = await sweeperService.TriggerManualSweep(storeId, cancellationToken);
+            
+            if (result.Success)
+            {
+                TempData[WellKnownTempData.SuccessMessage] = 
+                    $"Manual sweep executed successfully! Transaction ID: {result.TxId}. " +
+                    $"Amount: {result.Amount:N8} BTC, Fee: {result.Fee:N8} BTC. Check the history below for details.";
+            }
+            else
+            {
+                // Provide specific error messages based on result type
+                switch (result.ResultType)
+                {
+                    case Services.SweepResult.SweepResultType.BelowMinimumThreshold:
+                        TempData[WellKnownTempData.ErrorMessage] = result.ErrorMessage;
+                        break;
+                    case Services.SweepResult.SweepResultType.InsufficientBalance:
+                        TempData[WellKnownTempData.ErrorMessage] = result.ErrorMessage;
+                        break;
+                    case Services.SweepResult.SweepResultType.NoConfiguration:
+                        TempData[WellKnownTempData.ErrorMessage] = result.ErrorMessage;
+                        break;
+                    default:
+                        TempData[WellKnownTempData.ErrorMessage] = $"Sweep failed: {result.ErrorMessage}";
+                        break;
+                }
+            }
         }
         catch (Exception ex)
         {
-            TempData[WellKnownTempData.ErrorMessage] = $"Failed to trigger sweep: {ex.Message}";
+            TempData[WellKnownTempData.ErrorMessage] = $"Unexpected error during sweep: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Index), new { storeId });

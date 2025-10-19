@@ -151,7 +151,13 @@
                                     }
                                     else if (item.Status == SweepHistory.SweepStatuses.Failed)
                                     {
-                                        <span class="badge bg-danger" title="@item.ErrorMessage">Failed</span>
+                                        <div>
+                                            <span class="badge bg-danger">Failed</span>
+                                            @if (!string.IsNullOrEmpty(item.ErrorMessage))
+                                            {
+                                                <br/><small class="text-danger">@item.ErrorMessage</small>
+                                            }
+                                        </div>
                                     }
                                     else
                                     {

@@ -71,7 +71,7 @@ public class WalletSweeperService(
     /// <summary>
     /// Manually trigger a sweep for a specific store
     /// </summary>
-    public async Task TriggerManualSweep(string storeId, CancellationToken cancellationToken = default)
+    public async Task<SweepResult> TriggerManualSweep(string storeId, CancellationToken cancellationToken = default)
     {
         logger.LogInformation($"WalletSweeper: Manual sweep triggered for store {storeId}");
 
@@ -82,14 +82,35 @@ public class WalletSweeperService(
 
         if (config == null)
         {
-            throw new InvalidOperationException($"No enabled sweep configuration found for store {storeId}");
+            return SweepResult.FailureResult(
+                $"No enabled sweep configuration found for store {storeId}",
+                SweepResult.SweepResultType.NoConfiguration);
         }
 
         // Get wallet balance
         var currentBalance = await GetWalletBalance(config.StoreId, cancellationToken);
         
-        // Execute sweep with Manual trigger type, bypassing all checks
-        await ExecuteSweep(config, currentBalance, SweepHistory.TriggerTypes.Manual, cancellationToken);
+        // Validate balance against minimum threshold
+        if (currentBalance < config.MinimumBalance)
+        {
+            logger.LogWarning($"WalletSweeper: Balance {currentBalance} BTC is below minimum threshold {config.MinimumBalance} BTC");
+            return SweepResult.FailureResult(
+                $"Wallet balance ({currentBalance:N8} BTC) is below the minimum threshold ({config.MinimumBalance:N8} BTC). Sweep not executed.",
+                SweepResult.SweepResultType.BelowMinimumThreshold);
+        }
+        
+        // Check if balance is high enough to justify sweep after reserve and fees
+        var minViableBalance = config.ReserveAmount + 0.0001m;
+        if (currentBalance <= minViableBalance)
+        {
+            logger.LogWarning($"WalletSweeper: Balance {currentBalance} BTC is not high enough above reserve {config.ReserveAmount} BTC");
+            return SweepResult.FailureResult(
+                $"Wallet balance ({currentBalance:N8} BTC) is not high enough above the reserve amount ({config.ReserveAmount:N8} BTC) to justify a sweep.",
+                SweepResult.SweepResultType.InsufficientBalance);
+        }
+        
+        // Execute sweep with Manual trigger type
+        return await ExecuteSweep(config, currentBalance, SweepHistory.TriggerTypes.Manual, cancellationToken);
     }
 
     private async Task ProcessConfiguration(SweepConfiguration config, CancellationToken cancellationToken)
@@ -194,13 +215,13 @@ public class WalletSweeperService(
         }
     }
 
-    private async Task ExecuteSweep(
+    private async Task<SweepResult> ExecuteSweep(
         SweepConfiguration config,
         decimal currentBalance,
         SweepHistory.TriggerTypes triggerType,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation($"WalletSweeper: Executing sweep for store {config.StoreId}, trigger: {triggerType}");
+        logger.LogInformation($"WalletSweeper: Executing sweep for store {config.StoreId}, trigger: {triggerType}, balance: {currentBalance} BTC");
 
         await using var db = dbContextFactory.CreateContext();
 
@@ -221,24 +242,37 @@ public class WalletSweeperService(
             var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
             var feeRate = await GetFeeRateAsync(network, config.FeeRate, cancellationToken);
             
-            // Estimate fee (rough estimate: ~200 vbytes for typical sweep transaction)
-            var estimatedFee = (feeRate.SatoshiPerByte * 200m) / 100_000_000m; // Convert sat to BTC
-
-            // Calculate sweep amount: current balance - reserve amount - fee
-            // This leaves exactly the reserve amount in the wallet after the sweep
-            var sweepAmount = currentBalance - config.ReserveAmount - estimatedFee;
-
-            if (sweepAmount <= 0)
+            // Determine if we're using SweepAll mode (when reserve is 0)
+            var useSweepAll = config.ReserveAmount == 0;
+            
+            decimal sweepAmount = 0;
+            decimal estimatedFee = 0;
+            
+            // Only calculate amounts if NOT using SweepAll (when reserve > 0)
+            if (!useSweepAll)
             {
-                throw new InvalidOperationException(
-                    $"Sweep amount is zero or negative after accounting for reserve and fees. Balance: {currentBalance}, Reserve: {config.ReserveAmount}, Fee: {estimatedFee}");
+                // Estimate fee (rough estimate: ~200 vbytes for typical sweep transaction)
+                estimatedFee = (feeRate.SatoshiPerByte * 200m) / 100_000_000m; // Convert sat to BTC
+
+                // Calculate sweep amount: current balance - reserve amount - fee
+                // This leaves exactly the reserve amount in the wallet after the sweep
+                sweepAmount = currentBalance - config.ReserveAmount - estimatedFee;
+
+                if (sweepAmount <= 0)
+                {
+                    var errorMsg = $"Sweep amount is zero or negative after accounting for reserve and fees. Balance: {currentBalance}, Reserve: {config.ReserveAmount}, Fee: {estimatedFee}";
+                    logger.LogError($"WalletSweeper: {errorMsg}");
+                    throw new InvalidOperationException(errorMsg);
+                }
+
+                logger.LogInformation(
+                    $"WalletSweeper: Calculated sweep - Balance: {currentBalance} BTC, Reserve: {config.ReserveAmount} BTC, Fee: {estimatedFee} BTC, Sweep Amount: {sweepAmount} BTC");
             }
-
-            history.Amount = sweepAmount;
-            history.Fee = estimatedFee;
-
-            logger.LogInformation(
-                $"WalletSweeper: Calculated sweep - Balance: {currentBalance} BTC, Reserve: {config.ReserveAmount} BTC, Fee: {estimatedFee} BTC, Sweep Amount: {sweepAmount} BTC");
+            else
+            {
+                logger.LogInformation(
+                    $"WalletSweeper: Using SweepAll mode - Balance: {currentBalance} BTC, Reserve: {config.ReserveAmount} BTC");
+            }
 
             // Get store and derivation settings
             var store = await storeRepository.FindStore(config.StoreId);
@@ -275,32 +309,75 @@ public class WalletSweeperService(
             // Parse destination address
             var destinationAddress = BitcoinAddress.Create(config.DestinationValue, network.NBitcoinNetwork);
 
-            // Create PSBT
+            // Calculate minimum viable UTXO value based on fee rate
+            // A typical input costs ~68 vBytes to spend, so exclude UTXOs smaller than that cost
+            var minUtxoValue = Money.Satoshis((long)(68 * feeRate.SatoshiPerByte));
+            
+            // Get actual UTXOs and calculate spendable balance (excluding dust)
+            var utxos = await explorerClient.GetUTXOsAsync(derivation.AccountDerivation, cancellationToken);
+            var allUtxos = utxos.GetUnspentUTXOs().ToList();
+            var spendableUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) >= 0).ToList();
+            var spendableBalance = spendableUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
+            var dustUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) < 0).ToList();
+            var dustBalance = dustUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
+            
+            logger.LogInformation($"WalletSweeper: Total UTXOs: {allUtxos.Count}, " +
+                                $"Spendable: {spendableUtxos.Count} ({spendableBalance:N8} BTC), " +
+                                $"Dust: {dustUtxos.Count} ({dustBalance:N8} BTC, threshold: {minUtxoValue.ToDecimal(MoneyUnit.BTC):N8} BTC)");
+            
+            if (spendableBalance == 0)
+            {
+                throw new InvalidOperationException($"No spendable UTXOs available. All UTXOs are below dust threshold of {minUtxoValue.ToDecimal(MoneyUnit.BTC):N8} BTC ({minUtxoValue.Satoshi} sats)");
+            }
+            
+            // Create PSBT - When reserve is 0, send entire balance and subtract fees
+            // This is how BTCPay Server's send page handles "send all"
             var createPSBTRequest = new CreatePSBTRequest
             {
                 RBF = true,
                 AlwaysIncludeNonWitnessUTXO = derivation.DefaultIncludeNonWitnessUtxo,
                 IncludeGlobalXPub = derivation.IsMultiSigOnServer,
+                MinValue = minUtxoValue, // Exclude dust UTXOs that cost more to spend than they're worth
                 Destinations = new List<CreatePSBTDestination>
                 {
                     new CreatePSBTDestination
                     {
                         Destination = destinationAddress.ScriptPubKey,
-                        Amount = Money.Coins(sweepAmount),
-                        //SweepAll = false
+                        Amount = Money.Coins(spendableBalance), // Send spendable balance (excluding dust)
                     }
                 },
                 FeePreference = new FeePreference
                 {
                     ExplicitFeeRate = feeRate
-                }
+                },
+                // Reserve a change address when we have a reserve amount (change will be the reserve)
+                ReserveChangeAddress = config.ReserveAmount > 0
             };
 
-            logger.LogInformation($"WalletSweeper: Creating PSBT for sweep to {config.DestinationValue}");
+            logger.LogInformation($"WalletSweeper: Creating PSBT for sweep to {config.DestinationValue}, " +
+                                $"spendableAmount: {spendableBalance:N8} BTC, subtractFees: {useSweepAll}, " +
+                                $"reserve: {config.ReserveAmount} BTC");
             var psbtResponse = await explorerClient.CreatePSBTAsync(derivation.AccountDerivation, createPSBTRequest, cancellationToken);
+            if (psbtResponse == null || psbtResponse.PSBT == null)
+            {
+                throw new InvalidOperationException("Failed to create PSBT - response was null");
+            }
             var psbt = psbtResponse.PSBT;
+            
+            // Update actual amounts from PSBT (important when using SweepAll)
+            var actualFeeFromPsbt = psbt.GetFee();
+            history.Fee = actualFeeFromPsbt.ToDecimal(MoneyUnit.BTC);
+            
+            // Calculate actual sweep amount from outputs
+            var actualSweepAmount = psbt.Outputs
+                .Where(o => o.ScriptPubKey == destinationAddress.ScriptPubKey)
+                .Sum(o => o.Value.ToDecimal(MoneyUnit.BTC));
+            history.Amount = actualSweepAmount;
+            
+            logger.LogInformation($"WalletSweeper: PSBT created successfully. Actual sweep amount: {actualSweepAmount} BTC, Actual fee: {history.Fee} BTC");
 
             // Sign the PSBT
+            logger.LogInformation($"WalletSweeper: Signing PSBT");
             var extKey = ExtKey.Parse(signingKeyStr, network.NBitcoinNetwork);
             var signingKeySettings = derivation.GetAccountKeySettingsFromRoot(extKey);
             if (signingKeySettings == null)
@@ -322,53 +399,63 @@ public class WalletSweeperService(
 
             if (signed == null)
             {
-                throw new InvalidOperationException("Failed to sign PSBT");
+                throw new InvalidOperationException("Failed to sign PSBT - SignAll returned null");
             }
+            logger.LogInformation($"WalletSweeper: PSBT signed successfully");
 
             // Finalize PSBT
+            logger.LogInformation($"WalletSweeper: Finalizing PSBT");
             if (!psbt.TryFinalize(out var errors))
             {
-                throw new InvalidOperationException($"Failed to finalize PSBT: {string.Join(", ", errors)}");
+                var errorDetails = errors.Count > 0 ? string.Join(", ", errors) : "Unknown error";
+                throw new InvalidOperationException($"Failed to finalize PSBT: {errorDetails}");
             }
+            logger.LogInformation($"WalletSweeper: PSBT finalized successfully");
 
             // Extract and broadcast transaction
             var transaction = psbt.ExtractTransaction();
-            logger.LogInformation($"WalletSweeper: Broadcasting transaction {transaction.GetHash()}");
+            var txHash = transaction.GetHash().ToString();
+            logger.LogInformation($"WalletSweeper: Broadcasting transaction {txHash}");
 
             var broadcastResult = await explorerClient.BroadcastAsync(transaction, cancellationToken);
             if (!broadcastResult.Success)
             {
-                throw new InvalidOperationException(
-                    $"Broadcast failed: {broadcastResult.RPCCode} {broadcastResult.RPCCodeMessage} {broadcastResult.RPCMessage}");
+                var broadcastError = $"Broadcast failed: {broadcastResult.RPCCode} {broadcastResult.RPCCodeMessage} {broadcastResult.RPCMessage}";
+                logger.LogError($"WalletSweeper: {broadcastError}");
+                throw new InvalidOperationException(broadcastError);
             }
+            logger.LogInformation($"WalletSweeper: Transaction broadcast successful");
 
-            // Update actual fee from transaction
-            var actualFee = psbt.GetFee();
-            history.Fee = actualFee.ToDecimal(MoneyUnit.BTC);
-            history.TxId = transaction.GetHash().ToString();
+            // Update transaction ID and status
+            history.TxId = txHash;
             history.Status = SweepHistory.SweepStatuses.Success;
 
             // Invalidate wallet cache
             var wallet = walletProvider.GetWallet("BTC");
             wallet.InvalidateCache(derivation.AccountDerivation);
 
-            logger.LogInformation($"WalletSweeper: Sweep successful! TxId: {history.TxId}, Actual Fee: {history.Fee} BTC");
+            logger.LogInformation($"WalletSweeper: Sweep successful! TxId: {history.TxId}, Amount: {history.Amount} BTC, Fee: {history.Fee} BTC");
 
             // Update last sweep date
             config.LastSweepDate = DateTimeOffset.UtcNow;
             db.SweepConfigurations.Update(config);
-
-            logger.LogInformation($"WalletSweeper: Sweep successful! Amount: {sweepAmount} BTC, Fee: {estimatedFee} BTC");
+            
+            db.SweepHistories.Add(history);
+            await db.SaveChangesAsync(cancellationToken);
+            
+            return SweepResult.SuccessResult(history.TxId, history.Amount, history.Fee);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"WalletSweeper: Sweep failed for store {config.StoreId}");
+            logger.LogError(ex, $"WalletSweeper: Sweep failed for store {config.StoreId}: {ex.Message}");
             history.Status = SweepHistory.SweepStatuses.Failed;
             history.ErrorMessage = ex.Message;
+            
+            db.SweepHistories.Add(history);
+            await db.SaveChangesAsync(cancellationToken);
+            
+            return SweepResult.FailureResult(ex.Message);
         }
-
-        db.SweepHistories.Add(history);
-        await db.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<FeeRate> GetFeeRateAsync(
