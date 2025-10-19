@@ -317,53 +317,81 @@ public class WalletSweeperService(
             var utxos = await explorerClient.GetUTXOsAsync(derivation.AccountDerivation, cancellationToken);
             var allUtxos = utxos.GetUnspentUTXOs().ToList();
             var spendableUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) >= 0).ToList();
-            var spendableBalance = spendableUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
             var dustUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) < 0).ToList();
+            var spendableBalance = spendableUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
             var dustBalance = dustUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
-            
+
             logger.LogInformation($"WalletSweeper: Total UTXOs: {allUtxos.Count}, " +
                                 $"Spendable: {spendableUtxos.Count} ({spendableBalance:N8} BTC), " +
                                 $"Dust: {dustUtxos.Count} ({dustBalance:N8} BTC, threshold: {minUtxoValue.ToDecimal(MoneyUnit.BTC):N8} BTC)");
-            
+
             if (spendableBalance == 0)
             {
                 throw new InvalidOperationException($"No spendable UTXOs available. All UTXOs are below dust threshold of {minUtxoValue.ToDecimal(MoneyUnit.BTC):N8} BTC ({minUtxoValue.Satoshi} sats)");
             }
-            
-            // Create PSBT - When reserve is 0, send entire balance and subtract fees
-            // This is how BTCPay Server's send page handles "send all"
+
+            // Determine how much to send based on mode
+            decimal amountToSend;
+            bool subtractFees;
+
+            if (useSweepAll)
+            {
+                amountToSend = spendableBalance;
+                subtractFees = true;
+                logger.LogInformation($"WalletSweeper: SweepAll mode - sending {amountToSend:N8} BTC with fees subtracted");
+            }
+            else
+            {
+                amountToSend = sweepAmount;
+                subtractFees = false;
+
+                if (amountToSend <= 0)
+                {
+                    throw new InvalidOperationException($"Calculated sweep amount ({amountToSend:N8} BTC) is not positive after accounting for reserve and estimated fee");
+                }
+
+                if (amountToSend > spendableBalance)
+                {
+                    throw new InvalidOperationException($"Calculated sweep amount ({amountToSend:N8} BTC) exceeds spendable balance ({spendableBalance:N8} BTC)");
+                }
+
+                logger.LogInformation($"WalletSweeper: Reserve mode - sending {amountToSend:N8} BTC, keeping {config.ReserveAmount:N8} BTC as change (estimated fee {estimatedFee:N8} BTC)");
+            }
+
+            // Build PSBT request mirroring BTCPay Server send flow
             var createPSBTRequest = new CreatePSBTRequest
             {
                 RBF = true,
                 AlwaysIncludeNonWitnessUTXO = derivation.DefaultIncludeNonWitnessUtxo,
                 IncludeGlobalXPub = derivation.IsMultiSigOnServer,
-                MinValue = minUtxoValue, // Exclude dust UTXOs that cost more to spend than they're worth
+                IncludeOnlyOutpoints = spendableUtxos.Select(u => u.Outpoint).ToList(),
                 Destinations = new List<CreatePSBTDestination>
                 {
                     new CreatePSBTDestination
                     {
                         Destination = destinationAddress.ScriptPubKey,
-                        Amount = Money.Coins(spendableBalance), // Send spendable balance (excluding dust)
+                        Amount = useSweepAll ? null : Money.Coins(amountToSend),
+                        SweepAll = useSweepAll,
+                        SubstractFees = subtractFees
                     }
                 },
                 FeePreference = new FeePreference
                 {
                     ExplicitFeeRate = feeRate
-                },
-                // Reserve a change address when we have a reserve amount (change will be the reserve)
-                ReserveChangeAddress = config.ReserveAmount > 0
+                }
             };
 
             logger.LogInformation($"WalletSweeper: Creating PSBT for sweep to {config.DestinationValue}, " +
-                                $"spendableAmount: {spendableBalance:N8} BTC, subtractFees: {useSweepAll}, " +
+                                $"mode: {(useSweepAll ? "SweepAll" : $"Amount: {amountToSend:N8} BTC")}, " +
                                 $"reserve: {config.ReserveAmount} BTC");
+
             var psbtResponse = await explorerClient.CreatePSBTAsync(derivation.AccountDerivation, createPSBTRequest, cancellationToken);
-            if (psbtResponse == null || psbtResponse.PSBT == null)
+            if (psbtResponse?.PSBT == null)
             {
                 throw new InvalidOperationException("Failed to create PSBT - response was null");
             }
             var psbt = psbtResponse.PSBT;
-            
+
             // Update actual amounts from PSBT (important when using SweepAll)
             var actualFeeFromPsbt = psbt.GetFee();
             history.Fee = actualFeeFromPsbt.ToDecimal(MoneyUnit.BTC);
