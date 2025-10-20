@@ -85,7 +85,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
 
         var context = await Browser.NewContextAsync();
         Page = await context.NewPageAsync();
-        Page.SetDefaultTimeout(5000); // Set default timeout to 5 seconds
+        Page.SetDefaultTimeout(10000); // Set default timeout to 10 seconds (server startup can be slow)
         ServerUri = serverTester.PayTester.ServerUri;
         TestLogs.LogInformation($"Playwright: Browsing to {ServerUri}");
     }

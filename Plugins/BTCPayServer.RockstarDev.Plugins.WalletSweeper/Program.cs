@@ -31,7 +31,13 @@ public class WalletSweeperPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddHostedService<PluginMigrationRunner>();
 
         // Add the wallet sweeper background service
-        serviceCollection.AddScheduledTask<WalletSweeperService>(TimeSpan.FromHours(1));
+        // Configurable via environment variable BTCPAY_WALLETSWEEPER_INTERVAL (in seconds)
+        // Default: 60 seconds (1 minute)
+        // For testing: set to 3 seconds to verify automatic sweeps work quickly
+        var intervalSeconds = int.TryParse(Environment.GetEnvironmentVariable("BTCPAY_WALLETSWEEPER_INTERVAL"), out var seconds) && seconds > 0
+            ? seconds
+            : 60;
+        serviceCollection.AddScheduledTask<WalletSweeperService>(TimeSpan.FromSeconds(intervalSeconds));
 
         base.Execute(serviceCollection);
     }

@@ -47,7 +47,7 @@
                     <h5 class="mb-0">Sweep Configuration</h5>
                     <div class="d-flex gap-2">
                         <form method="post" asp-action="TriggerManualSweep" asp-route-storeId="@storeId" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-warning" @(config.Enabled ? "" : "disabled")>
+                            <button type="submit" class="btn btn-sm btn-warning" title="Manually trigger a sweep (works even if auto-sweep is disabled)">
                                 <i class="fa fa-bolt"></i> Trigger Sweep
                             </button>
                         </form>
