@@ -476,11 +476,17 @@ public class WalletSweeperService(
         catch (Exception ex)
         {
             logger.LogError(ex, $"WalletSweeper: Sweep failed for store {config.StoreId}: {ex.Message}");
-            history.Status = SweepHistory.SweepStatuses.Failed;
-            history.ErrorMessage = ex.Message;
             
-            db.SweepHistories.Add(history);
-            await db.SaveChangesAsync(cancellationToken);
+            // Only save history for automatic/scheduled sweeps, not manual triggers
+            // Manual trigger failures are shown as UI notifications only
+            if (triggerType != SweepHistory.TriggerTypes.Manual)
+            {
+                history.Status = SweepHistory.SweepStatuses.Failed;
+                history.ErrorMessage = ex.Message;
+                
+                db.SweepHistories.Add(history);
+                await db.SaveChangesAsync(cancellationToken);
+            }
             
             return SweepResult.FailureResult(ex.Message);
         }
