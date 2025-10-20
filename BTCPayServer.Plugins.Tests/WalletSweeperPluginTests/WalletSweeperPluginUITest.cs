@@ -22,9 +22,6 @@ public class WalletSweeperPluginUITest : PlaywrightBaseTest
 
     public WalletSweeperPluginUITest(SharedPluginTestFixture fixture, ITestOutputHelper helper) : base(helper)
     {
-        // Set fast sweep interval for testing (1 second) - MUST be before server starts
-        Environment.SetEnvironmentVariable("BTCPAY_WALLETSWEEPER_INTERVAL", "1");
-        
         _fixture = fixture;
         if (_fixture.ServerTester == null)
             _fixture.Initialize(this);

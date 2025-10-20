@@ -68,6 +68,25 @@ public class WalletSweeperService(
         }
     }
 
+    private async Task ProcessConfiguration(SweepConfiguration config, CancellationToken cancellationToken)
+    {
+        logger.LogInformation($"WalletSweeper: Processing config {config.Id} for store {config.StoreId}");
+
+        // Get wallet balance
+        var currentBalance = await GetWalletBalance(config.StoreId, cancellationToken);
+        logger.LogInformation($"WalletSweeper: Store {config.StoreId} balance: {currentBalance} BTC");
+
+        // Determine if sweep should be executed
+        var triggerType = ShouldExecuteSweep(config, currentBalance);
+        if (triggerType != null)
+        {
+            await ExecuteSweep(config, currentBalance, triggerType.Value, cancellationToken);
+        }
+    }
+    
+    // Manual trigger
+    
+
     /// <summary>
     /// Manually trigger a sweep for a specific store
     /// Note: Manual sweeps work regardless of the "Enabled" status (which controls automatic sweeps)
@@ -113,22 +132,8 @@ public class WalletSweeperService(
         // Execute sweep with Manual trigger type
         return await ExecuteSweep(config, currentBalance, SweepHistory.TriggerTypes.Manual, cancellationToken);
     }
-
-    private async Task ProcessConfiguration(SweepConfiguration config, CancellationToken cancellationToken)
-    {
-        logger.LogInformation($"WalletSweeper: Processing config {config.Id} for store {config.StoreId}");
-
-        // Get wallet balance
-        var currentBalance = await GetWalletBalance(config.StoreId, cancellationToken);
-        logger.LogInformation($"WalletSweeper: Store {config.StoreId} balance: {currentBalance} BTC");
-
-        // Determine if sweep should be executed
-        var triggerType = ShouldExecuteSweep(config, currentBalance);
-        if (triggerType != null)
-        {
-            await ExecuteSweep(config, currentBalance, triggerType.Value, cancellationToken);
-        }
-    }
+    
+    // Utility methods
 
     private SweepHistory.TriggerTypes? ShouldExecuteSweep(
         SweepConfiguration config,
