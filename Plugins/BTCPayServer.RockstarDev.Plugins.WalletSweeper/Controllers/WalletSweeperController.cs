@@ -29,6 +29,7 @@ public class WalletSweeperController(
     BTCPayNetworkProvider networkProvider,
     BTCPayWalletProvider walletProvider,
     PaymentMethodHandlerDictionary handlers,
+    SeedEncryptionService seedEncryptionService,
     WalletSweeperService sweeperService)
     : Controller
 {
@@ -127,8 +128,20 @@ public class WalletSweeperController(
         // Handle seed phrase encryption if provided
         if (!string.IsNullOrEmpty(model.SeedPhrase) && !string.IsNullOrEmpty(model.SeedPassphrase))
         {
-            config.EncryptedSeed = SeedEncryptionHelper.EncryptSeed(model.SeedPhrase, model.SeedPassphrase);
-            config.SeedPassphrase = model.SeedPassphrase;
+            // Validate seed phrase format
+            try
+            {
+                var mnemonic = new Mnemonic(model.SeedPhrase);
+                // Seed is valid
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(nameof(model.SeedPhrase), "Invalid seed phrase format. Please provide a valid BIP39 mnemonic.");
+                return View("Configure", model);
+            }
+            
+            config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase, model.SeedPassphrase);
+            config.SeedPassphrase = model.SeedPassphrase; // Store as hint
         }
 
         await db.SaveChangesAsync();
@@ -138,11 +151,11 @@ public class WalletSweeperController(
     }
 
     [HttpPost("trigger")]
-    public async Task<IActionResult> TriggerManualSweep(string storeId, CancellationToken cancellationToken)
+    public async Task<IActionResult> TriggerManualSweep(string storeId, string seedPassword, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await sweeperService.TriggerManualSweep(storeId, cancellationToken);
+            var result = await sweeperService.TriggerManualSweep(storeId, seedPassword, cancellationToken);
             
             if (result.Success)
             {
@@ -176,6 +189,48 @@ public class WalletSweeperController(
         }
 
         return RedirectToAction(nameof(Index), new { storeId });
+    }
+
+    [HttpPost("decrypt-seed")]
+    public async Task<IActionResult> DecryptSeed(string storeId, string password)
+    {
+        if (string.IsNullOrEmpty(password))
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Password is required to decrypt the seed phrase.";
+            return RedirectToAction(nameof(Configure), new { storeId });
+        }
+
+        await using var db = dbContextFactory.CreateContext();
+        var config = await db.SweepConfigurations
+            .FirstOrDefaultAsync(c => c.StoreId == storeId);
+
+        if (config == null || string.IsNullOrEmpty(config.EncryptedSeed))
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "No encrypted seed found.";
+            return RedirectToAction(nameof(Configure), new { storeId });
+        }
+
+        try
+        {
+            var decryptedSeed = seedEncryptionService.DecryptSeed(config.EncryptedSeed, password);
+            
+            // Get wallet info
+            var (balance, isHotWallet) = await GetWalletInfo(storeId);
+            
+            var viewModel = ConfigurationViewModel.FromModel(config);
+            viewModel.SeedPhrase = decryptedSeed; // Show decrypted seed
+            viewModel.ShowSeedPhrase = true; // Flag to show seed in UI
+            viewModel.IsHotWallet = isHotWallet;
+            viewModel.WalletType = isHotWallet ? "Hot Wallet" : "Cold Wallet";
+            viewModel.CurrentBalance = balance;
+            
+            return View("Configure", viewModel);
+        }
+        catch (Exception ex)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Failed to decrypt seed phrase. Incorrect password or corrupted data.";
+            return RedirectToAction(nameof(Configure), new { storeId });
+        }
     }
 
     [HttpPost("delete")]

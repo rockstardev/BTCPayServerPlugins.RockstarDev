@@ -32,6 +32,7 @@ public class WalletSweeperService(
     ExplorerClientProvider explorerClientProvider,
     IFeeProviderFactory feeProviderFactory,
     PaymentMethodHandlerDictionary handlers,
+    SeedEncryptionService seedEncryptionService,
     ILogger<WalletSweeperService> logger)
     : IPeriodicTask
 {
@@ -80,7 +81,7 @@ public class WalletSweeperService(
         var triggerType = ShouldExecuteSweep(config, currentBalance);
         if (triggerType != null)
         {
-            await ExecuteSweep(config, currentBalance, triggerType.Value, cancellationToken);
+            await ExecuteSweep(config, currentBalance, triggerType.Value, null, cancellationToken);
         }
     }
     
@@ -92,6 +93,18 @@ public class WalletSweeperService(
     /// Note: Manual sweeps work regardless of the "Enabled" status (which controls automatic sweeps)
     /// </summary>
     public async Task<SweepResult> TriggerManualSweep(string storeId, CancellationToken cancellationToken = default)
+    {
+        return await TriggerManualSweep(storeId, null, cancellationToken);
+    }
+    
+    /// <summary>
+    /// Manually trigger a sweep for a specific store with optional password for cold wallets
+    /// Note: Manual sweeps work regardless of the "Enabled" status (which controls automatic sweeps)
+    /// </summary>
+    /// <param name="storeId">Store ID to sweep</param>
+    /// <param name="seedPassword">Password to decrypt seed phrase (required for cold wallets)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    public async Task<SweepResult> TriggerManualSweep(string storeId, string seedPassword, CancellationToken cancellationToken = default)
     {
         logger.LogInformation($"WalletSweeper: Manual sweep triggered for store {storeId}");
 
@@ -129,8 +142,8 @@ public class WalletSweeperService(
                 SweepResult.SweepResultType.InsufficientBalance);
         }
         
-        // Execute sweep with Manual trigger type
-        return await ExecuteSweep(config, currentBalance, SweepHistory.TriggerTypes.Manual, cancellationToken);
+        // Execute sweep with Manual trigger type and optional password
+        return await ExecuteSweep(config, currentBalance, SweepHistory.TriggerTypes.Manual, seedPassword, cancellationToken);
     }
     
     // Utility methods
@@ -225,6 +238,7 @@ public class WalletSweeperService(
         SweepConfiguration config,
         decimal currentBalance,
         SweepHistory.TriggerTypes triggerType,
+        string seedPassword,
         CancellationToken cancellationToken)
     {
         logger.LogInformation($"WalletSweeper: Executing sweep for store {config.StoreId}, trigger: {triggerType}, balance: {currentBalance} BTC");
@@ -293,23 +307,55 @@ public class WalletSweeperService(
                 throw new InvalidOperationException($"No BTC wallet configured for store {config.StoreId}");
             }
 
-            // Check if hot wallet
-            if (!derivation.IsHotWallet)
-            {
-                throw new InvalidOperationException("Cold wallet sweeping is not yet implemented");
-            }
-
             var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
-
-            // Get signing key from NBXplorer
-            var signingKeyStr = await explorerClient.GetMetadataAsync<string>(
-                derivation.AccountDerivation,
-                WellknownMetadataKeys.MasterHDKey,
-                cancellationToken);
-
-            if (signingKeyStr == null)
+            
+            // Get signing key - either from hot wallet or from encrypted seed
+            string signingKeyStr;
+            
+            if (derivation.IsHotWallet)
             {
-                throw new InvalidOperationException("Hot wallet signing key not found in NBXplorer");
+                // Hot wallet: Get signing key from NBXplorer
+                signingKeyStr = await explorerClient.GetMetadataAsync<string>(
+                    derivation.AccountDerivation,
+                    WellknownMetadataKeys.MasterHDKey,
+                    cancellationToken);
+
+                if (signingKeyStr == null)
+                {
+                    throw new InvalidOperationException("Hot wallet signing key not found in NBXplorer");
+                }
+            }
+            else
+            {
+                // Cold wallet: Use encrypted seed from configuration
+                if (string.IsNullOrEmpty(config.EncryptedSeed))
+                {
+                    throw new InvalidOperationException("This is a watch-only wallet. Please configure a seed phrase in the sweep settings to enable sweeps.");
+                }
+                
+                if (string.IsNullOrEmpty(seedPassword))
+                {
+                    throw new InvalidOperationException("Password is required to decrypt the seed phrase for watch-only wallets. Please provide the password.");
+                }
+                
+                // Decrypt the seed phrase
+                string seedPhrase;
+                try
+                {
+                    seedPhrase = seedEncryptionService.DecryptSeed(config.EncryptedSeed, seedPassword);
+                    logger.LogInformation("WalletSweeper: Successfully decrypted seed phrase");
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Failed to decrypt seed phrase. Please check your password.", ex);
+                }
+                
+                // Parse mnemonic and derive master key
+                var mnemonic = new Mnemonic(seedPhrase);
+                var masterKey = mnemonic.DeriveExtKey();
+                signingKeyStr = masterKey.ToString(network.NBitcoinNetwork);
+                
+                logger.LogInformation("WalletSweeper: Derived signing key from seed phrase");
             }
 
             // Parse destination address
