@@ -1,22 +1,28 @@
+@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Client
+@inject IScopeProvider ScopeProvider
 @model BTCPayServer.Components.MainNav.MainNavViewModel
 @{
     var activeClass = ViewData.ActivePageClass(MarkPaidCheckoutPlugin.PluginNavKey);
+    var storeId = ScopeProvider.GetCurrentStoreId();
 }
-<li class="nav-item" permission="@Policies.CanModifyServerSettings">
-    <a asp-area="" asp-controller="MarkPaidServer" asp-action="Index"
-       class="nav-link @ViewData.ActivePageClass(MarkPaidCheckoutPlugin.PluginNavKey, null, "Index")"
-       id="Nav-MarkPaid">
-        <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <!-- Receipt/Invoice -->
-            <path d="M5 3C4.44772 3 4 3.44772 4 4V20C4 20.5523 4.44772 21 5 21H5.5L6.5 20L7.5 21L8.5 20L9.5 21H19C19.5523 21 20 20.5523 20 20V4C20 3.44772 19.5523 3 19 3H5Z" opacity="0.4"/>
-            <rect x="7" y="7" width="10" height="2" rx="1"/>
-            <rect x="7" y="11" width="6" height="2" rx="1"/>
-            <!-- Checkmark circle -->
-            <circle cx="17" cy="17" r="5.5"/>
-            <path d="M15 17L16.5 18.5L19 15.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        </svg>
-        <span>MarkPaid</span>
-    </a>
-</li>
+@if (string.IsNullOrEmpty(storeId))
+{
+    <li class="nav-item" permission="@Policies.CanModifyServerSettings">
+        <a asp-area="" asp-controller="MarkPaidServer" asp-action="Index"
+           class="nav-link @ViewData.ActivePageClass(MarkPaidCheckoutPlugin.PluginNavKey, null, "Index")"
+           id="Nav-MarkPaid">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 20px; margin-right: 6px;" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <!-- Receipt/Invoice -->
+                <path d="M5 3C4.44772 3 4 3.44772 4 4V20C4 20.5523 4.44772 21 5 21H5.5L6.5 20L7.5 21L8.5 20L9.5 21H19C19.5523 21 20 20.5523 20 20V4C20 3.44772 19.5523 3 19 3H5Z" opacity="0.4"/>
+                <rect x="7" y="7" width="10" height="2" rx="1"/>
+                <rect x="7" y="11" width="6" height="2" rx="1"/>
+                <!-- Checkmark circle -->
+                <circle cx="17" cy="17" r="5.5"/>
+                <path d="M15 17L16.5 18.5L19 15.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <span>MarkPaid</span>
+        </a>
+    </li>
+}
