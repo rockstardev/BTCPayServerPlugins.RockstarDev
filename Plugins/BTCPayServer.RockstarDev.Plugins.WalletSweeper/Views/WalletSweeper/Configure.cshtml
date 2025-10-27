@@ -5,6 +5,7 @@
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
+    var hasWallet = ViewBag.HasWallet as bool? ?? false;
     ViewData.SetActivePage("WalletSweeper", "Configure Wallet Sweeper", "WalletSweeper");
 }
 
@@ -30,6 +31,21 @@
 <div class="row">
     <div class="col-xxl-constrain col-xl-8">
 
+        @if (!hasWallet)
+        {
+            <!-- No Wallet Configured -->
+            <div class="alert alert-danger">
+                <h5><i class="fa fa-exclamation-triangle"></i> Bitcoin Wallet Not Configured</h5>
+                <p class="mb-2">To configure Wallet Sweeper, you need to set up a Bitcoin wallet for this store first.</p>
+                <p class="mb-0">
+                    <a asp-controller="UIStores" asp-action="SetupWallet" asp-route-storeId="@storeId" asp-route-cryptoCode="BTC" class="btn btn-danger">
+                        <i class="fa fa-wallet"></i> Set Up Bitcoin Wallet
+                    </a>
+                </p>
+            </div>
+        }
+        else
+        {
         <form id="ConfigForm" method="post" asp-action="Save" asp-route-storeId="@storeId">
             
             <!-- Enable/Disable -->
@@ -125,16 +141,46 @@
                 <div class="form-group mb-3">
                     <label asp-for="SeedPhrase" class="form-label"></label>
                     <div class="input-group">
-                        <input asp-for="SeedPhrase" type="@(Model.ShowSeedPhrase ? "text" : "password")" class="form-control" 
-                               placeholder="word1 word2 word3 ..." />
-                        <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
-                            <i class="fa fa-eye"></i>
-                        </button>
+                        @{
+                            var seedInputType = Model.ShowSeedPhrase ? "text" : "password";
+                            var seedDisabled = Model.HasEncryptedSeed && !Model.ShowSeedPhrase;
+                        }
+                        <input asp-for="SeedPhrase" type="@seedInputType" class="form-control" 
+                               placeholder="word1 word2 word3 ..." 
+                               disabled="@seedDisabled" />
+                        @if (Model.ShowSeedPhrase)
+                        {
+                            <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
+                                <i class="fa fa-eye-slash"></i>
+                            </button>
+                        }
+                        else if (Model.HasEncryptedSeed)
+                        {
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#decryptSeedModal">
+                                <i class="fa fa-unlock"></i> Decrypt
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
+                                <i class="fa fa-eye"></i>
+                            </button>
+                        }
                     </div>
                     <span asp-validation-for="SeedPhrase" class="text-danger"></span>
-                    @if (Model.HasEncryptedSeed)
+                    @if (Model.HasEncryptedSeed && !Model.ShowSeedPhrase)
                     {
-                        <small class="form-text text-success">✓ Seed phrase is configured</small>
+                        <small class="form-text text-success">
+                            <i class="fa fa-lock"></i> Seed phrase is encrypted and stored securely. 
+                            Click "Decrypt" to view or edit.
+                        </small>
+                    }
+                    else if (Model.ShowSeedPhrase)
+                    {
+                        <small class="form-text text-warning">
+                            <i class="fa fa-exclamation-triangle"></i> Seed phrase is now visible. 
+                            You can edit it and save to re-encrypt.
+                        </small>
                     }
                 </div>
 
@@ -143,12 +189,58 @@
                     <input asp-for="SeedPassphrase" type="password" class="form-control" 
                            placeholder="Encryption passphrase" />
                     <span asp-validation-for="SeedPassphrase" class="text-danger"></span>
-                    <small class="form-text text-muted">Used to encrypt the seed phrase</small>
+                    <small class="form-text text-muted">
+                        @if (Model.HasEncryptedSeed)
+                        {
+                            <text>Password hint: @Model.SeedPassphrase</text>
+                        }
+                        else
+                        {
+                            <text>Choose a strong password to encrypt the seed phrase</text>
+                        }
+                    </small>
                 </div>
             }
 
         </form>
+        }
 
+    </div>
+</div>
+
+<!-- Decrypt Seed Modal -->
+<div class="modal fade" id="decryptSeedModal" tabindex="-1" aria-labelledby="decryptSeedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-action="DecryptSeed" asp-route-storeId="@storeId">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="decryptSeedModalLabel">
+                        <i class="fa fa-unlock"></i> Decrypt Seed Phrase
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> Enter your encryption password to decrypt and view the seed phrase.
+                    </div>
+                    <div class="form-group">
+                        <label for="decryptPassword" class="form-label">Encryption Password</label>
+                        <input type="password" class="form-control" id="decryptPassword" name="password" 
+                               placeholder="Enter password" required autofocus />
+                        @if (!string.IsNullOrEmpty(Model.SeedPassphrase))
+                        {
+                            <small class="form-text text-muted">Hint: @Model.SeedPassphrase</small>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-unlock"></i> Decrypt & View
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

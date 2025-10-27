@@ -36,6 +36,13 @@ public class WalletSweeperController(
     [HttpGet]
     public async Task<IActionResult> Index(string storeId)
     {
+        // Check if BTC wallet is configured
+        var (balance, isHotWallet, hasWallet) = await GetWalletInfo(storeId);
+        
+        ViewBag.HasWallet = hasWallet;
+        ViewBag.WalletBalance = balance;
+        ViewBag.IsHotWallet = isHotWallet;
+
         await using var db = dbContextFactory.CreateContext();
         
         var config = await db.SweepConfigurations
@@ -48,13 +55,8 @@ public class WalletSweeperController(
             .Take(20)
             .ToListAsync();
 
-        // Get wallet info
-        var (balance, isHotWallet) = await GetWalletInfo(storeId);
-
         ViewBag.History = history;
         ViewBag.Configuration = config;
-        ViewBag.WalletBalance = balance;
-        ViewBag.IsHotWallet = isHotWallet;
 
         return View();
     }
@@ -62,6 +64,11 @@ public class WalletSweeperController(
     [HttpGet("configure")]
     public async Task<IActionResult> Configure(string storeId)
     {
+        // Check if BTC wallet is configured
+        var (balance, isHotWallet, hasWallet) = await GetWalletInfo(storeId);
+        
+        ViewBag.HasWallet = hasWallet;
+
         await using var db = dbContextFactory.CreateContext();
         
         var config = await db.SweepConfigurations
@@ -71,8 +78,6 @@ public class WalletSweeperController(
             ? ConfigurationViewModel.FromModel(config) 
             : new ConfigurationViewModel();
 
-        // Get wallet info
-        var (balance, isHotWallet) = await GetWalletInfo(storeId);
         viewModel.IsHotWallet = isHotWallet;
         viewModel.WalletType = isHotWallet ? "Hot Wallet" : "Cold Wallet";
         viewModel.CurrentBalance = balance;
@@ -215,7 +220,7 @@ public class WalletSweeperController(
             var decryptedSeed = seedEncryptionService.DecryptSeed(config.EncryptedSeed, password);
             
             // Get wallet info
-            var (balance, isHotWallet) = await GetWalletInfo(storeId);
+            var (balance, isHotWallet, _) = await GetWalletInfo(storeId);
             
             var viewModel = ConfigurationViewModel.FromModel(config);
             viewModel.SeedPhrase = decryptedSeed; // Show decrypted seed
@@ -226,7 +231,7 @@ public class WalletSweeperController(
             
             return View("Configure", viewModel);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Failed to decrypt seed phrase. Incorrect password or corrupted data.";
             return RedirectToAction(nameof(Configure), new { storeId });
@@ -251,13 +256,13 @@ public class WalletSweeperController(
         return RedirectToAction(nameof(Index), new { storeId });
     }
 
-    private async Task<(decimal balance, bool isHotWallet)> GetWalletInfo(string storeId)
+    private async Task<(decimal balance, bool isHotWallet, bool hasWallet)> GetWalletInfo(string storeId)
     {
         var store = HttpContext.GetStoreData();
         var derivation = store?.GetDerivationSchemeSettings(handlers, "BTC");
         
         if (derivation == null)
-            return (0m, false);
+            return (0m, false, false); // No wallet configured
 
         var isHotWallet = derivation.IsHotWallet;
         var wallet = walletProvider.GetWallet("BTC");
@@ -270,15 +275,15 @@ public class WalletSweeperController(
             
             if (money is Money btcMoney)
             {
-                return (btcMoney.ToDecimal(MoneyUnit.BTC), isHotWallet);
+                return (btcMoney.ToDecimal(MoneyUnit.BTC), isHotWallet, true);
             }
         }
         catch
         {
-            // Ignore errors, return 0
+            // Ignore errors, return 0 balance but wallet exists
         }
 
-        return (0m, isHotWallet);
+        return (0m, isHotWallet, true); // Wallet configured but balance fetch failed
     }
 
 }
