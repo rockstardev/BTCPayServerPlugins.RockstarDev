@@ -234,48 +234,6 @@ public class WalletSweeperController(
         return RedirectToAction(nameof(Index), new { storeId });
     }
 
-    [HttpPost("decrypt-seed")]
-    public async Task<IActionResult> DecryptSeed(string storeId, string password)
-    {
-        if (string.IsNullOrEmpty(password))
-        {
-            TempData[WellKnownTempData.ErrorMessage] = "Password is required to decrypt the seed phrase.";
-            return RedirectToAction(nameof(Configure), new { storeId });
-        }
-
-        await using var db = dbContextFactory.CreateContext();
-        var config = await db.SweepConfigurations
-            .FirstOrDefaultAsync(c => c.StoreId == storeId);
-
-        if (config == null || string.IsNullOrEmpty(config.EncryptedSeed))
-        {
-            TempData[WellKnownTempData.ErrorMessage] = "No encrypted seed found.";
-            return RedirectToAction(nameof(Configure), new { storeId });
-        }
-
-        try
-        {
-            var decryptedSeed = seedEncryptionService.DecryptSeed(config.EncryptedSeed, password);
-            
-            // Get wallet info
-            var (balance, isHotWallet, _) = await GetWalletInfo(storeId);
-            
-            var viewModel = ConfigurationViewModel.FromModel(config);
-            viewModel.SeedPhrase = decryptedSeed; // Show decrypted seed
-            viewModel.ShowSeedPhrase = true; // Flag to show seed in UI
-            viewModel.IsHotWallet = isHotWallet;
-            viewModel.WalletType = isHotWallet ? "Hot Wallet" : "Cold Wallet";
-            viewModel.CurrentBalance = balance;
-            
-            return View("Configure", viewModel);
-        }
-        catch (Exception)
-        {
-            TempData[WellKnownTempData.ErrorMessage] = "Failed to decrypt seed phrase. Incorrect password or corrupted data.";
-            return RedirectToAction(nameof(Configure), new { storeId });
-        }
-    }
-
     [HttpPost("delete")]
     public async Task<IActionResult> DeleteConfiguration(string storeId)
     {

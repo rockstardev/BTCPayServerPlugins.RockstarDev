@@ -56,10 +56,6 @@ public class ConfigurationViewModel
     public string SeedPasswordConfirm { get; set; }
 
     public bool HasEncryptedSeed { get; set; }
-    public bool ShowSeedPhrase { get; set; }
-    
-    // For display only - password hint
-    public string SeedPassphrase { get; set; }
 
     // UI helpers
     public List<SelectListItem> FeeRateOptions { get; set; } = new()
@@ -85,8 +81,7 @@ public class ConfigurationViewModel
             ReserveAmount = config.ReserveAmount,
             IntervalDays = config.IntervalDays,
             FeeRate = config.FeeRate.ToString(),
-            HasEncryptedSeed = !string.IsNullOrEmpty(config.EncryptedSeed),
-            SeedPassphrase = config.SeedPassphrase
+            HasEncryptedSeed = !string.IsNullOrEmpty(config.EncryptedSeed)
         };
     }
 

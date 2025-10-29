@@ -125,33 +125,34 @@
             }
             else
             {
-                <div class="alert alert-warning">
-                    <h5><i class="fa fa-exclamation-triangle"></i> Cold Wallet Detected</h5>
-                    <p class="mb-2">
-                        Your wallet is configured as a cold wallet. To enable sweeping, you need to provide 
-                        the seed phrase so the plugin can sign transactions.
-                    </p>
-                    <p class="mb-0">
-                        <strong>⚠️ Security Notice:</strong> The seed phrase will be stored encrypted in the database, 
-                        but this is not as secure as a hardware wallet. Use at your own risk and only for wallets 
-                        with small amounts.
-                    </p>
-                </div>
-
-                @if (Model.HasEncryptedSeed && !Model.ShowSeedPhrase)
+                @if (Model.HasEncryptedSeed)
                 {
-                    <!-- Seed already configured - show decrypt button -->
+                    <!-- Seed already configured - show success message only -->
                     <div class="alert alert-success">
-                        <i class="fa fa-lock"></i> <strong>Seed phrase is configured and encrypted.</strong>
+                        <h5><i class="fa fa-lock"></i> Cold Wallet Seed Configured</h5>
+                        <p class="mb-2">
+                            Your seed phrase is encrypted and stored securely. The plugin can now sign transactions for sweeping.
+                        </p>
                         <p class="mb-0">
-                            <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#decryptSeedModal">
-                                <i class="fa fa-unlock"></i> Decrypt & Edit Seed
-                            </button>
+                            <small>To change the seed phrase, you must delete this configuration and create a new one.</small>
                         </p>
                     </div>
                 }
                 else
                 {
+                    <!-- First time setup - show warning and input fields -->
+                    <div class="alert alert-warning">
+                        <h5><i class="fa fa-exclamation-triangle"></i> Cold Wallet Detected</h5>
+                        <p class="mb-2">
+                            Your wallet is configured as a cold wallet. To enable sweeping, you need to provide 
+                            the seed phrase so the plugin can sign transactions.
+                        </p>
+                        <p class="mb-0">
+                            <strong>⚠️ Security Notice:</strong> The seed phrase will be stored encrypted in the database, 
+                            but this is not as secure as a hardware wallet. Use at your own risk and only for wallets 
+                            with small amounts.
+                        </p>
+                    </div>
                     <!-- New seed or editing decrypted seed -->
                     <div class="form-group mb-3">
                         <label asp-for="SeedPhrase" class="form-label"></label>
@@ -204,40 +205,3 @@
 
     </div>
 </div>
-
-<!-- Decrypt Seed Modal -->
-<div class="modal fade" id="decryptSeedModal" tabindex="-1" aria-labelledby="decryptSeedModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" asp-action="DecryptSeed" asp-route-storeId="@storeId">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="decryptSeedModalLabel">
-                        <i class="fa fa-unlock"></i> Decrypt Seed Phrase
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-info">
-                        <i class="fa fa-info-circle"></i> Enter your encryption password to decrypt and view the seed phrase.
-                    </div>
-                    <div class="form-group">
-                        <label for="decryptPassword" class="form-label">Encryption Password</label>
-                        <input type="password" class="form-control" id="decryptPassword" name="password" 
-                               placeholder="Enter password" required autofocus />
-                        @if (!string.IsNullOrEmpty(Model.SeedPassphrase))
-                        {
-                            <small class="form-text text-muted">Hint: @Model.SeedPassphrase</small>
-                        }
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fa fa-unlock"></i> Decrypt & View
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
