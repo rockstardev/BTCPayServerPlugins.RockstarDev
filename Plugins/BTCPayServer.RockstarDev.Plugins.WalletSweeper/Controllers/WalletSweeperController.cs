@@ -169,9 +169,10 @@ public class WalletSweeperController(
                 .ToLowerInvariant();
             
             // Validate seed phrase format
+            Mnemonic mnemonic;
             try
             {
-                var mnemonic = new Mnemonic(normalizedSeed, Wordlist.English);
+                mnemonic = new Mnemonic(normalizedSeed, Wordlist.English);
                 // Seed is valid - use normalized version
                 model.SeedPhrase = normalizedSeed;
             }
@@ -179,6 +180,74 @@ public class WalletSweeperController(
             {
                 ModelState.AddModelError(nameof(model.SeedPhrase), 
                     $"Invalid seed phrase format. Please provide a valid BIP39 mnemonic (12 or 24 words). Error: {ex.Message}");
+                ViewBag.HasWallet = hasWallet;
+                return View("Configure", model);
+            }
+            
+            // Validate that seed matches the store's wallet
+            try
+            {
+                var store = HttpContext.GetStoreData();
+                var derivation = store?.GetDerivationSchemeSettings(handlers, "BTC");
+                
+                if (derivation == null)
+                {
+                    ModelState.AddModelError(nameof(model.SeedPhrase), "Could not retrieve wallet configuration.");
+                    ViewBag.HasWallet = hasWallet;
+                    return View("Configure", model);
+                }
+                
+                var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
+                
+                // Get the store's account key path and root fingerprint
+                var storeAccountKey = derivation.AccountDerivation;
+                var storeAccountKeyStr = storeAccountKey.ToString();
+                
+                // Derive master key from seed
+                var masterKey = mnemonic.DeriveExtKey();
+                var masterFingerprint = masterKey.Neuter().PubKey.GetHDFingerPrint();
+                
+                // Get the key path from the derivation scheme if available
+                var accountKeyInfo = derivation.AccountKeySettings?.FirstOrDefault();
+                bool matchFound = false;
+                
+                if (accountKeyInfo?.AccountKeyPath != null)
+                {
+                    // We have the full path - derive and compare
+                    var derivedKey = masterKey.Derive(accountKeyInfo.AccountKeyPath);
+                    var derivedPubKey = derivedKey.Neuter();
+                    var derivedXpub = derivedPubKey.ToString(network.NBitcoinNetwork);
+                    
+                    // Check if derived xpub matches store's xpub
+                    if (storeAccountKeyStr.Contains(derivedXpub) || 
+                        storeAccountKeyStr.Contains(derivedPubKey.ToString(network.NBitcoinNetwork)))
+                    {
+                        matchFound = true;
+                    }
+                }
+                
+                // Fallback: Try to match root fingerprint
+                if (!matchFound)
+                {
+                    var storeRootFingerprint = accountKeyInfo?.RootFingerprint;
+                    if (storeRootFingerprint != null && masterFingerprint.Equals(storeRootFingerprint.Value))
+                    {
+                        matchFound = true;
+                    }
+                }
+                
+                if (!matchFound)
+                {
+                    ModelState.AddModelError(nameof(model.SeedPhrase), 
+                        "The provided seed phrase does not match this store's Bitcoin wallet. Please verify you're using the correct seed phrase for this wallet.");
+                    ViewBag.HasWallet = hasWallet;
+                    return View("Configure", model);
+                }
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(nameof(model.SeedPhrase), 
+                    $"Failed to validate seed phrase against wallet: {ex.Message}");
                 ViewBag.HasWallet = hasWallet;
                 return View("Configure", model);
             }
