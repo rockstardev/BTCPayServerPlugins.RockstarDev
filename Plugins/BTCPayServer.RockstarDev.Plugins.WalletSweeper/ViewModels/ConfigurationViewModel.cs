@@ -45,14 +45,21 @@ public class ConfigurationViewModel
     public string FeeRate { get; set; } = "Normal";
 
     // Cold wallet support
-    [Display(Name = "Seed Phrase (for cold wallets)")]
+    [Display(Name = "Seed Phrase (12 or 24 words)")]
     public string SeedPhrase { get; set; }
 
-    [Display(Name = "Encryption Passphrase")]
-    public string SeedPassphrase { get; set; }
+    [Display(Name = "Encryption Password")]
+    public string SeedPassword { get; set; }
+    
+    [Display(Name = "Confirm Encryption Password")]
+    [Compare(nameof(SeedPassword), ErrorMessage = "Passwords do not match")]
+    public string SeedPasswordConfirm { get; set; }
 
     public bool HasEncryptedSeed { get; set; }
     public bool ShowSeedPhrase { get; set; }
+    
+    // For display only - password hint
+    public string SeedPassphrase { get; set; }
 
     // UI helpers
     public List<SelectListItem> FeeRateOptions { get; set; } = new()

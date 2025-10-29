@@ -128,7 +128,7 @@
                 <div class="alert alert-warning">
                     <h5><i class="fa fa-exclamation-triangle"></i> Cold Wallet Detected</h5>
                     <p class="mb-2">
-                        Your wallet is configured as a cold wallet. To enable automatic sweeping, you need to provide 
+                        Your wallet is configured as a cold wallet. To enable sweeping, you need to provide 
                         the seed phrase so the plugin can sign transactions.
                     </p>
                     <p class="mb-0">
@@ -138,68 +138,65 @@
                     </p>
                 </div>
 
-                <div class="form-group mb-3">
-                    <label asp-for="SeedPhrase" class="form-label"></label>
-                    <div class="input-group">
-                        @{
-                            var seedInputType = Model.ShowSeedPhrase ? "text" : "password";
-                            var seedDisabled = Model.HasEncryptedSeed && !Model.ShowSeedPhrase;
-                        }
-                        <input asp-for="SeedPhrase" type="@seedInputType" class="form-control" 
-                               placeholder="word1 word2 word3 ..." 
-                               disabled="@seedDisabled" />
-                        @if (Model.ShowSeedPhrase)
-                        {
-                            <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
-                                <i class="fa fa-eye-slash"></i>
+                @if (Model.HasEncryptedSeed && !Model.ShowSeedPhrase)
+                {
+                    <!-- Seed already configured - show decrypt button -->
+                    <div class="alert alert-success">
+                        <i class="fa fa-lock"></i> <strong>Seed phrase is configured and encrypted.</strong>
+                        <p class="mb-0">
+                            <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#decryptSeedModal">
+                                <i class="fa fa-unlock"></i> Decrypt & Edit Seed
                             </button>
-                        }
-                        else if (Model.HasEncryptedSeed)
-                        {
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#decryptSeedModal">
-                                <i class="fa fa-unlock"></i> Decrypt
-                            </button>
-                        }
-                        else
-                        {
-                            <button type="button" class="btn btn-secondary" id="ToggleSeedBtn">
-                                <i class="fa fa-eye"></i>
-                            </button>
-                        }
+                        </p>
                     </div>
-                    <span asp-validation-for="SeedPhrase" class="text-danger"></span>
-                    @if (Model.HasEncryptedSeed && !Model.ShowSeedPhrase)
-                    {
-                        <small class="form-text text-success">
-                            <i class="fa fa-lock"></i> Seed phrase is encrypted and stored securely. 
-                            Click "Decrypt" to view or edit.
-                        </small>
-                    }
-                    else if (Model.ShowSeedPhrase)
-                    {
-                        <small class="form-text text-warning">
-                            <i class="fa fa-exclamation-triangle"></i> Seed phrase is now visible. 
-                            You can edit it and save to re-encrypt.
-                        </small>
-                    }
-                </div>
+                }
+                else
+                {
+                    <!-- New seed or editing decrypted seed -->
+                    <div class="form-group mb-3">
+                        <label asp-for="SeedPhrase" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="SeedPhrase" type="password" class="form-control" id="SeedPhrase"
+                                   placeholder="word1 word2 word3 ..." />
+                            <button type="button" class="btn btn-secondary px-3 only-for-js"
+                                    data-toggle-password="#SeedPhrase">
+                                <vc:icon symbol="actions-show" />
+                            </button>
+                        </div>
+                        <span asp-validation-for="SeedPhrase" class="text-danger"></span>
+                        <small class="form-text text-muted">Enter your 12 or 24 word BIP39 mnemonic seed phrase</small>
+                    </div>
 
-                <div class="form-group mb-4">
-                    <label asp-for="SeedPassphrase" class="form-label"></label>
-                    <input asp-for="SeedPassphrase" type="password" class="form-control" 
-                           placeholder="Encryption passphrase" />
-                    <span asp-validation-for="SeedPassphrase" class="text-danger"></span>
-                    <small class="form-text text-muted">
-                        @if (Model.HasEncryptedSeed)
-                        {
-                            <text>Password hint: @Model.SeedPassphrase</text>
-                        }
-                        else
-                        {
-                            <text>Choose a strong password to encrypt the seed phrase</text>
-                        }
-                    </small>
-                </div>
+                    <div class="form-group mb-3">
+                        <label asp-for="SeedPassword" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="SeedPassword" type="password" class="form-control" id="SeedPassword"
+                                   placeholder="Enter encryption password" />
+                            <button type="button" class="btn btn-secondary px-3 only-for-js"
+                                    data-toggle-password="#SeedPassword">
+                                <vc:icon symbol="actions-show" />
+                            </button>
+                        </div>
+                        <span asp-validation-for="SeedPassword" class="text-danger"></span>
+                        <small class="form-text text-muted">Choose a strong password to encrypt the seed phrase</small>
+                    </div>
+
+                    @if (!Model.HasEncryptedSeed)
+                    {
+                        <div class="form-group mb-4">
+                            <label asp-for="SeedPasswordConfirm" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="SeedPasswordConfirm" type="password" class="form-control" id="SeedPasswordConfirm"
+                                       placeholder="Confirm encryption password" />
+                                <button type="button" class="btn btn-secondary px-3 only-for-js"
+                                        data-toggle-password="#SeedPasswordConfirm">
+                                    <vc:icon symbol="actions-show" />
+                                </button>
+                            </div>
+                            <span asp-validation-for="SeedPasswordConfirm" class="text-danger"></span>
+                        </div>
+                    }
+                }
             }
 
         </form>
@@ -244,24 +241,3 @@
     </div>
 </div>
 
-@section PageFootContent {
-    <script>
-        // Toggle seed phrase visibility
-        const toggleBtn = document.getElementById('ToggleSeedBtn');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function() {
-                const input = document.querySelector('input[name="SeedPhrase"]');
-                const icon = this.querySelector('i');
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    input.type = 'password';
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            });
-        }
-    </script>
-}

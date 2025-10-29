@@ -88,6 +88,12 @@ public class WalletSweeperController(
     [HttpPost("configure")]
     public async Task<IActionResult> Save(string storeId, ConfigurationViewModel model)
     {
+        // Get wallet info to check if it's cold wallet
+        var (balance, isHotWallet, hasWallet) = await GetWalletInfo(storeId);
+        model.IsHotWallet = isHotWallet;
+        model.WalletType = isHotWallet ? "Hot Wallet" : "Cold Wallet";
+        model.CurrentBalance = balance;
+        
         // Validate Bitcoin address
         if (!string.IsNullOrEmpty(model.DestinationAddress))
         {
@@ -101,9 +107,16 @@ public class WalletSweeperController(
                 ModelState.AddModelError(nameof(model.DestinationAddress), "Invalid Bitcoin address format.");
             }
         }
+        
+        // For cold wallets, require seed phrase if not already configured
+        if (!isHotWallet && !model.HasEncryptedSeed && string.IsNullOrEmpty(model.SeedPhrase))
+        {
+            ModelState.AddModelError(nameof(model.SeedPhrase), "Seed phrase is required for cold wallets. Please provide your BIP39 mnemonic.");
+        }
 
         if (!ModelState.IsValid)
         {
+            ViewBag.HasWallet = hasWallet;
             return View("Configure", model);
         }
 
@@ -131,22 +144,47 @@ public class WalletSweeperController(
         }
 
         // Handle seed phrase encryption if provided
-        if (!string.IsNullOrEmpty(model.SeedPhrase) && !string.IsNullOrEmpty(model.SeedPassphrase))
+        if (!string.IsNullOrEmpty(model.SeedPhrase))
         {
-            // Validate seed phrase format
-            try
+            // Validate encryption password is provided
+            if (string.IsNullOrEmpty(model.SeedPassword))
             {
-                var mnemonic = new Mnemonic(model.SeedPhrase);
-                // Seed is valid
-            }
-            catch (Exception)
-            {
-                ModelState.AddModelError(nameof(model.SeedPhrase), "Invalid seed phrase format. Please provide a valid BIP39 mnemonic.");
+                ModelState.AddModelError(nameof(model.SeedPassword), "Encryption password is required when providing a seed phrase.");
+                ViewBag.HasWallet = hasWallet;
                 return View("Configure", model);
             }
             
-            config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase, model.SeedPassphrase);
-            config.SeedPassphrase = model.SeedPassphrase; // Store as hint
+            // Validate password confirmation (only for new seed)
+            if (!model.HasEncryptedSeed && model.SeedPassword != model.SeedPasswordConfirm)
+            {
+                ModelState.AddModelError(nameof(model.SeedPasswordConfirm), "Passwords do not match.");
+                ViewBag.HasWallet = hasWallet;
+                return View("Configure", model);
+            }
+            
+            // Normalize seed phrase (remove extra whitespace, convert to lowercase)
+            var normalizedSeed = string.Join(" ", model.SeedPhrase.Split(new[] { ' ', '\n', '\r', '\t' }, 
+                StringSplitOptions.RemoveEmptyEntries))
+                .Trim()
+                .ToLowerInvariant();
+            
+            // Validate seed phrase format
+            try
+            {
+                var mnemonic = new Mnemonic(normalizedSeed, Wordlist.English);
+                // Seed is valid - use normalized version
+                model.SeedPhrase = normalizedSeed;
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(nameof(model.SeedPhrase), 
+                    $"Invalid seed phrase format. Please provide a valid BIP39 mnemonic (12 or 24 words). Error: {ex.Message}");
+                ViewBag.HasWallet = hasWallet;
+                return View("Configure", model);
+            }
+            
+            config.EncryptedSeed = seedEncryptionService.EncryptSeed(normalizedSeed, model.SeedPassword);
+            config.SeedPassphrase = model.SeedPassword; // Store as hint (you might want to store just a hint, not the actual password)
         }
 
         await db.SaveChangesAsync();
