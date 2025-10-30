@@ -460,22 +460,68 @@ public class WalletSweeperService(
             logger.LogInformation($"WalletSweeper: Signing PSBT");
             var extKey = ExtKey.Parse(signingKeyStr, network.NBitcoinNetwork);
             var signingKeySettings = derivation.GetAccountKeySettingsFromRoot(extKey);
+            
+            PSBT signed;
             if (signingKeySettings == null)
             {
-                throw new InvalidOperationException("Could not derive signing key from root key");
+                // Fallback: Try common derivation paths when AccountKeySettings not available
+                logger.LogWarning($"WalletSweeper: AccountKeySettings not available, trying common paths");
+                
+                var commonPaths = new[]
+                {
+                    "m/84'/1'/0'", // Native SegWit regtest
+                    "m/84'/0'/0'", // Native SegWit mainnet
+                    "m/49'/1'/0'", // SegWit regtest
+                    "m/49'/0'/0'", // SegWit mainnet
+                    "m/44'/1'/0'", // Legacy regtest
+                    "m/44'/0'/0'"  // Legacy mainnet
+                };
+                
+                signed = null;
+                foreach (var pathStr in commonPaths)
+                {
+                    try
+                    {
+                        var path = new KeyPath(pathStr);
+                        var accountKey = extKey.Derive(path);
+                        var fingerprint = extKey.GetPublicKey().GetHDFingerPrint();
+                        var rootedKeyPath = new RootedKeyPath(fingerprint, path);
+                        
+                        psbt.RebaseKeyPaths(accountKey.Neuter(), rootedKeyPath);
+                        psbt.Settings.SigningOptions = new SigningOptions { EnforceLowR = true };
+                        signed = psbt.SignAll(derivation.AccountDerivation, accountKey, rootedKeyPath);
+                        
+                        if (signed != null)
+                        {
+                            logger.LogInformation($"WalletSweeper: Successfully signed with path {pathStr}");
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogDebug($"WalletSweeper: Failed to sign with path {pathStr}: {ex.Message}");
+                    }
+                }
+                
+                if (signed == null)
+                {
+                    throw new InvalidOperationException("Could not sign PSBT with any common derivation path");
+                }
             }
-
-            var rootedKeyPath = signingKeySettings.GetRootedKeyPath();
-            if (rootedKeyPath == null)
+            else
             {
-                throw new InvalidOperationException("Could not determine rooted key path");
+                var rootedKeyPath = signingKeySettings.GetRootedKeyPath();
+                if (rootedKeyPath == null)
+                {
+                    throw new InvalidOperationException("Could not determine rooted key path");
+                }
+
+                psbt.RebaseKeyPaths(signingKeySettings.AccountKey, rootedKeyPath);
+                var signingKey = extKey.Derive(rootedKeyPath.KeyPath);
+
+                psbt.Settings.SigningOptions = new SigningOptions { EnforceLowR = true };
+                signed = psbt.SignAll(derivation.AccountDerivation, signingKey, rootedKeyPath);
             }
-
-            psbt.RebaseKeyPaths(signingKeySettings.AccountKey, rootedKeyPath);
-            var signingKey = extKey.Derive(rootedKeyPath.KeyPath);
-
-            psbt.Settings.SigningOptions = new SigningOptions { EnforceLowR = true };
-            var signed = psbt.SignAll(derivation.AccountDerivation, signingKey, rootedKeyPath);
 
             if (signed == null)
             {

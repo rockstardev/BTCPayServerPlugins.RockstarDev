@@ -18,6 +18,7 @@ using BTCPayServer.Services.Wallets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Controllers;
@@ -226,13 +227,54 @@ public class WalletSweeperController(
                     }
                 }
                 
-                // Fallback: Try to match root fingerprint
+                // Fallback 1: Try to match root fingerprint
                 if (!matchFound)
                 {
                     var storeRootFingerprint = accountKeyInfo?.RootFingerprint;
                     if (storeRootFingerprint != null && masterFingerprint.Equals(storeRootFingerprint.Value))
                     {
                         matchFound = true;
+                    }
+                }
+                
+                // Fallback 2: Try common derivation paths if AccountKeySettings not available
+                if (!matchFound)
+                {
+                    var commonPaths = new[]
+                    {
+                        "m/84'/1'/0'", // Native SegWit regtest
+                        "m/84'/0'/0'", // Native SegWit mainnet
+                        "m/49'/1'/0'", // SegWit regtest
+                        "m/49'/0'/0'", // SegWit mainnet
+                        "m/44'/1'/0'", // Legacy regtest
+                        "m/44'/0'/0'"  // Legacy mainnet
+                    };
+                    
+                    // Log for debugging
+                    var logger = HttpContext.RequestServices.GetService(typeof(ILogger<WalletSweeperController>)) as ILogger<WalletSweeperController>;
+                    logger?.LogInformation($"Store derivation scheme: {storeAccountKeyStr}");
+                    
+                    foreach (var path in commonPaths)
+                    {
+                        try
+                        {
+                            var derivedKey = masterKey.Derive(new KeyPath(path));
+                            var derivedPubKey = derivedKey.Neuter();
+                            var derivedXpub = derivedPubKey.ToString(network.NBitcoinNetwork);
+                            
+                            logger?.LogInformation($"Trying path {path}: {derivedXpub}");
+                            
+                            if (storeAccountKeyStr.Contains(derivedXpub))
+                            {
+                                matchFound = true;
+                                logger?.LogInformation($"Match found at path {path}!");
+                                break;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger?.LogWarning($"Error deriving path {path}: {ex.Message}");
+                        }
                     }
                 }
                 
