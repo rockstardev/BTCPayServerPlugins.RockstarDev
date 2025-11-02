@@ -1,1 +1,0 @@
-﻿dotnet ef migrations add AddingFormIdFieldOnProduct -p Plugins/BTCPayServer.RockstarDev.Plugins.Subscriptions -c PluginDbContext -o Data/Migrations
