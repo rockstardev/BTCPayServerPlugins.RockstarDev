@@ -151,7 +151,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         await Page.FillAsync("#Name", name);
 
         var selectedOption = await Page.Locator("#PreferredExchange option:checked").TextContentAsync();
-        Assert.Equal("Recommendation (Kraken)", selectedOption.Trim());
+        Assert.Equal("Recommendation (Kraken)", selectedOption?.Trim());
         await Page.Locator("#PreferredExchange").SelectOptionAsync(new SelectOptionValue { Label = "CoinGecko" });
         await Page.ClickAsync("#Create");
         await Page.ClickAsync("#StoreNav-General");
@@ -222,7 +222,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         return inv;
     }
 
-    public async Task GoToInvoices(string? storeId = null)
+    private async Task GoToInvoices(string? storeId = null)
     {
         if (storeId is null)
         {
@@ -230,7 +230,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         }
         else
         {
-            await GoToUrl(storeId == null ? "/invoices/" : $"/stores/{storeId}/invoices/");
+            await GoToUrl($"/stores/{storeId}/invoices/");
             StoreId = storeId;
         }
     }

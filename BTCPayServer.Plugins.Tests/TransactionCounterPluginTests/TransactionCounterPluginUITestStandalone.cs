@@ -193,10 +193,11 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
         Assert.EndsWith("}", jsonText);
         var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonText);
         Assert.NotNull(parsed);
-        Assert.True(parsed.TryGetValue("count", out object countObj));
+        Assert.True(parsed.TryGetValue("count", out var countObj));
         Assert.Equal(count, Convert.ToInt32(countObj));
-        Assert.True(parsed.TryGetValue("volumeByCurrency", out object volumeObj));
-        var volumeByCurrency = JsonConvert.DeserializeObject<Dictionary<string, decimal>>(volumeObj.ToString());
+        Assert.True(parsed.TryGetValue("volumeByCurrency", out var volumeObj));
+        var volumeByCurrency = JsonConvert.DeserializeObject<Dictionary<string, decimal>>(volumeObj.ToString() ?? "{}");
+        Assert.NotNull(volumeByCurrency);
         Assert.True(volumeByCurrency.TryGetValue("NGN", out decimal eurVolume));
         Assert.Equal(21, eurVolume);
         await popup1.CloseAsync();
@@ -207,8 +208,6 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         await Page.Locator("#page-primary").ClickAsync();
         var invoiceCreationStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isSaved = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                               (await invoiceCreationStatusText).Trim() == "Plugin counter configuration updated successfully";
-        Assert.True(isSaved);
+        Assert.Equal("Plugin counter configuration updated successfully", (await invoiceCreationStatusText)?.Trim());
     }
 }

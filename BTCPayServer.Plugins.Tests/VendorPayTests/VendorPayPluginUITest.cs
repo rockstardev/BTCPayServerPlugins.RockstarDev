@@ -41,7 +41,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
         var invoiceCreationStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         var actionNotCompleted = expectedSeverity == StatusMessageModel.StatusSeverity.Error &&
-                                 (await invoiceCreationStatusText).Trim().ToLower().Contains("to upload a payroll, you need to create a user first");
+                                 (await invoiceCreationStatusText)?.Trim().ToLower().Contains("to upload a payroll, you need to create a user first") == true;
         Assert.True(actionNotCompleted);
     }
 
@@ -104,9 +104,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await deleteLink.ClickAsync();
         await Page.Locator("button[type='submit']").ClickAsync();
         var invoiceDeletionStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isDeleted = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                        (await invoiceDeletionStatusText).Trim() == "Invoice deleted successfully";
-        Assert.True(isDeleted);
+        Assert.Equal("Invoice deleted successfully", (await invoiceDeletionStatusText)?.Trim());
     }
 
     [Fact]
@@ -122,9 +120,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isSuccessful = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                           (await statusText).Trim() == "User created successfully";
-        Assert.True(isSuccessful);
+        Assert.Equal("User created successfully", (await statusText)?.Trim());
     }
 
     [Fact]
@@ -164,18 +160,14 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.GetByText("Disable").ClickAsync();
         await Page.Locator("button[type='submit']").ClickAsync();
         var disabledStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isDisabled = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                         (await disabledStatusText).Trim() == "User disabled successfully";
-        Assert.True(isDisabled);
+        Assert.Equal("User disabled successfully", (await disabledStatusText)?.Trim());
         await Page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { NameRegex = new Regex(@"^All\b") }).ClickAsync();
         var allUserRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
         await allUserRow.GetByRole(AriaRole.Button).Last.ClickAsync();
         await Page.GetByText("Activate").ClickAsync();
         await Page.Locator("button[type='submit']").ClickAsync();
         var activateStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isActivated = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                          (await activateStatusText).Trim() == "User activated successfully";
-        Assert.True(isActivated);
+        Assert.Equal("User activated successfully", (await activateStatusText)?.Trim());
     }
 
     [Fact]
@@ -196,9 +188,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.Locator("a.dropdown-item.text-danger", new PageLocatorOptions { HasTextString = "Delete" }).ClickAsync();
         await Page.Locator("button[type='submit']").ClickAsync();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isDeleted = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                        (await statusText).Trim() == "User deleted successfully";
-        Assert.True(isDeleted);
+        Assert.Equal("User deleted successfully", (await statusText)?.Trim());
     }
 
     [Fact]
@@ -224,9 +214,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.Locator("#addReminder").ClickAsync();
         await Page.Locator("#Edit").ClickAsync();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isEdited = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                       (await statusText).Trim() == "User details updated successfully";
-        Assert.True(isEdited);
+        Assert.Equal("User details updated successfully", (await statusText)?.Trim());
         await Page.WaitForSelectorAsync($"text={newName}");
         var newRecordCount = await Page.Locator("tr", new PageLocatorOptions { HasTextString = newName }).CountAsync();
         Assert.True(newRecordCount > 0, "Updated user row not found.");
@@ -253,8 +241,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#ConfirmNewPassword", "123456789");
         await Page.Locator("#ResetPassword").ClickAsync();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isEdited = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                       (await statusText).Trim() == "User details updated successfully";
+        Assert.Equal("User details updated successfully", (await statusText)?.Trim());
     }
 
     [Fact]
@@ -286,9 +273,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await popup.FillAsync("#ConfirmNewPassword", "1234567");
         await popup.ClickAsync("button[type='submit']");
         var statusText = (await FindAlertMessageAsync(new[] { expectedSeverity }, popup)).TextContentAsync();
-        var isEdited = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                       (await statusText).Trim() == "Password successfully changed";
-        Assert.True(isEdited);
+        Assert.Equal("Password successfully changed", (await statusText)?.Trim());
     }
 
     private async Task CreateVendorPayUser()
@@ -311,9 +296,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#Description", "Test Vendor pay Invoice creation");
         await Page.Locator("#Upload").ClickAsync();
         var invoiceCreationStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isInvoiceCreated = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                               (await invoiceCreationStatusText).Trim() == "Invoice uploaded successfully";
-        Assert.True(isInvoiceCreated);
+        Assert.Equal("Invoice uploaded successfully", (await invoiceCreationStatusText)?.Trim());
     }
 
     private async Task MakeInvoiceFileUploadOptional()
@@ -324,9 +307,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.Locator("#Edit").ClickAsync();
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
-        var isSuccessful = expectedSeverity == StatusMessageModel.StatusSeverity.Success &&
-                           (await statusText).Trim() == "Vendor pay settings updated successfully";
-        Assert.True(isSuccessful);
+        Assert.Equal("Vendor pay settings updated successfully", (await statusText)?.Trim());
     }
 
     [Fact]
@@ -382,7 +363,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
             await Page.FillAsync("#InvoiceFiatConversionAdjustmentPercentage", percent.ToString());
             await Page.Locator("#Edit").ClickAsync();
             var statusText = (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
-            Assert.True((await statusText).Trim() == "Vendor pay settings updated successfully");
+            Assert.Equal("Vendor pay settings updated successfully", (await statusText)?.Trim());
         }
 
         async Task<string> PayFirstInvoiceAndGetStatusMessage()
