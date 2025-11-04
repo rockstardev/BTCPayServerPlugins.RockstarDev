@@ -52,14 +52,5 @@
     <ItemGroup>
         <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
     </ItemGroup>
-
-
-    <ItemGroup>
-        <EditorConfigFiles Remove=".editorconfig"/>
-    </ItemGroup>
-
-
-    <ItemGroup>
-      <Folder Include="Data\Models\" />
-    </ItemGroup>
+    
 </Project>
