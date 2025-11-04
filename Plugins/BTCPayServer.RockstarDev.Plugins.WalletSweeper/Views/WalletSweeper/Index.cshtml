@@ -1,0 +1,84 @@
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models
+@model List<SweepConfiguration>
+@{
+    ViewData.SetActivePage("WalletSweeper", "Wallet Sweeper", "WalletSweeper");
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header">
+    <h2 class="my-1">@ViewData["Title"]</h2>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="row">
+    <div class="col-xxl-constrain col-xl-10">
+        
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info">
+                <h5><i class="fa fa-info-circle"></i> No Configurations</h5>
+                <p class="mb-0">You haven't set up any wallet monitoring configurations yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Balance</th>
+                            <th>Last Monitored</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var config in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@config.ConfigName</strong>
+                                    @if (!string.IsNullOrEmpty(config.Description))
+                                    {
+                                        <br/><small class="text-muted">@config.Description</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (config.Enabled)
+                                    {
+                                        <span class="badge bg-success">Enabled</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Disabled</span>
+                                    }
+                                </td>
+                                <td>@config.CurrentBalance.ToString("N8") BTC</td>
+                                <td>
+                                    @if (config.LastMonitored.HasValue)
+                                    {
+                                        @config.LastMonitored.Value.ToBrowserDate()
+                                    }
+                                    else
+                                    {
+                                        <em>Never</em>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-secondary">Edit</button>
+                                        <button class="btn btn-danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+    </div>
+</div>
