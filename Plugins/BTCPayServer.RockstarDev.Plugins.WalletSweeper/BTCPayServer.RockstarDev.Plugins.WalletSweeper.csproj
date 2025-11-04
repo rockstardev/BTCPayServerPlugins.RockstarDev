@@ -57,4 +57,9 @@
     <ItemGroup>
         <EditorConfigFiles Remove=".editorconfig"/>
     </ItemGroup>
+
+
+    <ItemGroup>
+      <Folder Include="Data\Models\" />
+    </ItemGroup>
 </Project>
