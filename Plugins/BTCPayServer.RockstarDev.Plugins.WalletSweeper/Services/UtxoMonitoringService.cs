@@ -93,11 +93,19 @@ public class UtxoMonitoringService(
             // Derive addresses and discover UTXOs
             if (!string.IsNullOrEmpty(config.AccountXpub))
             {
-                await DiscoverAndTrackUtxos(config, existingUtxos, network, explorerClient, db, cancellationToken);
+                try
+                {
+                    await DiscoverAndTrackUtxos(config, existingUtxos, network, explorerClient, db, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"UtxoMonitoringService: Failed to discover UTXOs for {config.ConfigName}");
+                    // Continue processing - don't fail the entire monitoring run
+                }
             }
             else
             {
-                logger.LogWarning($"UtxoMonitoringService: Config {config.ConfigName} has no xpub, cannot discover UTXOs");
+                logger.LogError($"UtxoMonitoringService: Config {config.ConfigName} has no xpub - this should not happen! Configuration may be corrupted.");
             }
 
             // Calculate current balance from unspent UTXOs

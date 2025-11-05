@@ -156,6 +156,17 @@ public class WalletSweeperService(
 
         try
         {
+            // Validate configuration
+            if (string.IsNullOrEmpty(config.AccountXpub))
+            {
+                throw new InvalidOperationException("Configuration is missing account xpub. Please reconfigure the sweep settings.");
+            }
+            
+            if (string.IsNullOrEmpty(config.DerivationPath))
+            {
+                throw new InvalidOperationException("Configuration is missing derivation path. Please reconfigure the sweep settings.");
+            }
+            
             // Decrypt seed
             string seedPhrase;
             try

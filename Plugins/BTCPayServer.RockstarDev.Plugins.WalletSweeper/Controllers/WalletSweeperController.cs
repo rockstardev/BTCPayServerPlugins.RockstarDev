@@ -5,13 +5,16 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels;
+using BTCPayServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Controllers;
@@ -21,7 +24,9 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Controllers;
 public class WalletSweeperController(
     PluginDbContextFactory dbContextFactory,
     SeedEncryptionService seedEncryptionService,
-    WalletSweeperService sweeperService) : Controller
+    WalletSweeperService sweeperService,
+    BTCPayNetworkProvider networkProvider,
+    ILogger<WalletSweeperController> logger) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index(string storeId)
@@ -54,7 +59,7 @@ public class WalletSweeperController(
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { storeId });
         }
         
         var model = ConfigurationViewModel.FromModel(config);
@@ -62,7 +67,7 @@ public class WalletSweeperController(
     }
     
     [HttpPost("save")]
-    public async Task<IActionResult> Save(string storeId, ConfigurationViewModel model)
+    public async Task<IActionResult> Save([FromRoute] string storeId, ConfigurationViewModel model)
     {
         if (!ModelState.IsValid)
         {
@@ -104,7 +109,7 @@ public class WalletSweeperController(
             if (config == null)
             {
                 TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index), new { storeId });
             }
         }
         
@@ -130,22 +135,26 @@ public class WalletSweeperController(
         // Derive and store the account xpub for monitoring
         try
         {
+            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
             var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
             var masterKey = mnemonic.DeriveExtKey();
             var keyPath = new KeyPath(model.DerivationPath);
             var accountKey = masterKey.Derive(keyPath);
-            config.AccountXpub = accountKey.Neuter().ToString(NBitcoin.Network.Main);
+            config.AccountXpub = accountKey.Neuter().ToString(network.NBitcoinNetwork);
+            
+            logger.LogInformation($"WalletSweeperController: Successfully derived xpub for config {config.ConfigName} on network {network.CryptoCode}");
         }
         catch (Exception ex)
         {
-            TempData[WellKnownTempData.ErrorMessage] = $"Failed to derive xpub: {ex.Message}";
+            logger.LogError(ex, $"WalletSweeperController: Failed to derive xpub for derivation path {model.DerivationPath}");
+            TempData[WellKnownTempData.ErrorMessage] = $"Failed to derive account xpub from seed phrase. Please verify your seed phrase and derivation path are correct. Error: {ex.Message}";
             return View("Edit", model);
         }
         
         await db.SaveChangesAsync();
         
         TempData[WellKnownTempData.SuccessMessage] = "Configuration saved successfully";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { storeId });
     }
     
     [HttpPost("delete/{id}")]
@@ -160,14 +169,14 @@ public class WalletSweeperController(
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { storeId });
         }
         
         db.SweepConfigurations.Remove(config);
         await db.SaveChangesAsync();
         
         TempData[WellKnownTempData.SuccessMessage] = "Configuration deleted successfully";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { storeId });
     }
     
     [HttpGet("details/{id}")]
@@ -182,7 +191,7 @@ public class WalletSweeperController(
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { storeId });
         }
         
         // Get sweep history

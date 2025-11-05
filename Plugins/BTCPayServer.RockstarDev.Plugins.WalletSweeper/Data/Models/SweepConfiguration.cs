@@ -35,16 +35,16 @@ public class SweepConfiguration
     [MaxLength(100)]
     public string? DerivationPath { get; set; }
     
-    public int AddressGapLimit { get; set; } = 20;
+    public int AddressGapLimit { get; set; } = 100;
     
     // Sweep settings
     public bool Enabled { get; set; } = true;
     
     [Column(TypeName = "decimal(18,8)")]
-    public decimal MinimumBalance { get; set; } = 0.01m;
+    public decimal MinimumBalance { get; set; } = 0.005m;
     
     [Column(TypeName = "decimal(18,8)")]
-    public decimal MaximumBalance { get; set; } = 1000m;
+    public decimal MaximumBalance { get; set; } = 0.1m;
     
     public int IntervalSeconds { get; set; } = 600;
     
