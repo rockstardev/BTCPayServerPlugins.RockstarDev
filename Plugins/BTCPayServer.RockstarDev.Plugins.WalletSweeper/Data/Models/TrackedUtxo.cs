@@ -36,6 +36,9 @@ public class TrackedUtxo
     [MaxLength(200)]
     public string Address { get; set; } = null!;
     
+    [MaxLength(100)]
+    public string? DerivationPath { get; set; }
+    
     public int Confirmations { get; set; }
     
     // Cost basis tracking

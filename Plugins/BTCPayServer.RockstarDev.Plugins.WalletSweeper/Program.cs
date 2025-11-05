@@ -30,8 +30,9 @@ public class WalletSweeperPlugin : BaseBTCPayServerPlugin
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
 
-        // Add seed encryption service
+        // Add services
         serviceCollection.AddSingleton<SeedEncryptionService>();
+        serviceCollection.AddSingleton<WalletSweeperService>();
 
         // Add the UTXO monitoring background service
         // Configurable via environment variable BTCPAY_WALLETSWEEPER_INTERVAL (in seconds)

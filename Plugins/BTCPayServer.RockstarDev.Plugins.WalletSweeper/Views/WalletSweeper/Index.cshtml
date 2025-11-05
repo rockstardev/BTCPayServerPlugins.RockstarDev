@@ -1,13 +1,19 @@
+@using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models
+@inject IScopeProvider ScopeProvider
 @model List<SweepConfiguration>
 @{
+    var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage("WalletSweeper", "Wallet Sweeper", "WalletSweeper");
 }
 
 <div class="sticky-header-setup"></div>
-<div class="sticky-header">
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
     <h2 class="my-1">@ViewData["Title"]</h2>
+    <a asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary mt-3 mt-sm-0">
+        <i class="fa fa-plus"></i> Add Configuration
+    </a>
 </div>
 
 <partial name="_StatusMessage" />
@@ -40,7 +46,9 @@
                         {
                             <tr>
                                 <td>
-                                    <strong>@config.ConfigName</strong>
+                                    <a asp-action="Details" asp-route-storeId="@storeId" asp-route-id="@config.Id">
+                                        <strong>@config.ConfigName</strong>
+                                    </a>
                                     @if (!string.IsNullOrEmpty(config.Description))
                                     {
                                         <br/><small class="text-muted">@config.Description</small>
@@ -69,8 +77,15 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-secondary">Edit</button>
-                                        <button class="btn btn-danger">Delete</button>
+                                        <a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@config.Id" class="btn btn-secondary">
+                                            <i class="fa fa-edit"></i> Edit
+                                        </a>
+                                        <form method="post" asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@config.Id" class="d-inline"
+                                              onsubmit="return confirm('Are you sure you want to delete this configuration?');">
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="fa fa-trash"></i> Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

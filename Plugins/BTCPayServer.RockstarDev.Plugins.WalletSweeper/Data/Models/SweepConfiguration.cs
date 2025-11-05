@@ -29,6 +29,9 @@ public class SweepConfiguration
     [MaxLength(1000)]
     public string? EncryptedSeed { get; set; }
     
+    [MaxLength(200)]
+    public string? AccountXpub { get; set; }
+    
     [MaxLength(100)]
     public string? DerivationPath { get; set; }
     

@@ -1,0 +1,243 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models
+@inject IScopeProvider ScopeProvider
+@model SweepConfiguration
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    var history = ViewBag.History as List<SweepHistory> ?? new List<SweepHistory>();
+    ViewData.SetActivePage("WalletSweeper", Model.ConfigName, "WalletSweeper");
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <div>
+        <h2 class="my-1">
+            <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
+                <i class="fa fa-arrow-left"></i>
+            </a>
+            @Model.ConfigName
+        </h2>
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <p class="text-muted mb-0">@Model.Description</p>
+        }
+    </div>
+    <div class="d-flex gap-2 mt-3 mt-sm-0">
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#sweepModal">
+            <i class="fa fa-bolt"></i> Trigger Sweep
+        </button>
+        <a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@Model.Id" class="btn btn-secondary">
+            <i class="fa fa-edit"></i> Edit
+        </a>
+    </div>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="row">
+    <div class="col-xxl-constrain col-xl-10">
+        
+        <!-- Configuration Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Configuration</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl>
+                            <dt>Status</dt>
+                            <dd>
+                                @if (Model.Enabled)
+                                {
+                                    <span class="badge bg-success">Enabled</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Disabled</span>
+                                }
+                            </dd>
+                            
+                            <dt>Current Balance</dt>
+                            <dd><strong>@Model.CurrentBalance.ToString("N8") BTC</strong></dd>
+                            
+                            <dt>Derivation Path</dt>
+                            <dd><code>@Model.DerivationPath</code></dd>
+                            
+                            <dt>Address Gap Limit</dt>
+                            <dd>@Model.AddressGapLimit</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl>
+                            <dt>Balance Thresholds</dt>
+                            <dd>
+                                Min: <strong>@Model.MinimumBalance.ToString("N8") BTC</strong><br/>
+                                Max: <strong>@Model.MaximumBalance.ToString("N8") BTC</strong><br/>
+                                Reserve: <strong>@Model.ReserveAmount.ToString("N8") BTC</strong>
+                            </dd>
+                            
+                            <dt>Monitoring Interval</dt>
+                            <dd>@Model.IntervalSeconds seconds</dd>
+                            
+                            <dt>Fee Rate</dt>
+                            <dd>@Model.FeeRate sat/vB</dd>
+                            
+                            <dt>Last Monitored</dt>
+                            <dd>
+                                @if (Model.LastMonitored.HasValue)
+                                {
+                                    @Model.LastMonitored.Value.ToBrowserDate()
+                                }
+                                else
+                                {
+                                    <em>Never</em>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tracked UTXOs -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Tracked UTXOs (@Model.TrackedUtxos.Count(u => !u.IsSpent) unspent)</h5>
+            </div>
+            <div class="card-body">
+                @if (!Model.TrackedUtxos.Any())
+                {
+                    <p class="text-muted mb-0">No UTXOs tracked yet. The monitoring service will discover them automatically.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Outpoint</th>
+                                    <th>Amount</th>
+                                    <th>Address</th>
+                                    <th>Confirmations</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var utxo in Model.TrackedUtxos.OrderByDescending(u => u.ReceivedDate))
+                                {
+                                    <tr class="@(utxo.IsSpent ? "text-muted" : "")">
+                                        <td><code class="small">@utxo.Outpoint.Substring(0, Math.Min(16, utxo.Outpoint.Length))...</code></td>
+                                        <td>@utxo.Amount.ToString("N8") BTC</td>
+                                        <td><code class="small">@utxo.Address.Substring(0, Math.Min(12, utxo.Address.Length))...</code></td>
+                                        <td>@utxo.Confirmations</td>
+                                        <td>
+                                            @if (utxo.IsSpent)
+                                            {
+                                                <span class="badge bg-secondary">Spent</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Unspent</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <!-- Sweep History -->
+        @if (history.Any())
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Sweep History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Trigger</th>
+                                    <th>Amount</th>
+                                    <th>Fee</th>
+                                    <th>UTXOs</th>
+                                    <th>Status</th>
+                                    <th>TX</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in history)
+                                {
+                                    <tr>
+                                        <td>@item.SweepDate.ToBrowserDate()</td>
+                                        <td><span class="badge bg-info">@item.TriggerType</span></td>
+                                        <td>@item.Amount.ToString("N8") BTC</td>
+                                        <td>@item.Fee.ToString("N8") BTC</td>
+                                        <td>@item.UtxoCount</td>
+                                        <td>
+                                            @if (item.Status == "Success")
+                                            {
+                                                <span class="badge bg-success">Success</span>
+                                            }
+                                            else if (item.Status == "Failed")
+                                            {
+                                                <span class="badge bg-danger" title="@item.ErrorMessage">Failed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">@item.Status</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.TransactionId))
+                                            {
+                                                <code class="small">@item.TransactionId.Substring(0, Math.Min(8, item.TransactionId.Length))...</code>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        
+    </div>
+</div>
+
+<!-- Sweep Modal -->
+<div class="modal fade" id="sweepModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-action="TriggerSweep" asp-route-storeId="@storeId" asp-route-id="@Model.Id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Trigger Manual Sweep</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fa fa-exclamation-triangle"></i> Enter your encryption password to decrypt the seed and execute the sweep.
+                    </div>
+                    <div class="form-group">
+                        <label for="seedPassword" class="form-label">Encryption Password</label>
+                        <input type="password" class="form-control" id="seedPassword" name="seedPassword" required autofocus />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fa fa-bolt"></i> Execute Sweep
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

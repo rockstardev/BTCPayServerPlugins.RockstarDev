@@ -1,0 +1,178 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels
+@inject IScopeProvider ScopeProvider
+@model ConfigurationViewModel
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    var isNew = string.IsNullOrEmpty(Model.Id);
+    ViewData.SetActivePage("WalletSweeper", isNew ? "Add Configuration" : "Edit Configuration", "WalletSweeper");
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <div>
+        <h2 class="my-1">
+            <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
+                <i class="fa fa-arrow-left"></i>
+            </a>
+            @ViewData["Title"]
+        </h2>
+    </div>
+    <div class="d-flex gap-3 mt-3 mt-sm-0">
+        <button type="submit" form="ConfigForm" class="btn btn-primary">
+            <i class="fa fa-save"></i> Save
+        </button>
+    </div>
+</div>
+
+<partial name="_StatusMessage" />
+
+<div class="row">
+    <div class="col-xxl-constrain col-xl-8">
+        <form id="ConfigForm" method="post" asp-action="Save" asp-route-storeId="@storeId">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="HasEncryptedSeed" />
+            
+            <!-- Basic Info -->
+            <h4 class="mb-3">Basic Information</h4>
+            
+            <div class="form-group mb-3">
+                <label asp-for="ConfigName" class="form-label"></label>
+                <input asp-for="ConfigName" class="form-control" placeholder="e.g., Exchange Wallet, Store A" />
+                <span asp-validation-for="ConfigName" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            
+            <div class="form-check mb-4">
+                <input asp-for="Enabled" type="checkbox" class="form-check-input" />
+                <label asp-for="Enabled" class="form-check-label"></label>
+            </div>
+            
+            <!-- Wallet Configuration -->
+            <h4 class="mb-3 mt-4">External Wallet Configuration</h4>
+            
+            @if (Model.HasEncryptedSeed && !isNew)
+            {
+                <div class="alert alert-success">
+                    <i class="fa fa-lock"></i> Seed phrase is encrypted and stored. Leave empty to keep existing seed.
+                </div>
+            }
+            
+            <div class="form-group mb-3">
+                <label asp-for="SeedPhrase" class="form-label"></label>
+                <div class="input-group">
+                    <textarea asp-for="SeedPhrase" class="form-control" rows="3" 
+                              placeholder="word1 word2 word3 ..." 
+                              required="@(isNew || !Model.HasEncryptedSeed)"></textarea>
+                    <button type="button" class="btn btn-secondary px-3 only-for-js" 
+                            onclick="this.previousElementSibling.type = this.previousElementSibling.type === 'password' ? 'text' : 'password'">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="SeedPhrase" class="text-danger"></span>
+                <small class="form-text text-muted">12 or 24 word BIP39 mnemonic</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="SeedPassword" class="form-label"></label>
+                <input asp-for="SeedPassword" type="password" class="form-control" 
+                       required="@(isNew || !Model.HasEncryptedSeed)" />
+                <span asp-validation-for="SeedPassword" class="text-danger"></span>
+                <small class="form-text text-muted">Password to encrypt the seed phrase</small>
+            </div>
+            
+            @if (isNew || !Model.HasEncryptedSeed)
+            {
+                <div class="form-group mb-3">
+                    <label asp-for="SeedPasswordConfirm" class="form-label"></label>
+                    <input asp-for="SeedPasswordConfirm" type="password" class="form-control" required />
+                    <span asp-validation-for="SeedPasswordConfirm" class="text-danger"></span>
+                </div>
+            }
+            
+            <div class="form-group mb-3">
+                <label asp-for="DerivationPath" class="form-label"></label>
+                <input asp-for="DerivationPath" class="form-control" placeholder="m/84'/1'/0'" />
+                <span asp-validation-for="DerivationPath" class="text-danger"></span>
+                <small class="form-text text-muted">BIP32 derivation path (e.g., m/84'/1'/0' for native SegWit testnet)</small>
+            </div>
+            
+            <div class="form-group mb-4">
+                <label asp-for="AddressGapLimit" class="form-label"></label>
+                <input asp-for="AddressGapLimit" type="number" class="form-control" />
+                <span asp-validation-for="AddressGapLimit" class="text-danger"></span>
+                <small class="form-text text-muted">Number of consecutive unused addresses to check</small>
+            </div>
+            
+            <!-- Balance Thresholds -->
+            <h4 class="mb-3 mt-4">Balance Thresholds</h4>
+            
+            <div class="form-group mb-3">
+                <label asp-for="MinimumBalance" class="form-label"></label>
+                <input asp-for="MinimumBalance" type="number" step="0.00000001" class="form-control" />
+                <span asp-validation-for="MinimumBalance" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="MaximumBalance" class="form-label"></label>
+                <input asp-for="MaximumBalance" type="number" step="0.00000001" class="form-control" />
+                <span asp-validation-for="MaximumBalance" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-4">
+                <label asp-for="ReserveAmount" class="form-label"></label>
+                <input asp-for="ReserveAmount" type="number" step="0.00000001" class="form-control" />
+                <span asp-validation-for="ReserveAmount" class="text-danger"></span>
+            </div>
+            
+            <!-- Monitoring & Sweep Settings -->
+            <h4 class="mb-3 mt-4">Monitoring & Sweep Settings</h4>
+            
+            <div class="form-group mb-3">
+                <label asp-for="IntervalSeconds" class="form-label"></label>
+                <input asp-for="IntervalSeconds" type="number" class="form-control" />
+                <span asp-validation-for="IntervalSeconds" class="text-danger"></span>
+                <small class="form-text text-muted">How often to check for new UTXOs (60-86400 seconds)</small>
+            </div>
+            
+            <div class="form-group mb-4">
+                <label asp-for="FeeRate" class="form-label"></label>
+                <input asp-for="FeeRate" type="number" class="form-control" />
+                <span asp-validation-for="FeeRate" class="text-danger"></span>
+                <small class="form-text text-muted">Satoshis per virtual byte</small>
+            </div>
+            
+            <!-- Destination Configuration -->
+            <h4 class="mb-3 mt-4">Sweep Destination</h4>
+            
+            <div class="form-group mb-3">
+                <label asp-for="DestinationType" class="form-label"></label>
+                <select asp-for="DestinationType" class="form-select">
+                    <option value="0">This Store's Wallet</option>
+                    <option value="1">Custom Address</option>
+                </select>
+                <span asp-validation-for="DestinationType" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="DestinationAddress" class="form-label"></label>
+                <input asp-for="DestinationAddress" class="form-control" placeholder="bc1q..." />
+                <span asp-validation-for="DestinationAddress" class="text-danger"></span>
+                <small class="form-text text-muted">Required if using custom address</small>
+            </div>
+            
+            <div class="form-check mb-4">
+                <input asp-for="AutoGenerateLabel" type="checkbox" class="form-check-input" />
+                <label asp-for="AutoGenerateLabel" class="form-check-label"></label>
+                <small class="form-text text-muted ms-4">Label transactions as "Sweep from [Config Name]"</small>
+            </div>
+            
+        </form>
+    </div>
+</div>

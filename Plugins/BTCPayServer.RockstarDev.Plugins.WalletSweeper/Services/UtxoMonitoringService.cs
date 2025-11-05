@@ -26,7 +26,7 @@ public class UtxoMonitoringService(
     public async Task Do(CancellationToken cancellationToken)
     {
         logger.LogInformation("UtxoMonitoringService: Starting periodic check");
-        
+
         try
         {
             await using var db = dbContextFactory.CreateContext();
@@ -79,13 +79,136 @@ public class UtxoMonitoringService(
         var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
 
-        // Derive addresses from seed (we'll need to decrypt seed first - for now, skip)
-        // TODO: Implement address derivation and UTXO discovery
-        
-        // For now, just update last monitored timestamp
-        config.LastMonitored = DateTimeOffset.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-        
-        logger.LogInformation($"UtxoMonitoringService: Updated last monitored for {config.ConfigName}");
+        try
+        {
+            logger.LogInformation($"UtxoMonitoringService: Monitoring {config.ConfigName} with path {config.DerivationPath}");
+
+            // Get existing tracked UTXOs
+            var existingUtxos = await db.TrackedUtxos
+                .Where(u => u.SweepConfigurationId == config.Id)
+                .ToListAsync(cancellationToken);
+
+            logger.LogInformation($"UtxoMonitoringService: Found {existingUtxos.Count} existing UTXOs for {config.ConfigName}");
+
+            // Derive addresses and discover UTXOs
+            if (!string.IsNullOrEmpty(config.AccountXpub))
+            {
+                await DiscoverAndTrackUtxos(config, existingUtxos, network, explorerClient, db, cancellationToken);
+            }
+            else
+            {
+                logger.LogWarning($"UtxoMonitoringService: Config {config.ConfigName} has no xpub, cannot discover UTXOs");
+            }
+
+            // Calculate current balance from unspent UTXOs
+            var unspentUtxos = existingUtxos.Where(u => !u.IsSpent).ToList();
+            config.CurrentBalance = unspentUtxos.Sum(u => u.Amount);
+            config.LastMonitored = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation(
+                $"UtxoMonitoringService: Updated {config.ConfigName} - Balance: {config.CurrentBalance:N8} BTC from {unspentUtxos.Count} UTXOs");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"UtxoMonitoringService: Error monitoring {config.ConfigName}");
+        }
+    }
+
+    private async Task DiscoverAndTrackUtxos(
+        SweepConfiguration config,
+        List<TrackedUtxo> existingUtxos,
+        BTCPayNetwork network,
+        ExplorerClient explorerClient,
+        PluginDbContext db,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Parse the account xpub into a derivation strategy
+            var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
+
+            // Get UTXOs from NBXplorer for this derivation strategy
+            var utxoChanges = await explorerClient.GetUTXOsAsync(derivationStrategy, cancellationToken);
+            var unspentUtxos = utxoChanges.GetUnspentUTXOs();
+
+            var newUtxosFound = 0;
+            var spentUtxosMarked = 0;
+            var confirmationsUpdated = 0;
+
+            var currentUnspentOutpoints = unspentUtxos
+                .Select(u => $"{u.Outpoint.Hash}:{u.Outpoint.N}")
+                .ToHashSet();
+
+            // Step 1: Check existing tracked UTXOs for spent status and confirmation updates
+            foreach (var trackedUtxo in existingUtxos.Where(u => !u.IsSpent))
+            {
+                if (!currentUnspentOutpoints.Contains(trackedUtxo.Outpoint))
+                {
+                    // UTXO is no longer unspent - mark as spent
+                    trackedUtxo.IsSpent = true;
+                    trackedUtxo.SpentDate = DateTimeOffset.UtcNow;
+                    trackedUtxo.UpdatedAt = DateTimeOffset.UtcNow;
+                    spentUtxosMarked++;
+                    
+                    logger.LogInformation($"UtxoMonitoringService: UTXO spent for {config.ConfigName}: {trackedUtxo.Outpoint} = {trackedUtxo.Amount:N8} BTC");
+                }
+                else
+                {
+                    // UTXO still unspent - update confirmations if changed
+                    var currentUtxo = unspentUtxos.First(u => $"{u.Outpoint.Hash}:{u.Outpoint.N}" == trackedUtxo.Outpoint);
+                    var newConfirmations = (int)currentUtxo.Confirmations;
+                    
+                    if (trackedUtxo.Confirmations != newConfirmations)
+                    {
+                        trackedUtxo.Confirmations = newConfirmations;
+                        trackedUtxo.UpdatedAt = DateTimeOffset.UtcNow;
+                        confirmationsUpdated++;
+                    }
+                }
+            }
+
+            // Step 2: Add new UTXOs that we haven't tracked yet
+            foreach (var utxo in unspentUtxos)
+            {
+                var outpoint = $"{utxo.Outpoint.Hash}:{utxo.Outpoint.N}";
+
+                if (existingUtxos.All(u => u.Outpoint != outpoint))
+                {
+                    var trackedUtxo = new TrackedUtxo
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        SweepConfigurationId = config.Id,
+                        Outpoint = outpoint,
+                        TxId = utxo.Outpoint.Hash.ToString(),
+                        Vout = (int)utxo.Outpoint.N,
+                        Amount = ((Money)utxo.Value).ToDecimal(MoneyUnit.BTC),
+                        Address = utxo.ScriptPubKey.GetDestinationAddress(network.NBitcoinNetwork)?.ToString() ?? "",
+                        DerivationPath = utxo.KeyPath?.ToString(),
+                        Confirmations = (int)utxo.Confirmations,
+                        ReceivedDate = utxo.Timestamp,
+                        IsSpent = false
+                    };
+
+                    db.TrackedUtxos.Add(trackedUtxo);
+                    existingUtxos.Add(trackedUtxo);
+                    newUtxosFound++;
+
+                    logger.LogInformation($"UtxoMonitoringService: New UTXO found for {config.ConfigName}: {outpoint} = {trackedUtxo.Amount:N8} BTC");
+                }
+            }
+
+            logger.LogInformation($"UtxoMonitoringService: Scanned {config.ConfigName} - New: {newUtxosFound}, Spent: {spentUtxosMarked}, Confirmations updated: {confirmationsUpdated}");
+
+            if (newUtxosFound > 0 || spentUtxosMarked > 0 || confirmationsUpdated > 0)
+            {
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"UtxoMonitoringService: Error discovering UTXOs for {config.ConfigName}");
+        }
     }
 }
