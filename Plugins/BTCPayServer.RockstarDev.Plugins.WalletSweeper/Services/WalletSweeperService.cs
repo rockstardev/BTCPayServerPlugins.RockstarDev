@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -209,36 +210,157 @@ public class WalletSweeperService(
                 history.DestinationAddress = config.DestinationAddress;
             }
 
-            // Build transaction
+            // Build and broadcast transaction using PSBT approach
             var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
             
-            // For now, create a simple transaction
-            // TODO: Implement full UTXO selection and transaction building
-            var txBuilder = network.NBitcoinNetwork.CreateTransactionBuilder();
+            // Get actual UTXOs from NBXplorer (the source of truth)
+            var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
+            var utxoChanges = await explorerClient.GetUTXOsAsync(derivationStrategy, cancellationToken);
+            var allUtxos = utxoChanges.GetUnspentUTXOs().ToList();
             
-            // Calculate amount to send (balance - reserve - estimated fee)
-            var estimatedFee = Money.Coins(0.0001m); // Rough estimate
-            var amountToSend = Money.Coins(config.CurrentBalance) - Money.Coins(config.ReserveAmount) - estimatedFee;
-
-            if (amountToSend <= Money.Zero)
+            if (!allUtxos.Any())
             {
-                throw new InvalidOperationException("Amount to send is zero or negative after fees");
+                throw new InvalidOperationException("No unspent UTXOs available to sweep");
             }
-
-            // This is a simplified version - full implementation would:
-            // 1. Query UTXOs from the external wallet
-            // 2. Select appropriate UTXOs
-            // 3. Build and sign transaction
-            // 4. Broadcast transaction
             
-            logger.LogWarning($"WalletSweeperService: Sweep transaction building not fully implemented yet");
+            // Calculate minimum viable UTXO value based on fee rate
+            // A typical input costs ~68 vBytes to spend, so exclude UTXOs smaller than that cost
+            var feeRate = new FeeRate(Money.Satoshis(config.FeeRate));
+            var minUtxoValue = Money.Satoshis((long)(68 * feeRate.SatoshiPerByte));
             
-            // For now, mark as success with placeholder data
+            var spendableUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) >= 0).ToList();
+            var dustUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) < 0).ToList();
+            var spendableBalance = spendableUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
+            var dustBalance = dustUtxos.Sum(u => ((Money)u.Value).ToDecimal(MoneyUnit.BTC));
+            
+            logger.LogInformation($"WalletSweeperService: Total UTXOs: {allUtxos.Count}, " +
+                                $"Spendable: {spendableUtxos.Count} ({spendableBalance:N8} BTC), " +
+                                $"Dust: {dustUtxos.Count} ({dustBalance:N8} BTC, threshold: {minUtxoValue.ToDecimal(MoneyUnit.BTC):N8} BTC)");
+            
+            if (!spendableUtxos.Any())
+            {
+                throw new InvalidOperationException($"No spendable UTXOs available. All UTXOs are below dust threshold of {minUtxoValue.ToDecimal(MoneyUnit.BTC):N8} BTC ({minUtxoValue.Satoshi} sats)");
+            }
+            
+            // Determine if we're using SweepAll mode (when reserve is 0)
+            var useSweepAll = config.ReserveAmount == 0;
+            decimal amountToSend;
+            bool subtractFees;
+            
+            if (useSweepAll)
+            {
+                amountToSend = spendableBalance;
+                subtractFees = true;
+                logger.LogInformation($"WalletSweeperService: SweepAll mode - sending {amountToSend:N8} BTC with fees subtracted");
+            }
+            else
+            {
+                // Estimate fee (rough: ~200 vbytes for typical sweep)
+                var estimatedFee = (feeRate.SatoshiPerByte * 200m) / 100_000_000m;
+                amountToSend = spendableBalance - config.ReserveAmount - estimatedFee;
+                subtractFees = false;
+                
+                if (amountToSend <= 0)
+                {
+                    throw new InvalidOperationException($"Sweep amount is zero or negative after reserve and fees. Balance: {spendableBalance}, Reserve: {config.ReserveAmount}, Fee: {estimatedFee}");
+                }
+                
+                logger.LogInformation($"WalletSweeperService: Reserve mode - sending {amountToSend:N8} BTC, keeping {config.ReserveAmount:N8} BTC as change");
+            }
+            
+            // Build PSBT request
+            var createPSBTRequest = new CreatePSBTRequest
+            {
+                RBF = true,
+                IncludeOnlyOutpoints = spendableUtxos.Select(u => u.Outpoint).ToList(),
+                Destinations = new List<CreatePSBTDestination>
+                {
+                    new CreatePSBTDestination
+                    {
+                        Destination = destinationAddress.ScriptPubKey,
+                        Amount = useSweepAll ? null : Money.Coins(amountToSend),
+                        SweepAll = useSweepAll,
+                        SubstractFees = subtractFees
+                    }
+                },
+                FeePreference = new FeePreference
+                {
+                    ExplicitFeeRate = feeRate
+                }
+            };
+            
+            logger.LogInformation($"WalletSweeperService: Creating PSBT for sweep to {destinationAddress}");
+            
+            var psbtResponse = await explorerClient.CreatePSBTAsync(derivationStrategy, createPSBTRequest, cancellationToken);
+            if (psbtResponse?.PSBT == null)
+            {
+                throw new InvalidOperationException("Failed to create PSBT - response was null");
+            }
+            var psbt = psbtResponse.PSBT;
+            
+            // Update actual amounts from PSBT
+            var actualFeeFromPsbt = psbt.GetFee();
+            history.Fee = actualFeeFromPsbt.ToDecimal(MoneyUnit.BTC);
+            
+            var actualSweepAmount = psbt.Outputs
+                .Where(o => o.ScriptPubKey == destinationAddress.ScriptPubKey)
+                .Sum(o => o.Value.ToDecimal(MoneyUnit.BTC));
+            history.Amount = actualSweepAmount;
+            
+            logger.LogInformation($"WalletSweeperService: PSBT created. Amount: {actualSweepAmount:N8} BTC, Fee: {history.Fee:N8} BTC");
+            
+            // Sign the PSBT
+            logger.LogInformation($"WalletSweeperService: Signing PSBT");
+            var rootedKeyPath = new RootedKeyPath(accountKey.GetPublicKey().GetHDFingerPrint(), new KeyPath(config.DerivationPath!));
+            
+            psbt.RebaseKeyPaths(accountXpub, rootedKeyPath);
+            psbt.Settings.SigningOptions = new NBitcoin.SigningOptions { EnforceLowR = true };
+            var signed = psbt.SignAll(derivationStrategy, accountKey, rootedKeyPath);
+            
+            if (signed == null)
+            {
+                throw new InvalidOperationException("Failed to sign PSBT");
+            }
+            logger.LogInformation($"WalletSweeperService: PSBT signed successfully");
+            
+            // Finalize PSBT
+            logger.LogInformation($"WalletSweeperService: Finalizing PSBT");
+            if (!psbt.TryFinalize(out var errors))
+            {
+                var errorDetails = errors.Count > 0 ? string.Join(", ", errors) : "Unknown error";
+                throw new InvalidOperationException($"Failed to finalize PSBT: {errorDetails}");
+            }
+            logger.LogInformation($"WalletSweeperService: PSBT finalized successfully");
+            
+            // Extract and broadcast transaction
+            var tx = psbt.ExtractTransaction();
+            var txHash = tx.GetHash().ToString();
+            logger.LogInformation($"WalletSweeperService: Broadcasting transaction {txHash}");
+            
+            var broadcastResult = await explorerClient.BroadcastAsync(tx, cancellationToken);
+            if (!broadcastResult.Success)
+            {
+                throw new InvalidOperationException($"Broadcast failed: {broadcastResult.RPCCode} {broadcastResult.RPCCodeMessage} {broadcastResult.RPCMessage}");
+            }
+            logger.LogInformation($"WalletSweeperService: Transaction broadcast successful");
+            
+            // Update history
             history.Status = "Success";
-            history.Amount = amountToSend.ToDecimal(MoneyUnit.BTC);
-            history.Fee = estimatedFee.ToDecimal(MoneyUnit.BTC);
-            history.TransactionId = "placeholder_txid";
-            history.UtxoCount = config.TrackedUtxos.Count(u => !u.IsSpent);
+            history.TransactionId = txHash;
+            history.UtxoCount = spendableUtxos.Count;
+            
+            // Mark our tracked UTXOs as spent
+            var spentOutpoints = spendableUtxos.Select(u => $"{u.Outpoint.Hash}:{u.Outpoint.N}").ToHashSet();
+            var trackedUtxos = config.TrackedUtxos.Where(u => !u.IsSpent && spentOutpoints.Contains(u.Outpoint)).ToList();
+            
+            foreach (var utxo in trackedUtxos)
+            {
+                utxo.IsSpent = true;
+                utxo.SpentDate = DateTimeOffset.UtcNow;
+                utxo.SpentInSweepTxId = txHash;
+            }
+            
+            logger.LogInformation($"WalletSweeperService: Marked {trackedUtxos.Count} tracked UTXOs as spent");
 
             // Update config
             config.LastSwept = DateTimeOffset.UtcNow;
