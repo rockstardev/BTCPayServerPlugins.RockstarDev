@@ -2,11 +2,11 @@
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels
 @inject IScopeProvider ScopeProvider
-@model EditConfigurationViewModel
+@model CreateConfigurationViewModel
 @{
     Layout = "_Layout";
     var storeId = ScopeProvider.GetCurrentStoreId();
-    ViewData.SetActivePage("WalletSweeper", "Edit Configuration", "WalletSweeper");
+    ViewData.SetActivePage("WalletSweeper", "Add Configuration", "WalletSweeper");
 }
 
 <div class="sticky-header-setup"></div>
@@ -21,7 +21,7 @@
     </div>
     <div class="d-flex gap-3 mt-3 mt-sm-0">
         <button type="submit" form="ConfigForm" class="btn btn-primary">
-            <i class="fa fa-save"></i> Update
+            <i class="fa fa-save"></i> Create
         </button>
     </div>
 </div>
@@ -30,7 +30,7 @@
 
 <div class="row">
     <div class="col-xxl-constrain col-xl-8">
-        <form id="ConfigForm" method="post" asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@Model.Id">
+        <form id="ConfigForm" method="post" asp-action="Create" asp-route-storeId="@storeId">
             
             <!-- Basic Info -->
             <h4 class="mb-3">Basic Information</h4>
@@ -55,15 +55,32 @@
             <!-- Wallet Configuration -->
             <h4 class="mb-3 mt-4">External Wallet Configuration</h4>
             
-            <div class="alert alert-info">
-                <i class="fa fa-lock"></i> <strong>Seed phrase is securely encrypted and stored.</strong>
-                <p class="mb-0 mt-2">The seed phrase and derivation path cannot be changed after creation. If you need to use a different wallet, please create a new configuration.</p>
+            <div class="form-group mb-3">
+                <label asp-for="SeedPhrase" class="form-label"></label>
+                <textarea asp-for="SeedPhrase" class="form-control" rows="3" 
+                          placeholder="word1 word2 word3 ..."></textarea>
+                <span asp-validation-for="SeedPhrase" class="text-danger"></span>
+                <small class="form-text text-muted">12 or 24 word BIP39 mnemonic</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="SeedPassword" class="form-label"></label>
+                <input asp-for="SeedPassword" type="password" class="form-control" />
+                <span asp-validation-for="SeedPassword" class="text-danger"></span>
+                <small class="form-text text-muted">Password to encrypt the seed phrase (minimum 4 characters)</small>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="SeedPasswordConfirm" class="form-label"></label>
+                <input asp-for="SeedPasswordConfirm" type="password" class="form-control" />
+                <span asp-validation-for="SeedPasswordConfirm" class="text-danger"></span>
             </div>
             
             <div class="form-group mb-3">
                 <label asp-for="DerivationPath" class="form-label"></label>
-                <input asp-for="DerivationPath" class="form-control" readonly />
-                <small class="form-text text-muted">BIP32 derivation path (cannot be changed)</small>
+                <input asp-for="DerivationPath" class="form-control" placeholder="m/84'/1'/0'" />
+                <span asp-validation-for="DerivationPath" class="text-danger"></span>
+                <small class="form-text text-muted">BIP32 derivation path (e.g., m/84'/1'/0' for native SegWit testnet)</small>
             </div>
             
             <div class="form-group mb-4">
@@ -92,42 +109,41 @@
                 <label asp-for="ReserveAmount" class="form-label"></label>
                 <input asp-for="ReserveAmount" type="number" step="0.00000001" class="form-control" />
                 <span asp-validation-for="ReserveAmount" class="text-danger"></span>
+                <small class="form-text text-muted">Amount to keep in wallet (0 = sweep all)</small>
             </div>
             
-            <!-- Monitoring & Sweep Settings -->
-            <h4 class="mb-3 mt-4">Monitoring & Sweep Settings</h4>
+            <!-- Sweep Settings -->
+            <h4 class="mb-3 mt-4">Sweep Settings</h4>
             
             <div class="form-group mb-3">
                 <label asp-for="IntervalSeconds" class="form-label"></label>
                 <input asp-for="IntervalSeconds" type="number" class="form-control" />
                 <span asp-validation-for="IntervalSeconds" class="text-danger"></span>
-                <small class="form-text text-muted">How often to check for new UTXOs (60-86400 seconds)</small>
+                <small class="form-text text-muted">How often to check for new funds (seconds)</small>
             </div>
             
             <div class="form-group mb-4">
                 <label asp-for="FeeRate" class="form-label"></label>
                 <input asp-for="FeeRate" type="number" class="form-control" />
                 <span asp-validation-for="FeeRate" class="text-danger"></span>
-                <small class="form-text text-muted">Satoshis per virtual byte</small>
             </div>
             
-            <!-- Destination Configuration -->
-            <h4 class="mb-3 mt-4">Sweep Destination</h4>
+            <!-- Destination -->
+            <h4 class="mb-3 mt-4">Destination</h4>
             
             <div class="form-group mb-3">
                 <label asp-for="DestinationType" class="form-label"></label>
                 <select asp-for="DestinationType" class="form-select">
-                    <option value="0">This Store's Wallet</option>
-                    <option value="1">Custom Address</option>
+                    <option value="ThisStore">This Store</option>
+                    <option value="CustomAddress">Custom Address</option>
                 </select>
                 <span asp-validation-for="DestinationType" class="text-danger"></span>
             </div>
             
             <div class="form-group mb-3">
                 <label asp-for="DestinationAddress" class="form-label"></label>
-                <input asp-for="DestinationAddress" class="form-control" placeholder="bc1q..." />
+                <input asp-for="DestinationAddress" class="form-control" placeholder="Optional: specify custom address" />
                 <span asp-validation-for="DestinationAddress" class="text-danger"></span>
-                <small class="form-text text-muted">Required if using custom address</small>
             </div>
             
             <div class="form-check mb-4">

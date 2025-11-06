@@ -3,10 +3,8 @@ using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels;
 
-public class ConfigurationViewModel
+public class CreateConfigurationViewModel
 {
-    public string? Id { get; set; }
-    
     [Required]
     [MaxLength(100)]
     [Display(Name = "Configuration Name")]
@@ -16,20 +14,26 @@ public class ConfigurationViewModel
     [Display(Name = "Description")]
     public string? Description { get; set; }
     
+    [Required]
     [Display(Name = "Seed Phrase (12 or 24 words)")]
     public string SeedPhrase { get; set; } = string.Empty;
     
+    [Required]
+    [MinLength(4)]
     [Display(Name = "Encryption Password")]
     [DataType(DataType.Password)]
     public string SeedPassword { get; set; } = string.Empty;
     
+    [Required]
     [Display(Name = "Confirm Password")]
     [DataType(DataType.Password)]
-    public string SeedPasswordConfirm { get; set; }
+    [Compare(nameof(SeedPassword), ErrorMessage = "Passwords do not match")]
+    public string SeedPasswordConfirm { get; set; } = string.Empty;
     
+    [Required]
     [MaxLength(100)]
     [Display(Name = "Derivation Path")]
-    public string DerivationPath { get; set; } = "m/84'/1'/0'"; // Default to Native SegWit testnet
+    public string DerivationPath { get; set; } = "m/84'/1'/0'";
     
     [Range(1, 100)]
     [Display(Name = "Address Gap Limit")]
@@ -67,31 +71,4 @@ public class ConfigurationViewModel
     
     [Display(Name = "Auto Generate Label")]
     public bool AutoGenerateLabel { get; set; } = true;
-    
-    // For editing existing configs
-    public bool HasEncryptedSeed { get; set; }
-    
-    public static ConfigurationViewModel FromModel(SweepConfiguration config)
-    {
-        return new ConfigurationViewModel
-        {
-            Id = config.Id,
-            ConfigName = config.ConfigName,
-            Description = config.Description,
-            DerivationPath = config.DerivationPath,
-            AddressGapLimit = config.AddressGapLimit,
-            Enabled = config.Enabled,
-            MinimumBalance = config.MinimumBalance,
-            MaximumBalance = config.MaximumBalance,
-            ReserveAmount = config.ReserveAmount,
-            IntervalSeconds = config.IntervalSeconds,
-            FeeRate = config.FeeRate,
-            DestinationType = config.DestinationType,
-            DestinationAddress = config.DestinationAddress,
-            AutoGenerateLabel = config.AutoGenerateLabel,
-            HasEncryptedSeed = !string.IsNullOrEmpty(config.EncryptedSeed),
-            SeedPhrase = string.Empty, // Never populate from model for security
-            SeedPassword = string.Empty
-        };
-    }
 }

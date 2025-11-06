@@ -44,8 +44,68 @@ public class WalletSweeperController(
     [HttpGet("create")]
     public IActionResult Create(string storeId)
     {
-        var model = new ConfigurationViewModel();
-        return View("Edit", model);
+        var model = new CreateConfigurationViewModel();
+        return View(model);
+    }
+    
+    [HttpPost("create")]
+    public async Task<IActionResult> Create([FromRoute] string storeId, CreateConfigurationViewModel model)
+    {
+        // Additional validation for seed phrase format
+        if (!string.IsNullOrEmpty(model.SeedPhrase))
+        {
+            try
+            {
+                var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(nameof(model.SeedPhrase), $"Invalid seed phrase: {ex.Message}");
+            }
+        }
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        await using var db = dbContextFactory.CreateContext();
+
+        var config = new SweepConfiguration
+        {
+            Id = Guid.NewGuid().ToString(),
+            StoreId = storeId,
+            Created = DateTimeOffset.UtcNow,
+            DerivationPath = model.DerivationPath
+        };
+
+        // Encrypt seed and derive xpub
+        config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase.Trim(), model.SeedPassword);
+        
+        try
+        {
+            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
+            var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
+            var masterKey = mnemonic.DeriveExtKey();
+            var keyPath = new KeyPath(model.DerivationPath);
+            var accountKey = masterKey.Derive(keyPath);
+            config.AccountXpub = accountKey.Neuter().ToString(network.NBitcoinNetwork);
+            
+            logger.LogInformation($"Successfully derived xpub for config {model.ConfigName} on network {network.CryptoCode}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed to derive xpub for derivation path {model.DerivationPath}");
+            ModelState.AddModelError("", $"Failed to derive account xpub. Please verify your seed phrase and derivation path. Error: {ex.Message}");
+            return View(model);
+        }
+
+        // Set common properties
+        MapCommonProperties(config, model);
+        
+        db.SweepConfigurations.Add(config);
+        await db.SaveChangesAsync();
+
+        TempData[WellKnownTempData.SuccessMessage] = "Configuration created successfully";
+        return RedirectToAction(nameof(Index), new { storeId });
     }
     
     [HttpGet("edit/{id}")]
@@ -62,61 +122,40 @@ public class WalletSweeperController(
             return RedirectToAction(nameof(Index), new { storeId });
         }
         
-        var model = ConfigurationViewModel.FromModel(config);
+        var model = EditConfigurationViewModel.FromModel(config);
         return View(model);
     }
     
-    [HttpPost("save")]
-    public async Task<IActionResult> Save([FromRoute] string storeId, ConfigurationViewModel model)
+    [HttpPost("edit/{id}")]
+    public async Task<IActionResult> Edit([FromRoute] string storeId, string id, EditConfigurationViewModel model)
     {
         if (!ModelState.IsValid)
-        {
-            return View("Edit", model);
-        }
-        
-        // Validate seed phrase
-        try
-        {
-            var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
-        }
-        catch (Exception ex)
-        {
-            ModelState.AddModelError(nameof(model.SeedPhrase), $"Invalid seed phrase: {ex.Message}");
-            return View("Edit", model);
-        }
-        
+            return View(model);
+
         await using var db = dbContextFactory.CreateContext();
         
-        SweepConfiguration config;
+        var config = await db.SweepConfigurations
+            .FirstOrDefaultAsync(c => c.Id == id && c.StoreId == storeId);
         
-        if (string.IsNullOrEmpty(model.Id))
+        if (config == null)
         {
-            // Create new
-            config = new SweepConfiguration
-            {
-                Id = Guid.NewGuid().ToString(),
-                StoreId = storeId,
-                Created = DateTimeOffset.UtcNow
-            };
-            db.SweepConfigurations.Add(config);
+            TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
+            return RedirectToAction(nameof(Index), new { storeId });
         }
-        else
-        {
-            // Update existing
-            config = await db.SweepConfigurations
-                .FirstOrDefaultAsync(c => c.Id == model.Id && c.StoreId == storeId);
-            
-            if (config == null)
-            {
-                TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
-                return RedirectToAction(nameof(Index), new { storeId });
-            }
-        }
+
+        // Update common properties
+        MapCommonProperties(config, model);
         
-        // Update properties
+        await db.SaveChangesAsync();
+
+        TempData[WellKnownTempData.SuccessMessage] = "Configuration updated successfully";
+        return RedirectToAction(nameof(Index), new { storeId });
+    }
+    
+    private void MapCommonProperties(SweepConfiguration config, CreateConfigurationViewModel model)
+    {
         config.ConfigName = model.ConfigName;
         config.Description = model.Description;
-        config.DerivationPath = model.DerivationPath;
         config.AddressGapLimit = model.AddressGapLimit;
         config.Enabled = model.Enabled;
         config.MinimumBalance = model.MinimumBalance;
@@ -128,33 +167,23 @@ public class WalletSweeperController(
         config.DestinationAddress = model.DestinationAddress;
         config.AutoGenerateLabel = model.AutoGenerateLabel;
         config.Updated = DateTimeOffset.UtcNow;
-        
-        // Encrypt and store seed phrase, derive xpub
-        config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase.Trim(), model.SeedPassword);
-        
-        // Derive and store the account xpub for monitoring
-        try
-        {
-            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
-            var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
-            var masterKey = mnemonic.DeriveExtKey();
-            var keyPath = new KeyPath(model.DerivationPath);
-            var accountKey = masterKey.Derive(keyPath);
-            config.AccountXpub = accountKey.Neuter().ToString(network.NBitcoinNetwork);
-            
-            logger.LogInformation($"WalletSweeperController: Successfully derived xpub for config {config.ConfigName} on network {network.CryptoCode}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"WalletSweeperController: Failed to derive xpub for derivation path {model.DerivationPath}");
-            TempData[WellKnownTempData.ErrorMessage] = $"Failed to derive account xpub from seed phrase. Please verify your seed phrase and derivation path are correct. Error: {ex.Message}";
-            return View("Edit", model);
-        }
-        
-        await db.SaveChangesAsync();
-        
-        TempData[WellKnownTempData.SuccessMessage] = "Configuration saved successfully";
-        return RedirectToAction(nameof(Index), new { storeId });
+    }
+    
+    private void MapCommonProperties(SweepConfiguration config, EditConfigurationViewModel model)
+    {
+        config.ConfigName = model.ConfigName;
+        config.Description = model.Description;
+        config.AddressGapLimit = model.AddressGapLimit;
+        config.Enabled = model.Enabled;
+        config.MinimumBalance = model.MinimumBalance;
+        config.MaximumBalance = model.MaximumBalance;
+        config.ReserveAmount = model.ReserveAmount;
+        config.IntervalSeconds = model.IntervalSeconds;
+        config.FeeRate = model.FeeRate;
+        config.DestinationType = model.DestinationType;
+        config.DestinationAddress = model.DestinationAddress;
+        config.AutoGenerateLabel = model.AutoGenerateLabel;
+        config.Updated = DateTimeOffset.UtcNow;
     }
     
     [HttpPost("delete/{id}")]

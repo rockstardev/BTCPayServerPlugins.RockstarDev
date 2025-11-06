@@ -41,7 +41,7 @@ public class SweepConfiguration
     public bool Enabled { get; set; } = true;
     
     [Column(TypeName = "decimal(18,8)")]
-    public decimal MinimumBalance { get; set; } = 0.005m;
+    public decimal MinimumBalance { get; set; } = 0.0025m;
     
     [Column(TypeName = "decimal(18,8)")]
     public decimal MaximumBalance { get; set; } = 0.1m;
