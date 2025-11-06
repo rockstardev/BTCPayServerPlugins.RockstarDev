@@ -226,7 +226,11 @@ public class WalletSweeperService(
             
             // Get actual UTXOs from NBXplorer (the source of truth)
             var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
+            logger.LogInformation($"WalletSweeperService: Using derivation strategy: {derivationStrategy}");
+            logger.LogInformation($"WalletSweeperService: Derivation path: {config.DerivationPath}");
+            
             var utxoChanges = await explorerClient.GetUTXOsAsync(derivationStrategy, cancellationToken);
+            logger.LogInformation($"WalletSweeperService: NBXplorer returned {utxoChanges.Confirmed.UTXOs.Count} confirmed + {utxoChanges.Unconfirmed.UTXOs.Count} unconfirmed UTXOs");
             var allUtxos = utxoChanges.GetUnspentUTXOs().ToList();
             
             if (!allUtxos.Any())
@@ -234,10 +238,13 @@ public class WalletSweeperService(
                 throw new InvalidOperationException("No unspent UTXOs available to sweep");
             }
             
+            // Calculate fee rate - FeeRate expects satoshis per kilobyte
+            var feeRateSatPerVByte = config.FeeRate;
+            var feeRate = new FeeRate(Money.Satoshis(feeRateSatPerVByte * 1000));
+            
             // Calculate minimum viable UTXO value based on fee rate
             // A typical input costs ~68 vBytes to spend, so exclude UTXOs smaller than that cost
-            var feeRate = new FeeRate(Money.Satoshis(config.FeeRate));
-            var minUtxoValue = Money.Satoshis((long)(68 * feeRate.SatoshiPerByte));
+            var minUtxoValue = Money.Satoshis((long)(68 * feeRateSatPerVByte));
             
             var spendableUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) >= 0).ToList();
             var dustUtxos = allUtxos.Where(u => ((Money)u.Value).CompareTo(minUtxoValue) < 0).ToList();
@@ -266,8 +273,11 @@ public class WalletSweeperService(
             }
             else
             {
-                // Estimate fee (rough: ~200 vbytes for typical sweep)
-                var estimatedFee = (feeRate.SatoshiPerByte * 200m) / 100_000_000m;
+                // Estimate fee: inputs * 68 vB + outputs * 34 vB + 10 vB overhead
+                var estimatedVBytes = (spendableUtxos.Count * 68) + (1 * 34) + 10;
+                var estimatedFeeSats = estimatedVBytes * feeRateSatPerVByte;
+                var estimatedFee = estimatedFeeSats / 100_000_000m;
+                
                 amountToSend = spendableBalance - config.ReserveAmount - estimatedFee;
                 subtractFees = false;
                 
@@ -276,7 +286,7 @@ public class WalletSweeperService(
                     throw new InvalidOperationException($"Sweep amount is zero or negative after reserve and fees. Balance: {spendableBalance}, Reserve: {config.ReserveAmount}, Fee: {estimatedFee}");
                 }
                 
-                logger.LogInformation($"WalletSweeperService: Reserve mode - sending {amountToSend:N8} BTC, keeping {config.ReserveAmount:N8} BTC as change");
+                logger.LogInformation($"WalletSweeperService: Reserve mode - sending {amountToSend:N8} BTC, keeping {config.ReserveAmount:N8} BTC as change, estimated fee: {estimatedFee:N8} BTC ({estimatedFeeSats} sats for {estimatedVBytes} vBytes)");
             }
             
             // Build PSBT request
@@ -301,6 +311,7 @@ public class WalletSweeperService(
             };
             
             logger.LogInformation($"WalletSweeperService: Creating PSBT for sweep to {destinationAddress}");
+            logger.LogInformation($"WalletSweeperService: Including {spendableUtxos.Count} outpoints: {string.Join(", ", spendableUtxos.Select(u => $"{u.Outpoint.Hash}:{u.Outpoint.N}"))}");
             
             var psbtResponse = await explorerClient.CreatePSBTAsync(derivationStrategy, createPSBTRequest, cancellationToken);
             if (psbtResponse?.PSBT == null)
@@ -321,18 +332,64 @@ public class WalletSweeperService(
             logger.LogInformation($"WalletSweeperService: PSBT created. Amount: {actualSweepAmount:N8} BTC, Fee: {history.Fee:N8} BTC");
             
             // Sign the PSBT
-            logger.LogInformation($"WalletSweeperService: Signing PSBT");
-            var rootedKeyPath = new RootedKeyPath(accountKey.GetPublicKey().GetHDFingerPrint(), new KeyPath(config.DerivationPath!));
+            logger.LogInformation($"WalletSweeperService: Signing PSBT with {psbt.Inputs.Count} inputs");
             
+            // Get the master fingerprint from the master key (not account key)
+            var masterFingerprint = masterKey.GetPublicKey().GetHDFingerPrint();
+            var rootedKeyPath = new RootedKeyPath(masterFingerprint, keyPath);
+            
+            // Rebase key paths to use the correct root
             psbt.RebaseKeyPaths(accountXpub, rootedKeyPath);
-            psbt.Settings.SigningOptions = new NBitcoin.SigningOptions { EnforceLowR = true };
-            var signed = psbt.SignAll(derivationStrategy, accountKey, rootedKeyPath);
             
-            if (signed == null)
+            // Sign each input with the derived key
+            psbt.Settings.SigningOptions = new NBitcoin.SigningOptions { EnforceLowR = true };
+            
+            for (int i = 0; i < psbt.Inputs.Count; i++)
             {
-                throw new InvalidOperationException("Failed to sign PSBT");
+                var input = psbt.Inputs[i];
+                
+                // Get the key path for this input from the PSBT
+                var hdKeyPaths = input.HDKeyPaths;
+                if (hdKeyPaths.Count == 0)
+                {
+                    logger.LogWarning($"WalletSweeperService: Input {i} has no HD key paths");
+                    continue;
+                }
+                
+                // Get the first key path (should only be one for single-sig)
+                var keyPathInfo = hdKeyPaths.First();
+                var fullKeyPath = keyPathInfo.Value.KeyPath;
+                
+                logger.LogInformation($"WalletSweeperService: Input {i} full key path: {fullKeyPath}");
+                
+                // The PSBT has the full path (e.g., 84'/1'/0'/0/70)
+                // We need to derive relative to account key which is at m/84'/1'/0'
+                // So we need to extract the relative path (0/70)
+                // The account path is already in keyPath variable
+                KeyPath relativeKeyPath;
+                if (fullKeyPath.ToString().StartsWith(keyPath.ToString()))
+                {
+                    // Remove the account path prefix to get relative path
+                    var accountPathLength = keyPath.Indexes.Length;
+                    var relativeIndexes = fullKeyPath.Indexes.Skip(accountPathLength).ToArray();
+                    relativeKeyPath = new KeyPath(relativeIndexes);
+                }
+                else
+                {
+                    // Fallback: assume it's already relative
+                    relativeKeyPath = fullKeyPath;
+                }
+                
+                logger.LogInformation($"WalletSweeperService: Input {i} relative key path: {relativeKeyPath}");
+                
+                // Derive the specific key for this input (relative to account key)
+                var inputKey = accountKey.Derive(relativeKeyPath);
+                
+                // Sign this input with the private key
+                input.Sign(inputKey.PrivateKey);
             }
-            logger.LogInformation($"WalletSweeperService: PSBT signed successfully");
+            
+            logger.LogInformation($"WalletSweeperService: All inputs signed");
             
             // Finalize PSBT
             logger.LogInformation($"WalletSweeperService: Finalizing PSBT");
