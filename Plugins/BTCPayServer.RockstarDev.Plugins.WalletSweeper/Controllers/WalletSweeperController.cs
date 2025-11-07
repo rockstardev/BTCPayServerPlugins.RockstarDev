@@ -26,6 +26,7 @@ public class WalletSweeperController(
     SeedEncryptionService seedEncryptionService,
     WalletSweeperService sweeperService,
     BTCPayNetworkProvider networkProvider,
+    ExplorerClientProvider explorerClientProvider,
     ILogger<WalletSweeperController> logger) : Controller
 {
     [HttpGet]
@@ -80,9 +81,9 @@ public class WalletSweeperController(
         // Encrypt seed and derive xpub
         config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase.Trim(), model.SeedPassword);
         
+        var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         try
         {
-            var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
             var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
             var masterKey = mnemonic.DeriveExtKey();
             var keyPath = new KeyPath(model.DerivationPath);
@@ -103,6 +104,22 @@ public class WalletSweeperController(
         
         db.SweepConfigurations.Add(config);
         await db.SaveChangesAsync();
+        
+        // Optional: Track the derivation scheme in NBXplorer if not already tracked
+        // This ensures NBXplorer monitors addresses and discovers UTXOs automatically
+        // Note: If this xpub is already tracked by another store, this is redundant but harmless
+        try
+        {
+            var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
+            var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
+            await explorerClient.TrackAsync(derivationStrategy);
+            logger.LogInformation($"Tracked derivation scheme in NBXplorer for {model.ConfigName}");
+        }
+        catch (Exception ex)
+        {
+            // Non-fatal: NBXplorer might already be tracking this, or it will start on first query
+            logger.LogWarning(ex, $"Could not explicitly track derivation scheme in NBXplorer (may already be tracked)");
+        }
 
         TempData[WellKnownTempData.SuccessMessage] = "Configuration created successfully";
         return RedirectToAction(nameof(Index), new { storeId });

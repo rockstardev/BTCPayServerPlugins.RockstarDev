@@ -64,15 +64,10 @@ public class UtxoMonitoringService(
     {
         logger.LogInformation($"UtxoMonitoringService: Monitoring config {config.ConfigName} (ID: {config.Id})");
 
-        if (string.IsNullOrEmpty(config.EncryptedSeed))
+        // Validate required fields
+        if (string.IsNullOrEmpty(config.AccountXpub))
         {
-            logger.LogWarning($"UtxoMonitoringService: Config {config.ConfigName} has no seed configured, skipping");
-            return;
-        }
-
-        if (string.IsNullOrEmpty(config.DerivationPath))
-        {
-            logger.LogWarning($"UtxoMonitoringService: Config {config.ConfigName} has no derivation path, skipping");
+            logger.LogWarning($"UtxoMonitoringService: Config {config.ConfigName} has no xpub configured, skipping");
             return;
         }
 
@@ -81,32 +76,15 @@ public class UtxoMonitoringService(
 
         try
         {
-            logger.LogInformation($"UtxoMonitoringService: Monitoring {config.ConfigName} with path {config.DerivationPath}");
-
-            // Get existing tracked UTXOs
+            // Get existing tracked UTXOs from our database
             var existingUtxos = await db.TrackedUtxos
                 .Where(u => u.SweepConfigurationId == config.Id)
                 .ToListAsync(cancellationToken);
 
-            logger.LogInformation($"UtxoMonitoringService: Found {existingUtxos.Count} existing UTXOs for {config.ConfigName}");
+            logger.LogInformation($"UtxoMonitoringService: Found {existingUtxos.Count} existing tracked UTXOs for {config.ConfigName}");
 
-            // Derive addresses and discover UTXOs
-            if (!string.IsNullOrEmpty(config.AccountXpub))
-            {
-                try
-                {
-                    await DiscoverAndTrackUtxos(config, existingUtxos, network, explorerClient, db, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, $"UtxoMonitoringService: Failed to discover UTXOs for {config.ConfigName}");
-                    // Continue processing - don't fail the entire monitoring run
-                }
-            }
-            else
-            {
-                logger.LogError($"UtxoMonitoringService: Config {config.ConfigName} has no xpub - this should not happen! Configuration may be corrupted.");
-            }
+            // Sync with NBXplorer's UTXO set (NBXplorer is the source of truth)
+            await DiscoverAndTrackUtxos(config, existingUtxos, network, explorerClient, db, cancellationToken);
 
             // Calculate current balance from unspent UTXOs
             var unspentUtxos = existingUtxos.Where(u => !u.IsSpent).ToList();
@@ -124,6 +102,14 @@ public class UtxoMonitoringService(
         }
     }
 
+    /// <summary>
+    /// Syncs our local UTXO tracking with NBXplorer's UTXO set.
+    /// NBXplorer automatically:
+    /// - Generates addresses based on the derivation scheme
+    /// - Monitors the blockchain for transactions to those addresses
+    /// - Maintains the current UTXO set
+    /// We just need to query NBXplorer and update our local tracking records.
+    /// </summary>
     private async Task DiscoverAndTrackUtxos(
         SweepConfiguration config,
         List<TrackedUtxo> existingUtxos,
@@ -137,7 +123,8 @@ public class UtxoMonitoringService(
             // Parse the account xpub into a derivation strategy
             var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
 
-            // Get UTXOs from NBXplorer for this derivation strategy
+            // Get current UTXO set from NBXplorer (the source of truth)
+            // NBXplorer has already discovered all addresses and tracked all transactions
             var utxoChanges = await explorerClient.GetUTXOsAsync(derivationStrategy, cancellationToken);
             var unspentUtxos = utxoChanges.GetUnspentUTXOs();
 
