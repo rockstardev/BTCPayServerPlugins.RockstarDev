@@ -33,7 +33,7 @@ public class UtxoMonitoringService(
 
             // Get all enabled configurations
             var configs = await db.SweepConfigurations
-                .Where(c => c.Enabled)
+                .Where(c => c.AutoEnabled)
                 .Include(c => c.TrackedUtxos)
                 .ToListAsync(cancellationToken);
 
@@ -43,6 +43,8 @@ public class UtxoMonitoringService(
             {
                 try
                 {
+                    var x = config.IntervalMinutes;
+                    // TODO: Rename config.IntervalSeconds to config.IntervalMinutes and then trigger configurations based off that
                     await MonitorConfiguration(config, db, cancellationToken);
                 }
                 catch (Exception ex)

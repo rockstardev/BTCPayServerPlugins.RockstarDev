@@ -174,11 +174,11 @@ public class WalletSweeperController(
         config.ConfigName = model.ConfigName;
         config.Description = model.Description;
         config.AddressGapLimit = model.AddressGapLimit;
-        config.Enabled = model.Enabled;
+        config.AutoEnabled = model.AutoEnabled;
         config.MinimumBalance = model.MinimumBalance;
         config.MaximumBalance = model.MaximumBalance;
         config.ReserveAmount = model.ReserveAmount;
-        config.IntervalSeconds = model.IntervalSeconds;
+        config.IntervalMinutes = model.IntervalMinutes;
         config.FeeRate = model.FeeRate;
         config.DestinationType = model.DestinationType;
         config.DestinationAddress = model.DestinationAddress;
@@ -191,11 +191,11 @@ public class WalletSweeperController(
         config.ConfigName = model.ConfigName;
         config.Description = model.Description;
         config.AddressGapLimit = model.AddressGapLimit;
-        config.Enabled = model.Enabled;
+        config.AutoEnabled = model.AutoEnabled;
         config.MinimumBalance = model.MinimumBalance;
         config.MaximumBalance = model.MaximumBalance;
         config.ReserveAmount = model.ReserveAmount;
-        config.IntervalSeconds = model.IntervalSeconds;
+        config.IntervalMinutes = model.IntervalMinutes;
         config.FeeRate = model.FeeRate;
         config.DestinationType = model.DestinationType;
         config.DestinationAddress = model.DestinationAddress;

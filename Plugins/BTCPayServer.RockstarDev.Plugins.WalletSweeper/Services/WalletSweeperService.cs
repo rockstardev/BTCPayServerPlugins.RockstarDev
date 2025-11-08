@@ -73,7 +73,7 @@ public class WalletSweeperService(
         await using var db = dbContextFactory.CreateContext();
 
         var configs = await db.SweepConfigurations
-            .Where(c => c.Enabled)
+            .Where(c => c.AutoEnabled)
             .Include(c => c.TrackedUtxos.Where(u => !u.IsSpent))
             .ToListAsync(cancellationToken);
 
@@ -119,7 +119,7 @@ public class WalletSweeperService(
         if (config.LastSwept.HasValue)
         {
             var secondsSinceLastSweep = (DateTimeOffset.UtcNow - config.LastSwept.Value).TotalSeconds;
-            if (secondsSinceLastSweep >= config.IntervalSeconds)
+            if (secondsSinceLastSweep >= config.IntervalMinutes)
             {
                 triggerType = "Scheduled";
                 return true;

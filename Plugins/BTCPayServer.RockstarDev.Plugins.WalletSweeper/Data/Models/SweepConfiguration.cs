@@ -38,7 +38,7 @@ public class SweepConfiguration
     public int AddressGapLimit { get; set; } = 100;
     
     // Sweep settings
-    public bool Enabled { get; set; } = true;
+    public bool AutoEnabled { get; set; } = true;
     
     [Column(TypeName = "decimal(18,8)")]
     public decimal MinimumBalance { get; set; } = 0.0025m;
@@ -46,7 +46,7 @@ public class SweepConfiguration
     [Column(TypeName = "decimal(18,8)")]
     public decimal MaximumBalance { get; set; } = 0.1m;
     
-    public int IntervalSeconds { get; set; } = 600;
+    public int IntervalMinutes { get; set; } = 10;
     
     [Column(TypeName = "decimal(18,8)")]
     public decimal ReserveAmount { get; set; } = 0m;

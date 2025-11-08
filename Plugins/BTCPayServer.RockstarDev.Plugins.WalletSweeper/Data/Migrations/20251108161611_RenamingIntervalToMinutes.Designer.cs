@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
 {
     [DbContext(typeof(PluginDbContext))]
-    partial class PluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251108161611_RenamingIntervalToMinutes")]
+    partial class RenamingIntervalToMinutes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,9 +38,6 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
 
                     b.Property<int>("AddressGapLimit")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("AutoEnabled")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("AutoGenerateLabel")
                         .HasColumnType("boolean");
@@ -68,6 +68,9 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Migrations
 
                     b.Property<int>("DestinationType")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("EncryptedSeed")
                         .HasMaxLength(1000)

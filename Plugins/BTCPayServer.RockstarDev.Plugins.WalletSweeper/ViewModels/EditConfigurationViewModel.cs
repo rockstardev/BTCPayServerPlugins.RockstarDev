@@ -24,8 +24,8 @@ public class EditConfigurationViewModel
     [Display(Name = "Address Gap Limit")]
     public int AddressGapLimit { get; set; } = 100;
     
-    [Display(Name = "Enabled")]
-    public bool Enabled { get; set; } = true;
+    [Display(Name = "AutoEnabled")]
+    public bool AutoEnabled { get; set; } = true;
     
     [Range(0, 21000000)]
     [Display(Name = "Minimum Balance (BTC)")]
@@ -39,9 +39,9 @@ public class EditConfigurationViewModel
     [Display(Name = "Reserve Amount (BTC)")]
     public decimal ReserveAmount { get; set; } = 0m;
     
-    [Range(60, 86400)]
-    [Display(Name = "Monitoring Interval (seconds)")]
-    public int IntervalSeconds { get; set; } = 600;
+    [Range(10, 10000)]
+    [Display(Name = "Monitoring Interval (minutes)")]
+    public int IntervalMinutes { get; set; } = 600;
     
     [Range(1, 100)]
     [Display(Name = "Fee Rate (sat/vB)")]
@@ -66,11 +66,11 @@ public class EditConfigurationViewModel
             Description = config.Description,
             DerivationPath = config.DerivationPath ?? string.Empty,
             AddressGapLimit = config.AddressGapLimit,
-            Enabled = config.Enabled,
+            AutoEnabled = config.AutoEnabled,
             MinimumBalance = config.MinimumBalance,
             MaximumBalance = config.MaximumBalance,
             ReserveAmount = config.ReserveAmount,
-            IntervalSeconds = config.IntervalSeconds,
+            IntervalMinutes = config.IntervalMinutes,
             FeeRate = config.FeeRate,
             DestinationType = config.DestinationType,
             DestinationAddress = config.DestinationAddress,

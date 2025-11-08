@@ -36,10 +36,9 @@ public class WalletSweeperPlugin : BaseBTCPayServerPlugin
 
         // Add the UTXO monitoring background service
         // Configurable via environment variable BTCPAY_WALLETSWEEPER_INTERVAL (in seconds)
-        // Default: 600 seconds (10 minutes)
         var intervalSeconds = int.TryParse(Environment.GetEnvironmentVariable("BTCPAY_WALLETSWEEPER_INTERVAL"), out var seconds) && seconds > 0
             ? seconds
-            : 600;
+            : 60;
         serviceCollection.AddScheduledTask<UtxoMonitoringService>(TimeSpan.FromSeconds(intervalSeconds));
 
         base.Execute(serviceCollection);
