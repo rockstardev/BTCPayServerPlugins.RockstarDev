@@ -29,6 +29,9 @@ public class SweepConfiguration
     [MaxLength(1000)]
     public string? EncryptedSeed { get; set; }
     
+    [MaxLength(1000)]
+    public string? EncryptedPassword { get; set; }
+    
     [MaxLength(200)]
     public string? AccountXpub { get; set; }
     

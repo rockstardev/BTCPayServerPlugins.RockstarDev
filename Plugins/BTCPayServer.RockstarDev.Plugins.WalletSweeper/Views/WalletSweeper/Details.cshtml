@@ -223,13 +223,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <i class="fa fa-exclamation-triangle"></i> Enter your encryption password to decrypt the seed and execute the sweep.
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> This will execute a sweep using the stored encrypted credentials.
                     </div>
-                    <div class="form-group">
-                        <label for="seedPassword" class="form-label">Encryption Password</label>
-                        <input type="password" class="form-control" id="seedPassword" name="seedPassword" required autofocus />
-                    </div>
+                    <p>Current balance: <strong>@Model.CurrentBalance.ToString("N8") BTC</strong></p>
+                    <p>Minimum threshold: <strong>@Model.MinimumBalance.ToString("N8") BTC</strong></p>
+                    @if (Model.CurrentBalance < Model.MinimumBalance)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fa fa-exclamation-triangle"></i> Balance is below minimum threshold. Sweep may not execute.
+                        </div>
+                    }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

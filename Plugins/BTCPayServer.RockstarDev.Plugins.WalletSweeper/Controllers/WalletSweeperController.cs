@@ -78,8 +78,9 @@ public class WalletSweeperController(
             DerivationPath = model.DerivationPath
         };
 
-        // Encrypt seed and derive xpub
+        // Encrypt seed and password for auto-sweep functionality
         config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase.Trim(), model.SeedPassword);
+        config.EncryptedPassword = seedEncryptionService.EncryptSeed(model.SeedPassword, model.SeedPassword); // Encrypt password with itself
         
         var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         try
@@ -252,15 +253,9 @@ public class WalletSweeperController(
     }
     
     [HttpPost("sweep/{id}")]
-    public async Task<IActionResult> TriggerSweep(string storeId, string id, string seedPassword)
+    public async Task<IActionResult> TriggerSweep(string storeId, string id)
     {
-        if (string.IsNullOrEmpty(seedPassword))
-        {
-            TempData[WellKnownTempData.ErrorMessage] = "Password is required to decrypt the seed phrase";
-            return RedirectToAction(nameof(Details), new { storeId, id });
-        }
-        
-        var result = await sweeperService.TriggerSweep(id, seedPassword);
+        var result = await sweeperService.TriggerSweep(id);
         
         if (result.IsSuccess)
         {
