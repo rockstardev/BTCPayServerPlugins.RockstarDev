@@ -31,9 +31,8 @@ public class UtxoMonitoringService(
         {
             await using var db = dbContextFactory.CreateContext();
 
-            // Get all enabled configurations
+            // Get all configurations and update utxos
             var configs = await db.SweepConfigurations
-                .Where(c => c.AutoEnabled)
                 .Include(c => c.TrackedUtxos)
                 .ToListAsync(cancellationToken);
 
@@ -43,8 +42,6 @@ public class UtxoMonitoringService(
             {
                 try
                 {
-                    var x = config.IntervalMinutes;
-                    // TODO: Rename config.IntervalSeconds to config.IntervalMinutes and then trigger configurations based off that
                     await MonitorConfiguration(config, db, cancellationToken);
                 }
                 catch (Exception ex)
@@ -148,7 +145,7 @@ public class UtxoMonitoringService(
                     trackedUtxo.SpentDate = DateTimeOffset.UtcNow;
                     trackedUtxo.UpdatedAt = DateTimeOffset.UtcNow;
                     spentUtxosMarked++;
-                    
+
                     logger.LogInformation($"UtxoMonitoringService: UTXO spent for {config.ConfigName}: {trackedUtxo.Outpoint} = {trackedUtxo.Amount:N8} BTC");
                 }
                 else
@@ -156,7 +153,7 @@ public class UtxoMonitoringService(
                     // UTXO still unspent - update confirmations if changed
                     var currentUtxo = unspentUtxos.First(u => $"{u.Outpoint.Hash}:{u.Outpoint.N}" == trackedUtxo.Outpoint);
                     var newConfirmations = (int)currentUtxo.Confirmations;
-                    
+
                     if (trackedUtxo.Confirmations != newConfirmations)
                     {
                         trackedUtxo.Confirmations = newConfirmations;
@@ -196,7 +193,8 @@ public class UtxoMonitoringService(
                 }
             }
 
-            logger.LogInformation($"UtxoMonitoringService: Scanned {config.ConfigName} - New: {newUtxosFound}, Spent: {spentUtxosMarked}, Confirmations updated: {confirmationsUpdated}");
+            logger.LogInformation(
+                $"UtxoMonitoringService: Scanned {config.ConfigName} - New: {newUtxosFound}, Spent: {spentUtxosMarked}, Confirmations updated: {confirmationsUpdated}");
 
             if (newUtxosFound > 0 || spentUtxosMarked > 0 || confirmationsUpdated > 0)
             {

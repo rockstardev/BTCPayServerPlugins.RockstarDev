@@ -54,7 +54,7 @@ public class CreateConfigurationViewModel
     [Display(Name = "Reserve Amount (BTC)")]
     public decimal ReserveAmount { get; set; } = 0m;
     
-    [Range(10, 10000)]
+    [Range(1, 10000)]
     [Display(Name = "Monitoring Interval (minutes)")]
     public int IntervalMinutes { get; set; } = 10;
     

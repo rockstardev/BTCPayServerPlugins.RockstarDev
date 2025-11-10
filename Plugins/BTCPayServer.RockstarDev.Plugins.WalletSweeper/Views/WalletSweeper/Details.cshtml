@@ -125,7 +125,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var utxo in Model.TrackedUtxos.OrderByDescending(u => u.ReceivedDate))
+                                @foreach (var utxo in Model.TrackedUtxos.OrderBy(a=>a.IsSpent).ThenByDescending(u => u.ReceivedDate))
                                 {
                                     <tr class="@(utxo.IsSpent ? "text-muted" : "")">
                                         <td><code class="small">@utxo.Outpoint.Substring(0, Math.Min(16, utxo.Outpoint.Length))...</code></td>
