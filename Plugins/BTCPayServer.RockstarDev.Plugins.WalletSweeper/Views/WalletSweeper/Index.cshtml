@@ -4,6 +4,7 @@
 @inject IScopeProvider ScopeProvider
 @model List<SweepConfiguration>
 @{
+    Layout = "_Layout";
     var storeId = ScopeProvider.GetCurrentStoreId();
     ViewData.SetActivePage("WalletSweeper", "Wallet Sweeper", "WalletSweeper");
 }
@@ -18,82 +19,85 @@
 
 <partial name="_StatusMessage" />
 
-<div class="row">
-    <div class="col-xxl-constrain col-xl-10">
-        
-        @if (!Model.Any())
-        {
-            <div class="alert alert-info">
-                <h5><i class="fa fa-info-circle"></i> No Configurations</h5>
-                <p class="mb-0">You haven't set up any wallet monitoring configurations yet.</p>
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>Balance</th>
-                            <th>Last Monitored</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var config in Model)
+@if (Model.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Balance</th>
+                <th>Last Monitored</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var config in Model)
+            {
+                <tr>
+                    <td>
+                        <a asp-action="Details" asp-route-storeId="@storeId" asp-route-id="@config.Id">
+                            <strong>@config.ConfigName</strong>
+                        </a>
+                        @if (!string.IsNullOrEmpty(config.Description))
                         {
-                            <tr>
-                                <td>
-                                    <a asp-action="Details" asp-route-storeId="@storeId" asp-route-id="@config.Id">
-                                        <strong>@config.ConfigName</strong>
-                                    </a>
-                                    @if (!string.IsNullOrEmpty(config.Description))
-                                    {
-                                        <br/><small class="text-muted">@config.Description</small>
-                                    }
-                                </td>
-                                <td>
-                                    @if (config.AutoEnabled)
-                                    {
-                                        <span class="badge bg-success">Auto Enabled</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger">Auto Disabled</span>
-                                    }
-                                </td>
-                                <td>@config.CurrentBalance.ToString("N8") BTC</td>
-                                <td>
-                                    @if (config.LastMonitored.HasValue)
-                                    {
-                                        @config.LastMonitored.Value.ToBrowserDate()
-                                    }
-                                    else
-                                    {
-                                        <em>Never</em>
-                                    }
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@config.Id" class="btn btn-secondary">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </a>
-                                        <form method="post" asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@config.Id" class="d-inline"
-                                              onsubmit="return confirm('Are you sure you want to delete this configuration?');">
-                                            <button type="submit" class="btn btn-danger">
-                                                <i class="fa fa-trash"></i> Delete
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+                            <br />
+                            <small class="text-muted">@config.Description</small>
                         }
-                    </tbody>
-                </table>
-            </div>
-        }
-
+                    </td>
+                    <td>
+                        @if (config.AutoEnabled)
+                        {
+                            <span class="badge bg-success">Auto Enabled</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Auto Disabled</span>
+                        }
+                    </td>
+                    <td>@config.CurrentBalance.ToString("N8") BTC</td>
+                    <td>
+                        @if (config.LastMonitored.HasValue)
+                        {
+                            @config.LastMonitored.Value.ToBrowserDate()
+                        }
+                        else
+                        {
+                            <em>Never</em>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@config.Id">
+                            Edit
+                        </a>
+                        <span class="mx-1">-</span>
+                        <a href="#" class="text-danger" onclick="return confirmDelete('@config.Id', '@storeId', '@config.ConfigName')">
+                            Delete
+                        </a>
+                        <form id="delete-form-@config.Id" method="post" asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@config.Id" class="d-none">
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
     </div>
-</div>
+}
+else
+{
+    <p class="text-secondary mt-4">
+        There are no active monitoring configurations.
+    </p>
+}
+
+@section PageFootContent {
+    <script>
+        function confirmDelete(configId, storeId, configName) {
+            if (confirm('Are you sure you want to delete the configuration "' + configName + '"?')) {
+                document.getElementById('delete-form-' + configId).submit();
+            }
+            return false;
+        }
+    </script>
+}
