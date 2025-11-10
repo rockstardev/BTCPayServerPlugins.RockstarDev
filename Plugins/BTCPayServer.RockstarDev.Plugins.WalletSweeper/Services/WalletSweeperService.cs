@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Data;
+using BTCPayServer.HostedServices;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
@@ -22,6 +23,7 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 
 /// <summary>
 /// Service for executing sweeps from external wallets to the central store
+/// Also runs as a periodic task to check for automatic sweeps
 /// </summary>
 public class WalletSweeperService(
     PluginDbContextFactory dbContextFactory,
@@ -32,8 +34,15 @@ public class WalletSweeperService(
     PaymentMethodHandlerDictionary handlers,
     SeedEncryptionService seedEncryptionService,
     WalletRepository walletRepository,
-    ILogger<WalletSweeperService> logger)
+    ILogger<WalletSweeperService> logger) : IPeriodicTask
 {
+    /// <summary>
+    /// IPeriodicTask implementation - called periodically to check for automatic sweeps
+    /// </summary>
+    public async Task Do(CancellationToken cancellationToken)
+    {
+        await CheckAndSweepAll(cancellationToken);
+    }
     /// <summary>
     /// Manually trigger a sweep for a specific configuration
     /// </summary>
@@ -69,7 +78,7 @@ public class WalletSweeperService(
     /// </summary>
     public async Task CheckAndSweepAll(CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("WalletSweeperService: Checking all configurations for sweep triggers");
+        logger.LogInformation("WalletSweeperService: Checking all configurations for automatic sweep triggers");
 
         await using var db = dbContextFactory.CreateContext();
 
@@ -78,23 +87,36 @@ public class WalletSweeperService(
             .Include(c => c.TrackedUtxos.Where(u => !u.IsSpent))
             .ToListAsync(cancellationToken);
 
+        logger.LogInformation($"WalletSweeperService: Found {configs.Count} auto-enabled configurations");
+
         foreach (var config in configs)
         {
             try
             {
                 if (ShouldTriggerSweep(config, out var triggerType))
                 {
-                    logger.LogInformation($"WalletSweeperService: Triggering {triggerType} sweep for {config.ConfigName}");
+                    logger.LogInformation($"WalletSweeperService: Triggering automatic {triggerType} sweep for {config.ConfigName}");
                     
-                    // For automatic sweeps, we can't decrypt the seed without password
-                    // This is a limitation - automatic sweeps require the seed to be accessible
-                    // For now, we'll skip automatic sweeps
-                    logger.LogWarning($"WalletSweeperService: Automatic sweeps not yet implemented (requires password-less seed access)");
+                    // Execute automatic sweep (empty password - seed is already encrypted in DB)
+                    var result = await ExecuteSweep(config, string.Empty, $"Automatic ({triggerType})", db, cancellationToken);
+                    
+                    if (result.IsSuccess)
+                    {
+                        logger.LogInformation($"WalletSweeperService: Automatic sweep succeeded for {config.ConfigName} - TxId: {result.TransactionId}");
+                    }
+                    else
+                    {
+                        logger.LogError($"WalletSweeperService: Automatic sweep failed for {config.ConfigName} - {result.ErrorMessage}");
+                    }
+                }
+                else
+                {
+                    logger.LogDebug($"WalletSweeperService: No automatic sweep needed for {config.ConfigName}");
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"WalletSweeperService: Error checking config {config.ConfigName}");
+                logger.LogError(ex, $"WalletSweeperService: Error processing automatic sweep for {config.ConfigName}");
             }
         }
     }
@@ -106,30 +128,40 @@ public class WalletSweeperService(
         // Check 1: Balance below minimum
         if (config.CurrentBalance < config.MinimumBalance)
         {
+            logger.LogDebug($"WalletSweeperService: {config.ConfigName} - Balance {config.CurrentBalance:N8} below minimum {config.MinimumBalance:N8}");
             return false;
         }
 
         // Check 2: Balance exceeds maximum - immediate sweep
-        if (config.CurrentBalance >= config.MaximumBalance)
+        if (config.MaximumBalance > 0 && config.CurrentBalance >= config.MaximumBalance)
         {
             triggerType = "MaxThreshold";
+            logger.LogInformation($"WalletSweeperService: {config.ConfigName} - Balance {config.CurrentBalance:N8} exceeds maximum {config.MaximumBalance:N8}");
             return true;
         }
 
         // Check 3: Scheduled sweep based on interval
+        var intervalMinutes = config.IntervalMinutes > 0 ? config.IntervalMinutes : 60; // Default 60 minutes
+        
         if (config.LastSwept.HasValue)
         {
-            var secondsSinceLastSweep = (DateTimeOffset.UtcNow - config.LastSwept.Value).TotalSeconds;
-            if (secondsSinceLastSweep >= config.IntervalMinutes)
+            var minutesSinceLastSweep = (DateTimeOffset.UtcNow - config.LastSwept.Value).TotalMinutes;
+            if (minutesSinceLastSweep >= intervalMinutes)
             {
                 triggerType = "Scheduled";
+                logger.LogInformation($"WalletSweeperService: {config.ConfigName} - {minutesSinceLastSweep:F1} minutes since last sweep (interval: {intervalMinutes} min)");
                 return true;
+            }
+            else
+            {
+                logger.LogDebug($"WalletSweeperService: {config.ConfigName} - Only {minutesSinceLastSweep:F1} minutes since last sweep (interval: {intervalMinutes} min)");
             }
         }
         else
         {
             // Never swept before - trigger if above minimum
             triggerType = "Initial";
+            logger.LogInformation($"WalletSweeperService: {config.ConfigName} - Never swept before, triggering initial sweep");
             return true;
         }
 
