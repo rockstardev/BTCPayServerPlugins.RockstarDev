@@ -31,6 +31,7 @@ public class WalletSweeperService(
     BTCPayWalletProvider walletProvider,
     PaymentMethodHandlerDictionary handlers,
     SeedEncryptionService seedEncryptionService,
+    WalletRepository walletRepository,
     ILogger<WalletSweeperService> logger)
 {
     /// <summary>
@@ -205,10 +206,20 @@ public class WalletSweeperService(
                 }
 
                 var wallet = walletProvider.GetWallet("BTC");
-                var label = config.AutoGenerateLabel ? $"Sweep from {config.ConfigName}" : null;
-                var addressInfo = await wallet.ReserveAddressAsync(config.StoreId, derivationScheme.AccountDerivation, label);
+                
+                // Reserve address (generatedBy is for tracking who generated it, not for labeling)
+                var addressInfo = await wallet.ReserveAddressAsync(config.StoreId, derivationScheme.AccountDerivation, "walletsweeper");
                 destinationAddress = addressInfo.Address;
                 history.DestinationAddress = addressInfo.Address.ToString();
+                
+                // Add label to the address if AutoGenerateLabel is enabled
+                if (config.AutoGenerateLabel)
+                {
+                    var walletId = new WalletId(config.StoreId, "BTC");
+                    var addressObjectId = new WalletObjectId(walletId, WalletObjectData.Types.Address, addressInfo.Address.ToString());
+                    var label = $"Sweep from {config.ConfigName}";
+                    await walletRepository.AddWalletObjectLabels(addressObjectId, label);
+                }
             }
             else
             {
