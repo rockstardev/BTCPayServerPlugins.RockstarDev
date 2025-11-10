@@ -51,11 +51,11 @@
                             <dd>
                                 @if (Model.AutoEnabled)
                                 {
-                                    <span class="badge bg-success">Enabled</span>
+                                    <span class="badge bg-success">Auto Enabled</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-secondary">Disabled</span>
+                                    <span class="badge bg-danger">Auto Disabled</span>
                                 }
                             </dd>
                             
@@ -79,7 +79,7 @@
                             </dd>
                             
                             <dt>Monitoring Interval</dt>
-                            <dd>@Model.IntervalMinutes seconds</dd>
+                            <dd>@Model.IntervalMinutes minute(s)</dd>
                             
                             <dt>Fee Rate</dt>
                             <dd>@Model.FeeRate sat/vB</dd>
