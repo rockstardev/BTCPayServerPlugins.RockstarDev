@@ -70,24 +70,13 @@ public class WalletSweeperService(
             return SweepResult.Failure($"Balance ({config.CurrentBalance:N8} BTC) is below minimum threshold ({config.MinimumBalance:N8} BTC)");
         }
 
-        // Decrypt the stored password
-        string decryptedPassword;
-        try
+        // Get the stored password
+        if (string.IsNullOrEmpty(config.EncryptedPassword))
         {
-            if (string.IsNullOrEmpty(config.EncryptedPassword))
-            {
-                return SweepResult.Failure("No password stored for this configuration. Please recreate the configuration.");
-            }
-            
-            decryptedPassword = seedEncryptionService.DecryptSeed(config.EncryptedPassword, config.EncryptedPassword);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"WalletSweeperService: Failed to decrypt password for config {configId}");
-            return SweepResult.Failure("Failed to decrypt stored password");
+            return SweepResult.Failure("No password stored for this configuration. Please recreate the configuration.");
         }
 
-        return await ExecuteSweep(config, decryptedPassword, "Manual", db, cancellationToken);
+        return await ExecuteSweep(config, config.EncryptedPassword, "Manual", db, cancellationToken);
     }
 
     /// <summary>
@@ -114,27 +103,15 @@ public class WalletSweeperService(
                 {
                     logger.LogInformation($"WalletSweeperService: Triggering automatic {triggerType} sweep for {config.ConfigName}");
                     
-                    // Decrypt the stored password for auto-sweep
-                    string decryptedPassword;
-                    try
+                    // Get the stored password for auto-sweep
+                    if (string.IsNullOrEmpty(config.EncryptedPassword))
                     {
-                        if (string.IsNullOrEmpty(config.EncryptedPassword))
-                        {
-                            logger.LogError($"WalletSweeperService: No encrypted password stored for {config.ConfigName} - cannot perform auto-sweep");
-                            continue;
-                        }
-                        
-                        // Decrypt password using itself as the key (self-encrypted)
-                        decryptedPassword = seedEncryptionService.DecryptSeed(config.EncryptedPassword, config.EncryptedPassword);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, $"WalletSweeperService: Failed to decrypt password for {config.ConfigName}");
+                        logger.LogError($"WalletSweeperService: No password stored for {config.ConfigName} - cannot perform auto-sweep");
                         continue;
                     }
                     
-                    // Execute automatic sweep with decrypted password
-                    var result = await ExecuteSweep(config, decryptedPassword, $"Automatic ({triggerType})", db, cancellationToken);
+                    // Execute automatic sweep with stored password
+                    var result = await ExecuteSweep(config, config.EncryptedPassword, $"Automatic ({triggerType})", db, cancellationToken);
                     
                     if (result.IsSuccess)
                     {

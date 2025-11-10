@@ -25,6 +25,7 @@ public class WalletSweeperController(
     PluginDbContextFactory dbContextFactory,
     SeedEncryptionService seedEncryptionService,
     WalletSweeperService sweeperService,
+    UtxoMonitoringService utxoMonitoringService,
     BTCPayNetworkProvider networkProvider,
     ExplorerClientProvider explorerClientProvider,
     ILogger<WalletSweeperController> logger) : Controller
@@ -78,9 +79,10 @@ public class WalletSweeperController(
             DerivationPath = model.DerivationPath
         };
 
-        // Encrypt seed and password for auto-sweep functionality
+        // Encrypt seed and store password for auto-sweep functionality
         config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase.Trim(), model.SeedPassword);
-        config.EncryptedPassword = seedEncryptionService.EncryptSeed(model.SeedPassword, model.SeedPassword); // Encrypt password with itself
+        // Store password in plaintext - it's only useful with the encrypted seed
+        config.EncryptedPassword = model.SeedPassword;
         
         var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         try
@@ -106,9 +108,8 @@ public class WalletSweeperController(
         db.SweepConfigurations.Add(config);
         await db.SaveChangesAsync();
         
-        // Optional: Track the derivation scheme in NBXplorer if not already tracked
+        // Track the derivation scheme in NBXplorer if not already tracked
         // This ensures NBXplorer monitors addresses and discovers UTXOs automatically
-        // Note: If this xpub is already tracked by another store, this is redundant but harmless
         try
         {
             var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
@@ -122,7 +123,20 @@ public class WalletSweeperController(
             logger.LogWarning(ex, $"Could not explicitly track derivation scheme in NBXplorer (may already be tracked)");
         }
 
-        TempData[WellKnownTempData.SuccessMessage] = "Configuration created successfully";
+        // Perform initial UTXO check immediately instead of waiting for next block/transaction event
+        try
+        {
+            logger.LogInformation($"Performing initial UTXO check for {model.ConfigName}");
+            await utxoMonitoringService.MonitorConfiguration(config, db, default);
+            logger.LogInformation($"Initial UTXO check completed for {model.ConfigName} - Balance: {config.CurrentBalance:N8} BTC");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Error during initial UTXO check for {model.ConfigName}");
+            // Non-fatal: Will be checked on next event
+        }
+
+        TempData[WellKnownTempData.SuccessMessage] = $"Configuration created successfully. Current balance: {config.CurrentBalance:N8} BTC";
         return RedirectToAction(nameof(Index), new { storeId });
     }
     

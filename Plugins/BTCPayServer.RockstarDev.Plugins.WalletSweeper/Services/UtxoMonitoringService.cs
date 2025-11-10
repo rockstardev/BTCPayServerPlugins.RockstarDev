@@ -212,7 +212,11 @@ public class UtxoMonitoringService(
         }
     }
 
-    private async Task MonitorConfiguration(
+    /// <summary>
+    /// Manually trigger UTXO monitoring for a specific configuration
+    /// Useful for initial setup or on-demand checks
+    /// </summary>
+    public async Task MonitorConfiguration(
         SweepConfiguration config,
         PluginDbContext db,
         CancellationToken cancellationToken)
@@ -228,6 +232,17 @@ public class UtxoMonitoringService(
 
         var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         var explorerClient = explorerClientProvider.GetExplorerClient("BTC");
+
+        // Add to tracked derivations if not already present (for WebSocket event filtering)
+        try
+        {
+            var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
+            _trackedDerivations.TryAdd(config.Id, derivationStrategy);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"UtxoMonitoringService: Failed to parse derivation for {config.ConfigName}");
+        }
 
         try
         {
