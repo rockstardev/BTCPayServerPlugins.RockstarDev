@@ -1,10 +1,29 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Client
+@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data
 @using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.EntityFrameworkCore
 @inject IScopeProvider ScopeProvider
+@inject PluginDbContextFactory DbContextFactory
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
+    int configCount = 0;
+    
+    if (!string.IsNullOrEmpty(storeId))
+    {
+        try
+        {
+            await using var db = DbContextFactory.CreateContext();
+            configCount = await db.SweepConfigurations
+                .Where(c => c.StoreId == storeId)
+                .CountAsync();
+        }
+        catch
+        {
+            // Ignore errors (e.g., during migrations)
+        }
+    }
 }
 @if (!string.IsNullOrEmpty(storeId))
 {
@@ -27,6 +46,10 @@
             </svg>
 
             <span>Wallet Sweeper</span>
+            @if (configCount > 0)
+            {
+                <span class="badge bg-info ms-1">@configCount</span>
+            }
         </a>
     </li>
 }
