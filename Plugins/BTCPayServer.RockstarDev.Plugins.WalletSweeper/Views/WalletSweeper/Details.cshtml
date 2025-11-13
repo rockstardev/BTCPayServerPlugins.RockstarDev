@@ -11,18 +11,12 @@
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-    <div>
-        <h2 class="my-1">
-            <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
-                <i class="fa fa-arrow-left"></i>
-            </a>
-            @Model.ConfigName
-        </h2>
-        @if (!string.IsNullOrEmpty(Model.Description))
-        {
-            <p class="text-muted mb-0">@Model.Description</p>
-        }
-    </div>
+    <h2 class="my-1">
+        <a asp-action="Index" asp-route-storeId="@storeId" class="text-muted me-2">
+            <i class="fa fa-arrow-left"></i>
+        </a>
+        @Model.ConfigName
+    </h2>
     <div class="d-flex gap-2 mt-3 mt-sm-0">
         <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#sweepModal">
             <i class="fa fa-bolt"></i> Trigger Sweep
@@ -34,16 +28,24 @@
 </div>
 
 <partial name="_StatusMessage" />
-
 <div class="row">
     <div class="col-xxl-constrain col-xl-10">
-        
+
         <!-- Configuration Details -->
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">Configuration</h5>
             </div>
             <div class="card-body">
+                @if (!String.IsNullOrEmpty(Model.Description))
+                {
+                    <dl class="mb-3">
+                        <dt>Description</dt>
+                        <dd>@Model.Description</dd>
+                    </dl>
+                    <hr />
+                }
+
                 <div class="row">
                     <div class="col-md-6">
                         <dl>
@@ -58,13 +60,13 @@
                                     <span class="badge bg-danger">Auto Disabled</span>
                                 }
                             </dd>
-                            
+
                             <dt>Current Balance</dt>
                             <dd><strong>@Model.CurrentBalance.ToString("N8") BTC</strong></dd>
-                            
+
                             <dt>Derivation Path</dt>
                             <dd><code>@Model.DerivationPath</code></dd>
-                            
+
                             <dt>Address Gap Limit</dt>
                             <dd>@Model.AddressGapLimit</dd>
                         </dl>
@@ -73,17 +75,17 @@
                         <dl>
                             <dt>Balance Thresholds</dt>
                             <dd>
-                                Min: <strong>@Model.MinimumBalance.ToString("N8") BTC</strong><br/>
-                                Max: <strong>@Model.MaximumBalance.ToString("N8") BTC</strong><br/>
+                                Min: <strong>@Model.MinimumBalance.ToString("N8") BTC</strong><br />
+                                Max: <strong>@Model.MaximumBalance.ToString("N8") BTC</strong><br />
                                 Reserve: <strong>@Model.ReserveAmount.ToString("N8") BTC</strong>
                             </dd>
-                            
+
                             <dt>Monitoring Interval</dt>
                             <dd>@Model.IntervalMinutes minute(s)</dd>
-                            
+
                             <dt>Fee Rate</dt>
                             <dd>@Model.FeeRate sat/vB</dd>
-                            
+
                             <dt>Last Monitored</dt>
                             <dd>
                                 @if (Model.LastMonitored.HasValue)
@@ -100,7 +102,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Tracked UTXOs -->
         <div class="card mb-4">
             <div class="card-header">
@@ -116,41 +118,41 @@
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
-                                <tr>
-                                    <th>Outpoint</th>
-                                    <th>Amount</th>
-                                    <th>Address</th>
-                                    <th>Confirmations</th>
-                                    <th>Status</th>
-                                </tr>
+                            <tr>
+                                <th>Outpoint</th>
+                                <th>Amount</th>
+                                <th>Address</th>
+                                <th>Confirmations</th>
+                                <th>Status</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var utxo in Model.TrackedUtxos.OrderBy(a=>a.IsSpent).ThenByDescending(u => u.ReceivedDate))
-                                {
-                                    <tr class="@(utxo.IsSpent ? "text-muted" : "")">
-                                        <td><code class="small">@utxo.Outpoint.Substring(0, Math.Min(16, utxo.Outpoint.Length))...</code></td>
-                                        <td>@utxo.Amount.ToString("N8") BTC</td>
-                                        <td><code class="small">@utxo.Address.Substring(0, Math.Min(12, utxo.Address.Length))...</code></td>
-                                        <td>@utxo.Confirmations</td>
-                                        <td>
-                                            @if (utxo.IsSpent)
-                                            {
-                                                <span class="badge bg-secondary">Spent</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-success">Unspent</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
+                            @foreach (var utxo in Model.TrackedUtxos.OrderBy(a => a.IsSpent).ThenByDescending(u => u.ReceivedDate))
+                            {
+                                <tr class="@(utxo.IsSpent ? "text-muted" : "")">
+                                    <td><code class="small">@utxo.Outpoint.Substring(0, Math.Min(16, utxo.Outpoint.Length))...</code></td>
+                                    <td>@utxo.Amount.ToString("N8") BTC</td>
+                                    <td><code class="small">@utxo.Address.Substring(0, Math.Min(12, utxo.Address.Length))...</code></td>
+                                    <td>@utxo.Confirmations</td>
+                                    <td>
+                                        @if (utxo.IsSpent)
+                                        {
+                                            <span class="badge bg-secondary">Spent</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Unspent</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
                 }
             </div>
         </div>
-        
+
         <!-- Sweep History -->
         @if (history.Any())
         {
@@ -162,54 +164,54 @@
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Trigger</th>
-                                    <th>Amount</th>
-                                    <th>Fee</th>
-                                    <th>UTXOs</th>
-                                    <th>Status</th>
-                                    <th>TX</th>
-                                </tr>
+                            <tr>
+                                <th>Date</th>
+                                <th>Trigger</th>
+                                <th>Amount</th>
+                                <th>Fee</th>
+                                <th>UTXOs</th>
+                                <th>Status</th>
+                                <th>TX</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var item in history)
-                                {
-                                    <tr>
-                                        <td>@item.SweepDate.ToBrowserDate()</td>
-                                        <td><span class="badge bg-info">@item.TriggerType</span></td>
-                                        <td>@item.Amount.ToString("N8") BTC</td>
-                                        <td>@item.Fee.ToString("N8") BTC</td>
-                                        <td>@item.UtxoCount</td>
-                                        <td>
-                                            @if (item.Status == "Success")
-                                            {
-                                                <span class="badge bg-success">Success</span>
-                                            }
-                                            else if (item.Status == "Failed")
-                                            {
-                                                <span class="badge bg-danger" title="@item.ErrorMessage">Failed</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning">@item.Status</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (!string.IsNullOrEmpty(item.TransactionId))
-                                            {
-                                                <code class="small">@item.TransactionId.Substring(0, Math.Min(8, item.TransactionId.Length))...</code>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
+                            @foreach (var item in history)
+                            {
+                                <tr>
+                                    <td>@item.SweepDate.ToBrowserDate()</td>
+                                    <td><span class="badge bg-info">@item.TriggerType</span></td>
+                                    <td>@item.Amount.ToString("N8") BTC</td>
+                                    <td>@item.Fee.ToString("N8") BTC</td>
+                                    <td>@item.UtxoCount</td>
+                                    <td>
+                                        @if (item.Status == "Success")
+                                        {
+                                            <span class="badge bg-success">Success</span>
+                                        }
+                                        else if (item.Status == "Failed")
+                                        {
+                                            <span class="badge bg-danger" title="@item.ErrorMessage">Failed</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">@item.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.TransactionId))
+                                        {
+                                            <code class="small">@item.TransactionId.Substring(0, Math.Min(8, item.TransactionId.Length))...</code>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         }
-        
+
     </div>
 </div>
 
