@@ -2,13 +2,12 @@
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @using Microsoft.EntityFrameworkCore
 @inject IScopeProvider ScopeProvider
 @inject PluginDbContextFactory DbContextFactory
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
-    int configCount = 0;
+    var configCount = 0;
     
     if (!string.IsNullOrEmpty(storeId))
     {

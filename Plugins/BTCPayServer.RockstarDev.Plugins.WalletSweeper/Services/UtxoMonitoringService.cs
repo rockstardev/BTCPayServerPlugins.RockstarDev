@@ -6,18 +6,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
-using BTCPayServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using NBXplorer;
 using NBXplorer.DerivationStrategy;
+using NBXplorer.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 
 /// <summary>
-/// Monitors external wallets for UTXOs via NBXplorer WebSocket notifications
+///     Monitors external wallets for UTXOs via NBXplorer WebSocket notifications
 /// </summary>
 public class UtxoMonitoringService(
     PluginDbContextFactory dbContextFactory,
@@ -26,8 +26,8 @@ public class UtxoMonitoringService(
     ILogger<UtxoMonitoringService> logger) : IHostedService
 {
     private readonly CancellationTokenSource _cts = new();
-    private Task? _runningTask;
     private readonly ConcurrentDictionary<string, DerivationStrategyBase> _trackedDerivations = new();
+    private Task? _runningTask;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -48,7 +48,6 @@ public class UtxoMonitoringService(
         _cts.Cancel();
 
         if (_runningTask != null)
-        {
             try
             {
                 await _runningTask;
@@ -57,7 +56,6 @@ public class UtxoMonitoringService(
             {
                 // Expected on shutdown
             }
-        }
     }
 
     private async Task LoadTrackedDerivations()
@@ -71,7 +69,6 @@ public class UtxoMonitoringService(
 
             var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
             foreach (var config in configs)
-            {
                 try
                 {
                     var derivationStrategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(config.AccountXpub!);
@@ -82,7 +79,6 @@ public class UtxoMonitoringService(
                 {
                     logger.LogError(ex, $"UtxoMonitoringService: Failed to parse derivation for {config.ConfigName}");
                 }
-            }
 
             logger.LogInformation($"UtxoMonitoringService: Loaded {_trackedDerivations.Count} tracked derivations");
         }
@@ -98,7 +94,6 @@ public class UtxoMonitoringService(
         var client = explorerClientProvider.GetExplorerClient("BTC");
 
         while (!cancellationToken.IsCancellationRequested)
-        {
             try
             {
                 logger.LogInformation("UtxoMonitoringService: Connecting to NBXplorer WebSocket...");
@@ -119,11 +114,11 @@ public class UtxoMonitoringService(
 
                         switch (newEvent)
                         {
-                            case NBXplorer.Models.NewTransactionEvent txEvent:
+                            case NewTransactionEvent txEvent:
                                 await HandleNewTransaction(txEvent, network, cancellationToken);
                                 break;
 
-                            case NBXplorer.Models.NewBlockEvent blockEvent:
+                            case NewBlockEvent blockEvent:
                                 await HandleNewBlock(blockEvent, network, cancellationToken);
                                 break;
                         }
@@ -140,12 +135,11 @@ public class UtxoMonitoringService(
                 logger.LogError(ex, "UtxoMonitoringService: WebSocket connection error, reconnecting in 10 seconds...");
                 await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
             }
-        }
 
         logger.LogInformation("UtxoMonitoringService: WebSocket listener stopped");
     }
 
-    private async Task HandleNewTransaction(NBXplorer.Models.NewTransactionEvent txEvent, BTCPayNetwork network, CancellationToken cancellationToken)
+    private async Task HandleNewTransaction(NewTransactionEvent txEvent, BTCPayNetwork network, CancellationToken cancellationToken)
     {
         if (txEvent.DerivationStrategy == null)
             return;
@@ -167,10 +161,7 @@ public class UtxoMonitoringService(
                 .Include(c => c.TrackedUtxos)
                 .FirstOrDefaultAsync(c => c.Id == configId, cancellationToken);
 
-            if (config != null)
-            {
-                await MonitorConfiguration(config, db, cancellationToken);
-            }
+            if (config != null) await MonitorConfiguration(config, db, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -178,7 +169,7 @@ public class UtxoMonitoringService(
         }
     }
 
-    private async Task HandleNewBlock(NBXplorer.Models.NewBlockEvent blockEvent, BTCPayNetwork network, CancellationToken cancellationToken)
+    private async Task HandleNewBlock(NewBlockEvent blockEvent, BTCPayNetwork network, CancellationToken cancellationToken)
     {
         logger.LogInformation($"UtxoMonitoringService: New block {blockEvent.Height} - updating confirmations for all configs");
 
@@ -188,23 +179,18 @@ public class UtxoMonitoringService(
 
             // Update confirmations for all tracked configs
             foreach (var configId in _trackedDerivations.Keys)
-            {
                 try
                 {
                     var config = await db.SweepConfigurations
                         .Include(c => c.TrackedUtxos)
                         .FirstOrDefaultAsync(c => c.Id == configId, cancellationToken);
 
-                    if (config != null)
-                    {
-                        await MonitorConfiguration(config, db, cancellationToken);
-                    }
+                    if (config != null) await MonitorConfiguration(config, db, cancellationToken);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, $"UtxoMonitoringService: Error updating config {configId} on new block");
                 }
-            }
         }
         catch (Exception ex)
         {
@@ -213,8 +199,8 @@ public class UtxoMonitoringService(
     }
 
     /// <summary>
-    /// Manually trigger UTXO monitoring for a specific configuration
-    /// Useful for initial setup or on-demand checks
+    ///     Manually trigger UTXO monitoring for a specific configuration
+    ///     Useful for initial setup or on-demand checks
     /// </summary>
     public async Task MonitorConfiguration(
         SweepConfiguration config,
@@ -273,12 +259,12 @@ public class UtxoMonitoringService(
     }
 
     /// <summary>
-    /// Syncs our local UTXO tracking with NBXplorer's UTXO set.
-    /// NBXplorer automatically:
-    /// - Generates addresses based on the derivation scheme
-    /// - Monitors the blockchain for transactions to those addresses
-    /// - Maintains the current UTXO set
-    /// We just need to query NBXplorer and update our local tracking records.
+    ///     Syncs our local UTXO tracking with NBXplorer's UTXO set.
+    ///     NBXplorer automatically:
+    ///     - Generates addresses based on the derivation scheme
+    ///     - Monitors the blockchain for transactions to those addresses
+    ///     - Maintains the current UTXO set
+    ///     We just need to query NBXplorer and update our local tracking records.
     /// </summary>
     private async Task DiscoverAndTrackUtxos(
         SweepConfiguration config,
@@ -308,7 +294,6 @@ public class UtxoMonitoringService(
 
             // Step 1: Check existing tracked UTXOs for spent status and confirmation updates
             foreach (var trackedUtxo in existingUtxos.Where(u => !u.IsSpent))
-            {
                 if (!currentUnspentOutpoints.Contains(trackedUtxo.Outpoint))
                 {
                     // UTXO is no longer unspent - mark as spent
@@ -332,7 +317,6 @@ public class UtxoMonitoringService(
                         confirmationsUpdated++;
                     }
                 }
-            }
 
             // Step 2: Add new UTXOs that we haven't tracked yet
             foreach (var utxo in unspentUtxos)
@@ -367,10 +351,7 @@ public class UtxoMonitoringService(
             logger.LogInformation(
                 $"UtxoMonitoringService: Scanned {config.ConfigName} - New: {newUtxosFound}, Spent: {spentUtxosMarked}, Confirmations updated: {confirmationsUpdated}");
 
-            if (newUtxosFound > 0 || spentUtxosMarked > 0 || confirmationsUpdated > 0)
-            {
-                await db.SaveChangesAsync(cancellationToken);
-            }
+            if (newUtxosFound > 0 || spentUtxosMarked > 0 || confirmationsUpdated > 0) await db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {

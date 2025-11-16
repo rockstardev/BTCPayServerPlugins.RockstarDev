@@ -33,7 +33,7 @@ public class WalletSweeperPlugin : BaseBTCPayServerPlugin
         // Add services
         serviceCollection.AddSingleton<SeedEncryptionService>();
         serviceCollection.AddSingleton<WalletSweeperService>();
-        
+
         // UTXO monitoring via NBXplorer WebSocket (real-time, event-driven)
         // Register as singleton first so it can be injected into controllers
         serviceCollection.AddSingleton<UtxoMonitoringService>();

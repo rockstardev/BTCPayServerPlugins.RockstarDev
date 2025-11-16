@@ -1,8 +1,7 @@
+@inject IScopeProvider ScopeProvider
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models
-@inject IScopeProvider ScopeProvider
-@model List<SweepConfiguration>
+@model List<BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models.SweepConfiguration>
 @{
     Layout = "_Layout";
     var storeId = ScopeProvider.GetCurrentStoreId();

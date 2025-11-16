@@ -2,15 +2,11 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Extensions;
-using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels;
-using BTCPayServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +30,7 @@ public class WalletSweeperController(
     public async Task<IActionResult> Index(string storeId)
     {
         await using var db = dbContextFactory.CreateContext();
-        
+
         var configs = await db.SweepConfigurations
             .Where(c => c.StoreId == storeId)
             .OrderBy(c => c.ConfigName)
@@ -42,20 +38,19 @@ public class WalletSweeperController(
 
         return View(configs);
     }
-    
+
     [HttpGet("create")]
     public IActionResult Create(string storeId)
     {
         var model = new CreateConfigurationViewModel();
         return View(model);
     }
-    
+
     [HttpPost("create")]
     public async Task<IActionResult> Create([FromRoute] string storeId, CreateConfigurationViewModel model)
     {
         // Additional validation for seed phrase format
         if (!string.IsNullOrEmpty(model.SeedPhrase))
-        {
             try
             {
                 var mnemonic = new Mnemonic(model.SeedPhrase.Trim(), Wordlist.English);
@@ -64,7 +59,6 @@ public class WalletSweeperController(
             {
                 ModelState.AddModelError(nameof(model.SeedPhrase), $"Invalid seed phrase: {ex.Message}");
             }
-        }
 
         if (!ModelState.IsValid)
             return View(model);
@@ -83,7 +77,7 @@ public class WalletSweeperController(
         config.EncryptedSeed = seedEncryptionService.EncryptSeed(model.SeedPhrase.Trim(), model.SeedPassword);
         // Store password in plaintext - it's only useful with the encrypted seed
         config.EncryptedPassword = model.SeedPassword;
-        
+
         var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         try
         {
@@ -92,7 +86,7 @@ public class WalletSweeperController(
             var keyPath = new KeyPath(model.DerivationPath);
             var accountKey = masterKey.Derive(keyPath);
             config.AccountXpub = accountKey.Neuter().ToString(network.NBitcoinNetwork);
-            
+
             logger.LogInformation($"Successfully derived xpub for config {model.ConfigName} on network {network.CryptoCode}");
         }
         catch (Exception ex)
@@ -104,10 +98,10 @@ public class WalletSweeperController(
 
         // Set common properties
         MapCommonProperties(config, model);
-        
+
         db.SweepConfigurations.Add(config);
         await db.SaveChangesAsync();
-        
+
         // Track the derivation scheme in NBXplorer if not already tracked
         // This ensures NBXplorer monitors addresses and discovers UTXOs automatically
         try
@@ -120,7 +114,7 @@ public class WalletSweeperController(
         catch (Exception ex)
         {
             // Non-fatal: NBXplorer might already be tracking this, or it will start on first query
-            logger.LogWarning(ex, $"Could not explicitly track derivation scheme in NBXplorer (may already be tracked)");
+            logger.LogWarning(ex, "Could not explicitly track derivation scheme in NBXplorer (may already be tracked)");
         }
 
         // Perform initial UTXO check immediately instead of waiting for next block/transaction event
@@ -139,25 +133,25 @@ public class WalletSweeperController(
         TempData[WellKnownTempData.SuccessMessage] = $"Configuration created successfully. Current balance: {config.CurrentBalance:N8} BTC";
         return RedirectToAction(nameof(Index), new { storeId });
     }
-    
+
     [HttpGet("edit/{id}")]
     public async Task<IActionResult> Edit(string storeId, string id)
     {
         await using var db = dbContextFactory.CreateContext();
-        
+
         var config = await db.SweepConfigurations
             .FirstOrDefaultAsync(c => c.Id == id && c.StoreId == storeId);
-        
+
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
             return RedirectToAction(nameof(Index), new { storeId });
         }
-        
+
         var model = EditConfigurationViewModel.FromModel(config);
         return View(model);
     }
-    
+
     [HttpPost("edit/{id}")]
     public async Task<IActionResult> Edit([FromRoute] string storeId, string id, EditConfigurationViewModel model)
     {
@@ -165,10 +159,10 @@ public class WalletSweeperController(
             return View(model);
 
         await using var db = dbContextFactory.CreateContext();
-        
+
         var config = await db.SweepConfigurations
             .FirstOrDefaultAsync(c => c.Id == id && c.StoreId == storeId);
-        
+
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
@@ -177,13 +171,13 @@ public class WalletSweeperController(
 
         // Update common properties
         MapCommonProperties(config, model);
-        
+
         await db.SaveChangesAsync();
 
         TempData[WellKnownTempData.SuccessMessage] = "Configuration updated successfully";
         return RedirectToAction(nameof(Index), new { storeId });
     }
-    
+
     private void MapCommonProperties(SweepConfiguration config, CreateConfigurationViewModel model)
     {
         config.ConfigName = model.ConfigName;
@@ -200,7 +194,7 @@ public class WalletSweeperController(
         config.AutoGenerateLabel = model.AutoGenerateLabel;
         config.Updated = DateTimeOffset.UtcNow;
     }
-    
+
     private void MapCommonProperties(SweepConfiguration config, EditConfigurationViewModel model)
     {
         config.ConfigName = model.ConfigName;
@@ -217,70 +211,66 @@ public class WalletSweeperController(
         config.AutoGenerateLabel = model.AutoGenerateLabel;
         config.Updated = DateTimeOffset.UtcNow;
     }
-    
+
     [HttpPost("delete/{id}")]
     public async Task<IActionResult> Delete(string storeId, string id)
     {
         await using var db = dbContextFactory.CreateContext();
-        
+
         var config = await db.SweepConfigurations
             .Include(c => c.TrackedUtxos)
             .FirstOrDefaultAsync(c => c.Id == id && c.StoreId == storeId);
-        
+
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
             return RedirectToAction(nameof(Index), new { storeId });
         }
-        
+
         db.SweepConfigurations.Remove(config);
         await db.SaveChangesAsync();
-        
+
         TempData[WellKnownTempData.SuccessMessage] = "Configuration deleted successfully";
         return RedirectToAction(nameof(Index), new { storeId });
     }
-    
+
     [HttpGet("details/{id}")]
     public async Task<IActionResult> Details(string storeId, string id)
     {
         await using var db = dbContextFactory.CreateContext();
-        
+
         var config = await db.SweepConfigurations
             .Include(c => c.TrackedUtxos)
             .FirstOrDefaultAsync(c => c.Id == id && c.StoreId == storeId);
-        
+
         if (config == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Configuration not found";
             return RedirectToAction(nameof(Index), new { storeId });
         }
-        
+
         // Get sweep history
         var history = await db.SweepHistories
             .Where(h => h.SweepConfigurationId == id)
             .OrderByDescending(h => h.SweepDate)
             .Take(20)
             .ToListAsync();
-        
+
         ViewBag.History = history;
         return View(config);
     }
-    
+
     [HttpPost("sweep/{id}")]
     public async Task<IActionResult> TriggerSweep(string storeId, string id)
     {
         var result = await sweeperService.TriggerSweep(id);
-        
+
         if (result.IsSuccess)
-        {
-            TempData[WellKnownTempData.SuccessMessage] = 
+            TempData[WellKnownTempData.SuccessMessage] =
                 $"Sweep executed successfully! TX: {result.TransactionId}, Amount: {result.Amount:N8} BTC, Fee: {result.Fee:N8} BTC";
-        }
         else
-        {
             TempData[WellKnownTempData.ErrorMessage] = $"Sweep failed: {result.ErrorMessage}";
-        }
-        
+
         return RedirectToAction(nameof(Details), new { storeId, id });
     }
 }

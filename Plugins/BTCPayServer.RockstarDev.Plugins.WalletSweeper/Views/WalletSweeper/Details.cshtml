@@ -1,8 +1,8 @@
+@inject IScopeProvider ScopeProvider
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models
-@inject IScopeProvider ScopeProvider
-@model SweepConfiguration
+@model BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models.SweepConfiguration
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
     var history = ViewBag.History as List<SweepHistory> ?? new List<SweepHistory>();
@@ -37,7 +37,7 @@
                 <h5 class="mb-0">Configuration</h5>
             </div>
             <div class="card-body">
-                @if (!String.IsNullOrEmpty(Model.Description))
+                @if (!string.IsNullOrEmpty(Model.Description))
                 {
                     <dl class="mb-3">
                         <dt>Description</dt>
