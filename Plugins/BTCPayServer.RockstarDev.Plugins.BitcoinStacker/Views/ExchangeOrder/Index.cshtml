@@ -39,13 +39,15 @@
 
 @if (Model.BTCBalance != null && Model.USDBalance != null)
 {
-    <div>Balances: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD
-        @if (!string.IsNullOrEmpty(Model.ProfitUSD))
-        {
-            <span>- Profit: <b>@Model.ProfitUSD</b> USD</span>
-        }
-        @* <a href="#">Withdraw</a> *@
-    </div>
+    <div>Balances on Strike: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD</div>
+    @if (!string.IsNullOrEmpty(Model.StackerProfitUSD))
+    {
+        <div>Stacker Stats: 
+            Total Purchases: <b>@Model.StackerTotalUsdCost</b> USD |
+            Bitcoin Stacked: <b>@Model.StackerTotalBitcoin</b> BTC |
+            Profit: <b>@Model.StackerProfitUSD</b>
+        </div>
+    }
 }
 
 @if (Model.Total > 0)
@@ -67,6 +69,7 @@
                 <th scope="col">Operation</th>
                 <th scope="col">Amount</th>
                 <th scope="col">Converted</th>
+                <th scope="col">Rate</th>
                 <th scope="col">State</th>
                 <th scope="col">Created By</th>
                 <th scope="col">Delay Until</th>
@@ -89,6 +92,11 @@
                         @if (payout.TargetAmount.HasValue)
                         {
                             @payout.TargetAmount?.ToString("N8")
+                        }
+                    </td>
+                    <td>
+                        @if (payout.ConversionRate.HasValue)
+                        {
                             <span class="text-break small" style="font-style: italic;">$@payout.ConversionRate?.ToString("N2")</span>
                         }
                     </td>

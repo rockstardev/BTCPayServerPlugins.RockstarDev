@@ -87,7 +87,10 @@ public class ExchangeOrderController(
                 var totalBitcoin = profitsSource.Sum(a => a.TargetAmount) ?? 0;
 
                 var totalBitcoinInUsd = totalBitcoin * exchangeRate.Value;
-                viewModel.ProfitUSD = (totalBitcoinInUsd - totalCost).ToString("N2");
+                
+                viewModel.StackerTotalUsdCost = totalCost.ToString("N2");
+                viewModel.StackerTotalBitcoin = totalBitcoin.ToString("N2");
+                viewModel.StackerProfitUSD = (totalBitcoinInUsd - totalCost).ToString("N2");
             }
         }
 
