@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>Bitcoin Stacker</Product>
         <Description>Automatically stack sats on Strike depending on your sales on Stripe</Description>
-        <Version>0.1.0</Version>
+        <Version>0.1.1</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
