@@ -42,8 +42,8 @@
     <div>Balances on Strike: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD</div>
     @if (!string.IsNullOrEmpty(Model.StackerProfitUSD))
     {
-        <div>Stacker Stats: 
-            Total Purchases: <b>@Model.StackerTotalUsdCost</b> USD |
+        <div> 
+            Total Stacker Purchases: <b>@Model.StackerTotalUsdCost</b> USD |
             Bitcoin Stacked: <b>@Model.StackerTotalBitcoin</b> BTC |
             Profit: <b>@Model.StackerProfitUSD</b>
         </div>
@@ -97,7 +97,7 @@
                     <td>
                         @if (payout.ConversionRate.HasValue)
                         {
-                            <span class="text-break small" style="font-style: italic;">$@payout.ConversionRate?.ToString("N2")</span>
+                            <span>$@payout.ConversionRate?.ToString("N2")</span>
                         }
                     </td>
                     <td>@payout.State</td>
