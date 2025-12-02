@@ -2,7 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BTCPayServer.Client;
+using BTCPayServer.Data;
+using BTCPayServer.Services;
+using BTCPayServer.Services.Wallets;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Services;
 
@@ -11,22 +16,26 @@ public class TransactionDataBackfillService
     private readonly MempoolSpaceApiService _mempoolApi;
     private readonly HistoricalPriceService _priceService;
     private readonly NBXplorerDbService _nbxService;
+    private readonly WalletRepository _walletRepository;
     private readonly ILogger<TransactionDataBackfillService> _logger;
 
     public TransactionDataBackfillService(
         MempoolSpaceApiService mempoolApi,
         HistoricalPriceService priceService,
         NBXplorerDbService nbxService,
+        WalletRepository walletRepository,
         ILogger<TransactionDataBackfillService> logger)
     {
         _mempoolApi = mempoolApi;
         _priceService = priceService;
         _nbxService = nbxService;
+        _walletRepository = walletRepository;
         _logger = logger;
     }
 
     public async Task<BackfillResult> BackfillTransactionDataAsync(
         List<NBXTransactionData> transactions,
+        string storeId,
         string cryptoCode,
         bool includeFees = true,
         bool includeHistoricalPrices = true)
@@ -61,8 +70,8 @@ public class TransactionDataBackfillService
                             txData.FeeRate);
                     }
 
-                    // Fetch historical price if requested
-                    if (includeHistoricalPrices && txData.BlockTime > 0)
+                    // Fetch and save historical price if requested
+                    if (includeHistoricalPrices && txData.BlockTime > 0 && !tx.RateUsd.HasValue)
                     {
                         var timestamp = DateTimeOffset.FromUnixTimeSeconds(txData.BlockTime);
                         var btcPrice = await _priceService.GetHistoricalBtcPriceAsync(timestamp);
@@ -73,7 +82,9 @@ public class TransactionDataBackfillService
                                 "Transaction {TxId}: BTC Price on {Date} was ${Price}",
                                 tx.TransactionId, timestamp.ToString("yyyy-MM-dd"), btcPrice.Value);
                             
-                            // TODO: Store historical price somewhere if needed
+                            // Save the historical price to BTCPayServer database
+                            await SaveHistoricalRate(storeId, cryptoCode, tx.TransactionId, btcPrice.Value);
+                            tx.RateUsd = btcPrice.Value;
                         }
                     }
 
@@ -96,6 +107,51 @@ public class TransactionDataBackfillService
         }
 
         return result;
+    }
+
+    private async Task SaveHistoricalRate(string storeId, string cryptoCode, string txId, decimal usdRate)
+    {
+        try
+        {
+            var walletId = new WalletId(storeId, cryptoCode);
+            var walletObjectId = new WalletObjectId(walletId, WalletObjectData.Types.Tx, txId);
+
+            // Get existing wallet object
+            var walletObjects = await _walletRepository.GetWalletObjects(new GetWalletObjectsQuery
+            {
+                WalletId = walletId,
+                Type = WalletObjectData.Types.Tx,
+                Ids = new[] { txId }
+            });
+
+            if (walletObjects.TryGetValue(walletObjectId, out var existingObject))
+            {
+                // Parse existing data
+                var data = string.IsNullOrEmpty(existingObject.Data) 
+                    ? new JObject() 
+                    : JObject.Parse(existingObject.Data);
+
+                // Add or update the rates
+                var rates = new JObject
+                {
+                    ["USD"] = usdRate.ToString("F2")
+                };
+                data["rates"] = rates;
+
+                // Update the wallet object
+                await _walletRepository.SetWalletObject(walletObjectId, data);
+
+                _logger.LogInformation("Saved USD rate ${Rate} for transaction {TxId}", usdRate, txId);
+            }
+            else
+            {
+                _logger.LogWarning("Wallet object not found for transaction {TxId}, cannot save rate", txId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving historical rate for transaction {TxId}", txId);
+        }
     }
 }
 

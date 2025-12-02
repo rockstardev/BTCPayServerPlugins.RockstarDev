@@ -78,6 +78,7 @@ public class WalletHistoryReloadController : Controller
         // Backfill only transactions with missing data
         var result = await _backfillService.BackfillTransactionDataAsync(
             transactions,
+            storeId,
             cryptoCode,
             vm.IncludeFees,
             vm.IncludeHistoricalPrices);
