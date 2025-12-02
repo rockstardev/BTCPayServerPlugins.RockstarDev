@@ -1,9 +1,14 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
+using BTCPayServer.Data;
+using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Services;
 using BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels;
+using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,20 +20,26 @@ public class WalletHistoryReloadController : Controller
 {
     private readonly TransactionDataBackfillService _backfillService;
     private readonly NBXplorerDbService _nbxService;
+    private readonly StoreRepository _storeRepository;
+    private readonly PaymentMethodHandlerDictionary _handlers;
 
     public WalletHistoryReloadController(
         TransactionDataBackfillService backfillService,
-        NBXplorerDbService nbxService)
+        NBXplorerDbService nbxService,
+        StoreRepository storeRepository,
+        PaymentMethodHandlerDictionary handlers)
     {
         _backfillService = backfillService;
         _nbxService = nbxService;
+        _storeRepository = storeRepository;
+        _handlers = handlers;
     }
 
     [HttpGet("{storeId}/{cryptoCode}")]
     public async Task<IActionResult> Index(string storeId, string cryptoCode)
     {
         // Fetch transactions from NBXplorer database
-        var nbxWalletId = GetNBXWalletId(storeId, cryptoCode);
+        var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
         var transactions = await _nbxService.GetWalletTransactionsAsync(nbxWalletId, cryptoCode);
 
         var vm = new WalletHistoryReloadViewModel
@@ -49,7 +60,7 @@ public class WalletHistoryReloadController : Controller
     public async Task<IActionResult> Backfill(string storeId, string cryptoCode, WalletHistoryReloadViewModel vm)
     {
         // Fetch transactions again
-        var nbxWalletId = GetNBXWalletId(storeId, cryptoCode);
+        var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
         var transactions = await _nbxService.GetWalletTransactionsAsync(nbxWalletId, cryptoCode);
 
         // Backfill only transactions with missing data
@@ -71,12 +82,21 @@ public class WalletHistoryReloadController : Controller
         return View("Index", vm);
     }
 
-    private string GetNBXWalletId(string storeId, string cryptoCode)
+    private async Task<string> GetNBXWalletId(string storeId, string cryptoCode)
     {
-        // NBXplorer wallet ID format is different from BTCPayServer
-        // It's typically just the derivation scheme hash
-        // For now, we'll need to look this up from BTCPayServer's store data
-        // This is a simplified version - you may need to adjust based on your setup
-        return storeId; // Placeholder - needs proper implementation
+        var store = await _storeRepository.FindStore(storeId);
+        if (store == null)
+        {
+            throw new InvalidOperationException($"Store {storeId} not found");
+        }
+
+        var derivationSettings = store.GetDerivationSchemeSettings(_handlers, cryptoCode);
+        if (derivationSettings?.AccountDerivation == null)
+        {
+            throw new InvalidOperationException($"No derivation scheme configured for {cryptoCode} in store {storeId}");
+        }
+
+        // Use NBXplorer's utility to generate the wallet ID from the derivation scheme
+        return NBXplorer.Client.DBUtils.nbxv1_get_wallet_id(cryptoCode, derivationSettings.AccountDerivation.ToString());
     }
 }

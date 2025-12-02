@@ -16,7 +16,8 @@ public class WalletHistoryReloadPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddUIExtension("store-wallets-nav", PluginNavKey);
+        // Add navigation item under Send/Receive/Settings in wallet menu
+        serviceCollection.AddUIExtension("wallet-nav", PluginNavKey);
         
         // Register services
         serviceCollection.AddHttpClient(); // Required for API calls
