@@ -1,0 +1,154 @@
+@model BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels.WalletHistoryReloadViewModel
+@{
+    ViewData["Title"] = "Wallet History Reload";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            <h2>@ViewData["Title"]</h2>
+            <p class="text-muted">Backfill missing transaction data (fees, rates, USD prices) from blockchain APIs</p>
+
+            @if (Model.BackfillCompleted)
+            {
+                <div class="alert alert-success">
+                    <h4>Backfill Completed</h4>
+                    <p>Processed: <strong>@Model.ProcessedTransactions</strong> transactions</p>
+                    <p>Failed: <strong>@Model.FailedTransactions</strong> transactions</p>
+                </div>
+            }
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Wallet Information</h5>
+                    <dl class="row">
+                        <dt class="col-sm-3">Wallet ID (BTCPayServer)</dt>
+                        <dd class="col-sm-9"><code>@Model.WalletId</code></dd>
+                        
+                        <dt class="col-sm-3">Wallet ID (NBXplorer)</dt>
+                        <dd class="col-sm-9"><code>@Model.NBXWalletId</code></dd>
+                        
+                        <dt class="col-sm-3">Total Transactions</dt>
+                        <dd class="col-sm-9">@Model.TotalTransactions</dd>
+                        
+                        <dt class="col-sm-3">Missing Data</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-warning">@Model.MissingDataCount transactions</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (Model.MissingDataCount > 0)
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Backfill Options</h5>
+                        <form method="post" asp-action="Backfill" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode">
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" asp-for="IncludeFees" id="includeFees" checked />
+                                <label class="form-check-label" for="includeFees">
+                                    <strong>Backfill transaction fees and fee rates</strong> from Mempool.space API
+                                </label>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" asp-for="IncludeHistoricalPrices" id="includeHistoricalPrices" checked />
+                                <label class="form-check-label" for="includeHistoricalPrices">
+                                    <strong>Fetch historical BTC/USD prices</strong> from CoinGecko API (logged only)
+                                </label>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <strong>Note:</strong> This process will backfill <strong>@Model.MissingDataCount transactions</strong> with missing data. 
+                                API rate limits are respected with a 500ms delay between requests. 
+                                Estimated time: <strong>~@(Model.MissingDataCount * 0.5 / 60) minutes</strong>.
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-sync"></i> Start Backfill (@Model.MissingDataCount transactions)
+                            </button>
+                            <a asp-controller="UIStores" asp-action="Dashboard" asp-route-storeId="@Model.StoreId" class="btn btn-secondary">Cancel</a>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-success">
+                    <strong>All transactions have complete data!</strong> No backfill needed.
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Transactions (showing first 50)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Date</th>
+                                    <th>Balance Change</th>
+                                    <th>Fee</th>
+                                    <th>Fee Rate</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tx in Model.Transactions.Take(50))
+                                {
+                                    <tr class="@(tx.HasMissingData ? "table-warning" : "")">
+                                        <td>
+                                            <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                        </td>
+                                        <td>@tx.Timestamp.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td class="@(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
+                                            @tx.BalanceChange.ToString("N8") BTC
+                                        </td>
+                                        <td>
+                                            @if (tx.Fee.HasValue)
+                                            {
+                                                @tx.Fee.Value.ToString("N8")
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Missing</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (tx.FeeRate.HasValue)
+                                            {
+                                                @tx.FeeRate.Value.ToString("N2") <small>sat/vB</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Missing</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (tx.IsConfirmed)
+                                            {
+                                                <span class="badge bg-success">Confirmed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Unconfirmed</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.TotalTransactions > 50)
+                    {
+                        <p class="text-muted mt-2">Showing 50 of @Model.TotalTransactions transactions</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
