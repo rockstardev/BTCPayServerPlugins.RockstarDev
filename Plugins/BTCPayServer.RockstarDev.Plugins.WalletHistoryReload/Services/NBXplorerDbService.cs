@@ -1,38 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+using BTCPayServer.Services;
+using BTCPayServer.Services.Wallets;
+using Dapper;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Services;
 
 public class NBXplorerDbService
 {
-    private readonly IConfiguration _configuration;
+    private readonly NBXplorerConnectionFactory _connectionFactory;
     private readonly ILogger<NBXplorerDbService> _logger;
 
-    public NBXplorerDbService(IConfiguration configuration, ILogger<NBXplorerDbService> logger)
+    public NBXplorerDbService(NBXplorerConnectionFactory connectionFactory, ILogger<NBXplorerDbService> logger)
     {
-        _configuration = configuration;
+        _connectionFactory = connectionFactory;
         _logger = logger;
-    }
-
-    private string GetNBXplorerConnectionString()
-    {
-        // NBXplorer uses the same Postgres connection as BTCPayServer but different database
-        var btcpayConnectionString = _configuration.GetConnectionString("DefaultConnection");
-        
-        if (string.IsNullOrEmpty(btcpayConnectionString))
-        {
-            throw new InvalidOperationException("BTCPayServer connection string not found");
-        }
-
-        // Replace database name with NBXplorer database
-        var builder = new NpgsqlConnectionStringBuilder(btcpayConnectionString);
-        builder.Database = "nbxplorer"; // NBXplorer default database name
-        
-        return builder.ToString();
     }
 
     public async Task<List<NBXTransactionData>> GetWalletTransactionsAsync(string walletId, string cryptoCode)
@@ -41,22 +25,25 @@ public class NBXplorerDbService
 
         try
         {
-            var connectionString = GetNBXplorerConnectionString();
+            if (!_connectionFactory.Available)
+            {
+                _logger.LogWarning("NBXplorer connection not available");
+                return transactions;
+            }
 
-            await using var connection = new NpgsqlConnection(connectionString);
-            await connection.OpenAsync();
+            await using var connection = await _connectionFactory.OpenConnection();
 
             var query = @"
                 SELECT 
-                    r.tx_id as ""TransactionId"",
-                    r.seen_at as ""Timestamp"",
-                    r.balance_change / 100000000.0 as ""BalanceChange"",
-                    t.blk_height IS NOT NULL as ""IsConfirmed"",
-                    t.blk_height as ""BlockHeight"",
+                    r.tx_id,
+                    r.seen_at,
+                    r.balance_change / 100000000.0 as balance_change_btc,
+                    t.blk_height IS NOT NULL as is_confirmed,
+                    t.blk_height,
                     CASE WHEN (t.metadata->'fees')::TEXT IS NOT NULL 
                          THEN (t.metadata->'fees')::BIGINT / 100000000.0 
-                         ELSE NULL END as ""Fee"",
-                    (t.metadata->'feeRate')::NUMERIC as ""FeeRate""
+                         ELSE NULL END as fee_btc,
+                    (t.metadata->'feeRate')::NUMERIC as fee_rate
                 FROM get_wallets_recent(
                     @walletId,
                     @cryptoCode, 
@@ -67,22 +54,23 @@ public class NBXplorerDbService
                 JOIN txs t USING (code, tx_id)
                 ORDER BY r.seen_at DESC";
 
-            await using var cmd = new NpgsqlCommand(query, connection);
-            cmd.Parameters.AddWithValue("walletId", walletId);
-            cmd.Parameters.AddWithValue("cryptoCode", cryptoCode);
+            var cmd = new CommandDefinition(
+                commandText: query,
+                parameters: new { walletId, cryptoCode });
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            var rows = await connection.QueryAsync<dynamic>(cmd);
+
+            foreach (var row in rows)
             {
                 transactions.Add(new NBXTransactionData
                 {
-                    TransactionId = reader.GetString(0),
-                    Timestamp = reader.GetDateTime(1),
-                    BalanceChange = reader.GetDecimal(2),
-                    IsConfirmed = reader.GetBoolean(3),
-                    BlockHeight = reader.IsDBNull(4) ? null : reader.GetInt64(4),
-                    Fee = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
-                    FeeRate = reader.IsDBNull(6) ? null : reader.GetDecimal(6)
+                    TransactionId = row.tx_id,
+                    Timestamp = row.seen_at,
+                    BalanceChange = row.balance_change_btc,
+                    IsConfirmed = row.is_confirmed,
+                    BlockHeight = row.blk_height,
+                    Fee = row.fee_btc,
+                    FeeRate = row.fee_rate
                 });
             }
         }
@@ -99,10 +87,13 @@ public class NBXplorerDbService
     {
         try
         {
-            var connectionString = GetNBXplorerConnectionString();
+            if (!_connectionFactory.Available)
+            {
+                _logger.LogWarning("NBXplorer connection not available");
+                return;
+            }
 
-            await using var connection = new NpgsqlConnection(connectionString);
-            await connection.OpenAsync();
+            await using var connection = await _connectionFactory.OpenConnection();
 
             // Update the metadata JSONB column with fees and feeRate
             var query = @"
@@ -119,13 +110,17 @@ public class NBXplorerDbService
                 WHERE code = @cryptoCode 
                 AND tx_id = @txId";
 
-            await using var cmd = new NpgsqlCommand(query, connection);
-            cmd.Parameters.AddWithValue("txId", txId);
-            cmd.Parameters.AddWithValue("cryptoCode", cryptoCode);
-            cmd.Parameters.AddWithValue("feeSatoshis", (long)(fee * 100_000_000));
-            cmd.Parameters.AddWithValue("feeRate", feeRate);
+            var cmd = new CommandDefinition(
+                commandText: query,
+                parameters: new
+                {
+                    txId,
+                    cryptoCode,
+                    feeSatoshis = (long)(fee * 100_000_000),
+                    feeRate
+                });
 
-            var rowsAffected = await cmd.ExecuteNonQueryAsync();
+            var rowsAffected = await connection.ExecuteAsync(cmd);
             
             if (rowsAffected == 0)
             {
@@ -154,6 +149,7 @@ public class NBXTransactionData
     public long? BlockHeight { get; set; }
     public decimal? Fee { get; set; }
     public decimal? FeeRate { get; set; }
+    public decimal? RateUsd { get; set; }
     
-    public bool HasMissingData => !Fee.HasValue || !FeeRate.HasValue;
+    public bool HasMissingData => !Fee.HasValue || !FeeRate.HasValue || !RateUsd.HasValue;
 }

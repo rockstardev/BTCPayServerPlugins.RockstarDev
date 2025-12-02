@@ -82,70 +82,85 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Transactions (showing first 50)</h5>
+                    <h5 class="mb-0">Transactions with Missing Data (showing first 50)</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Transaction ID</th>
-                                    <th>Date</th>
-                                    <th>Balance Change</th>
-                                    <th>Fee</th>
-                                    <th>Fee Rate</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var tx in Model.Transactions.Take(50))
-                                {
-                                    <tr class="@(tx.HasMissingData ? "table-warning" : "")">
-                                        <td>
-                                            <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
-                                        </td>
-                                        <td>@tx.Timestamp.ToString("yyyy-MM-dd HH:mm")</td>
-                                        <td class="@(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
-                                            @tx.BalanceChange.ToString("N8") BTC
-                                        </td>
-                                        <td>
-                                            @if (tx.Fee.HasValue)
-                                            {
-                                                @tx.Fee.Value.ToString("N8")
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning">Missing</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (tx.FeeRate.HasValue)
-                                            {
-                                                @tx.FeeRate.Value.ToString("N2") <small>sat/vB</small>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning">Missing</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (tx.IsConfirmed)
-                                            {
-                                                <span class="badge bg-success">Confirmed</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary">Unconfirmed</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                    @if (Model.TotalTransactions > 50)
+                    @{
+                        var missingDataTransactions = Model.Transactions.Where(t => t.HasMissingData).ToList();
+                    }
+                    @if (missingDataTransactions.Any())
                     {
-                        <p class="text-muted mt-2">Showing 50 of @Model.TotalTransactions transactions</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Transaction</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">Transaction fee</th>
+                                        <th class="text-end">Rate (USD)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var tx in missingDataTransactions.Take(50))
+                                    {
+                                        <tr class="table-warning">
+                                            <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
+                                            <td>
+                                                <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                                @if (tx.IsConfirmed)
+                                                {
+                                                    <span class="badge bg-success ms-1">Confirmed</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary ms-1">Unconfirmed</span>
+                                                }
+                                            </td>
+                                            <td class="text-end @(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
+                                                @tx.BalanceChange.ToString("N8")
+                                            </td>
+                                            <td class="text-end">
+                                                @if (tx.Fee.HasValue && tx.FeeRate.HasValue)
+                                                {
+                                                    <span>@tx.Fee.Value.ToString("N8") <small class="text-muted">(@tx.FeeRate.Value.ToString("N3") Sat/B)</small></span>
+                                                }
+                                                else if (tx.Fee.HasValue)
+                                                {
+                                                    <span>@tx.Fee.Value.ToString("N8") <span class="badge bg-warning ms-1">Rate Missing</span></span>
+                                                }
+                                                else if (tx.FeeRate.HasValue)
+                                                {
+                                                    <span class="badge bg-warning">Fee Missing</span> <small class="text-muted">(@tx.FeeRate.Value.ToString("N3") Sat/B)</small>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Missing</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (tx.RateUsd.HasValue)
+                                                {
+                                                    <span>@tx.RateUsd.Value.ToString("N2") USD</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Missing</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (missingDataTransactions.Count > 50)
+                        {
+                            <p class="text-muted mt-2">Showing 50 of @missingDataTransactions.Count transactions with missing data</p>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">All transactions have complete data!</p>
                     }
                 </div>
             </div>
