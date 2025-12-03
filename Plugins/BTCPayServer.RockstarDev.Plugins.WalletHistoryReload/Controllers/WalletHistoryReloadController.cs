@@ -51,12 +51,15 @@ public class WalletHistoryReloadController : Controller
         // Enrich with USD rates from BTCPayServer database
         await EnrichWithUsdRates(transactions, storeId, cryptoCode);
 
+        var network = GetNetworkFromCryptoCode(cryptoCode);
+
         var vm = new WalletHistoryReloadViewModel
         {
             StoreId = storeId,
             CryptoCode = cryptoCode,
             WalletId = $"S-{storeId}-{cryptoCode}",
             NBXWalletId = nbxWalletId,
+            Network = network,
             Transactions = transactions,
             TotalTransactions = transactions.Count,
             MissingDataCount = transactions.Count(t => t.HasMissingData)
@@ -75,11 +78,15 @@ public class WalletHistoryReloadController : Controller
         // Enrich with USD rates from BTCPayServer database
         await EnrichWithUsdRates(transactions, storeId, cryptoCode);
 
+        // Detect network from crypto code
+        var network = GetNetworkFromCryptoCode(cryptoCode);
+
         // Backfill only transactions with missing data
         var result = await _backfillService.BackfillTransactionDataAsync(
             transactions,
             storeId,
             cryptoCode,
+            network,
             vm.IncludeFees,
             vm.IncludeHistoricalPrices);
 
@@ -141,5 +148,16 @@ public class WalletHistoryReloadController : Controller
                 }
             }
         }
+    }
+
+    private string GetNetworkFromCryptoCode(string cryptoCode)
+    {
+        // Detect network based on crypto code suffix
+        if (cryptoCode.EndsWith("-TESTNET", StringComparison.OrdinalIgnoreCase))
+            return "testnet";
+        if (cryptoCode.EndsWith("-SIGNET", StringComparison.OrdinalIgnoreCase))
+            return "signet";
+        
+        return "mainnet";
     }
 }

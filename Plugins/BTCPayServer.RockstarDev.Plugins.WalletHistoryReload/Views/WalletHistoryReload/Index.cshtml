@@ -107,7 +107,16 @@
                                         <tr class="table-warning">
                                             <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
                                             <td>
-                                                <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                                @{
+                                                    var mempoolUrl = Model.Network == "testnet" 
+                                                        ? $"https://mempool.space/testnet/tx/{tx.TransactionId}"
+                                                        : Model.Network == "signet"
+                                                        ? $"https://mempool.space/signet/tx/{tx.TransactionId}"
+                                                        : $"https://mempool.space/tx/{tx.TransactionId}";
+                                                }
+                                                <a href="@mempoolUrl" target="_blank" rel="noopener noreferrer">
+                                                    <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                                </a>
                                                 @if (tx.IsConfirmed)
                                                 {
                                                     <span class="badge bg-success ms-1">Confirmed</span>

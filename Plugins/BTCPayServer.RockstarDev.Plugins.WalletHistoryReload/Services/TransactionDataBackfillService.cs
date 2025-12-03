@@ -37,6 +37,7 @@ public class TransactionDataBackfillService
         List<NBXTransactionData> transactions,
         string storeId,
         string cryptoCode,
+        string network = "mainnet",
         bool includeFees = true,
         bool includeHistoricalPrices = true)
     {
@@ -44,14 +45,14 @@ public class TransactionDataBackfillService
 
         try
         {
-            _logger.LogInformation("Starting backfill for {Count} transactions", transactions.Count);
+            _logger.LogInformation("Starting backfill for {Count} transactions on {Network}", transactions.Count, network);
 
             foreach (var tx in transactions.Where(t => t.HasMissingData))
             {
                 try
                 {
                     // Fetch transaction data from Mempool.space
-                    var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId);
+                    var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId, network);
                     
                     if (txData == null)
                     {

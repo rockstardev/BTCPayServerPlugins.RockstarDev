@@ -10,7 +10,6 @@ public class MempoolSpaceApiService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<MempoolSpaceApiService> _logger;
-    private const string BaseUrl = "https://mempool.space/api";
 
     public MempoolSpaceApiService(IHttpClientFactory httpClientFactory, ILogger<MempoolSpaceApiService> logger)
     {
@@ -18,12 +17,23 @@ public class MempoolSpaceApiService
         _logger = logger;
     }
 
-    public async Task<TransactionData?> GetTransactionDataAsync(string txid)
+    private string GetBaseUrl(string network)
+    {
+        return network?.ToLowerInvariant() switch
+        {
+            "testnet" => "https://mempool.space/testnet/api",
+            "signet" => "https://mempool.space/signet/api",
+            _ => "https://mempool.space/api"
+        };
+    }
+
+    public async Task<TransactionData?> GetTransactionDataAsync(string txid, string network = "mainnet")
     {
         try
         {
+            var baseUrl = GetBaseUrl(network);
             var client = _httpClientFactory.CreateClient();
-            var response = await client.GetAsync($"{BaseUrl}/tx/{txid}");
+            var response = await client.GetAsync($"{baseUrl}/tx/{txid}");
             
             if (!response.IsSuccessStatusCode)
             {

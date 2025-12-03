@@ -9,6 +9,7 @@ public class WalletHistoryReloadViewModel
     public string CryptoCode { get; set; } = string.Empty;
     public string WalletId { get; set; } = string.Empty;
     public string NBXWalletId { get; set; } = string.Empty;
+    public string Network { get; set; } = "mainnet";
     
     public List<NBXTransactionData> Transactions { get; set; } = new();
     public int TotalTransactions { get; set; }
