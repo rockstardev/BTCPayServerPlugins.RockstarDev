@@ -40,6 +40,7 @@ public class NBXplorerDbService
                     r.balance_change / 100000000.0 as balance_change_btc,
                     t.blk_height IS NOT NULL as is_confirmed,
                     t.blk_height,
+                    b.blk_id as block_hash,
                     CASE WHEN (t.metadata->'fees')::TEXT IS NOT NULL 
                          THEN (t.metadata->'fees')::BIGINT / 100000000.0 
                          ELSE NULL END as fee_btc,
@@ -52,6 +53,7 @@ public class NBXplorerDbService
                     NULL
                 ) r 
                 JOIN txs t USING (code, tx_id)
+                LEFT JOIN blks b ON (t.code = b.code AND t.blk_height = b.height)
                 ORDER BY r.seen_at DESC";
 
             var cmd = new CommandDefinition(
@@ -69,6 +71,7 @@ public class NBXplorerDbService
                     BalanceChange = row.balance_change_btc,
                     IsConfirmed = row.is_confirmed,
                     BlockHeight = row.blk_height,
+                    BlockHash = row.block_hash,
                     Fee = row.fee_btc,
                     FeeRate = row.fee_rate
                 });
@@ -147,6 +150,7 @@ public class NBXTransactionData
     public decimal BalanceChange { get; set; }
     public bool IsConfirmed { get; set; }
     public long? BlockHeight { get; set; }
+    public string? BlockHash { get; set; }
     public decimal? Fee { get; set; }
     public decimal? FeeRate { get; set; }
     public decimal? RateUsd { get; set; }

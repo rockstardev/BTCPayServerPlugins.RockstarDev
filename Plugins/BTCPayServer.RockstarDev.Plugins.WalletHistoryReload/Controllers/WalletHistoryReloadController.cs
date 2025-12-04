@@ -5,6 +5,7 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
+using BTCPayServer.Payments.Bitcoin;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Services;
 using BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels;
@@ -157,6 +158,28 @@ public class WalletHistoryReloadController : Controller
             return "testnet";
         if (cryptoCode.EndsWith("-SIGNET", StringComparison.OrdinalIgnoreCase))
             return "signet";
+        if (cryptoCode.EndsWith("-REGTEST", StringComparison.OrdinalIgnoreCase))
+            return "regtest";
+        
+        // For plain "BTC", check if it's actually regtest by looking at the network
+        var store = _storeRepository.FindStore(HttpContext.GetStoreData()?.Id).GetAwaiter().GetResult();
+        if (store != null)
+        {
+            var paymentMethodId = PaymentMethodId.Parse($"{cryptoCode}-CHAIN");
+            var handler = _handlers.TryGet(paymentMethodId);
+            if (handler is BitcoinLikePaymentHandler bitcoinHandler)
+            {
+                var network = bitcoinHandler.Network;
+                var networkName = network.NBitcoinNetwork.Name.ToLowerInvariant();
+                
+                if (networkName.Contains("regtest"))
+                    return "regtest";
+                if (networkName.Contains("testnet"))
+                    return "testnet";
+                if (networkName.Contains("signet"))
+                    return "signet";
+            }
+        }
         
         return "mainnet";
     }

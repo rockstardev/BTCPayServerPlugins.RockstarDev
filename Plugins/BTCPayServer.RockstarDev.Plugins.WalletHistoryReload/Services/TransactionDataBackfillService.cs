@@ -51,8 +51,8 @@ public class TransactionDataBackfillService
             {
                 try
                 {
-                    // Fetch transaction data from Mempool.space
-                    var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId, network);
+                    // Fetch transaction data from Mempool.space or Bitcoin Core (for regtest)
+                    var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId, network, cryptoCode, tx.BlockHash);
                     
                     if (txData == null)
                     {
