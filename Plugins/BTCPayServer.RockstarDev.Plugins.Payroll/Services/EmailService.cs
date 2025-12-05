@@ -133,7 +133,70 @@ public class EmailService(
         await SendBulkEmail(model.StoreId, emailRecipients);
         return true;
     }
+    public async Task SendAdminNotificationOnInvoiceUpload(string storeId, PayrollInvoice invoice)
+    {
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+        if (settings?.EmailAdminOnInvoiceUploadedDeleted != true || 
+            string.IsNullOrWhiteSpace(settings.AdminNotificationEmail))
+            return;
+        
+        var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
+        if (emailSettings?.IsComplete() != true)
+            return; 
 
+        if (invoice.User == null)
+        {
+            await using var ctx = pluginDbContextFactory.CreateContext();
+            // Fetch from the plugin's payroll user set
+            invoice.User = await ctx.PayrollUsers.FindAsync(invoice.UserId);
+        
+            if (invoice.User == null)
+            {
+                logs.PayServer.LogWarning($"Could not find user {invoice.UserId} for invoice {invoice.Id} notification");
+                return;
+            }
+        }
+
+        var store = await storeRepo.FindStore(storeId);
+        var storeName = store.StoreName;
+
+        var recipient = new EmailRecipient
+        {
+            Address = InternetAddress.Parse(settings.AdminNotificationEmail),
+            Subject = $"[Payroll Plugin] Invoice Uploaded - {invoice.Id}",
+            MessageText = $"Hello,\n\nAn invoice has been uploaded by {invoice.User.Name}.\n\n" +
+                          $"Invoice ID: {invoice.Id}\n" +
+                          $"Amount: {invoice.Amount} {invoice.Currency}\n" +
+                          $"Destination: {invoice.Destination}\n" +
+                          $"Store: {storeName}\n\n" +
+                          "Thank you."
+        };
+        var emailRecipients = new List<EmailRecipient> { recipient };
+        await SendBulkEmail(storeId, emailRecipients);
+    }
+    public async Task SendAdminNotificationOnInvoiceDelete(string storeId, PayrollInvoice invoice, string deletedBy)
+    {
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+        if (settings == null || !settings.EmailAdminOnInvoiceUploadedDeleted || string.IsNullOrEmpty(settings.AdminNotificationEmail))
+            return;
+
+        var store = await storeRepo.FindStore(storeId);
+        var storeName = store.StoreName;
+
+        var recipient = new EmailRecipient
+        {
+            Address = InternetAddress.Parse(settings.AdminNotificationEmail),
+            Subject = $"[Payroll Plugin] Invoice Deleted - {invoice.Id}",
+            MessageText = $"Hello,\n\nAn invoice has been deleted by {deletedBy}.\n\n" +
+                          $"Invoice ID: {invoice.Id}\n" +
+                          $"Amount: {invoice.Amount} {invoice.Currency}\n" +
+                          $"Destination: {invoice.Destination}\n" +
+                          $"Store: {storeName}\n\n" +
+                          "Thank you."
+        };
+        var emailRecipients = new List<EmailRecipient> { recipient };
+        await SendBulkEmail(storeId, emailRecipients);
+    }
     public class EmailRecipient
     {
         public InternetAddress Address { get; set; }

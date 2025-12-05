@@ -113,6 +113,33 @@
                     <span asp-validation-for="EmailRemindersBody" class="text-danger"></span>
                 </div>
             </div>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="EmailAdminOnInvoiceUploadedDeleted" type="checkbox" class="btcpay-toggle me-3" id="emailAdminNotificationToggle"
+                       disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                <div>
+                    <label asp-for="EmailAdminOnInvoiceUploadedDeleted" class="form-check-label"></label>
+                    <span asp-validation-for="EmailAdminOnInvoiceUploadedDeleted" class="text-danger"></span>
+                    @if (!storeEmailSettingsConfigured)
+                    {
+                        <div class="text-secondary">
+                            <span text-translate="true">Your email server has not been configured.</span>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                                first.</a>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div id="emailAdminNotificationGroup" style="display: none;">
+                <div class="form-group">
+                <label asp-for="AdminNotificationEmail" class="form-label">Admin Email Address</label>
+                <input asp-for="AdminNotificationEmail" type="email" class="form-control" 
+                    placeholder="admin@example.com"
+                    autocomplete="email" />
+                <span asp-validation-for="AdminNotificationEmail" class="text-danger"></span>
+                <div class="text-secondary">
+                    <span text-translate="true">Email address that will receive notifications when invoices are uploaded or deleted.</span>
+                </div>
+            </div>
         </div>
     </div>
 </form>
@@ -123,7 +150,8 @@
         document.addEventListener('DOMContentLoaded', function () {
             const toggleElements = [
                 {toggle: 'emailToggle', target: 'emailTemplateGroup'},
-                {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'}
+                {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'},
+                {toggle: 'emailAdminNotificationToggle', target: 'emailAdminNotificationGroup'}
             ];
 
             const toggleVisibility = (toggle, target) => {
