@@ -320,7 +320,9 @@ public class PayrollInvoiceController(
 
         await using var ctx = pluginDbContextFactory.CreateContext();
 
-        var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
+        var invoice = ctx.PayrollInvoices
+            .Include(i => i.User)
+            .Single(a => a.Id == id);
 
         if (invoice.State != PayrollInvoiceState.AwaitingApproval)
         {
@@ -331,8 +333,15 @@ public class PayrollInvoiceController(
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
+        var deletedBy = User.Identity?.Name ?? User.FindFirst("sub")?.Value ?? "Unknown";
+        var storeId = CurrentStore.Id;
+
         ctx.Remove(invoice);
         await ctx.SaveChangesAsync();
+
+        // Send admin notification (fire and forget)
+         _ = emailService.SendAdminNotificationOnInvoiceDelete(storeId, invoice, deletedBy);
+
 
         TempData.SetStatusMessageModel(
             new StatusMessageModel { Message = "Invoice deleted successfully", Severity = StatusMessageModel.StatusSeverity.Success });
