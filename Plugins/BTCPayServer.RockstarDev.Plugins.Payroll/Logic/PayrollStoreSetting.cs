@@ -18,4 +18,6 @@ public class PayrollStoreSetting
 
     // automatically set to be referenced in different places
     public string VendorPayPublicLink { get; set; }
+    public bool EmailAdminOnInvoiceUploadedDeleted { get; set; }
+    public string AdminNotificationEmail { get; set; }
 }

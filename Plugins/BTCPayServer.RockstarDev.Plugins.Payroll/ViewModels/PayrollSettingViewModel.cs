@@ -19,6 +19,13 @@ public class PayrollSettingViewModel
     [Display(Name = "Email reminders for vendors to upload invoices")]
     public bool EmailReminders { get; set; }
 
+    [Display(Name = "Enable admin notifications for invoice uploads or deletions")]
+    public bool EmailAdminOnInvoiceUploadedDeleted { get; set; }
+
+    [Display(Name = "Admin notification email address")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    public string AdminNotificationEmail { get; set; }
+
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
     [Display(Name = "Invoice fiat conversion adjustment")]

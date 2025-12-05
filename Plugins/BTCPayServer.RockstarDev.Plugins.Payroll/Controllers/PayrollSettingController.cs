@@ -40,7 +40,9 @@ public class PayrollSettingController(
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
             EmailRemindersSubject = settings.EmailRemindersSubject ?? PayrollSettingViewModel.Defaults.EmailRemindersSubject,
-            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody
+            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody,
+            EmailAdminOnInvoiceUploadedDeleted = settings.EmailAdminOnInvoiceUploadedDeleted,
+            AdminNotificationEmail = settings.AdminNotificationEmail
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -83,7 +85,9 @@ public class PayrollSettingController(
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
             InvoiceFiatConversionAdjustment = model.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = model.InvoiceFiatConversionAdjustmentPercentage,
-            VendorPayPublicLink = link
+            VendorPayPublicLink = link,
+            EmailAdminOnInvoiceUploadedDeleted = model.EmailAdminOnInvoiceUploadedDeleted,
+            AdminNotificationEmail = model.AdminNotificationEmail
         };
 
 
