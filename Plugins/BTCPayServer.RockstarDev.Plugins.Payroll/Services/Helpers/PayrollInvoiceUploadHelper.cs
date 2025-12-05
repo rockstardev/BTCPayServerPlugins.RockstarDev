@@ -14,7 +14,8 @@ public class PayrollInvoiceUploadHelper(
     PluginDbContextFactory dbContextFactory,
     IFileService fileService,
     ISettingsRepository settingsRepository,
-    BTCPayNetworkProvider networkProvider)
+    BTCPayNetworkProvider networkProvider,
+    EmailService emailService)
 {
     public Task<ValidationResult> Process(string storeId, string userId,
         PublicPayrollInvoiceUploadViewModel model)
@@ -103,6 +104,9 @@ public class PayrollInvoiceUploadHelper(
 
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
+
+        // Send admin notification (fire and forget)
+        _ = emailService.SendAdminNotificationOnInvoiceUpload(storeId, dbPayrollInvoice);
 
         return validation;
     }
