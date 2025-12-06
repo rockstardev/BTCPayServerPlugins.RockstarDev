@@ -6,6 +6,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
@@ -14,7 +15,8 @@ public class PayrollInvoiceUploadHelper(
     PluginDbContextFactory dbContextFactory,
     IFileService fileService,
     ISettingsRepository settingsRepository,
-    BTCPayNetworkProvider networkProvider)
+    BTCPayNetworkProvider networkProvider,
+    EmailService emailService)
 {
     public Task<ValidationResult> Process(string storeId, string userId,
         PublicPayrollInvoiceUploadViewModel model)

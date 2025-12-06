@@ -40,7 +40,15 @@ public class PayrollSettingController(
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
             EmailRemindersSubject = settings.EmailRemindersSubject ?? PayrollSettingViewModel.Defaults.EmailRemindersSubject,
-            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody
+            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody,
+            EmailAdminOnInvoiceUploaded = settings.EmailAdminOnInvoiceUploaded,
+            EmailAdminOnInvoiceUploadedAddress = settings.EmailAdminOnInvoiceUploadedAddress,
+            EmailAdminOnInvoiceUploadedSubject = settings.EmailAdminOnInvoiceUploadedSubject ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceUploadedSubject,
+            EmailAdminOnInvoiceUploadedBody = settings.EmailAdminOnInvoiceUploadedBody ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceUploadedBody,
+            EmailAdminOnInvoiceDeleted = settings.EmailAdminOnInvoiceDeleted,
+            EmailAdminOnInvoiceDeletedAddress = settings.EmailAdminOnInvoiceDeletedAddress,
+            EmailAdminOnInvoiceDeletedSubject = settings.EmailAdminOnInvoiceDeletedSubject ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
+            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -58,6 +66,12 @@ public class PayrollSettingController(
 
         if (model.EmailReminders && string.IsNullOrEmpty(model.EmailRemindersBody))
             ModelState.AddModelError(nameof(model.EmailRemindersBody), "Value cannot be empty. Kindly include an email body");
+
+        if (model.EmailAdminOnInvoiceUploaded && string.IsNullOrEmpty(model.EmailAdminOnInvoiceUploadedAddress))
+            ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceUploadedAddress), "Admin email address is required when notifications are enabled");
+
+        if (model.EmailAdminOnInvoiceDeleted && string.IsNullOrEmpty(model.EmailAdminOnInvoiceDeletedAddress))
+            ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Admin email address is required when notifications are enabled");
 
         if (!ModelState.IsValid)
         {
@@ -83,7 +97,15 @@ public class PayrollSettingController(
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
             InvoiceFiatConversionAdjustment = model.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = model.InvoiceFiatConversionAdjustmentPercentage,
-            VendorPayPublicLink = link
+            VendorPayPublicLink = link,
+            EmailAdminOnInvoiceUploaded = model.EmailAdminOnInvoiceUploaded,
+            EmailAdminOnInvoiceUploadedAddress = model.EmailAdminOnInvoiceUploadedAddress,
+            EmailAdminOnInvoiceUploadedSubject = model.EmailAdminOnInvoiceUploadedSubject,
+            EmailAdminOnInvoiceUploadedBody = model.EmailAdminOnInvoiceUploadedBody,
+            EmailAdminOnInvoiceDeleted = model.EmailAdminOnInvoiceDeleted,
+            EmailAdminOnInvoiceDeletedAddress = model.EmailAdminOnInvoiceDeletedAddress,
+            EmailAdminOnInvoiceDeletedSubject = model.EmailAdminOnInvoiceDeletedSubject,
+            EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody
         };
 
 

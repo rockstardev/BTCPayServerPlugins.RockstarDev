@@ -128,7 +128,7 @@
                                     @if (pp.State == PayrollInvoiceState.AwaitingApproval)
                                     {
                                         <span>-</span>
-                                        <a asp-controller="PayrollInvoice"
+                                        <a asp-controller="Public"
                                            asp-action="Delete"
                                            asp-route-id="@pp.Id" asp-route-storeId="@Model.StoreId"
                                            class="text-danger">

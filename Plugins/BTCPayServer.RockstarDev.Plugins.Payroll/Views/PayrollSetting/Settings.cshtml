@@ -113,6 +113,75 @@
                     <span asp-validation-for="EmailRemindersBody" class="text-danger"></span>
                 </div>
             </div>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="EmailAdminOnInvoiceUploaded" type="checkbox" class="btcpay-toggle me-3" id="emailAdminUploadToggle"
+                       disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                <div>
+                    <label asp-for="EmailAdminOnInvoiceUploaded" class="form-check-label"></label>
+                    <span asp-validation-for="EmailAdminOnInvoiceUploaded" class="text-danger"></span>
+                    @if (!storeEmailSettingsConfigured)
+                    {
+                        <div class="text-secondary">
+                            <span text-translate="true">Your email server has not been configured.</span>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div id="emailAdminUploadGroup" style="display: none;">
+                <div class="form-group">
+                    <label asp-for="EmailAdminOnInvoiceUploadedAddress" class="form-label"></label>
+                    <input asp-for="EmailAdminOnInvoiceUploadedAddress" type="email" class="form-control" 
+                        placeholder="admin@example.com"
+                        autocomplete="email" />
+                    <span asp-validation-for="EmailAdminOnInvoiceUploadedAddress" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EmailAdminOnInvoiceUploadedSubject" class="form-label">Subject</label>
+                    <input asp-for="EmailAdminOnInvoiceUploadedSubject" class="form-control" />
+                    <span asp-validation-for="EmailAdminOnInvoiceUploadedSubject" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EmailAdminOnInvoiceUploadedBody" class="form-label">Email Body</label>
+                    <textarea asp-for="EmailAdminOnInvoiceUploadedBody" class="form-control" rows="8"></textarea>
+                    <span asp-validation-for="EmailAdminOnInvoiceUploadedBody" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="EmailAdminOnInvoiceDeleted" type="checkbox" class="btcpay-toggle me-3" id="emailAdminDeleteToggle"
+                       disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                <div>
+                    <label asp-for="EmailAdminOnInvoiceDeleted" class="form-check-label"></label>
+                    <span asp-validation-for="EmailAdminOnInvoiceDeleted" class="text-danger"></span>
+                    @if (!storeEmailSettingsConfigured)
+                    {
+                        <div class="text-secondary">
+                            <span text-translate="true">Your email server has not been configured.</span>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div id="emailAdminDeleteGroup" style="display: none;">
+                <div class="form-group">
+                    <label asp-for="EmailAdminOnInvoiceDeletedAddress" class="form-label"></label>
+                    <input asp-for="EmailAdminOnInvoiceDeletedAddress" type="email" class="form-control" 
+                        placeholder="admin@example.com"
+                        autocomplete="email" />
+                    <span asp-validation-for="EmailAdminOnInvoiceDeletedAddress" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EmailAdminOnInvoiceDeletedSubject" class="form-label">Subject</label>
+                    <input asp-for="EmailAdminOnInvoiceDeletedSubject" class="form-control" />
+                    <span asp-validation-for="EmailAdminOnInvoiceDeletedSubject" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="EmailAdminOnInvoiceDeletedBody" class="form-label">Email Body</label>
+                    <textarea asp-for="EmailAdminOnInvoiceDeletedBody" class="form-control" rows="8"></textarea>
+                    <span asp-validation-for="EmailAdminOnInvoiceDeletedBody" class="text-danger"></span>
+                </div>
+            </div>
         </div>
     </div>
 </form>
@@ -123,7 +192,9 @@
         document.addEventListener('DOMContentLoaded', function () {
             const toggleElements = [
                 {toggle: 'emailToggle', target: 'emailTemplateGroup'},
-                {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'}
+                {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'},
+                {toggle: 'emailAdminUploadToggle', target: 'emailAdminUploadGroup'},
+                {toggle: 'emailAdminDeleteToggle', target: 'emailAdminDeleteGroup'}
             ];
 
             const toggleVisibility = (toggle, target) => {

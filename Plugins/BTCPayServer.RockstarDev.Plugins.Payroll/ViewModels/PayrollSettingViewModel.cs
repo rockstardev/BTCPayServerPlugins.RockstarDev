@@ -21,6 +21,27 @@ public class PayrollSettingViewModel
 
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
+
+    [Display(Name = "Email admin when invoice is uploaded")]
+    public bool EmailAdminOnInvoiceUploaded { get; set; }
+
+    [Display(Name = "Admin email address")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    public string EmailAdminOnInvoiceUploadedAddress { get; set; }
+
+    public string EmailAdminOnInvoiceUploadedSubject { get; set; }
+    public string EmailAdminOnInvoiceUploadedBody { get; set; }
+
+    [Display(Name = "Email admin when invoice is deleted")]
+    public bool EmailAdminOnInvoiceDeleted { get; set; }
+
+    [Display(Name = "Admin email address")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    public string EmailAdminOnInvoiceDeletedAddress { get; set; }
+
+    public string EmailAdminOnInvoiceDeletedSubject { get; set; }
+    public string EmailAdminOnInvoiceDeletedBody { get; set; }
+
     [Display(Name = "Invoice fiat conversion adjustment")]
     public bool InvoiceFiatConversionAdjustment { get; set; }
     [Display(Name = "Invoice fiat conversion adjustment percentage")]
@@ -28,7 +49,7 @@ public class PayrollSettingViewModel
 
     public record Defaults
     {
-        public const string EmailOnInvoicePaidSubject = @"Your invoice has been paid";
+        public const string EmailOnInvoicePaidSubject = @"[VendorPay] Invoice paid";
 
         public const string EmailOnInvoicePaidBody = @"Hello {Name},
 
@@ -39,7 +60,7 @@ See all your invoices on: {VendorPayPublicLink}
 Thank you,
 {StoreName}";
 
-        public const string EmailRemindersSubject = @"Reminder to upload your invoice";
+        public const string EmailRemindersSubject = @"[VendorPay] Reminder to upload invoice";
 
         public const string EmailRemindersBody = @"Hello {Name},
 
@@ -49,5 +70,29 @@ Please proceed to: {VendorPayPublicLink}
 
 Thank you,
 {StoreName}";
+
+        public const string EmailAdminOnInvoiceUploadedSubject = @"[VendorPay] Invoice Uploaded";
+
+        public const string EmailAdminOnInvoiceUploadedBody = @"Hello,
+
+An invoice has been uploaded by {VendorName} <{VendorEmail}>.
+
+Invoice ID: {InvoiceId}
+Amount: {Amount} {Currency}
+Destination: {Destination}
+
+Thank you.";
+
+        public const string EmailAdminOnInvoiceDeletedSubject = @"[VendorPay] Invoice Deleted";
+
+        public const string EmailAdminOnInvoiceDeletedBody = @"Hello,
+
+An invoice has been deleted by {VendorName} <{VendorEmail}>.
+
+Invoice ID: {InvoiceId}
+Amount: {Amount} {Currency}
+Destination: {Destination}
+
+Thank you.";
     }
 }
