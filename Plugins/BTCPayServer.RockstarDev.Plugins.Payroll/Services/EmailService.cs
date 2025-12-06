@@ -161,19 +161,31 @@ public class EmailService(
                 }
             }
 
-            var recipient = new EmailRecipient
+            // Parse comma-separated email addresses
+            var emailAddresses = settings.EmailAdminOnInvoiceUploadedAddress
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(e => e.Trim())
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .ToList();
+
+            if (!emailAddresses.Any())
+                return;
+
+            var messageText = settings.EmailAdminOnInvoiceUploadedBody
+                .Replace("{VendorName}", invoice.User.Name)
+                .Replace("{VendorEmail}", invoice.User.Email)
+                .Replace("{InvoiceId}", invoice.Id)
+                .Replace("{Amount}", invoice.Amount.ToString())
+                .Replace("{Currency}", invoice.Currency)
+                .Replace("{Destination}", invoice.Destination);
+
+            var emailRecipients = emailAddresses.Select(email => new EmailRecipient
             {
-                Address = InternetAddress.Parse(settings.EmailAdminOnInvoiceUploadedAddress),
+                Address = InternetAddress.Parse(email),
                 Subject = settings.EmailAdminOnInvoiceUploadedSubject,
-                MessageText = settings.EmailAdminOnInvoiceUploadedBody
-                    .Replace("{VendorName}", invoice.User.Name)
-                    .Replace("{VendorEmail}", invoice.User.Email)
-                    .Replace("{InvoiceId}", invoice.Id)
-                    .Replace("{Amount}", invoice.Amount.ToString())
-                    .Replace("{Currency}", invoice.Currency)
-                    .Replace("{Destination}", invoice.Destination)
-            };
-            var emailRecipients = new List<EmailRecipient> { recipient };
+                MessageText = messageText
+            }).ToList();
+
             await SendBulkEmail(storeId, emailRecipients);
         }
         catch (Exception ex)
@@ -195,19 +207,31 @@ public class EmailService(
             if (emailSettings?.IsComplete() != true)
                 return;
 
-            var recipient = new EmailRecipient
+            // Parse comma-separated email addresses
+            var emailAddresses = settings.EmailAdminOnInvoiceDeletedAddress
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(e => e.Trim())
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .ToList();
+
+            if (!emailAddresses.Any())
+                return;
+
+            var messageText = settings.EmailAdminOnInvoiceDeletedBody
+                .Replace("{VendorName}", vendorName)
+                .Replace("{VendorEmail}", vendorEmail ?? "unknown")
+                .Replace("{InvoiceId}", invoice.Id)
+                .Replace("{Amount}", invoice.Amount.ToString())
+                .Replace("{Currency}", invoice.Currency)
+                .Replace("{Destination}", invoice.Destination);
+
+            var emailRecipients = emailAddresses.Select(email => new EmailRecipient
             {
-                Address = InternetAddress.Parse(settings.EmailAdminOnInvoiceDeletedAddress),
+                Address = InternetAddress.Parse(email),
                 Subject = settings.EmailAdminOnInvoiceDeletedSubject,
-                MessageText = settings.EmailAdminOnInvoiceDeletedBody
-                    .Replace("{VendorName}", vendorName)
-                    .Replace("{VendorEmail}", vendorEmail ?? "unknown")
-                    .Replace("{InvoiceId}", invoice.Id)
-                    .Replace("{Amount}", invoice.Amount.ToString())
-                    .Replace("{Currency}", invoice.Currency)
-                    .Replace("{Destination}", invoice.Destination)
-            };
-            var emailRecipients = new List<EmailRecipient> { recipient };
+                MessageText = messageText
+            }).ToList();
+
             await SendBulkEmail(storeId, emailRecipients);
         }
         catch (Exception ex)

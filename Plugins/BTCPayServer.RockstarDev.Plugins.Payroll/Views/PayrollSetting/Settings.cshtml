@@ -131,9 +131,10 @@
             <div id="emailAdminUploadGroup" style="display: none;">
                 <div class="form-group">
                     <label asp-for="EmailAdminOnInvoiceUploadedAddress" class="form-label"></label>
-                    <input asp-for="EmailAdminOnInvoiceUploadedAddress" type="email" class="form-control" 
-                        placeholder="admin@example.com"
+                    <input asp-for="EmailAdminOnInvoiceUploadedAddress" type="text" class="form-control" 
+                        placeholder="admin@example.com, admin2@example.com"
                         autocomplete="email" />
+                    <small class="form-text text-muted">Comma-separated list of email addresses</small>
                     <span asp-validation-for="EmailAdminOnInvoiceUploadedAddress" class="text-danger"></span>
                 </div>
                 <div class="form-group">
@@ -166,9 +167,10 @@
             <div id="emailAdminDeleteGroup" style="display: none;">
                 <div class="form-group">
                     <label asp-for="EmailAdminOnInvoiceDeletedAddress" class="form-label"></label>
-                    <input asp-for="EmailAdminOnInvoiceDeletedAddress" type="email" class="form-control" 
-                        placeholder="admin@example.com"
+                    <input asp-for="EmailAdminOnInvoiceDeletedAddress" type="text" class="form-control" 
+                        placeholder="admin@example.com, admin2@example.com"
                         autocomplete="email" />
+                    <small class="form-text text-muted">Comma-separated list of email addresses</small>
                     <span asp-validation-for="EmailAdminOnInvoiceDeletedAddress" class="text-danger"></span>
                 </div>
                 <div class="form-group">

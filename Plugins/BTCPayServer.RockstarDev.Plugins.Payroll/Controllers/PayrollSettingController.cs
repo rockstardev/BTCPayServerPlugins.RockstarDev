@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
@@ -69,9 +71,21 @@ public class PayrollSettingController(
 
         if (model.EmailAdminOnInvoiceUploaded && string.IsNullOrEmpty(model.EmailAdminOnInvoiceUploadedAddress))
             ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceUploadedAddress), "Admin email address is required when notifications are enabled");
+        
+        if (model.EmailAdminOnInvoiceUploaded && !string.IsNullOrEmpty(model.EmailAdminOnInvoiceUploadedAddress))
+        {
+            if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceUploadedAddress))
+                ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceUploadedAddress), "Invalid email address format. Use comma-separated email addresses.");
+        }
 
         if (model.EmailAdminOnInvoiceDeleted && string.IsNullOrEmpty(model.EmailAdminOnInvoiceDeletedAddress))
             ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Admin email address is required when notifications are enabled");
+        
+        if (model.EmailAdminOnInvoiceDeleted && !string.IsNullOrEmpty(model.EmailAdminOnInvoiceDeletedAddress))
+        {
+            if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceDeletedAddress))
+                ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Invalid email address format. Use comma-separated email addresses.");
+        }
 
         if (!ModelState.IsValid)
         {
@@ -115,5 +129,22 @@ public class PayrollSettingController(
             Message = "Vendor pay settings updated successfully", Severity = StatusMessageModel.StatusSeverity.Success
         });
         return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
+    }
+
+    private bool ValidateEmailAddressList(string emailList)
+    {
+        if (string.IsNullOrWhiteSpace(emailList))
+            return false;
+
+        var emails = emailList.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(e => e.Trim())
+            .Where(e => !string.IsNullOrWhiteSpace(e))
+            .ToList();
+
+        if (!emails.Any())
+            return false;
+
+        // Validate each email address using MimeKit's InternetAddress.TryParse
+        return emails.All(email => MimeKit.InternetAddress.TryParse(email, out _));
     }
 }
