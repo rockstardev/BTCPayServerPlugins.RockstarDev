@@ -49,7 +49,7 @@ public class PayrollSettingViewModel
 
     public record Defaults
     {
-        public const string EmailOnInvoicePaidSubject = @"Your invoice has been paid";
+        public const string EmailOnInvoicePaidSubject = @"[VendorPay] Invoice paid";
 
         public const string EmailOnInvoicePaidBody = @"Hello {Name},
 
@@ -60,7 +60,7 @@ See all your invoices on: {VendorPayPublicLink}
 Thank you,
 {StoreName}";
 
-        public const string EmailRemindersSubject = @"Reminder to upload your invoice";
+        public const string EmailRemindersSubject = @"[VendorPay] Reminder to upload invoice";
 
         public const string EmailRemindersBody = @"Hello {Name},
 
