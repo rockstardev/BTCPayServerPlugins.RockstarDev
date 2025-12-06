@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Logging;
-using BTCPayServer.Plugins.Emails.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.Services.Mails;
 using BTCPayServer.Services.Stores;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 
@@ -133,69 +134,86 @@ public class EmailService(
         await SendBulkEmail(model.StoreId, emailRecipients);
         return true;
     }
+
     public async Task SendAdminNotificationOnInvoiceUpload(string storeId, PayrollInvoice invoice)
     {
-        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        if (settings?.EmailAdminOnInvoiceUploadedDeleted != true || 
-            string.IsNullOrWhiteSpace(settings.AdminNotificationEmail))
-            return;
-        
-        var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
-        if (emailSettings?.IsComplete() != true)
-            return; 
-
-        if (invoice.User == null)
+        try
         {
-            await using var ctx = pluginDbContextFactory.CreateContext();
-            // Fetch from the plugin's payroll user set
-            invoice.User = await ctx.PayrollUsers.FindAsync(invoice.UserId);
-        
+            var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+            if (settings?.EmailAdminOnInvoiceUploaded != true || 
+                string.IsNullOrWhiteSpace(settings.EmailAdminOnInvoiceUploadedAddress))
+                return;
+            
+            var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
+            if (emailSettings?.IsComplete() != true)
+                return;
+
+            // Ensure user is loaded
             if (invoice.User == null)
             {
-                logs.PayServer.LogWarning($"Could not find user {invoice.UserId} for invoice {invoice.Id} notification");
-                return;
+                await using var ctx = pluginDbContextFactory.CreateContext();
+                invoice.User = await ctx.PayrollUsers.FindAsync(invoice.UserId);
+            
+                if (invoice.User == null)
+                {
+                    logs.PayServer.LogWarning($"Could not find user {invoice.UserId} for invoice {invoice.Id} notification");
+                    return;
+                }
             }
+
+            var recipient = new EmailRecipient
+            {
+                Address = InternetAddress.Parse(settings.EmailAdminOnInvoiceUploadedAddress),
+                Subject = settings.EmailAdminOnInvoiceUploadedSubject,
+                MessageText = settings.EmailAdminOnInvoiceUploadedBody
+                    .Replace("{VendorName}", invoice.User.Name)
+                    .Replace("{VendorEmail}", invoice.User.Email)
+                    .Replace("{InvoiceId}", invoice.Id)
+                    .Replace("{Amount}", invoice.Amount.ToString())
+                    .Replace("{Currency}", invoice.Currency)
+                    .Replace("{Destination}", invoice.Destination)
+            };
+            var emailRecipients = new List<EmailRecipient> { recipient };
+            await SendBulkEmail(storeId, emailRecipients);
         }
-
-        var store = await storeRepo.FindStore(storeId);
-        var storeName = store.StoreName;
-
-        var recipient = new EmailRecipient
+        catch (Exception ex)
         {
-            Address = InternetAddress.Parse(settings.AdminNotificationEmail),
-            Subject = $"[Payroll Plugin] Invoice Uploaded - {invoice.Id}",
-            MessageText = $"Hello,\n\nAn invoice has been uploaded by {invoice.User.Name}.\n\n" +
-                          $"Invoice ID: {invoice.Id}\n" +
-                          $"Amount: {invoice.Amount} {invoice.Currency}\n" +
-                          $"Destination: {invoice.Destination}\n" +
-                          $"Store: {storeName}\n\n" +
-                          "Thank you."
-        };
-        var emailRecipients = new List<EmailRecipient> { recipient };
-        await SendBulkEmail(storeId, emailRecipients);
+            logs.PayServer.LogError(ex, $"Error sending admin notification for invoice upload {invoice.Id}");
+        }
     }
-    public async Task SendAdminNotificationOnInvoiceDelete(string storeId, PayrollInvoice invoice, string deletedBy)
+
+    public async Task SendAdminNotificationOnInvoiceDelete(string storeId, PayrollInvoice invoice, string vendorName, string vendorEmail)
     {
-        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        if (settings == null || !settings.EmailAdminOnInvoiceUploadedDeleted || string.IsNullOrEmpty(settings.AdminNotificationEmail))
-            return;
-
-        var store = await storeRepo.FindStore(storeId);
-        var storeName = store.StoreName;
-
-        var recipient = new EmailRecipient
+        try
         {
-            Address = InternetAddress.Parse(settings.AdminNotificationEmail),
-            Subject = $"[Payroll Plugin] Invoice Deleted - {invoice.Id}",
-            MessageText = $"Hello,\n\nAn invoice has been deleted by {deletedBy}.\n\n" +
-                          $"Invoice ID: {invoice.Id}\n" +
-                          $"Amount: {invoice.Amount} {invoice.Currency}\n" +
-                          $"Destination: {invoice.Destination}\n" +
-                          $"Store: {storeName}\n\n" +
-                          "Thank you."
-        };
-        var emailRecipients = new List<EmailRecipient> { recipient };
-        await SendBulkEmail(storeId, emailRecipients);
+            var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+            if (settings?.EmailAdminOnInvoiceDeleted != true || 
+                string.IsNullOrWhiteSpace(settings.EmailAdminOnInvoiceDeletedAddress))
+                return;
+
+            var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
+            if (emailSettings?.IsComplete() != true)
+                return;
+
+            var recipient = new EmailRecipient
+            {
+                Address = InternetAddress.Parse(settings.EmailAdminOnInvoiceDeletedAddress),
+                Subject = settings.EmailAdminOnInvoiceDeletedSubject,
+                MessageText = settings.EmailAdminOnInvoiceDeletedBody
+                    .Replace("{VendorName}", vendorName)
+                    .Replace("{VendorEmail}", vendorEmail ?? "unknown")
+                    .Replace("{InvoiceId}", invoice.Id)
+                    .Replace("{Amount}", invoice.Amount.ToString())
+                    .Replace("{Currency}", invoice.Currency)
+                    .Replace("{Destination}", invoice.Destination)
+            };
+            var emailRecipients = new List<EmailRecipient> { recipient };
+            await SendBulkEmail(storeId, emailRecipients);
+        }
+        catch (Exception ex)
+        {
+            logs.PayServer.LogError(ex, $"Error sending admin notification for invoice deletion {invoice.Id}");
+        }
     }
     public class EmailRecipient
     {

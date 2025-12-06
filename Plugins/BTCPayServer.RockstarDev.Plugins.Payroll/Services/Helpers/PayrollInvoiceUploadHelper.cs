@@ -6,6 +6,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
@@ -104,9 +105,6 @@ public class PayrollInvoiceUploadHelper(
 
         dbPlugin.Add(dbPayrollInvoice);
         await dbPlugin.SaveChangesAsync();
-
-        // Send admin notification (fire and forget)
-        _ = emailService.SendAdminNotificationOnInvoiceUpload(storeId, dbPayrollInvoice);
 
         return validation;
     }

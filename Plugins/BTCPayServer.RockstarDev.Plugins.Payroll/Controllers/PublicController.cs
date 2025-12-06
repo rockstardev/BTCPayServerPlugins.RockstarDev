@@ -7,6 +7,7 @@ using BTCPayServer.Data;
 using BTCPayServer.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using BTCPayServer.Services;
@@ -27,7 +28,8 @@ public class PublicController(
     UriResolver uriResolver,
     VendorPayPassHasher hasher,
     PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
-    InvoicesDownloadHelper invoicesDownloadHelper)
+    InvoicesDownloadHelper invoicesDownloadHelper,
+    EmailService emailService)
     : Controller
 {
     private const string PAYROLL_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
@@ -272,6 +274,18 @@ public class PublicController(
             return View(model);
         }
 
+        // Load the created invoice with user for email notification
+        await using var ctx = pluginDbContextFactory.CreateContext();
+        var createdInvoice = await ctx.PayrollInvoices
+            .Include(i => i.User)
+            .OrderByDescending(i => i.CreatedAt)
+            .FirstOrDefaultAsync(i => i.UserId == vali.UserId);
+        
+        if (createdInvoice != null)
+        {
+            await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
+        }
+
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
             Message = "Invoice uploaded successfully", Severity = StatusMessageModel.StatusSeverity.Success
@@ -379,7 +393,9 @@ public class PublicController(
 
         await using var ctx = pluginDbContextFactory.CreateContext();
 
-        var invoice = ctx.PayrollInvoices.Single(a => a.Id == id);
+        var invoice = ctx.PayrollInvoices
+            .Include(i => i.User)
+            .Single(a => a.Id == id);
 
         if (invoice.State != PayrollInvoiceState.AwaitingApproval)
         {
@@ -389,6 +405,11 @@ public class PublicController(
             });
             return RedirectToAction(nameof(ListInvoices), new { storeId });
         }
+
+        // Send admin notification before deleting
+        var vendorName = invoice.User?.Name ?? "Unknown";
+        var vendorEmail = invoice.User?.Email ?? "unknown";
+        await emailService.SendAdminNotificationOnInvoiceDelete(storeId, invoice, vendorName, vendorEmail);
 
         ctx.Remove(invoice);
         await ctx.SaveChangesAsync();
