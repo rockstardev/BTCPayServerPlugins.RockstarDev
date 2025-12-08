@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -54,18 +55,26 @@ Thank you,
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
 
-        var query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
+        var allStoreUsers =
+            ctx.PayrollUsers.Where(a => a.StoreId == storeId).OrderBy(a => a.Name).ToList();
 
+        var payrollUsers = allStoreUsers;
         if (pending)
-            query = query.Where(a => a.State == PayrollUserState.Pending);
-        else if (!all) query = query.Where(a => a.State == PayrollUserState.Active);
-        var payrollUsers = query.OrderByDescending(data => data.Name).ToList();
+            payrollUsers = allStoreUsers.Where(a => a.State == PayrollUserState.Pending).ToList();
+        else if (!all)
+            payrollUsers = allStoreUsers.Where(a => a.State == PayrollUserState.Active).ToList();
+
         var payrollUserListViewModel = new PayrollUserListViewModel
         {
             All = all,
             Pending = pending,
             DisplayedPayrollUsers = payrollUsers,
-            AllPayrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId).ToList()
+            Counts = new PayrollUserListViewModel.CountsData()
+            {
+                Active = allStoreUsers.Count(a => a.State == PayrollUserState.Active),
+                Pending = allStoreUsers.Count(a => a.State == PayrollUserState.Pending),
+                Total = allStoreUsers.Count
+            }
         };
         return View(payrollUserListViewModel);
     }

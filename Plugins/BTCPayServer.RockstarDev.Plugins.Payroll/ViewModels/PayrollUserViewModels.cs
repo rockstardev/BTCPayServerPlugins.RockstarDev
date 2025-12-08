@@ -8,7 +8,15 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 public class PayrollUserListViewModel
 {
     public List<PayrollUser> DisplayedPayrollUsers { get; set; }
-    public List<PayrollUser> AllPayrollUsers { get; set; }
+
+    public CountsData Counts { get; set; }
+    public class CountsData
+    {
+        public int Active { get; set; }
+        public int Pending { get; set; }
+        public int Total { get; set; }
+    }
+
     public bool Pending { get; set; }
     public bool All { get; set; }
 }

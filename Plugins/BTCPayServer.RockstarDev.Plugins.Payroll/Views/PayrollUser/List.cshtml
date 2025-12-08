@@ -26,33 +26,25 @@
 
     <nav id="SectionNav" class="mb-3">
         <div class="nav">
-            @foreach (var state in Enum.GetValues(typeof(PayrollUserState)).Cast<PayrollUserState>())
-            {
-                @if (state == PayrollUserState.Active)
-                {
-                    <a id="@state-view"
-                       asp-action="List"
-                       asp-route-storeId="@storeId"
-                       class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
-                       role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
-                }
+            <a id="Active-view"
+               asp-action="List"
+               asp-route-storeId="@storeId"
+               class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
+               role="tab">Active (@Model.Counts.Active)</a>
 
-                @if (state == PayrollUserState.Pending)
-                {
-                    <a id="@state-view"
-                       asp-action="List"
-                       asp-route-storeId="@storeId"
-                       asp-route-pending="true"
-                       class="nav-link @(Model.Pending ? "active" : "")"
-                       role="tab">@state (@Model.AllPayrollUsers.Count(c => c.State == state))</a>
-                }
-            }
+            <a id="Pending-view"
+               asp-action="List"
+               asp-route-storeId="@storeId"
+               asp-route-pending="true"
+               class="nav-link @(Model.Pending ? "active" : "")"
+               role="tab">Pending (@Model.Counts.Pending))</a>
+
             <a id="all-view"
                asp-action="List"
                asp-route-storeId="@storeId"
                asp-route-all="true"
                class="nav-link @(Model.All ? "active" : "")"
-               role="tab">All (@Model.AllPayrollUsers.Count)</a>
+               role="tab">All (@Model.Counts.Total)</a>
         </div>
     </nav>
 
