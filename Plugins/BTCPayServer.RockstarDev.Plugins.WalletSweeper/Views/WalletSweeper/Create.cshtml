@@ -132,14 +132,14 @@
             
             <div class="form-group mb-3">
                 <label asp-for="DestinationType" class="form-label"></label>
-                <select asp-for="DestinationType" class="form-select">
+                <select asp-for="DestinationType" class="form-select" id="destinationTypeSelect">
                     <option value="ThisStore">This Store</option>
                     <option value="CustomAddress">Custom Address</option>
                 </select>
                 <span asp-validation-for="DestinationType" class="text-danger"></span>
             </div>
             
-            <div class="form-group mb-3">
+            <div class="form-group mb-3" id="destinationAddressGroup">
                 <label asp-for="DestinationAddress" class="form-label"></label>
                 <input asp-for="DestinationAddress" class="form-control" placeholder="Optional: specify custom address" />
                 <span asp-validation-for="DestinationAddress" class="text-danger"></span>
@@ -157,4 +157,24 @@
 
 @section PageFootContent {
     <partial name="_ValidationScriptsPartial"/>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const destinationTypeSelect = document.getElementById('destinationTypeSelect');
+            const destinationAddressGroup = document.getElementById('destinationAddressGroup');
+            
+            function toggleDestinationAddress() {
+                if (destinationTypeSelect.value === 'CustomAddress') {
+                    destinationAddressGroup.style.display = 'block';
+                } else {
+                    destinationAddressGroup.style.display = 'none';
+                }
+            }
+            
+            // Set initial state
+            toggleDestinationAddress();
+            
+            // Listen for changes
+            destinationTypeSelect.addEventListener('change', toggleDestinationAddress);
+        });
+    </script>
 }
