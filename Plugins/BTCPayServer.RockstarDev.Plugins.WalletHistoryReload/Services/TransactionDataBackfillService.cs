@@ -63,25 +63,26 @@ public class TransactionDataBackfillService
                     }
 
                     // Update transaction object with fetched data (but don't save to DB yet)
-                    if (includeFees && txData.Fee > 0)
+                    if (includeFees && txData.Fee > 0 && !tx.Fee.HasValue)
                     {
                         tx.Fee = txData.Fee;
                         tx.FeeRate = txData.FeeRate;
+                        tx.FeeWasFetched = true;
                     }
 
                     // Fetch historical price if requested
                     if (includeHistoricalPrices && txData.BlockTime > 0 && !tx.RateUsd.HasValue)
                     {
-                        var timestamp = DateTimeOffset.FromUnixTimeSeconds(txData.BlockTime);
-                        var btcPrice = await _priceService.GetHistoricalBtcPriceAsync(timestamp);
+                        var btcPrice = await _priceService.GetHistoricalBtcPriceAsync(tx.Timestamp);
                         
                         if (btcPrice.HasValue)
                         {
                             _logger.LogInformation(
                                 "Transaction {TxId}: BTC Price on {Date} was ${Price}",
-                                tx.TransactionId, timestamp.ToString("yyyy-MM-dd"), btcPrice.Value);
+                                tx.TransactionId, tx.Timestamp.ToString("yyyy-MM-dd HH:00"), btcPrice.Value);
                             
                             tx.RateUsd = btcPrice.Value;
+                            tx.RateUsdWasFetched = true;
                         }
                     }
 

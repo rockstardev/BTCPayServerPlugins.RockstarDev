@@ -44,7 +44,7 @@
 
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Fetched Transaction Data (showing all @Model.FetchedDataCount)</h5>
+                        <h5 class="mb-0">Fetched Transaction Data (showing @Model.FetchedDataCount transactions)</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -57,13 +57,12 @@
                                         <th class="text-end">Transaction Fee</th>
                                         <th class="text-end">Fee Rate</th>
                                         <th class="text-end">Rate (USD)</th>
-                                        <th class="text-end">USD Value</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var tx in Model.Transactions.Where(t => t.HasMissingData == false))
+                                    @foreach (var tx in Model.Transactions.Where(t => t.FeeWasFetched || t.RateUsdWasFetched))
                                     {
-                                        <tr class="table-success">
+                                        <tr>
                                             <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
                                             <td>
                                                 @{
@@ -91,7 +90,14 @@
                                             <td class="text-end">
                                                 @if (tx.Fee.HasValue)
                                                 {
-                                                    <span>@tx.Fee.Value.ToString("N8")</span>
+                                                    if (tx.FeeWasFetched)
+                                                    {
+                                                        <strong><em>@tx.Fee.Value.ToString("N8")</em></strong>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@tx.Fee.Value.ToString("N8")</span>
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -101,7 +107,14 @@
                                             <td class="text-end">
                                                 @if (tx.FeeRate.HasValue)
                                                 {
-                                                    <span>@tx.FeeRate.Value.ToString("N3") sat/vB</span>
+                                                    if (tx.FeeWasFetched)
+                                                    {
+                                                        <strong><em>@tx.FeeRate.Value.ToString("N3") sat/vB</em></strong>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@tx.FeeRate.Value.ToString("N3") sat/vB</span>
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -111,20 +124,14 @@
                                             <td class="text-end">
                                                 @if (tx.RateUsd.HasValue)
                                                 {
-                                                    <span>$@tx.RateUsd.Value.ToString("N2")</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">-</span>
-                                                }
-                                            </td>
-                                            <td class="text-end">
-                                                @if (tx.RateUsd.HasValue)
-                                                {
-                                                    var usdValue = Math.Abs(tx.BalanceChange) * tx.RateUsd.Value;
-                                                    <span class="@(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
-                                                        $@usdValue.ToString("N2")
-                                                    </span>
+                                                    if (tx.RateUsdWasFetched)
+                                                    {
+                                                        <strong><em>$@tx.RateUsd.Value.ToString("N2")</em></strong>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>$@tx.RateUsd.Value.ToString("N2")</span>
+                                                    }
                                                 }
                                                 else
                                                 {

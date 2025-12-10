@@ -155,5 +155,9 @@ public class NBXTransactionData
     public decimal? FeeRate { get; set; }
     public decimal? RateUsd { get; set; }
     
+    // Flags to track what was newly fetched in this session
+    public bool FeeWasFetched { get; set; }
+    public bool RateUsdWasFetched { get; set; }
+    
     public bool HasMissingData => !Fee.HasValue || !FeeRate.HasValue || !RateUsd.HasValue;
 }
