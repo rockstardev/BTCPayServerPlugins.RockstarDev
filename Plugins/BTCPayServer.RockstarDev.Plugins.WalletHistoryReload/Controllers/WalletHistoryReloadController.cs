@@ -21,7 +21,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Controllers;
 
 [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie, Policy = Policies.CanModifyStoreSettings)]
-[Route("~/plugins/wallet-history-reload")]
+[Route("~/{storeId}/plugins/wallet-history-reload")]
 public class WalletHistoryReloadController : Controller
 {
     private readonly TransactionDataBackfillService _backfillService;
@@ -47,7 +47,7 @@ public class WalletHistoryReloadController : Controller
         _cache = cache;
     }
 
-    [HttpGet("{storeId}/{cryptoCode}")]
+    [HttpGet("{cryptoCode}")]
     public async Task<IActionResult> Index(string storeId, string cryptoCode)
     {
         // Fetch transactions from NBXplorer database
@@ -59,6 +59,7 @@ public class WalletHistoryReloadController : Controller
 
         var network = GetNetworkFromCryptoCode(cryptoCode);
 
+        var missingDataTransactions = transactions.Where(t => t.HasMissingData).ToList();
         var vm = new WalletHistoryReloadViewModel
         {
             StoreId = storeId,
@@ -67,14 +68,14 @@ public class WalletHistoryReloadController : Controller
             NBXWalletId = nbxWalletId,
             Network = network,
             Transactions = transactions,
-            TotalTransactions = transactions.Count,
-            MissingDataCount = transactions.Count(t => t.HasMissingData)
+            MissingDataTransactions = missingDataTransactions,
+            MissingDataTransactionsCount = missingDataTransactions.Count
         };
 
         return View(vm);
     }
 
-    [HttpPost("{storeId}/{cryptoCode}/preview")]
+    [HttpPost("{cryptoCode}/preview")]
     public async Task<IActionResult> Preview(string storeId, string cryptoCode, WalletHistoryReloadViewModel vm)
     {
         // Fetch transactions again
@@ -103,7 +104,8 @@ public class WalletHistoryReloadController : Controller
         vm.Network = network;
         vm.Transactions = previewData.Transactions;
         vm.TotalTransactions = transactions.Count;
-        vm.MissingDataCount = transactions.Count(t => t.HasMissingData);
+        vm.MissingDataTransactions = vm.Transactions.Where(t => t.HasMissingData).ToList();
+        vm.MissingDataTransactionsCount = vm.MissingDataTransactions.Count;
         vm.FetchedDataCount = previewData.FetchedCount;
         vm.FetchFailedCount = previewData.FailedCount;
 
@@ -115,7 +117,7 @@ public class WalletHistoryReloadController : Controller
         return View("Preview", vm);
     }
 
-    [HttpPost("{storeId}/{cryptoCode}/confirm")]
+    [HttpPost("{cryptoCode}/confirm")]
     public async Task<IActionResult> Confirm(string storeId, string cryptoCode, WalletHistoryReloadViewModel vm)
     {
         // Retrieve fetched transactions from memory cache
@@ -151,6 +153,39 @@ public class WalletHistoryReloadController : Controller
         vm.CryptoCode = cryptoCode;
 
         return View("Success", vm);
+    }
+
+    [HttpGet("{cryptoCode}/clear")]
+    public async Task<IActionResult> Clear(string storeId, string cryptoCode)
+    {
+        var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
+        var transactions = await _nbxService.GetWalletTransactionsAsync(nbxWalletId, cryptoCode);
+        
+        var vm = new WalletHistoryReloadViewModel
+        {
+            StoreId = storeId,
+            CryptoCode = cryptoCode,
+            Transactions = transactions,
+            TotalTransactions = transactions.Count
+        };
+
+        return View("Clear", vm);
+    }
+
+    [HttpPost("{cryptoCode}/clear")]
+    public async Task<IActionResult> ClearPost(string storeId, string cryptoCode, int rowCount)
+    {
+        if (rowCount <= 0)
+        {
+            TempData["ErrorMessage"] = "Please enter a valid number of rows to clear.";
+            return RedirectToAction("Clear", new { storeId, cryptoCode });
+        }
+
+        var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
+        var clearedCount = await _nbxService.ClearTransactionDataAsync(nbxWalletId, cryptoCode, rowCount);
+
+        TempData["SuccessMessage"] = $"Successfully cleared data from {clearedCount} transaction(s).";
+        return RedirectToAction("Clear", new { storeId, cryptoCode });
     }
 
     private async Task<string> GetNBXWalletId(string storeId, string cryptoCode)

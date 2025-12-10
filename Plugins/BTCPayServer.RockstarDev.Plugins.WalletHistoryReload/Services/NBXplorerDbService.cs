@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Wallets;
@@ -34,7 +35,7 @@ public class NBXplorerDbService
             await using var connection = await _connectionFactory.OpenConnection();
 
             var query = @"
-                SELECT 
+                SELECT DISTINCT ON (r.tx_id)
                     r.tx_id,
                     r.seen_at,
                     r.balance_change / 100000000.0 as balance_change_btc,
@@ -54,7 +55,7 @@ public class NBXplorerDbService
                 ) r 
                 JOIN txs t USING (code, tx_id)
                 LEFT JOIN blks b ON (t.code = b.code AND t.blk_height = b.height)
-                ORDER BY r.seen_at DESC";
+                ORDER BY r.tx_id, r.seen_at DESC";
 
             var cmd = new CommandDefinition(
                 commandText: query,
@@ -138,6 +139,64 @@ public class NBXplorerDbService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating transaction metadata in NBXplorer database");
+            throw;
+        }
+    }
+
+    public async Task<int> ClearTransactionDataAsync(string walletId, string cryptoCode, int rowCount)
+    {
+        try
+        {
+            if (!_connectionFactory.Available)
+            {
+                _logger.LogWarning("NBXplorer connection not available");
+                return 0;
+            }
+
+            await using var connection = await _connectionFactory.OpenConnection();
+
+            // Get transaction IDs that have data to clear
+            // Simply query the txs table directly for transactions with fee data
+            var selectQuery = @"
+                SELECT tx_id
+                FROM txs
+                WHERE code = @cryptoCode
+                  AND ((metadata->'fees')::TEXT IS NOT NULL 
+                       OR (metadata->'feeRate')::TEXT IS NOT NULL)
+                ORDER BY tx_id
+                LIMIT @rowCount";
+
+            var txIds = await connection.QueryAsync<string>(
+                selectQuery,
+                new { cryptoCode, rowCount });
+
+            if (!txIds.Any())
+            {
+                _logger.LogInformation("No transactions found with data to clear");
+                return 0;
+            }
+
+            // Clear the fees and feeRate from metadata
+            var updateQuery = @"
+                UPDATE txs 
+                SET metadata = CASE 
+                    WHEN metadata IS NOT NULL THEN 
+                        metadata - 'fees' - 'feeRate'
+                    ELSE NULL 
+                END
+                WHERE code = @cryptoCode 
+                AND tx_id = ANY(@txIds)";
+
+            var clearedCount = await connection.ExecuteAsync(
+                updateQuery,
+                new { cryptoCode, txIds = txIds.ToArray() });
+
+            _logger.LogInformation("Cleared data from {Count} transactions", clearedCount);
+            return clearedCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing transaction data from NBXplorer database");
             throw;
         }
     }

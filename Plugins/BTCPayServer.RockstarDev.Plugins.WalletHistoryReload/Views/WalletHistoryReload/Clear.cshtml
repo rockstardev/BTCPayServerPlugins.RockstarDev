@@ -1,0 +1,99 @@
+@model BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels.WalletHistoryReloadViewModel
+@{
+    ViewData["Title"] = "Clear Transaction Data (Testing)";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+            <h2 class="mb-4">@ViewData["Title"]</h2>
+            <p class="text-muted">Clear fee, fee rate, and USD rate data from transactions for testing purposes.</p>
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fa fa-check-circle"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fa fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Wallet Information</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Crypto Code:</dt>
+                        <dd class="col-sm-8"><code>@Model.CryptoCode</code></dd>
+
+                        <dt class="col-sm-4">Total Transactions:</dt>
+                        <dd class="col-sm-8">@Model.TotalTransactions</dd>
+
+                        <dt class="col-sm-4">Transactions with Data:</dt>
+                        <dd class="col-sm-8">
+                            @{
+                                var withData = Model.Transactions.Count(t => t.Fee.HasValue || t.FeeRate.HasValue);
+                            }
+                            <span class="badge bg-info">@withData</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">
+                        <i class="fa fa-exclamation-triangle"></i> Clear Transaction Data
+                    </h5>
+                    <p class="text-muted mb-3">
+                        This will remove fee, fee rate, and USD rate data from the specified number of transactions.
+                        <strong>This action cannot be undone.</strong>
+                    </p>
+
+                    <form method="post" asp-action="ClearPost" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode">
+                        <div class="mb-3">
+                            <label for="rowCount" class="form-label">Number of Transactions to Clear:</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="rowCount" 
+                                   name="rowCount" 
+                                   min="1" 
+                                   max="1000" 
+                                   value="10" 
+                                   required>
+                            <div class="form-text">
+                                Enter the number of transactions to clear (1-1000). 
+                                Will clear from transactions that currently have fee/rate data.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fa fa-trash"></i> Clear Transaction Data
+                            </button>
+                            <a href="/@Model.StoreId/plugins/wallet-history-reload/@Model.CryptoCode" class="btn btn-outline-secondary">
+                                <i class="fa fa-arrow-left"></i> Back to Wallet History Reload
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-warning" role="alert">
+                <h6 class="alert-heading">
+                    <i class="fa fa-info-circle"></i> Testing Tool
+                </h6>
+                <p class="mb-0">
+                    This page is intended for testing and development purposes only. 
+                    It allows you to clear transaction data so you can test the backfill functionality repeatedly.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

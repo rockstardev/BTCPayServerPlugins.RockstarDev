@@ -33,13 +33,13 @@
                         
                         <dt class="col-sm-3">Missing Data</dt>
                         <dd class="col-sm-9">
-                            <span class="badge bg-warning">@Model.MissingDataCount transactions</span>
+                            <span class="badge bg-warning">@Model.MissingDataTransactionsCount transactions</span>
                         </dd>
                     </dl>
                 </div>
             </div>
 
-            @if (Model.MissingDataCount > 0)
+            @if (Model.MissingDataTransactionsCount > 0)
             {
                 <div class="card mb-4">
                     <div class="card-body">
@@ -60,15 +60,15 @@
                             </div>
 
                             <div class="alert alert-info">
-                                <strong>Note:</strong> This will fetch data for <strong>@Model.MissingDataCount transactions</strong> with missing data. 
+                                <strong>Note:</strong> This will fetch data for <strong>@Model.MissingDataTransactionsCount transactions</strong> with missing data. 
                                 API rate limits are respected with a 500ms delay between requests. 
-                                Estimated time: <strong>~@(Model.MissingDataCount * 0.5 / 60) minutes</strong>.
+                                Estimated time: <strong>~@(Model.MissingDataTransactionsCount * 0.5 / 60) minutes</strong>.
                                 <br/><br/>
                                 You will be able to preview the fetched data before saving it to the database.
                             </div>
 
                             <button type="submit" class="btn btn-primary">
-                                <i class="fa fa-download"></i> Fetch Data & Preview (@Model.MissingDataCount transactions)
+                                <i class="fa fa-download"></i> Fetch Data & Preview (@Model.MissingDataTransactionsCount transactions)
                             </button>
                             <a asp-controller="UIStores" asp-action="Dashboard" asp-route-storeId="@Model.StoreId" class="btn btn-secondary">Cancel</a>
                         </form>
@@ -82,15 +82,18 @@
                 </div>
             }
 
+            <div class="mb-4">
+                <a href="/@Model.StoreId/plugins/wallet-history-reload/@Model.CryptoCode/clear" class="btn btn-outline-warning">
+                    <i class="fa fa-flask"></i> Clear Transaction Data (Testing)
+                </a>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Transactions with Missing Data (showing first 50)</h5>
                 </div>
                 <div class="card-body">
-                    @{
-                        var missingDataTransactions = Model.Transactions.Where(t => t.HasMissingData).ToList();
-                    }
-                    @if (missingDataTransactions.Any())
+                    @if (Model.MissingDataTransactions.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
@@ -104,7 +107,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var tx in missingDataTransactions.Take(50))
+                                    @foreach (var tx in Model.MissingDataTransactions.Take(50))
                                     {
                                         <tr class="table-warning">
                                             <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
@@ -164,9 +167,9 @@
                                 </tbody>
                             </table>
                         </div>
-                        @if (missingDataTransactions.Count > 50)
+                        @if (Model.MissingDataTransactionsCount > 50)
                         {
-                            <p class="text-muted mt-2">Showing 50 of @missingDataTransactions.Count transactions with missing data</p>
+                            <p class="text-muted mt-2">Showing 50 of @Model.MissingDataTransactionsCount transactions with missing data</p>
                         }
                     }
                     else

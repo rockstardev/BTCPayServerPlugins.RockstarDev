@@ -121,12 +121,12 @@ public class TransactionDataBackfillService
         {
             _logger.LogInformation("Saving fetched data for {Count} transactions", transactions.Count);
 
-            foreach (var tx in transactions.Where(t => t.Fee.HasValue || t.RateUsd.HasValue))
+            foreach (var tx in transactions.Where(t => t.FeeWasFetched || t.RateUsdWasFetched))
             {
                 try
                 {
                     // Save fee data to NBXplorer database
-                    if (includeFees && tx.Fee.HasValue && tx.Fee.Value > 0)
+                    if (includeFees && tx.FeeWasFetched && tx.Fee.HasValue)
                     {
                         await _nbxService.UpdateTransactionMetadataAsync(
                             tx.TransactionId, 
@@ -136,7 +136,7 @@ public class TransactionDataBackfillService
                     }
 
                     // Save historical price to BTCPayServer database
-                    if (includeHistoricalPrices && tx.RateUsd.HasValue)
+                    if (includeHistoricalPrices && tx.RateUsdWasFetched && tx.RateUsd.HasValue)
                     {
                         await SaveHistoricalRate(storeId, cryptoCode, tx.TransactionId, tx.RateUsd.Value);
                     }

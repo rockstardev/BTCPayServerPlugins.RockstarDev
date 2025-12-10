@@ -13,7 +13,8 @@ public class WalletHistoryReloadViewModel
     
     public List<NBXTransactionData> Transactions { get; set; } = new();
     public int TotalTransactions { get; set; }
-    public int MissingDataCount { get; set; }
+    public List<NBXTransactionData> MissingDataTransactions { get; set; } = new();
+    public int MissingDataTransactionsCount { get; set; }
     
     public bool IncludeFees { get; set; } = true;
     public bool IncludeHistoricalPrices { get; set; } = true;
