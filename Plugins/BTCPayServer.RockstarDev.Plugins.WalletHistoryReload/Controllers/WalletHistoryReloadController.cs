@@ -144,21 +144,13 @@ public class WalletHistoryReloadController : Controller
         // Clean up cache
         _cache.Remove(vm.CacheKey);
 
-        // Fetch fresh transactions to show updated state
-        var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
-        var transactions = await _nbxService.GetWalletTransactionsAsync(nbxWalletId, cryptoCode);
-        await EnrichWithUsdRates(transactions, storeId, cryptoCode);
-
+        // Prepare success view model
         vm.ProcessedTransactions = result.ProcessedTransactions;
         vm.FailedTransactions = result.FailedTransactions;
-        vm.BackfillCompleted = true;
-        vm.Transactions = transactions;
-        vm.TotalTransactions = transactions.Count;
-        vm.MissingDataCount = transactions.Count(t => t.HasMissingData);
+        vm.StoreId = storeId;
+        vm.CryptoCode = cryptoCode;
 
-        TempData["SuccessMessage"] = $"Backfill completed: {result.ProcessedTransactions} processed, {result.FailedTransactions} failed";
-
-        return View("Index", vm);
+        return View("Success", vm);
     }
 
     private async Task<string> GetNBXWalletId(string storeId, string cryptoCode)

@@ -1,0 +1,74 @@
+@model BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels.WalletHistoryReloadViewModel
+@{
+    ViewData["Title"] = "Backfill Completed";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <h2 class="mb-4">@ViewData["Title"]</h2>
+
+            <div class="alert alert-success" role="alert">
+                <h4 class="alert-heading">
+                    <i class="fa fa-check-circle"></i> Success!
+                </h4>
+                <p class="mb-0">
+                    Successfully imported data for <strong>@Model.ProcessedTransactions transaction@(Model.ProcessedTransactions != 1 ? "s" : "")</strong>.
+                </p>
+                @if (Model.FailedTransactions > 0)
+                {
+                    <hr>
+                    <p class="mb-0 text-warning">
+                        <i class="fa fa-exclamation-triangle"></i> 
+                        Failed to fetch data for @Model.FailedTransactions transaction@(Model.FailedTransactions != 1 ? "s" : "").
+                    </p>
+                }
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Summary</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-6">Successfully Processed:</dt>
+                        <dd class="col-sm-6">
+                            <span class="badge bg-success">@Model.ProcessedTransactions</span>
+                        </dd>
+
+                        @if (Model.FailedTransactions > 0)
+                        {
+                            <dt class="col-sm-6">Failed:</dt>
+                            <dd class="col-sm-6">
+                                <span class="badge bg-warning">@Model.FailedTransactions</span>
+                            </dd>
+                        }
+
+                        @if (Model.IncludeFees)
+                        {
+                            <dt class="col-sm-6">Transaction Fees:</dt>
+                            <dd class="col-sm-6">
+                                <i class="fa fa-check text-success"></i> Imported
+                            </dd>
+                        }
+
+                        @if (Model.IncludeHistoricalPrices)
+                        {
+                            <dt class="col-sm-6">Historical USD Rates:</dt>
+                            <dd class="col-sm-6">
+                                <i class="fa fa-check text-success"></i> Imported
+                            </dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <a href="/@Model.StoreId/wallets/@Model.CryptoCode" class="btn btn-primary btn-lg">
+                    <i class="fa fa-wallet"></i> Back to @Model.CryptoCode Wallet
+                </a>
+                <a href="/@Model.StoreId/plugins/wallet-history-reload/@Model.CryptoCode" class="btn btn-outline-secondary">
+                    <i class="fa fa-refresh"></i> Run Another Backfill
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
