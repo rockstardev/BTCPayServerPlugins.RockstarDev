@@ -1,0 +1,168 @@
+@model BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels.WalletHistoryReloadViewModel
+@{
+    ViewData["Title"] = "Preview Fetched Data";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            <h2>@ViewData["Title"]</h2>
+            <p class="text-muted">Review the fetched data before saving it to the database</p>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Fetch Summary</h5>
+                    <dl class="row">
+                        <dt class="col-sm-3">Total Transactions</dt>
+                        <dd class="col-sm-9">@Model.TotalTransactions</dd>
+                        
+                        <dt class="col-sm-3">Data Fetched Successfully</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-success">@Model.FetchedDataCount transactions</span>
+                        </dd>
+                        
+                        <dt class="col-sm-3">Fetch Failed</dt>
+                        <dd class="col-sm-9">
+                            @if (Model.FetchFailedCount > 0)
+                            {
+                                <span class="badge bg-danger">@Model.FetchFailedCount transactions</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">0 transactions</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (Model.FetchedDataCount > 0)
+            {
+                <div class="alert alert-info mb-4">
+                    <strong>Review the data below.</strong> If everything looks correct, click "Confirm & Save to Database" to proceed.
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Fetched Transaction Data (showing all @Model.FetchedDataCount)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Transaction</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">Transaction Fee</th>
+                                        <th class="text-end">Fee Rate</th>
+                                        <th class="text-end">Rate (USD)</th>
+                                        <th class="text-end">USD Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var tx in Model.Transactions.Where(t => t.HasMissingData == false))
+                                    {
+                                        <tr class="table-success">
+                                            <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
+                                            <td>
+                                                @{
+                                                    var mempoolUrl = Model.Network == "testnet" 
+                                                        ? $"https://mempool.space/testnet/tx/{tx.TransactionId}"
+                                                        : Model.Network == "signet"
+                                                        ? $"https://mempool.space/signet/tx/{tx.TransactionId}"
+                                                        : $"https://mempool.space/tx/{tx.TransactionId}";
+                                                }
+                                                <a href="@mempoolUrl" target="_blank" rel="noopener noreferrer">
+                                                    <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                                </a>
+                                                @if (tx.IsConfirmed)
+                                                {
+                                                    <span class="badge bg-success ms-1">Confirmed</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary ms-1">Unconfirmed</span>
+                                                }
+                                            </td>
+                                            <td class="text-end @(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
+                                                @tx.BalanceChange.ToString("N8") @Model.CryptoCode
+                                            </td>
+                                            <td class="text-end">
+                                                @if (tx.Fee.HasValue)
+                                                {
+                                                    <span>@tx.Fee.Value.ToString("N8")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (tx.FeeRate.HasValue)
+                                                {
+                                                    <span>@tx.FeeRate.Value.ToString("N3") sat/vB</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (tx.RateUsd.HasValue)
+                                                {
+                                                    <span>$@tx.RateUsd.Value.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (tx.RateUsd.HasValue)
+                                                {
+                                                    var usdValue = Math.Abs(tx.BalanceChange) * tx.RateUsd.Value;
+                                                    <span class="@(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
+                                                        $@usdValue.ToString("N2")
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" asp-action="Confirm" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode">
+                    <input type="hidden" asp-for="IncludeFees" />
+                    <input type="hidden" asp-for="IncludeHistoricalPrices" />
+                    <input type="hidden" asp-for="CacheKey" />
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa fa-check"></i> Confirm & Save to Database
+                        </button>
+                        <a asp-action="Index" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode" class="btn btn-secondary">
+                            <i class="fa fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <strong>No data was fetched successfully.</strong> Please check the logs and try again.
+                </div>
+                <a asp-action="Index" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode" class="btn btn-secondary">
+                    <i class="fa fa-arrow-left"></i> Back
+                </a>
+            }
+        </div>
+    </div>
+</div>

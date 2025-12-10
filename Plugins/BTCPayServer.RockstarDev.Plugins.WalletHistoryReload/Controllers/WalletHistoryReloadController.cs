@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -15,6 +16,7 @@ using BTCPayServer.Services.Stores;
 using BTCPayServer.Services.Wallets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Controllers;
 
@@ -27,19 +29,22 @@ public class WalletHistoryReloadController : Controller
     private readonly StoreRepository _storeRepository;
     private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly WalletRepository _walletRepository;
+    private readonly IMemoryCache _cache;
 
     public WalletHistoryReloadController(
         TransactionDataBackfillService backfillService,
         NBXplorerDbService nbxService,
         StoreRepository storeRepository,
         PaymentMethodHandlerDictionary handlers,
-        WalletRepository walletRepository)
+        WalletRepository walletRepository,
+        IMemoryCache cache)
     {
         _backfillService = backfillService;
         _nbxService = nbxService;
         _storeRepository = storeRepository;
         _handlers = handlers;
         _walletRepository = walletRepository;
+        _cache = cache;
     }
 
     [HttpGet("{storeId}/{cryptoCode}")]
@@ -69,8 +74,8 @@ public class WalletHistoryReloadController : Controller
         return View(vm);
     }
 
-    [HttpPost("{storeId}/{cryptoCode}")]
-    public async Task<IActionResult> Backfill(string storeId, string cryptoCode, WalletHistoryReloadViewModel vm)
+    [HttpPost("{storeId}/{cryptoCode}/preview")]
+    public async Task<IActionResult> Preview(string storeId, string cryptoCode, WalletHistoryReloadViewModel vm)
     {
         // Fetch transactions again
         var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
@@ -82,14 +87,67 @@ public class WalletHistoryReloadController : Controller
         // Detect network from crypto code
         var network = GetNetworkFromCryptoCode(cryptoCode);
 
-        // Backfill only transactions with missing data
-        var result = await _backfillService.BackfillTransactionDataAsync(
+        // Fetch data from APIs without saving to database
+        var previewData = await _backfillService.FetchTransactionDataAsync(
             transactions,
             storeId,
             cryptoCode,
             network,
             vm.IncludeFees,
             vm.IncludeHistoricalPrices);
+
+        vm.StoreId = storeId;
+        vm.CryptoCode = cryptoCode;
+        vm.WalletId = $"S-{storeId}-{cryptoCode}";
+        vm.NBXWalletId = nbxWalletId;
+        vm.Network = network;
+        vm.Transactions = previewData.Transactions;
+        vm.TotalTransactions = transactions.Count;
+        vm.MissingDataCount = transactions.Count(t => t.HasMissingData);
+        vm.FetchedDataCount = previewData.FetchedCount;
+        vm.FetchFailedCount = previewData.FailedCount;
+
+        // Store fetched transactions in memory cache with a unique key
+        var cacheKey = Guid.NewGuid().ToString();
+        _cache.Set(cacheKey, previewData.Transactions, TimeSpan.FromMinutes(30));
+        vm.CacheKey = cacheKey;
+
+        return View("Preview", vm);
+    }
+
+    [HttpPost("{storeId}/{cryptoCode}/confirm")]
+    public async Task<IActionResult> Confirm(string storeId, string cryptoCode, WalletHistoryReloadViewModel vm)
+    {
+        // Retrieve fetched transactions from memory cache
+        if (string.IsNullOrEmpty(vm.CacheKey))
+        {
+            TempData["ErrorMessage"] = "Invalid cache key. Please fetch the data again.";
+            return RedirectToAction("Index", new { storeId, cryptoCode });
+        }
+
+        var fetchedTransactions = _cache.Get<List<NBXTransactionData>>(vm.CacheKey);
+        
+        if (fetchedTransactions == null)
+        {
+            TempData["ErrorMessage"] = "Preview data expired (30 min timeout). Please fetch the data again.";
+            return RedirectToAction("Index", new { storeId, cryptoCode });
+        }
+
+        // Save the fetched data to database
+        var result = await _backfillService.SaveTransactionDataAsync(
+            fetchedTransactions,
+            storeId,
+            cryptoCode,
+            vm.IncludeFees,
+            vm.IncludeHistoricalPrices);
+
+        // Clean up cache
+        _cache.Remove(vm.CacheKey);
+
+        // Fetch fresh transactions to show updated state
+        var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
+        var transactions = await _nbxService.GetWalletTransactionsAsync(nbxWalletId, cryptoCode);
+        await EnrichWithUsdRates(transactions, storeId, cryptoCode);
 
         vm.ProcessedTransactions = result.ProcessedTransactions;
         vm.FailedTransactions = result.FailedTransactions;

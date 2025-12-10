@@ -21,4 +21,9 @@ public class WalletHistoryReloadViewModel
     public bool BackfillCompleted { get; set; }
     public int ProcessedTransactions { get; set; }
     public int FailedTransactions { get; set; }
+    
+    // Preview data
+    public int FetchedDataCount { get; set; }
+    public int FetchFailedCount { get; set; }
+    public string CacheKey { get; set; } = string.Empty;
 }

@@ -44,29 +44,31 @@
                 <div class="card mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Backfill Options</h5>
-                        <form method="post" asp-action="Backfill" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode">
+                        <form method="post" asp-action="Preview" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode">
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" asp-for="IncludeFees" id="includeFees" checked />
                                 <label class="form-check-label" for="includeFees">
-                                    <strong>Backfill transaction fees and fee rates</strong> from Mempool.space API
+                                    <strong>Fetch transaction fees and fee rates</strong> from Mempool.space API
                                 </label>
                             </div>
 
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" asp-for="IncludeHistoricalPrices" id="includeHistoricalPrices" checked />
                                 <label class="form-check-label" for="includeHistoricalPrices">
-                                    <strong>Fetch and save historical BTC/USD prices</strong> from CoinGecko API
+                                    <strong>Fetch historical BTC/USD prices</strong> from CoinGecko API
                                 </label>
                             </div>
 
                             <div class="alert alert-info">
-                                <strong>Note:</strong> This process will backfill <strong>@Model.MissingDataCount transactions</strong> with missing data. 
+                                <strong>Note:</strong> This will fetch data for <strong>@Model.MissingDataCount transactions</strong> with missing data. 
                                 API rate limits are respected with a 500ms delay between requests. 
                                 Estimated time: <strong>~@(Model.MissingDataCount * 0.5 / 60) minutes</strong>.
+                                <br/><br/>
+                                You will be able to preview the fetched data before saving it to the database.
                             </div>
 
                             <button type="submit" class="btn btn-primary">
-                                <i class="fa fa-sync"></i> Start Backfill (@Model.MissingDataCount transactions)
+                                <i class="fa fa-download"></i> Fetch Data & Preview (@Model.MissingDataCount transactions)
                             </button>
                             <a asp-controller="UIStores" asp-action="Dashboard" asp-route-storeId="@Model.StoreId" class="btn btn-secondary">Cancel</a>
                         </form>

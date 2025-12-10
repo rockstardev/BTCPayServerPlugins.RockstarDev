@@ -33,6 +33,131 @@ public class TransactionDataBackfillService
         _logger = logger;
     }
 
+    public async Task<FetchResult> FetchTransactionDataAsync(
+        List<NBXTransactionData> transactions,
+        string storeId,
+        string cryptoCode,
+        string network = "mainnet",
+        bool includeFees = true,
+        bool includeHistoricalPrices = true)
+    {
+        var result = new FetchResult();
+        var updatedTransactions = new List<NBXTransactionData>();
+
+        try
+        {
+            _logger.LogInformation("Fetching data for {Count} transactions on {Network}", transactions.Count, network);
+
+            foreach (var tx in transactions.Where(t => t.HasMissingData))
+            {
+                try
+                {
+                    // Fetch transaction data from Mempool.space or Bitcoin Core (for regtest)
+                    var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId, network, cryptoCode, tx.BlockHash);
+                    
+                    if (txData == null)
+                    {
+                        _logger.LogWarning("Failed to fetch data for transaction {TxId}", tx.TransactionId);
+                        result.FailedCount++;
+                        continue;
+                    }
+
+                    // Update transaction object with fetched data (but don't save to DB yet)
+                    if (includeFees && txData.Fee > 0)
+                    {
+                        tx.Fee = txData.Fee;
+                        tx.FeeRate = txData.FeeRate;
+                    }
+
+                    // Fetch historical price if requested
+                    if (includeHistoricalPrices && txData.BlockTime > 0 && !tx.RateUsd.HasValue)
+                    {
+                        var timestamp = DateTimeOffset.FromUnixTimeSeconds(txData.BlockTime);
+                        var btcPrice = await _priceService.GetHistoricalBtcPriceAsync(timestamp);
+                        
+                        if (btcPrice.HasValue)
+                        {
+                            _logger.LogInformation(
+                                "Transaction {TxId}: BTC Price on {Date} was ${Price}",
+                                tx.TransactionId, timestamp.ToString("yyyy-MM-dd"), btcPrice.Value);
+                            
+                            tx.RateUsd = btcPrice.Value;
+                        }
+                    }
+
+                    result.FetchedCount++;
+                    
+                    // Rate limiting to avoid API throttling
+                    await Task.Delay(500);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error fetching data for transaction {TxId}", tx.TransactionId);
+                    result.FailedCount++;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during fetch process");
+            throw;
+        }
+
+        result.Transactions = transactions;
+        return result;
+    }
+
+    public async Task<BackfillResult> SaveTransactionDataAsync(
+        List<NBXTransactionData> transactions,
+        string storeId,
+        string cryptoCode,
+        bool includeFees = true,
+        bool includeHistoricalPrices = true)
+    {
+        var result = new BackfillResult();
+
+        try
+        {
+            _logger.LogInformation("Saving fetched data for {Count} transactions", transactions.Count);
+
+            foreach (var tx in transactions.Where(t => t.Fee.HasValue || t.RateUsd.HasValue))
+            {
+                try
+                {
+                    // Save fee data to NBXplorer database
+                    if (includeFees && tx.Fee.HasValue && tx.Fee.Value > 0)
+                    {
+                        await _nbxService.UpdateTransactionMetadataAsync(
+                            tx.TransactionId, 
+                            cryptoCode, 
+                            tx.Fee.Value, 
+                            tx.FeeRate ?? 0);
+                    }
+
+                    // Save historical price to BTCPayServer database
+                    if (includeHistoricalPrices && tx.RateUsd.HasValue)
+                    {
+                        await SaveHistoricalRate(storeId, cryptoCode, tx.TransactionId, tx.RateUsd.Value);
+                    }
+
+                    result.ProcessedTransactions++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error saving data for transaction {TxId}", tx.TransactionId);
+                    result.FailedTransactions++;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during save process");
+            throw;
+        }
+
+        return result;
+    }
+
     public async Task<BackfillResult> BackfillTransactionDataAsync(
         List<NBXTransactionData> transactions,
         string storeId,
@@ -160,4 +285,11 @@ public class BackfillResult
 {
     public int ProcessedTransactions { get; set; }
     public int FailedTransactions { get; set; }
+}
+
+public class FetchResult
+{
+    public List<NBXTransactionData> Transactions { get; set; } = new();
+    public int FetchedCount { get; set; }
+    public int FailedCount { get; set; }
 }
