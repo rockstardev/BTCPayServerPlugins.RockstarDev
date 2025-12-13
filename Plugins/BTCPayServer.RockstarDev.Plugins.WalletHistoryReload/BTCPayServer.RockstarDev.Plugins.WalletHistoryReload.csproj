@@ -8,7 +8,7 @@
     <!-- Plugin specific properties -->
     <PropertyGroup>
         <Product>Wallet History Reload</Product>
-        <Description>Backfill missing transaction data (fees, rates, USD prices) from blockchain APIs</Description>
+        <Description>Backfill missing transaction data from Mempool.space (transaction fees) and Coingecko (fiat rates)</Description>
         <Version>0.1.0</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
