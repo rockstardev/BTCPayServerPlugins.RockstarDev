@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.Services;
-using BTCPayServer.Services.Wallets;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
@@ -13,11 +11,11 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Services;
 
 public class TransactionDataBackfillService
 {
-    private readonly MempoolSpaceApiService _mempoolApi;
-    private readonly HistoricalPriceService _priceService;
-    private readonly NBXplorerDbService _nbxService;
-    private readonly WalletRepository _walletRepository;
     private readonly ILogger<TransactionDataBackfillService> _logger;
+    private readonly MempoolSpaceApiService _mempoolApi;
+    private readonly NBXplorerDbService _nbxService;
+    private readonly HistoricalPriceService _priceService;
+    private readonly WalletRepository _walletRepository;
 
     public TransactionDataBackfillService(
         MempoolSpaceApiService mempoolApi,
@@ -49,12 +47,11 @@ public class TransactionDataBackfillService
             _logger.LogInformation("Fetching data for {Count} transactions on {Network}", transactions.Count, network);
 
             foreach (var tx in transactions.Where(t => t.HasMissingData))
-            {
                 try
                 {
                     // Fetch transaction data from Mempool.space or Bitcoin Core (for regtest)
                     var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId, network, cryptoCode, tx.BlockHash);
-                    
+
                     if (txData == null)
                     {
                         _logger.LogWarning("Failed to fetch data for transaction {TxId}", tx.TransactionId);
@@ -74,20 +71,20 @@ public class TransactionDataBackfillService
                     if (includeHistoricalPrices && txData.BlockTime > 0 && !tx.RateUsd.HasValue)
                     {
                         var btcPrice = await _priceService.GetHistoricalBtcPriceAsync(tx.Timestamp);
-                        
+
                         if (btcPrice.HasValue)
                         {
                             _logger.LogInformation(
                                 "Transaction {TxId}: BTC Price on {Date} was ${Price}",
                                 tx.TransactionId, tx.Timestamp.ToString("yyyy-MM-dd HH:00"), btcPrice.Value);
-                            
+
                             tx.RateUsd = btcPrice.Value;
                             tx.RateUsdWasFetched = true;
                         }
                     }
 
                     result.FetchedCount++;
-                    
+
                     // Rate limiting to avoid API throttling
                     await Task.Delay(500);
                 }
@@ -96,7 +93,6 @@ public class TransactionDataBackfillService
                     _logger.LogError(ex, "Error fetching data for transaction {TxId}", tx.TransactionId);
                     result.FailedCount++;
                 }
-            }
         }
         catch (Exception ex)
         {
@@ -122,24 +118,19 @@ public class TransactionDataBackfillService
             _logger.LogInformation("Saving fetched data for {Count} transactions", transactions.Count);
 
             foreach (var tx in transactions.Where(t => t.FeeWasFetched || t.RateUsdWasFetched))
-            {
                 try
                 {
                     // Save fee data to NBXplorer database
                     if (includeFees && tx.FeeWasFetched && tx.Fee.HasValue)
-                    {
                         await _nbxService.UpdateTransactionMetadataAsync(
-                            tx.TransactionId, 
-                            cryptoCode, 
-                            tx.Fee.Value, 
+                            tx.TransactionId,
+                            cryptoCode,
+                            tx.Fee.Value,
                             tx.FeeRate ?? 0);
-                    }
 
                     // Save historical price to BTCPayServer database
                     if (includeHistoricalPrices && tx.RateUsdWasFetched && tx.RateUsd.HasValue)
-                    {
                         await SaveHistoricalRate(storeId, cryptoCode, tx.TransactionId, tx.RateUsd.Value);
-                    }
 
                     result.ProcessedTransactions++;
                 }
@@ -148,7 +139,6 @@ public class TransactionDataBackfillService
                     _logger.LogError(ex, "Error saving data for transaction {TxId}", tx.TransactionId);
                     result.FailedTransactions++;
                 }
-            }
         }
         catch (Exception ex)
         {
@@ -174,12 +164,11 @@ public class TransactionDataBackfillService
             _logger.LogInformation("Starting backfill for {Count} transactions on {Network}", transactions.Count, network);
 
             foreach (var tx in transactions.Where(t => t.HasMissingData))
-            {
                 try
                 {
                     // Fetch transaction data from Mempool.space or Bitcoin Core (for regtest)
                     var txData = await _mempoolApi.GetTransactionDataAsync(tx.TransactionId, network, cryptoCode, tx.BlockHash);
-                    
+
                     if (txData == null)
                     {
                         _logger.LogWarning("Failed to fetch data for transaction {TxId}", tx.TransactionId);
@@ -189,26 +178,24 @@ public class TransactionDataBackfillService
 
                     // Update NBXplorer database with fee data
                     if (includeFees && txData.Fee > 0)
-                    {
                         await _nbxService.UpdateTransactionMetadataAsync(
-                            tx.TransactionId, 
-                            cryptoCode, 
-                            txData.Fee, 
+                            tx.TransactionId,
+                            cryptoCode,
+                            txData.Fee,
                             txData.FeeRate);
-                    }
 
                     // Fetch and save historical price if requested
                     if (includeHistoricalPrices && txData.BlockTime > 0 && !tx.RateUsd.HasValue)
                     {
                         var timestamp = DateTimeOffset.FromUnixTimeSeconds(txData.BlockTime);
                         var btcPrice = await _priceService.GetHistoricalBtcPriceAsync(timestamp);
-                        
+
                         if (btcPrice.HasValue)
                         {
                             _logger.LogInformation(
                                 "Transaction {TxId}: BTC Price on {Date} was ${Price}",
                                 tx.TransactionId, timestamp.ToString("yyyy-MM-dd"), btcPrice.Value);
-                            
+
                             // Save the historical price to BTCPayServer database
                             await SaveHistoricalRate(storeId, cryptoCode, tx.TransactionId, btcPrice.Value);
                             tx.RateUsd = btcPrice.Value;
@@ -216,7 +203,7 @@ public class TransactionDataBackfillService
                     }
 
                     result.ProcessedTransactions++;
-                    
+
                     // Rate limiting to avoid API throttling
                     await Task.Delay(500);
                 }
@@ -225,7 +212,6 @@ public class TransactionDataBackfillService
                     _logger.LogError(ex, "Error processing transaction {TxId}", tx.TransactionId);
                     result.FailedTransactions++;
                 }
-            }
         }
         catch (Exception ex)
         {
@@ -254,15 +240,12 @@ public class TransactionDataBackfillService
             if (walletObjects.TryGetValue(walletObjectId, out var existingObject))
             {
                 // Parse existing data
-                var data = string.IsNullOrEmpty(existingObject.Data) 
-                    ? new JObject() 
+                var data = string.IsNullOrEmpty(existingObject.Data)
+                    ? new JObject()
                     : JObject.Parse(existingObject.Data);
 
                 // Add or update the rates
-                var rates = new JObject
-                {
-                    ["USD"] = usdRate.ToString("F2")
-                };
+                var rates = new JObject { ["USD"] = usdRate.ToString("F2") };
                 data["rates"] = rates;
 
                 // Update the wallet object

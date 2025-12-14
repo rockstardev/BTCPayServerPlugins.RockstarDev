@@ -15,12 +15,12 @@
                     <dl class="row">
                         <dt class="col-sm-3">Total Transactions</dt>
                         <dd class="col-sm-9">@Model.TotalTransactions</dd>
-                        
+
                         <dt class="col-sm-3">Data Fetched Successfully</dt>
                         <dd class="col-sm-9">
                             <span class="badge bg-success">@Model.FetchedDataCount transactions</span>
                         </dd>
-                        
+
                         <dt class="col-sm-3">Fetch Failed</dt>
                         <dd class="col-sm-9">
                             @if (Model.FetchFailedCount > 0)
@@ -50,96 +50,96 @@
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
                                 <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Transaction</th>
-                                        <th class="text-end">Amount</th>
-                                        <th class="text-end">Transaction Fee</th>
-                                        <th class="text-end">Fee Rate</th>
-                                        <th class="text-end">Rate (USD)</th>
-                                    </tr>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Transaction</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Transaction Fee</th>
+                                    <th class="text-end">Fee Rate</th>
+                                    <th class="text-end">Rate (USD)</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var tx in Model.Transactions.Where(t => t.FeeWasFetched || t.RateUsdWasFetched))
-                                    {
-                                        <tr>
-                                            <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
-                                            <td>
-                                                @{
-                                                    var mempoolUrl = Model.Network == "testnet" 
-                                                        ? $"https://mempool.space/testnet/tx/{tx.TransactionId}"
-                                                        : Model.Network == "signet"
+                                @foreach (var tx in Model.Transactions.Where(t => t.FeeWasFetched || t.RateUsdWasFetched))
+                                {
+                                    <tr>
+                                        <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
+                                        <td>
+                                            @{
+                                                var mempoolUrl = Model.Network == "testnet"
+                                                    ? $"https://mempool.space/testnet/tx/{tx.TransactionId}"
+                                                    : Model.Network == "signet"
                                                         ? $"https://mempool.space/signet/tx/{tx.TransactionId}"
                                                         : $"https://mempool.space/tx/{tx.TransactionId}";
-                                                }
-                                                <a href="@mempoolUrl" target="_blank" rel="noopener noreferrer">
-                                                    <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
-                                                </a>
-                                                @if (tx.IsConfirmed)
+                                            }
+                                            <a href="@mempoolUrl" target="_blank" rel="noopener noreferrer">
+                                                <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                            </a>
+                                            @if (tx.IsConfirmed)
+                                            {
+                                                <span class="badge bg-success ms-1">Confirmed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary ms-1">Unconfirmed</span>
+                                            }
+                                        </td>
+                                        <td class="text-end @(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
+                                            @tx.BalanceChange.ToString("N8") @Model.CryptoCode
+                                        </td>
+                                        <td class="text-end">
+                                            @if (tx.Fee.HasValue)
+                                            {
+                                                if (tx.FeeWasFetched)
                                                 {
-                                                    <span class="badge bg-success ms-1">Confirmed</span>
+                                                    <strong><em>@tx.Fee.Value.ToString("N8")</em></strong>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-secondary ms-1">Unconfirmed</span>
+                                                    <span>@tx.Fee.Value.ToString("N8")</span>
                                                 }
-                                            </td>
-                                            <td class="text-end @(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
-                                                @tx.BalanceChange.ToString("N8") @Model.CryptoCode
-                                            </td>
-                                            <td class="text-end">
-                                                @if (tx.Fee.HasValue)
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (tx.FeeRate.HasValue)
+                                            {
+                                                if (tx.FeeWasFetched)
                                                 {
-                                                    if (tx.FeeWasFetched)
-                                                    {
-                                                        <strong><em>@tx.Fee.Value.ToString("N8")</em></strong>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span>@tx.Fee.Value.ToString("N8")</span>
-                                                    }
+                                                    <strong><em>@tx.FeeRate.Value.ToString("N3") sat/vB</em></strong>
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted">-</span>
+                                                    <span>@tx.FeeRate.Value.ToString("N3") sat/vB</span>
                                                 }
-                                            </td>
-                                            <td class="text-end">
-                                                @if (tx.FeeRate.HasValue)
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (tx.RateUsd.HasValue)
+                                            {
+                                                if (tx.RateUsdWasFetched)
                                                 {
-                                                    if (tx.FeeWasFetched)
-                                                    {
-                                                        <strong><em>@tx.FeeRate.Value.ToString("N3") sat/vB</em></strong>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span>@tx.FeeRate.Value.ToString("N3") sat/vB</span>
-                                                    }
+                                                    <strong><em>$@tx.RateUsd.Value.ToString("N2")</em></strong>
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted">-</span>
+                                                    <span>$@tx.RateUsd.Value.ToString("N2")</span>
                                                 }
-                                            </td>
-                                            <td class="text-end">
-                                                @if (tx.RateUsd.HasValue)
-                                                {
-                                                    if (tx.RateUsdWasFetched)
-                                                    {
-                                                        <strong><em>$@tx.RateUsd.Value.ToString("N2")</em></strong>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span>$@tx.RateUsd.Value.ToString("N2")</span>
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">-</span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
                                 </tbody>
                             </table>
                         </div>
@@ -150,7 +150,7 @@
                     <input type="hidden" asp-for="IncludeFees" />
                     <input type="hidden" asp-for="IncludeHistoricalPrices" />
                     <input type="hidden" asp-for="CacheKey" />
-                    
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success">
                             <i class="fa fa-check"></i> Confirm & Save to Database

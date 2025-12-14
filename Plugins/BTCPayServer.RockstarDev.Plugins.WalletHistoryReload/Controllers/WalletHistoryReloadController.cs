@@ -13,10 +13,10 @@ using BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.ViewModels;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
-using BTCPayServer.Services.Wallets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using NBXplorer.Client;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Controllers;
 
@@ -25,11 +25,11 @@ namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Controllers;
 public class WalletHistoryReloadController : Controller
 {
     private readonly TransactionDataBackfillService _backfillService;
+    private readonly IMemoryCache _cache;
+    private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly NBXplorerDbService _nbxService;
     private readonly StoreRepository _storeRepository;
-    private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly WalletRepository _walletRepository;
-    private readonly IMemoryCache _cache;
 
     public WalletHistoryReloadController(
         TransactionDataBackfillService backfillService,
@@ -128,7 +128,7 @@ public class WalletHistoryReloadController : Controller
         }
 
         var fetchedTransactions = _cache.Get<List<NBXTransactionData>>(vm.CacheKey);
-        
+
         if (fetchedTransactions == null)
         {
             TempData["ErrorMessage"] = "Preview data expired (30 min timeout). Please fetch the data again.";
@@ -160,7 +160,7 @@ public class WalletHistoryReloadController : Controller
     {
         var nbxWalletId = await GetNBXWalletId(storeId, cryptoCode);
         var transactions = await _nbxService.GetWalletTransactionsAsync(nbxWalletId, cryptoCode);
-        
+
         var vm = new WalletHistoryReloadViewModel
         {
             StoreId = storeId,
@@ -191,22 +191,17 @@ public class WalletHistoryReloadController : Controller
     private async Task<string> GetNBXWalletId(string storeId, string cryptoCode)
     {
         var store = await _storeRepository.FindStore(storeId);
-        if (store == null)
-        {
-            throw new InvalidOperationException($"Store {storeId} not found");
-        }
+        if (store == null) throw new InvalidOperationException($"Store {storeId} not found");
 
         var derivationSettings = store.GetDerivationSchemeSettings(_handlers, cryptoCode);
         if (derivationSettings?.AccountDerivation == null)
-        {
             throw new InvalidOperationException($"No derivation scheme configured for {cryptoCode} in store {storeId}");
-        }
 
         // Use NBXplorer's utility to generate the wallet ID from the derivation scheme
-        return NBXplorer.Client.DBUtils.nbxv1_get_wallet_id(cryptoCode, derivationSettings.AccountDerivation.ToString());
+        return DBUtils.nbxv1_get_wallet_id(cryptoCode, derivationSettings.AccountDerivation.ToString());
     }
 
-    private async Task EnrichWithUsdRates(System.Collections.Generic.List<NBXTransactionData> transactions, string storeId, string cryptoCode)
+    private async Task EnrichWithUsdRates(List<NBXTransactionData> transactions, string storeId, string cryptoCode)
     {
         var walletId = new WalletId(storeId, cryptoCode);
         var txIds = transactions.Select(t => t.TransactionId).ToArray();
@@ -219,7 +214,6 @@ public class WalletHistoryReloadController : Controller
         });
 
         foreach (var tx in transactions)
-        {
             if (walletObjects.TryGetValue(new WalletObjectId(walletId, WalletObjectData.Types.Tx, tx.TransactionId), out var walletObject))
             {
                 var rateBook = RateBook.FromTxWalletObject(walletObject);
@@ -227,13 +221,9 @@ public class WalletHistoryReloadController : Controller
                 {
                     var currencyPair = new CurrencyPair(cryptoCode, "USD");
                     var usdRate = rateBook.TryGetRate(currencyPair);
-                    if (usdRate.HasValue)
-                    {
-                        tx.RateUsd = usdRate.Value;
-                    }
+                    if (usdRate.HasValue) tx.RateUsd = usdRate.Value;
                 }
             }
-        }
     }
 
     private string GetNetworkFromCryptoCode(string cryptoCode)
@@ -245,7 +235,7 @@ public class WalletHistoryReloadController : Controller
             return "signet";
         if (cryptoCode.EndsWith("-REGTEST", StringComparison.OrdinalIgnoreCase))
             return "regtest";
-        
+
         // For plain "BTC", check if it's actually regtest by looking at the network
         var store = _storeRepository.FindStore(HttpContext.GetStoreData()?.Id).GetAwaiter().GetResult();
         if (store != null)
@@ -256,7 +246,7 @@ public class WalletHistoryReloadController : Controller
             {
                 var network = bitcoinHandler.Network;
                 var networkName = network.NBitcoinNetwork.Name.ToLowerInvariant();
-                
+
                 if (networkName.Contains("regtest"))
                     return "regtest";
                 if (networkName.Contains("testnet"))
@@ -265,7 +255,7 @@ public class WalletHistoryReloadController : Controller
                     return "signet";
             }
         }
-        
+
         return "mainnet";
     }
 }

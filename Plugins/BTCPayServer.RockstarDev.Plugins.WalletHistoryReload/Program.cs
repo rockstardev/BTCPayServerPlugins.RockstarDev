@@ -18,14 +18,14 @@ public class WalletHistoryReloadPlugin : BaseBTCPayServerPlugin
     {
         // Add navigation item under Send/Receive/Settings in wallet menu
         serviceCollection.AddUIExtension("wallet-nav", PluginNavKey);
-        
+
         // Register services
         serviceCollection.AddHttpClient(); // Required for API calls
         serviceCollection.AddSingleton<MempoolSpaceApiService>();
         serviceCollection.AddSingleton<HistoricalPriceService>();
         serviceCollection.AddSingleton<NBXplorerDbService>();
         serviceCollection.AddSingleton<TransactionDataBackfillService>();
-        
+
         base.Execute(serviceCollection);
     }
 }

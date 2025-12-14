@@ -24,7 +24,7 @@ public class HistoricalPriceService
     public async Task<decimal?> GetHistoricalBtcPriceAsync(DateTimeOffset timestamp)
     {
         var cacheKey = timestamp.ToString("yyyy-MM-dd-HH");
-        
+
         // Check cache first
         if (_priceCache.TryGetValue(cacheKey, out var cachedPrice))
             return cachedPrice;
@@ -32,25 +32,19 @@ public class HistoricalPriceService
         try
         {
             var age = DateTimeOffset.UtcNow - timestamp;
-            
+
             // For transactions < 90 days old, use hourly data from market_chart/range
             if (age.TotalDays < 90)
             {
                 var price = await GetHourlyPriceAsync(timestamp);
-                if (price.HasValue)
-                {
-                    _priceCache[cacheKey] = price.Value;
-                }
+                if (price.HasValue) _priceCache[cacheKey] = price.Value;
                 return price;
             }
             // For older transactions, use daily data from history endpoint
             else
             {
                 var price = await GetDailyPriceAsync(timestamp);
-                if (price.HasValue)
-                {
-                    _priceCache[cacheKey] = price.Value;
-                }
+                if (price.HasValue) _priceCache[cacheKey] = price.Value;
                 return price;
             }
         }
@@ -69,14 +63,14 @@ public class HistoricalPriceService
             // Query a 2-hour window around the timestamp to get the closest data point
             var fromTimestamp = timestamp.AddHours(-1).ToUnixTimeSeconds();
             var toTimestamp = timestamp.AddHours(1).ToUnixTimeSeconds();
-            
+
             var client = _httpClientFactory.CreateClient();
             var response = await client.GetAsync(
                 $"https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from={fromTimestamp}&to={toTimestamp}");
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch hourly BTC price for {Timestamp}: {StatusCode}", 
+                _logger.LogWarning("Failed to fetch hourly BTC price for {Timestamp}: {StatusCode}",
                     timestamp, response.StatusCode);
                 return null;
             }
@@ -92,10 +86,7 @@ public class HistoricalPriceService
                     .OrderBy(p => Math.Abs(p[0] - targetUnix))
                     .FirstOrDefault();
 
-                if (closestPrice != null && closestPrice.Count >= 2)
-                {
-                    return closestPrice[1];
-                }
+                if (closestPrice != null && closestPrice.Count >= 2) return closestPrice[1];
             }
 
             return null;
@@ -119,7 +110,7 @@ public class HistoricalPriceService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch daily BTC price for {Date}: {StatusCode}", 
+                _logger.LogWarning("Failed to fetch daily BTC price for {Date}: {StatusCode}",
                     date, response.StatusCode);
                 return null;
             }

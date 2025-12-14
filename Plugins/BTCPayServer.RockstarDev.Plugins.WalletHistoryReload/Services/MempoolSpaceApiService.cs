@@ -1,27 +1,22 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using BTCPayServer;
 using BTCPayServer.Services;
-using Dapper;
 using Microsoft.Extensions.Logging;
-using NBitcoin;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.Services;
 
 public class MempoolSpaceApiService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ExplorerClientProvider _explorerClientProvider;
-    private readonly NBXplorerConnectionFactory _nbxConnectionFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<MempoolSpaceApiService> _logger;
-    private readonly Random _random = new Random();
+    private readonly NBXplorerConnectionFactory _nbxConnectionFactory;
+    private readonly Random _random = new();
 
     public MempoolSpaceApiService(
-        IHttpClientFactory httpClientFactory, 
+        IHttpClientFactory httpClientFactory,
         ExplorerClientProvider explorerClientProvider,
         NBXplorerConnectionFactory nbxConnectionFactory,
         ILogger<MempoolSpaceApiService> logger)
@@ -47,18 +42,15 @@ public class MempoolSpaceApiService
         try
         {
             // For regtest, generate random fees (1-10 sat/vB)
-            if (network.Equals("regtest", StringComparison.OrdinalIgnoreCase))
-            {
-                return GenerateRandomRegtestFees(txid, blockHash);
-            }
+            if (network.Equals("regtest", StringComparison.OrdinalIgnoreCase)) return GenerateRandomRegtestFees(txid, blockHash);
 
             var baseUrl = GetBaseUrl(network);
             var client = _httpClientFactory.CreateClient();
             var response = await client.GetAsync($"{baseUrl}/tx/{txid}");
-            
+
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch transaction {TxId} from Mempool.space: {StatusCode}", 
+                _logger.LogWarning("Failed to fetch transaction {TxId} from Mempool.space: {StatusCode}",
                     txid, response.StatusCode);
                 return null;
             }
@@ -93,13 +85,13 @@ public class MempoolSpaceApiService
     {
         // Generate random fee rate between 1-10 sat/vB
         var feeRate = _random.Next(1, 11);
-        
+
         // Assume average transaction size of 250 vBytes
         var estimatedVSize = 250;
         var feeSats = feeRate * estimatedVSize;
         var feeBtc = feeSats / 100_000_000m;
 
-        _logger.LogInformation("Generated random regtest fee for {TxId}: {Fee} BTC ({FeeRate} sat/vB)", 
+        _logger.LogInformation("Generated random regtest fee for {TxId}: {Fee} BTC ({FeeRate} sat/vB)",
             txid, feeBtc, feeRate);
 
         return new TransactionData

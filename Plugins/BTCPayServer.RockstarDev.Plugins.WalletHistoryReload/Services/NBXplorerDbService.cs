@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Services;
-using BTCPayServer.Services.Wallets;
 using Dapper;
 using Microsoft.Extensions.Logging;
 
@@ -58,13 +57,12 @@ public class NBXplorerDbService
                 ORDER BY r.tx_id, r.seen_at DESC";
 
             var cmd = new CommandDefinition(
-                commandText: query,
-                parameters: new { walletId, cryptoCode });
+                query,
+                new { walletId, cryptoCode });
 
             var rows = await connection.QueryAsync<dynamic>(cmd);
 
             foreach (var row in rows)
-            {
                 transactions.Add(new NBXTransactionData
                 {
                     TransactionId = row.tx_id,
@@ -76,7 +74,6 @@ public class NBXplorerDbService
                     Fee = row.fee_btc,
                     FeeRate = row.fee_rate
                 });
-            }
         }
         catch (Exception ex)
         {
@@ -115,8 +112,8 @@ public class NBXplorerDbService
                 AND tx_id = @txId";
 
             var cmd = new CommandDefinition(
-                commandText: query,
-                parameters: new
+                query,
+                new
                 {
                     txId,
                     cryptoCode,
@@ -125,16 +122,12 @@ public class NBXplorerDbService
                 });
 
             var rowsAffected = await connection.ExecuteAsync(cmd);
-            
+
             if (rowsAffected == 0)
-            {
                 _logger.LogWarning("No transaction found to update: {TxId}", txId);
-            }
             else
-            {
-                _logger.LogInformation("Updated transaction {TxId} with fee={Fee} BTC, feeRate={FeeRate} sat/vB", 
+                _logger.LogInformation("Updated transaction {TxId} with fee={Fee} BTC, feeRate={FeeRate} sat/vB",
                     txId, fee, feeRate);
-            }
         }
         catch (Exception ex)
         {
@@ -213,10 +206,10 @@ public class NBXTransactionData
     public decimal? Fee { get; set; }
     public decimal? FeeRate { get; set; }
     public decimal? RateUsd { get; set; }
-    
+
     // Flags to track what was newly fetched in this session
     public bool FeeWasFetched { get; set; }
     public bool RateUsdWasFetched { get; set; }
-    
+
     public bool HasMissingData => !Fee.HasValue || !FeeRate.HasValue || !RateUsd.HasValue;
 }

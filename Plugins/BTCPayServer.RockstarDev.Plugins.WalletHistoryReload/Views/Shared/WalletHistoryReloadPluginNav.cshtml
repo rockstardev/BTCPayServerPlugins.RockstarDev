@@ -3,18 +3,18 @@
 @{
     var walletId = Context.GetRouteValue("walletId")?.ToString();
     if (string.IsNullOrEmpty(walletId)) return;
-    
+
     var wallet = WalletId.Parse(walletId);
     var isActive = Context.Request.Path.StartsWithSegments("/plugins/wallet-history-reload");
 }
 
 <li class="nav-item nav-item-sub">
     <a
-       asp-controller="WalletHistoryReload"
-       asp-action="Index"
-       asp-route-storeId="@wallet.StoreId"
-       asp-route-cryptoCode="@wallet.CryptoCode"
-       class="nav-link @(isActive ? "active" : "")"
-       permission="@Policies.CanModifyStoreSettings"
-       text-translate="true">Backfill Data</a>
+        asp-controller="WalletHistoryReload"
+        asp-action="Index"
+        asp-route-storeId="@wallet.StoreId"
+        asp-route-cryptoCode="@wallet.CryptoCode"
+        class="nav-link @(isActive ? "active" : "")"
+        permission="@Policies.CanModifyStoreSettings"
+        text-translate="true">Backfill Data</a>
 </li>

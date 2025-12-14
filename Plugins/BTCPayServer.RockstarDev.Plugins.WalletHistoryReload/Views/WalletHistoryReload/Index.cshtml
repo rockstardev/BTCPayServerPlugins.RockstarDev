@@ -24,13 +24,13 @@
                     <dl class="row">
                         <dt class="col-sm-3">Wallet ID (BTCPayServer)</dt>
                         <dd class="col-sm-9"><code>@Model.WalletId</code></dd>
-                        
+
                         <dt class="col-sm-3">Wallet ID (NBXplorer)</dt>
                         <dd class="col-sm-9"><code>@Model.NBXWalletId</code></dd>
-                        
+
                         <dt class="col-sm-3">Total Transactions</dt>
                         <dd class="col-sm-9">@Model.TotalTransactions</dd>
-                        
+
                         <dt class="col-sm-3">Missing Data</dt>
                         <dd class="col-sm-9">
                             <span class="badge bg-warning">@Model.MissingDataTransactionsCount transactions</span>
@@ -60,10 +60,11 @@
                             </div>
 
                             <div class="alert alert-info">
-                                <strong>Note:</strong> This will fetch data for <strong>@Model.MissingDataTransactionsCount transactions</strong> with missing data. 
-                                API rate limits are respected with a 500ms delay between requests. 
+                                <strong>Note:</strong> This will fetch data for <strong>@Model.MissingDataTransactionsCount transactions</strong> with missing
+                                data.
+                                API rate limits are respected with a 500ms delay between requests.
                                 Estimated time: <strong>~@(Model.MissingDataTransactionsCount * 0.5 / 60) minutes</strong>.
-                                <br/><br/>
+                                <br /><br />
                                 You will be able to preview the fetched data before saving it to the database.
                             </div>
 
@@ -98,72 +99,74 @@
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
                                 <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Transaction</th>
-                                        <th class="text-end">Amount</th>
-                                        <th class="text-end">Transaction fee</th>
-                                        <th class="text-end">Rate (USD)</th>
-                                    </tr>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Transaction</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Transaction fee</th>
+                                    <th class="text-end">Rate (USD)</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var tx in Model.MissingDataTransactions.Take(50))
-                                    {
-                                        <tr class="table-warning">
-                                            <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
-                                            <td>
-                                                @{
-                                                    var mempoolUrl = Model.Network == "testnet" 
-                                                        ? $"https://mempool.space/testnet/tx/{tx.TransactionId}"
-                                                        : Model.Network == "signet"
+                                @foreach (var tx in Model.MissingDataTransactions.Take(50))
+                                {
+                                    <tr class="table-warning">
+                                        <td>@tx.Timestamp.ToString("M/d/yyyy, h:mm tt")</td>
+                                        <td>
+                                            @{
+                                                var mempoolUrl = Model.Network == "testnet"
+                                                    ? $"https://mempool.space/testnet/tx/{tx.TransactionId}"
+                                                    : Model.Network == "signet"
                                                         ? $"https://mempool.space/signet/tx/{tx.TransactionId}"
                                                         : $"https://mempool.space/tx/{tx.TransactionId}";
-                                                }
-                                                <a href="@mempoolUrl" target="_blank" rel="noopener noreferrer">
-                                                    <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
-                                                </a>
-                                                @if (tx.IsConfirmed)
-                                                {
-                                                    <span class="badge bg-success ms-1">Confirmed</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-secondary ms-1">Unconfirmed</span>
-                                                }
-                                            </td>
-                                            <td class="text-end @(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
-                                                @tx.BalanceChange.ToString("N8")
-                                            </td>
-                                            <td class="text-end">
-                                                @if (tx.Fee.HasValue && tx.FeeRate.HasValue)
-                                                {
-                                                    <span>@tx.Fee.Value.ToString("N8") <small class="text-muted">(@tx.FeeRate.Value.ToString("N3") Sat/B)</small></span>
-                                                }
-                                                else if (tx.Fee.HasValue)
-                                                {
-                                                    <span>@tx.Fee.Value.ToString("N8") <span class="badge bg-warning ms-1">Rate Missing</span></span>
-                                                }
-                                                else if (tx.FeeRate.HasValue)
-                                                {
-                                                    <span class="badge bg-warning">Fee Missing</span> <small class="text-muted">(@tx.FeeRate.Value.ToString("N3") Sat/B)</small>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">Missing</span>
-                                                }
-                                            </td>
-                                            <td class="text-end">
-                                                @if (tx.RateUsd.HasValue)
-                                                {
-                                                    <span>@tx.RateUsd.Value.ToString("N2") USD</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">Missing</span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
+                                            }
+                                            <a href="@mempoolUrl" target="_blank" rel="noopener noreferrer">
+                                                <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                            </a>
+                                            @if (tx.IsConfirmed)
+                                            {
+                                                <span class="badge bg-success ms-1">Confirmed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary ms-1">Unconfirmed</span>
+                                            }
+                                        </td>
+                                        <td class="text-end @(tx.BalanceChange >= 0 ? "text-success" : "text-danger")">
+                                            @tx.BalanceChange.ToString("N8")
+                                        </td>
+                                        <td class="text-end">
+                                            @if (tx.Fee.HasValue && tx.FeeRate.HasValue)
+                                            {
+                                                <span>@tx.Fee.Value.ToString("N8") <small
+                                                        class="text-muted">(@tx.FeeRate.Value.ToString("N3") Sat/B)</small></span>
+                                            }
+                                            else if (tx.Fee.HasValue)
+                                            {
+                                                <span>@tx.Fee.Value.ToString("N8") <span class="badge bg-warning ms-1">Rate Missing</span></span>
+                                            }
+                                            else if (tx.FeeRate.HasValue)
+                                            {
+                                                <span class="badge bg-warning">Fee Missing</span>
+                                                <small class="text-muted">(@tx.FeeRate.Value.ToString("N3") Sat/B)</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Missing</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (tx.RateUsd.HasValue)
+                                            {
+                                                <span>@tx.RateUsd.Value.ToString("N2") USD</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Missing</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
                                 </tbody>
                             </table>
                         </div>

@@ -59,16 +59,16 @@
                     <form method="post" asp-action="ClearPost" asp-route-storeId="@Model.StoreId" asp-route-cryptoCode="@Model.CryptoCode">
                         <div class="mb-3">
                             <label for="rowCount" class="form-label">Number of Transactions to Clear:</label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="rowCount" 
-                                   name="rowCount" 
-                                   min="1" 
-                                   max="1000" 
-                                   value="10" 
+                            <input type="number"
+                                   class="form-control"
+                                   id="rowCount"
+                                   name="rowCount"
+                                   min="1"
+                                   max="1000"
+                                   value="10"
                                    required>
                             <div class="form-text">
-                                Enter the number of transactions to clear (1-1000). 
+                                Enter the number of transactions to clear (1-1000).
                                 Will clear from transactions that currently have fee/rate data.
                             </div>
                         </div>
@@ -90,7 +90,7 @@
                     <i class="fa fa-info-circle"></i> Testing Tool
                 </h6>
                 <p class="mb-0">
-                    This page is intended for testing and development purposes only. 
+                    This page is intended for testing and development purposes only.
                     It allows you to clear transaction data so you can test the backfill functionality repeatedly.
                 </p>
             </div>
