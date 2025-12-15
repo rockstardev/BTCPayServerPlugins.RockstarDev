@@ -50,6 +50,9 @@ public class PayrollAuthorizationHandler : AuthorizationHandler<PolicyRequiremen
         if (store == null)
             return;
 
+        // Set store data in HTTP context so it's available to controllers/views
+        httpContext.SetStoreData(store);
+
         // Check if user has CanModifyStoreSettings permission
         if (store.HasPermission(user.Id, Policies.CanModifyStoreSettings))
         {
