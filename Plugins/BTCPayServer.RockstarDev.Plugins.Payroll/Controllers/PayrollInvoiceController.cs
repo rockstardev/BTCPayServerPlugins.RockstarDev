@@ -14,6 +14,7 @@ using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
@@ -33,7 +34,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
-[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,

@@ -4,12 +4,14 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
@@ -21,7 +23,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/users/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/users/", Order = 1)]
-[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollUserController(
     PluginDbContextFactory pluginDbContextFactory,
     VendorPayPassHasher hasher,

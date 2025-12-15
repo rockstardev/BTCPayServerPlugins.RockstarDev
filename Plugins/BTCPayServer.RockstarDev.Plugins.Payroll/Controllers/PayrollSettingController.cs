@@ -2,12 +2,15 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -18,7 +21,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
-[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class PayrollSettingController(
     PluginDbContextFactory pluginDbContextFactory,
     EmailService emailService,

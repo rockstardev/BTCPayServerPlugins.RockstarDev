@@ -3,8 +3,10 @@ using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
 using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -23,6 +25,14 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
     public override void Execute(IServiceCollection serviceCollection)
     {
         serviceCollection.AddUIExtension("store-integrations-nav", "PayrollNav");
+
+        // Register authorization handler and policy for custom permission
+        serviceCollection.AddScoped<IAuthorizationHandler, PayrollAuthorizationHandler>();
+        serviceCollection.AddAuthorization(options =>
+        {
+            options.AddPolicy(VendorPayPolicies.CanManageVendorPay, 
+                policy => policy.AddRequirements(new BTCPayServer.Security.PolicyRequirement(VendorPayPolicies.CanManageVendorPay)));
+        });
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
