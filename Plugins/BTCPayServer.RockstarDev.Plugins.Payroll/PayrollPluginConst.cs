@@ -1,4 +1,4 @@
-﻿namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // Need to extract these variables, their references are places for improvements
 public static class PayrollPluginConst

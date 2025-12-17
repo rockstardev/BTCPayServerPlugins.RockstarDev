@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using BTCPayServer.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using Microsoft.AspNetCore.Http;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
 public class PublicLoginViewModel : BasePayrollPublicViewModel
 {

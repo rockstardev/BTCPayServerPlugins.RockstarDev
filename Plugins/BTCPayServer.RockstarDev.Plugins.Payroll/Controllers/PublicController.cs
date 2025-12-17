@@ -5,18 +5,18 @@ using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using BTCPayServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [AllowAnonymous]
 [Route("~/plugins/{storeId}/vendorpay/public/", Order = 0)]
@@ -66,7 +66,7 @@ public class PublicController(
             a.StoreId == storeId && a.Email == model.Email.ToLowerInvariant());
 
         if (userInDb != null)
-            if (userInDb.State == PayrollUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
+            if (userInDb.State == VendorPayUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
             {
                 httpContextAccessor.HttpContext!.Session.SetString(PAYROLL_AUTH_USER_ID, userInDb!.Id);
                 return RedirectToAction(nameof(ListInvoices), new { storeId });
@@ -121,7 +121,7 @@ public class PublicController(
             return View(model);
         }
 
-        if (dbUser.State != PayrollUserState.Pending)
+        if (dbUser.State != VendorPayUserState.Pending)
         {
             ModelState.AddModelError(nameof(model.NewPassword),
                 "User with the same email already exists. Kindly reach out to the BTCPay Server instance admin");
@@ -132,7 +132,7 @@ public class PublicController(
             return View(model);
 
         dbUser.Password = hasher.HashPassword(invitation.Id, model.NewPassword);
-        dbUser.State = PayrollUserState.Active;
+        dbUser.State = VendorPayUserState.Active;
         invitation.AcceptedAt = DateTime.UtcNow;
         dbPlugins.Update(dbUser);
         dbPlugins.Update(invitation);
@@ -209,7 +209,7 @@ public class PublicController(
             await using var dbPlugin = pluginDbContextFactory.CreateContext();
             userId = httpContextAccessor.HttpContext!.Session.GetString(PAYROLL_AUTH_USER_ID);
             var userInDb = dbPlugin.PayrollUsers.SingleOrDefault(a =>
-                a.StoreId == storeId && a.Id == userId && a.State == PayrollUserState.Active);
+                a.StoreId == storeId && a.Id == userId && a.State == VendorPayUserState.Active);
             if (userInDb == null)
                 return new StoreUserValidator { ErrorActionResult = redirectToLogin(storeId) };
             userId = userInDb.Id;
@@ -370,7 +370,7 @@ public class PublicController(
         if (invoice == null)
             return NotFound();
 
-        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
@@ -397,7 +397,7 @@ public class PublicController(
             .Include(i => i.User)
             .Single(a => a.Id == id);
 
-        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {

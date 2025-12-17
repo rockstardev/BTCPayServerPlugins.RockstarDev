@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 
 public class PayrollInvoiceUploadHelper(
     PluginDbContextFactory dbContextFactory,

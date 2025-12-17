@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 
 public class PayrollSetting
 {

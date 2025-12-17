@@ -4,12 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
 public class VendorPayEmailReminderService(
     EmailService emailService,
@@ -59,7 +59,7 @@ public class VendorPayEmailReminderService(
         var todayDate = DateTime.UtcNow.Date;
         var threeDaysAgo = todayDate.AddDays(-3);
         var usersToEmailCandidates = ctx.PayrollUsers.Where(a =>
-                a.StoreId == storeId && a.State == PayrollUserState.Active && a.EmailReminder != null && a.EmailReminder != "" &&
+                a.StoreId == storeId && a.State == VendorPayUserState.Active && a.EmailReminder != null && a.EmailReminder != "" &&
                 !a.PayrollInvoices.Any(i => i.UserId == a.Id && i.CreatedAt >= threeDaysAgo) &&
                 (!a.LastReminderSent.HasValue || a.LastReminderSent.Value.Date != todayDate))
             .ToList();

@@ -81,7 +81,7 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
 
-                                        @if (pp.State == PayrollUserState.Pending)
+                                        @if (pp.State == VendorPayUserState.Pending)
                                         {
                                             <li>
                                                 <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-storeId="@storeId"
@@ -100,8 +100,8 @@
                                                    asp-action="ToggleUserStatus"
                                                    asp-route-userId="@pp.Id"
                                                    asp-route-storeId="@storeId"
-                                                   asp-route-enable="@(pp.State == PayrollUserState.Disabled)">
-                                                    @(pp.State == PayrollUserState.Disabled ? "Activate" : "Disable")
+                                                   asp-route-enable="@(pp.State == VendorPayUserState.Disabled)">
+                                                    @(pp.State == VendorPayUserState.Disabled ? "Activate" : "Disable")
                                                 </a>
                                             </li>
                                             <li>

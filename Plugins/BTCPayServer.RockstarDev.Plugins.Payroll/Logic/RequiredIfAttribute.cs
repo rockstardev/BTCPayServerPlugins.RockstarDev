@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 
 public class RequiredIfAttribute(string dependentProperty, object targetValue) : ValidationAttribute
 {

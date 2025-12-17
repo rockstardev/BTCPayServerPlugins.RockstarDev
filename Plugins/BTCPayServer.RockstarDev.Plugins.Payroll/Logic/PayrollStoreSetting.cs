@@ -1,4 +1,4 @@
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 
 /// <summary>
 ///     This class holds settings per store

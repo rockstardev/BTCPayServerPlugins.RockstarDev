@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 
 // TODO: Length limits on strings in model, to enhance performance
 public class PayrollUser
@@ -25,7 +25,7 @@ public class PayrollUser
     public ICollection<PayrollInvoice> PayrollInvoices { get; set; } = new List<PayrollInvoice>();
 
     // TODO: Adding State property
-    public PayrollUserState State { get; set; }
+    public VendorPayUserState State { get; set; }
     // Having a public page where user can visit the link and complete registration by entering password and activating account
 
     internal static void OnModelCreating(ModelBuilder modelBuilder)

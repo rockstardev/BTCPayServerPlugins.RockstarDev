@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // ReSharper disable once UnusedType.Global
 public class PayrollPlugin : BaseBTCPayServerPlugin

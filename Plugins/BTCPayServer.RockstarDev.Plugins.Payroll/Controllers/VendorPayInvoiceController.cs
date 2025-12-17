@@ -1,41 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Client;
 using BTCPayServer.Data;
-using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Rating;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
-using BTCPayServer.Services;
-using BTCPayServer.Services.Invoices;
-using BTCPayServer.Services.Labels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using BTCPayServer.Services.Rates;
-using BTCPayServer.Services.Wallets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using NBitcoin;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollInvoiceController(
+public class VendorPayInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,
     RateFetcher rateFetcher,
@@ -58,7 +49,7 @@ public class PayrollInvoiceController(
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == PayrollUserState.Active).ToList();
+        if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
 
         // triggering saving of admin user id if needed
         var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
@@ -255,7 +246,7 @@ public class PayrollInvoiceController(
 
     private static SelectList getPayrollUsers(PluginDbContext ctx, string storeId)
     {
-        var payrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId && a.State == PayrollUserState.Active)
+        var payrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId && a.State == VendorPayUserState.Active)
             .Select(a => new SelectListItem { Text = $"{a.Name} <{a.Email}>", Value = a.Id })
             .ToList();
         return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
@@ -348,7 +339,7 @@ public class PayrollInvoiceController(
         {
             Severity = StatusMessageModel.StatusSeverity.Error,
             Html =
-                $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(PayrollUserController.Create), "PayrollUser", new { storeId })}' class='alert-link'>user</a> first",
+                $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(VendorPayUserController.Create), "PayrollUser", new { storeId })}' class='alert-link'>user</a> first",
             AllowDismiss = false
         });
         return RedirectToAction(nameof(List), new { storeId });

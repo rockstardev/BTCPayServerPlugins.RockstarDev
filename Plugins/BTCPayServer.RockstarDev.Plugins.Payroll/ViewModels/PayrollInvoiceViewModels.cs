@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
 public class PayrollInvoiceListViewModel
 {
@@ -25,7 +25,7 @@ public class PayrollInvoiceViewModel
     public string Destination { get; set; }
     public decimal Amount { get; set; }
     public string Currency { get; set; }
-    public PayrollInvoiceState State { get; set; }
+    public VendorPayInvoiceState State { get; set; }
     public string TxnId { get; set; }
     public string PurchaseOrder { get; set; }
     public string Description { get; set; }

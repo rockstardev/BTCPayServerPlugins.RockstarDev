@@ -1,10 +1,10 @@
-﻿using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
+using System.Threading.Tasks;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 
 public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool designTime = false)
     : DbContext(options)

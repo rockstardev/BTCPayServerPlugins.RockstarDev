@@ -1,4 +1,4 @@
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
 public class AdminNoteViewModel
 {

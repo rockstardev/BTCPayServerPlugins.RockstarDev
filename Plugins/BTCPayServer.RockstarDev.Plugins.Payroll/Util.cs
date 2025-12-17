@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 public static class UtilExt
 {

@@ -1,5 +1,6 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 

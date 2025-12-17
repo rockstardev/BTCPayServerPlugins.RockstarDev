@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Rates;
@@ -12,7 +12,7 @@ using BTCPayServer.Services.Reporting;
 using BTCPayServer.Services.Stores;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
 public class VendorPayReportProvider(
     PluginDbContextFactory pluginDbContextFactory,

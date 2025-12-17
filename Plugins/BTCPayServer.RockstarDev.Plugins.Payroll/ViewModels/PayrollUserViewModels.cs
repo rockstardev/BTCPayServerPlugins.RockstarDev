@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
 public class PayrollUserListViewModel
 {

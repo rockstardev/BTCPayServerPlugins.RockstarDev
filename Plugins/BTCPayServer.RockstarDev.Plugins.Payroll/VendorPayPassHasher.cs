@@ -1,7 +1,7 @@
-﻿using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
 using Microsoft.AspNetCore.Identity;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 public class VendorPayPassHasher
 {

@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 
 // TODO: Length limits on strings in model, to enhance performance
 public class PayrollInvoice
@@ -40,7 +40,7 @@ public class PayrollInvoice
     public string ExtraFilenames { get; set; }
 
     public bool IsArchived { get; set; }
-    public PayrollInvoiceState State { get; set; }
+    public VendorPayInvoiceState State { get; set; }
 
     [MaxLength(100)]
     public string TxnId { get; set; }
@@ -63,7 +63,7 @@ public class PayrollInvoice
     }
 }
 
-public enum PayrollInvoiceState
+public enum VendorPayInvoiceState
 {
     AwaitingApproval,
     AwaitingPayment,

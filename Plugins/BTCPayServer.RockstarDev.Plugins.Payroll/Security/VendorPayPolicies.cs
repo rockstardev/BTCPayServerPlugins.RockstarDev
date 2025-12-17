@@ -1,4 +1,4 @@
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Security;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 
 public static class VendorPayPolicies
 {

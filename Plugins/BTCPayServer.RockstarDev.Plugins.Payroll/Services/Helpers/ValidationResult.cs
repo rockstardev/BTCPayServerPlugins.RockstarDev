@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 
 public class ValidationResult
 {

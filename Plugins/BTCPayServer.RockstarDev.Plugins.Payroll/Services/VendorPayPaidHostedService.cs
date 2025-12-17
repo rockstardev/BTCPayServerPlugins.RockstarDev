@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using BTCPayServer.Services.Invoices;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
 public class VendorPayPaidHostedService(
     EmailService emailService,
@@ -68,7 +68,7 @@ public class VendorPayPaidHostedService(
                 await using var dbPlugin = pluginDbContextFactory.CreateContext();
 
                 var invoicesToBePaid = dbPlugin.PayrollInvoices
-                    .Where(a => (a.State == PayrollInvoiceState.AwaitingPayment || a.State == PayrollInvoiceState.InProgress)
+                    .Where(a => (a.State == VendorPayInvoiceState.AwaitingPayment || a.State == VendorPayInvoiceState.InProgress)
                                 && matchedObjects.Contains(a.Destination))
                     .Include(c => c.User)
                     .ToList();
@@ -76,13 +76,13 @@ public class VendorPayPaidHostedService(
                 foreach (var invoice in invoicesToBePaid)
                 {
                     invoice.TxnId = txHash;
-                    invoice.State = PayrollInvoiceState.Completed;
+                    invoice.State = VendorPayInvoiceState.Completed;
                     invoice.BtcPaid = amountPaid[invoice.Destination];
                     invoice.PaidAt = DateTimeOffset.UtcNow;
                 }
 
                 await dbPlugin.SaveChangesAsync(cancellationToken);
-                await emailService.SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == PayrollInvoiceState.Completed).ToList());
+                await emailService.SendSuccessfulInvoicePaymentEmail(invoicesToBePaid.Where(c => c.State == VendorPayInvoiceState.Completed).ToList());
                 break;
             }
         }

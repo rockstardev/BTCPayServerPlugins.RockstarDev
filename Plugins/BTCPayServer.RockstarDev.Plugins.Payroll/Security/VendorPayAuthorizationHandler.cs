@@ -1,6 +1,4 @@
-using System.Linq;
 using System.Threading.Tasks;
-using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.Security;
@@ -9,15 +7,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Security;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 
-public class PayrollAuthorizationHandler : AuthorizationHandler<PolicyRequirement>
+public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirement>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly StoreRepository _storeRepository;
 
-    public PayrollAuthorizationHandler(
+    public VendorPayAuthorizationHandler(
         IHttpContextAccessor httpContextAccessor,
         UserManager<ApplicationUser> userManager,
         StoreRepository storeRepository)

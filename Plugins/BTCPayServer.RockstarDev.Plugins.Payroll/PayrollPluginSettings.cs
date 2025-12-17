@@ -1,4 +1,4 @@
-﻿namespace BTCPayServer.RockstarDev.Plugins.Payroll;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 public class PayrollPluginSettings
 {

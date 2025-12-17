@@ -7,11 +7,11 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Configuration;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 
 public class InvoicesDownloadHelper(
     IFileService fileService,

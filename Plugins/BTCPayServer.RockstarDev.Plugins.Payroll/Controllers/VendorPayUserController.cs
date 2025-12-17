@@ -1,30 +1,27 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Client;
 using BTCPayServer.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/users/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/users/", Order = 1)]
 [Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollUserController(
+public class VendorPayUserController(
     PluginDbContextFactory pluginDbContextFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
@@ -62,9 +59,9 @@ Thank you,
 
         var payrollUsers = allStoreUsers;
         if (pending)
-            payrollUsers = allStoreUsers.Where(a => a.State == PayrollUserState.Pending).ToList();
+            payrollUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Pending).ToList();
         else if (!all)
-            payrollUsers = allStoreUsers.Where(a => a.State == PayrollUserState.Active).ToList();
+            payrollUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
 
         var payrollUserListViewModel = new PayrollUserListViewModel
         {
@@ -73,8 +70,8 @@ Thank you,
             DisplayedPayrollUsers = payrollUsers,
             Counts = new PayrollUserListViewModel.CountsData()
             {
-                Active = allStoreUsers.Count(a => a.State == PayrollUserState.Active),
-                Pending = allStoreUsers.Count(a => a.State == PayrollUserState.Pending),
+                Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
+                Pending = allStoreUsers.Count(a => a.State == VendorPayUserState.Pending),
                 Total = allStoreUsers.Count
             }
         };
@@ -121,7 +118,7 @@ Thank you,
             Name = model.Name,
             Email = email,
             StoreId = CurrentStore.Id,
-            State = model.SendRegistrationEmailInviteToUser ? PayrollUserState.Pending : PayrollUserState.Active
+            State = model.SendRegistrationEmailInviteToUser ? VendorPayUserState.Pending : VendorPayUserState.Active
         };
         if (model.SendRegistrationEmailInviteToUser)
         {
@@ -199,7 +196,7 @@ Thank you,
 
         await using var ctx = pluginDbContextFactory.CreateContext();
 
-        var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == PayrollUserState.Pending);
+        var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id && a.State == VendorPayUserState.Pending);
 
         if (user == null)
         {
@@ -247,7 +244,7 @@ Thank you,
         await using var ctx = pluginDbContextFactory.CreateContext();
 
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
-        if (user.State == PayrollUserState.Pending)
+        if (user.State == VendorPayUserState.Pending)
             return NotFound();
 
         var model = new PayrollUserCreateViewModel
@@ -303,7 +300,7 @@ Thank you,
         await using var ctx = pluginDbContextFactory.CreateContext();
 
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
-        if (user.State == PayrollUserState.Pending)
+        if (user.State == VendorPayUserState.Pending)
             return NotFound();
         var model = new PayrollUserResetPasswordViewModel { Id = user.Id };
         return View(model);
@@ -368,13 +365,13 @@ Thank you,
 
         switch (user.State)
         {
-            case PayrollUserState.Disabled:
-                user.State = PayrollUserState.Active;
+            case VendorPayUserState.Disabled:
+                user.State = VendorPayUserState.Active;
                 break;
-            case PayrollUserState.Active:
-                user.State = PayrollUserState.Disabled;
+            case VendorPayUserState.Active:
+                user.State = VendorPayUserState.Disabled;
                 break;
-            case PayrollUserState.Archived:
+            case VendorPayUserState.Archived:
                 // Would need to know use case for this.
                 break;
         }

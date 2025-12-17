@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 
 public class PayrollInvitation
 {

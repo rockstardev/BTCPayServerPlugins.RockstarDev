@@ -2,27 +2,24 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
-using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Client;
 using BTCPayServer.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Logic;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Controllers;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
 [Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class PayrollSettingController(
+public class VendorPaySettingController(
     PluginDbContextFactory pluginDbContextFactory,
     EmailService emailService,
     LinkGenerator linkGenerator) : Controller
@@ -131,7 +128,7 @@ public class PayrollSettingController(
         {
             Message = "Vendor pay settings updated successfully", Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(PayrollInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
+        return RedirectToAction(nameof(VendorPayInvoiceController.List), "PayrollInvoice", new { storeId = CurrentStore.Id });
     }
 
     private bool ValidateEmailAddressList(string emailList)
