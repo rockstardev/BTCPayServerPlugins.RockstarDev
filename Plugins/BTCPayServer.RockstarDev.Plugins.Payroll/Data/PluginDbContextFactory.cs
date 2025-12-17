@@ -23,13 +23,13 @@ public class PluginDbContextFactory(IOptions<DatabaseOptions> options)
         return new PluginDbContext(builder.Options);
     }
 
-    public async Task<PayrollStoreSetting> GetSettingAsync(string storeId)
+    public async Task<VendorPayStoreSetting> GetSettingAsync(string storeId)
     {
         await using var db = CreateContext();
         return await db.GetSettingAsync(storeId);
     }
 
-    public async Task<PayrollStoreSetting> SetSettingAsync(string storeId, PayrollStoreSetting setting)
+    public async Task<VendorPayStoreSetting> SetSettingAsync(string storeId, VendorPayStoreSetting setting)
     {
         ArgumentNullException.ThrowIfNull(setting);
 

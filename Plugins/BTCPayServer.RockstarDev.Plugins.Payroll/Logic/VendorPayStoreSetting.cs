@@ -3,7 +3,7 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 /// <summary>
 ///     This class holds settings per store
 /// </summary>
-public class PayrollStoreSetting
+public class VendorPayStoreSetting
 {
     public bool MakeInvoiceFilesOptional { get; set; }
     public bool PurchaseOrdersRequired { get; set; }

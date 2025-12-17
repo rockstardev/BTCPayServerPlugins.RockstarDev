@@ -10,6 +10,7 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
@@ -34,7 +35,7 @@ public class VendorPayInvoiceController(
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
     EmailService emailService,
-    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
+    VendorPayInvoiceUploadHelper payrollInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
@@ -52,8 +53,8 @@ public class VendorPayInvoiceController(
         if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
 
         // triggering saving of admin user id if needed
-        var adminset = await settingsRepository.GetSettingAsync<PayrollPluginSettings>();
-        adminset ??= new PayrollPluginSettings();
+        var adminset = await settingsRepository.GetSettingAsync<VendorPayPluginSettings>();
+        adminset ??= new VendorPayPluginSettings();
         if (adminset.AdminAppUserId is null)
         {
             adminset.AdminAppUserId = userManager.GetUserId(User);
@@ -61,11 +62,11 @@ public class VendorPayInvoiceController(
         }
 
         var settings = await ctx.GetSettingAsync(storeId);
-        var model = new PayrollInvoiceListViewModel
+        var model = new VendorPayInvoiceListViewModel
         {
             All = all,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
-            PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel
+            PayrollInvoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
@@ -122,7 +123,7 @@ public class VendorPayInvoiceController(
             case "markpaid":
                 invoices.ForEach(c =>
                 {
-                    c.State = PayrollInvoiceState.Completed;
+                    c.State = VendorPayInvoiceState.Completed;
                     c.PaidAt = DateTimeOffset.UtcNow;
                 });
                 await ctx.SaveChangesAsync();
@@ -177,13 +178,13 @@ public class VendorPayInvoiceController(
         var settings = await pluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
         var currencies = invoices.Select(a => a.Currency).Distinct().ToList();
         foreach (var currency in currencies)
-            if (currency == PayrollPluginConst.BTC_CRYPTOCODE)
+            if (currency == VendorPayPluginConst.BTC_CRYPTOCODE)
             {
                 rates.Add(currency, 1);
             }
             else
             {
-                var rate = await rateFetcher.FetchRate(new CurrencyPair(currency, PayrollPluginConst.BTC_CRYPTOCODE),
+                var rate = await rateFetcher.FetchRate(new CurrencyPair(currency, VendorPayPluginConst.BTC_CRYPTOCODE),
                     CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection), new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
                 if (rate.BidAsk == null) throw new Exception("Currency is not supported");
 
@@ -194,7 +195,7 @@ public class VendorPayInvoiceController(
                 rates.Add(currency, adjustedRate);
             }
 
-        var network = networkProvider.GetNetwork<BTCPayNetwork>(PayrollPluginConst.BTC_CRYPTOCODE);
+        var network = networkProvider.GetNetwork<BTCPayNetwork>(VendorPayPluginConst.BTC_CRYPTOCODE);
         var bip21 = new List<string>();
         foreach (var invoice in invoices)
         {
@@ -209,7 +210,7 @@ public class VendorPayInvoiceController(
             // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
             bip21.Add(bip21New.ToString());
 
-            invoice.State = PayrollInvoiceState.AwaitingPayment;
+            invoice.State = VendorPayInvoiceState.AwaitingPayment;
         }
 
         await ctx.SaveChangesAsync();
@@ -221,7 +222,7 @@ public class VendorPayInvoiceController(
         });
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
-            new { walletId = new WalletId(CurrentStore.Id, PayrollPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
+            new { walletId = new WalletId(CurrentStore.Id, VendorPayPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 
     private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent) => originalAmount * (1 + (decimal)adjustmentPercent / 100m);
@@ -230,7 +231,7 @@ public class VendorPayInvoiceController(
     public async Task<IActionResult> Upload(string storeId)
     {
         var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        var model = new PayrollInvoiceUploadViewModel
+        var model = new VendorPayInvoiceUploadViewModel
         {
             Amount = 0,
             Currency = CurrentStore.GetStoreBlob().DefaultCurrency,
@@ -254,7 +255,7 @@ public class VendorPayInvoiceController(
 
 
     [HttpPost("upload")]
-    public async Task<IActionResult> Upload(string storeId, PayrollInvoiceUploadViewModel model)
+    public async Task<IActionResult> Upload(string storeId, VendorPayInvoiceUploadViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -290,7 +291,7 @@ public class VendorPayInvoiceController(
         if (invoice == null)
             return NotFound();
 
-        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
@@ -316,7 +317,7 @@ public class VendorPayInvoiceController(
             .Include(i => i.User)
             .Single(a => a.Id == id);
 
-        if (invoice.State != PayrollInvoiceState.AwaitingApproval)
+        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {

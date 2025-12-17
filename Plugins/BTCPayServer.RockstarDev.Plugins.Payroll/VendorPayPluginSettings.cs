@@ -1,6 +1,6 @@
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
-public class PayrollPluginSettings
+public class VendorPayPluginSettings
 {
     public string AdminAppUserId { get; set; }
 }

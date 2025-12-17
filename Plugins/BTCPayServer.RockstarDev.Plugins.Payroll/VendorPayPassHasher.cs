@@ -1,4 +1,4 @@
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay;

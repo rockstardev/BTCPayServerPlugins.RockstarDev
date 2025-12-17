@@ -27,7 +27,7 @@ public class PublicController(
     IHttpContextAccessor httpContextAccessor,
     UriResolver uriResolver,
     VendorPayPassHasher hasher,
-    PayrollInvoiceUploadHelper payrollInvoiceUploadHelper,
+    VendorPayInvoiceUploadHelper payrollInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper,
     EmailService emailService)
     : Controller
@@ -173,7 +173,7 @@ public class PublicController(
             StoreName = vali.Store.StoreName,
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob()),
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
-            Invoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel
+            Invoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
@@ -243,7 +243,7 @@ public class PublicController(
             return vali.ErrorActionResult;
 
         var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        var model = new PublicPayrollInvoiceUploadViewModel
+        var model = new PublicVendorPayInvoiceUploadViewModel
         {
             StoreId = vali.Store.Id,
             StoreName = vali.Store.StoreName,
@@ -257,7 +257,7 @@ public class PublicController(
     }
 
     [HttpPost("upload")]
-    public async Task<IActionResult> Upload(string storeId, PublicPayrollInvoiceUploadViewModel model)
+    public async Task<IActionResult> Upload(string storeId, PublicVendorPayInvoiceUploadViewModel model)
     {
         var vali = await validateStoreAndUser(storeId, true);
         if (vali.ErrorActionResult != null)

@@ -1,7 +1,7 @@
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // Need to extract these variables, their references are places for improvements
-public static class PayrollPluginConst
+public static class VendorPayPluginConst
 {
     //public const string CURRENCY_FIAT = "USD";
 

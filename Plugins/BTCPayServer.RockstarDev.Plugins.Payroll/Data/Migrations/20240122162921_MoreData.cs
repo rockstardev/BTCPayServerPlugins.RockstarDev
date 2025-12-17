@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 
 #nullable disable
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Migrations
 {
     /// <inheritdoc />
     public partial class MoreData : Migration

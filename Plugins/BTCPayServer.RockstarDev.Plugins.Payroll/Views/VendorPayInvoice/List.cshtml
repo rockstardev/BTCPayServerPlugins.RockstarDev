@@ -1,10 +1,10 @@
-﻿@inject IScopeProvider ScopeProvider
+@inject IScopeProvider ScopeProvider
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
-@using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models
-@model PayrollInvoiceListViewModel
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models
+@model VendorPayInvoiceListViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("VendorPay", "Vendor Invoices", "VendorPay");
@@ -156,7 +156,7 @@
                         </td>
                         <td>@pp.Amount @pp.Currency</td>
                         <td>
-                            @if (pp.State == PayrollInvoiceState.Completed && !string.IsNullOrEmpty(pp.TxnId))
+                            @if (pp.State == VendorPayInvoiceState.Completed && !string.IsNullOrEmpty(pp.TxnId))
                             {
                                 <a href="https://mempool.space/tx/@pp.TxnId" target="_blank">
                                     @pp.State.ToString()
@@ -166,7 +166,7 @@
                             {
                                 @pp.State.ToString()
                             }
-                            @if (pp.State == PayrollInvoiceState.Completed && pp.PaidAt.HasValue)
+                            @if (pp.State == VendorPayInvoiceState.Completed && pp.PaidAt.HasValue)
                             {
                                 <div>@pp.PaidAt?.ToBrowserDate()</div>
                             }
@@ -216,7 +216,7 @@
                                     <vc:icon symbol="actions-download" />
                                 </a>
                             }
-                            @if (pp.State == PayrollInvoiceState.AwaitingApproval)
+                            @if (pp.State == VendorPayInvoiceState.AwaitingApproval)
                             {
                                 <span>-</span>
                                 <a asp-controller="PayrollInvoice"

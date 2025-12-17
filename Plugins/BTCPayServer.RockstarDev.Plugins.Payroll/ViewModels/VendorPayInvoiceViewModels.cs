@@ -9,14 +9,14 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
-public class PayrollInvoiceListViewModel
+public class VendorPayInvoiceListViewModel
 {
     public bool All { get; set; }
-    public List<PayrollInvoiceViewModel> PayrollInvoices { get; set; }
+    public List<VendorPayInvoiceViewModel> PayrollInvoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
 }
 
-public class PayrollInvoiceViewModel
+public class VendorPayInvoiceViewModel
 {
     public DateTimeOffset CreatedAt { get; set; }
     public string Id { get; set; }
@@ -35,7 +35,7 @@ public class PayrollInvoiceViewModel
     public string AdminNote { get; set; }
 }
 
-public class PayrollInvoiceUploadViewModel
+public class VendorPayInvoiceUploadViewModel
 {
     [Required]
     [DisplayName("User")]

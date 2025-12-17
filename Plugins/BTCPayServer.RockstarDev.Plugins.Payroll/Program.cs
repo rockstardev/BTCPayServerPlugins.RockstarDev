@@ -2,10 +2,10 @@ using System;
 using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Security;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Services.Helpers;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,10 +24,10 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddUIExtension("store-integrations-nav", "PayrollNav");
+        serviceCollection.AddUIExtension("store-integrations-nav", "VendorPayNav");
 
         // Register authorization handler and policy for custom permission
-        serviceCollection.AddScoped<IAuthorizationHandler, PayrollAuthorizationHandler>();
+        serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
         serviceCollection.AddAuthorization(options =>
         {
             options.AddPolicy(VendorPayPolicies.CanManageVendorPay, 
@@ -44,7 +44,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddScheduledTask<VendorPayEmailReminderService>(TimeSpan.FromHours(12));
 
         // helpers
-        serviceCollection.AddTransient<PayrollInvoiceUploadHelper>();
+        serviceCollection.AddTransient<VendorPayInvoiceUploadHelper>();
         serviceCollection.AddTransient<InvoicesDownloadHelper>();
 
         // Add the database related registrations

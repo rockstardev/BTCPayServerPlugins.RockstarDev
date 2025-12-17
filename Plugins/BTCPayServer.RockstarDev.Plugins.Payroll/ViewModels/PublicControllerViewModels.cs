@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
-public class PublicLoginViewModel : BasePayrollPublicViewModel
+public class PublicLoginViewModel : BaseVendorPayPublicViewModel
 {
     [Required]
     [EmailAddress]
@@ -21,13 +21,13 @@ public class PublicLoginViewModel : BasePayrollPublicViewModel
     public bool RememberMe { get; set; }
 }
 
-public class PublicListInvoicesViewModel : BasePayrollPublicViewModel
+public class PublicListInvoicesViewModel : BaseVendorPayPublicViewModel
 {
-    public List<PayrollInvoiceViewModel> Invoices { get; set; }
+    public List<VendorPayInvoiceViewModel> Invoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
 }
 
-public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
+public class PublicVendorPayInvoiceUploadViewModel : BaseVendorPayPublicViewModel
 {
     [Required]
     public string Destination { get; set; }
@@ -51,7 +51,7 @@ public class PublicPayrollInvoiceUploadViewModel : BasePayrollPublicViewModel
     public List<IFormFile> ExtraFiles { get; set; } = new();
 }
 
-public class PublicChangePasswordViewModel : BasePayrollPublicViewModel
+public class PublicChangePasswordViewModel : BaseVendorPayPublicViewModel
 {
     [Required]
     [DataType(DataType.Password)]
@@ -71,7 +71,7 @@ public class PublicChangePasswordViewModel : BasePayrollPublicViewModel
     public string ConfirmNewPassword { get; set; }
 }
 
-public class BasePayrollPublicViewModel
+public class BaseVendorPayPublicViewModel
 {
     // store properties
     public string StoreId { get; set; }

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
-public class PayrollSettingViewModel
+public class VendorPaySettingViewModel
 {
     [Display(Name = "Make Invoice file optional")]
     public bool MakeInvoiceFileOptional { get; set; }

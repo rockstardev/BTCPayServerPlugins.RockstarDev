@@ -5,7 +5,7 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
-public class PayrollUserListViewModel
+public class VendorPayUserListViewModel
 {
     public List<PayrollUser> DisplayedPayrollUsers { get; set; }
 
@@ -21,7 +21,7 @@ public class PayrollUserListViewModel
     public bool All { get; set; }
 }
 
-public class PayrollUserCreateViewModel
+public class VendorPayUserCreateViewModel
 {
     public string Id { get; set; }
 
@@ -60,7 +60,7 @@ public class PayrollUserCreateViewModel
     public bool StoreEmailSettingsConfigured { get; set; }
 }
 
-public class PayrollUserResetPasswordViewModel
+public class VendorPayUserResetPasswordViewModel
 {
     public string Id { get; set; }
 
@@ -77,7 +77,7 @@ public class PayrollUserResetPasswordViewModel
     public string ConfirmNewPassword { get; set; }
 }
 
-public class AcceptInvitationRequestViewModel : BasePayrollPublicViewModel
+public class AcceptInvitationRequestViewModel : BaseVendorPayPublicViewModel
 {
     public string Token { get; set; }
     public string Email { get; set; }

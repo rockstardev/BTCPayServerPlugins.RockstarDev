@@ -31,26 +31,26 @@ public class VendorPaySettingController(
     public async Task<IActionResult> Settings(string storeId)
     {
         var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        var model = new PayrollSettingViewModel
+        var model = new VendorPaySettingViewModel
         {
             MakeInvoiceFileOptional = settings.MakeInvoiceFilesOptional,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
             InvoiceFiatConversionAdjustment = settings.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = settings.InvoiceFiatConversionAdjustmentPercentage,
-            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidSubject,
-            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? PayrollSettingViewModel.Defaults.EmailOnInvoicePaidBody,
+            EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidSubject,
+            EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
-            EmailRemindersSubject = settings.EmailRemindersSubject ?? PayrollSettingViewModel.Defaults.EmailRemindersSubject,
-            EmailRemindersBody = settings.EmailRemindersBody ?? PayrollSettingViewModel.Defaults.EmailRemindersBody,
+            EmailRemindersSubject = settings.EmailRemindersSubject ?? VendorPaySettingViewModel.Defaults.EmailRemindersSubject,
+            EmailRemindersBody = settings.EmailRemindersBody ?? VendorPaySettingViewModel.Defaults.EmailRemindersBody,
             EmailAdminOnInvoiceUploaded = settings.EmailAdminOnInvoiceUploaded,
             EmailAdminOnInvoiceUploadedAddress = settings.EmailAdminOnInvoiceUploadedAddress,
-            EmailAdminOnInvoiceUploadedSubject = settings.EmailAdminOnInvoiceUploadedSubject ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceUploadedSubject,
-            EmailAdminOnInvoiceUploadedBody = settings.EmailAdminOnInvoiceUploadedBody ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceUploadedBody,
+            EmailAdminOnInvoiceUploadedSubject = settings.EmailAdminOnInvoiceUploadedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceUploadedSubject,
+            EmailAdminOnInvoiceUploadedBody = settings.EmailAdminOnInvoiceUploadedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceUploadedBody,
             EmailAdminOnInvoiceDeleted = settings.EmailAdminOnInvoiceDeleted,
             EmailAdminOnInvoiceDeletedAddress = settings.EmailAdminOnInvoiceDeletedAddress,
-            EmailAdminOnInvoiceDeletedSubject = settings.EmailAdminOnInvoiceDeletedSubject ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
-            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? PayrollSettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody
+            EmailAdminOnInvoiceDeletedSubject = settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
+            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -58,7 +58,7 @@ public class VendorPaySettingController(
     }
 
     [HttpPost("settings")]
-    public async Task<IActionResult> Settings(string storeId, PayrollSettingViewModel model)
+    public async Task<IActionResult> Settings(string storeId, VendorPaySettingViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -99,7 +99,7 @@ public class VendorPaySettingController(
             new { storeId },
             "https",
             HttpContext.Request.Host);
-        var settings = new PayrollStoreSetting
+        var settings = new VendorPayStoreSetting
         {
             EmailReminders = model.EmailReminders,
             EmailRemindersBody = model.EmailRemindersBody,

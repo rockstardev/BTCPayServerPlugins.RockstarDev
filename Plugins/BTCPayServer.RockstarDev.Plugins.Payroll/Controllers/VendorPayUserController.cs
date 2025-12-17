@@ -63,12 +63,12 @@ Thank you,
         else if (!all)
             payrollUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
 
-        var payrollUserListViewModel = new PayrollUserListViewModel
+        var payrollUserListViewModel = new VendorPayUserListViewModel
         {
             All = all,
             Pending = pending,
             DisplayedPayrollUsers = payrollUsers,
-            Counts = new PayrollUserListViewModel.CountsData()
+            Counts = new VendorPayUserListViewModel.CountsData()
             {
                 Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
                 Pending = allStoreUsers.Count(a => a.State == VendorPayUserState.Pending),
@@ -85,7 +85,7 @@ Thank you,
             return NotFound();
 
         var isEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
-        var vm = new PayrollUserCreateViewModel
+        var vm = new VendorPayUserCreateViewModel
         {
             StoreId = CurrentStore.Id,
             UserInviteEmailBody = UserInviteEmailBody,
@@ -96,7 +96,7 @@ Thank you,
     }
 
     [HttpPost("create")]
-    public async Task<IActionResult> Create(PayrollUserCreateViewModel model)
+    public async Task<IActionResult> Create(VendorPayUserCreateViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -247,7 +247,7 @@ Thank you,
         if (user.State == VendorPayUserState.Pending)
             return NotFound();
 
-        var model = new PayrollUserCreateViewModel
+        var model = new VendorPayUserCreateViewModel
         {
             Id = user.Id,
             Email = user.Email,
@@ -259,7 +259,7 @@ Thank you,
     }
 
     [HttpPost("edit/{userId}")]
-    public async Task<IActionResult> Edit(string userId, PayrollUserCreateViewModel model)
+    public async Task<IActionResult> Edit(string userId, VendorPayUserCreateViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -302,12 +302,12 @@ Thank you,
         var user = ctx.PayrollUsers.SingleOrDefault(a => a.Id == userId && a.StoreId == CurrentStore.Id);
         if (user.State == VendorPayUserState.Pending)
             return NotFound();
-        var model = new PayrollUserResetPasswordViewModel { Id = user.Id };
+        var model = new VendorPayUserResetPasswordViewModel { Id = user.Id };
         return View(model);
     }
 
     [HttpPost("resetpassword/{userId}")]
-    public async Task<IActionResult> ResetPassword(string userId, PayrollUserResetPasswordViewModel model)
+    public async Task<IActionResult> ResetPassword(string userId, VendorPayUserResetPasswordViewModel model)
     {
         if (CurrentStore is null)
             return NotFound();
@@ -430,7 +430,7 @@ Thank you,
             return NotFound();
 
         if (ctx.PayrollInvoices.Any(a => a.UserId == user.Id &&
-                                         a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled))
+                                         a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
@@ -440,7 +440,7 @@ Thank you,
         }
 
         var completedOrCancelledInvoices = ctx.PayrollInvoices.Count(a =>
-            a.UserId == user.Id && (a.State == PayrollInvoiceState.Completed || a.State == PayrollInvoiceState.Cancelled));
+            a.UserId == user.Id && (a.State == VendorPayInvoiceState.Completed || a.State == VendorPayInvoiceState.Cancelled));
 
         var invoiceDeleteText = completedOrCancelledInvoices > 0
             ? $"The user: {user.Name} will be deleted along with {completedOrCancelledInvoices} associated invoices. Are you sure you want to proceed?"
@@ -461,7 +461,7 @@ Thank you,
             .Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
         var userInvoices = ctx.PayrollInvoices.Where(a => a.UserId == payrollUser.Id).ToList();
-        if (userInvoices.Any(a => a.State != PayrollInvoiceState.Completed && a.State != PayrollInvoiceState.Cancelled))
+        if (userInvoices.Any(a => a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {

@@ -1,10 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
-using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 
 internal class PluginMigrationRunner(PluginDbContextFactory dbContextFactory) : IHostedService
 {

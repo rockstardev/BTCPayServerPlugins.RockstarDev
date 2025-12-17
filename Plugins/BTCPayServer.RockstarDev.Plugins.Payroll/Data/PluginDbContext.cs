@@ -23,13 +23,13 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
         PayrollUser.OnModelCreating(modelBuilder);
     }
 
-    public async Task<PayrollStoreSetting> GetSettingAsync(string storeId)
+    public async Task<VendorPayStoreSetting> GetSettingAsync(string storeId)
     {
         var setting = await PayrollSettings.FirstOrDefaultAsync(a => a.StoreId == storeId);
-        if (setting is null) return new PayrollStoreSetting();
+        if (setting is null) return new VendorPayStoreSetting();
 
         // need to deserialize the setting from json
-        var payrollStoreSetting = JsonConvert.DeserializeObject<PayrollStoreSetting>(setting.Setting);
+        var payrollStoreSetting = JsonConvert.DeserializeObject<VendorPayStoreSetting>(setting.Setting);
         return payrollStoreSetting;
     }
 }

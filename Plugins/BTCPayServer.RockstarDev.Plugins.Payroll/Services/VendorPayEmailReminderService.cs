@@ -51,7 +51,7 @@ public class VendorPayEmailReminderService(
         await base.ProcessEvent(evt, cancellationToken);
     }
 
-    private async Task HandleEmailReminders(string storeId, PayrollStoreSetting settings)
+    private async Task HandleEmailReminders(string storeId, VendorPayStoreSetting settings)
     {
         var shouldUpdateDb = false;
 
@@ -96,6 +96,6 @@ public class VendorPayEmailReminderService(
     public class PeriodProcessEvent
     {
         public string StoreId { get; set; }
-        public PayrollStoreSetting Setting { get; set; }
+        public VendorPayStoreSetting Setting { get; set; }
     }
 }
