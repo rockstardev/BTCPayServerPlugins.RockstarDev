@@ -16,8 +16,8 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a asp-controller="PayrollUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-            <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
+			<a asp-controller="VendorPayUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
+			<a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
         </div>
     </div>
 
@@ -37,7 +37,7 @@
                asp-route-storeId="@storeId"
                asp-route-pending="true"
                class="nav-link @(Model.Pending ? "active" : "")"
-               role="tab">Pending (@Model.Counts.Pending))</a>
+               role="tab">Pending (@Model.Counts.Pending)</a>
 
             <a id="all-view"
                asp-action="List"
@@ -48,7 +48,7 @@
         </div>
     </nav>
 
-    @if (Model.DisplayedPayrollUsers.Any())
+    @if (Model.DisplayedVendorPayUsers.Any())
     {
         <div class="table-responsive-md">
             <table class="table table-hover">
@@ -62,7 +62,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                @foreach (var pp in Model.DisplayedPayrollUsers)
+                @foreach (var pp in Model.DisplayedVendorPayUsers)
                 {
                     <tr class="mass-action-row">
                         <td>@pp.Name</td>
@@ -84,19 +84,19 @@
                                         @if (pp.State == VendorPayUserState.Pending)
                                         {
                                             <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="ResendInvitation" asp-route-storeId="@storeId"
+                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="ResendInvitation" asp-route-storeId="@storeId"
                                                    asp-route-userId="@pp.Id">Resend Invitation</a>
                                             </li>
                                         }
                                         else
                                         {
                                             <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="Edit" asp-route-storeId="@storeId"
+                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="Edit" asp-route-storeId="@storeId"
                                                    asp-route-userId="@pp.Id">Edit</a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item"
-                                                   asp-controller="PayrollUser"
+                                                   asp-controller="VendorPayUser"
                                                    asp-action="ToggleUserStatus"
                                                    asp-route-userId="@pp.Id"
                                                    asp-route-storeId="@storeId"
@@ -105,13 +105,13 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" asp-controller="PayrollUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId"
+                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId"
                                                    asp-route-userId="@pp.Id">Download all invoices</a>
                                             </li>
                                         }
                                         <li class="dropdown-divider"></li>
                                         <li>
-                                            <a asp-controller="PayrollUser"
+                                            <a asp-controller="VendorPayUser"
                                                asp-action="Delete"
                                                asp-route-userId="@pp.Id"
                                                asp-route-storeId="@storeId"

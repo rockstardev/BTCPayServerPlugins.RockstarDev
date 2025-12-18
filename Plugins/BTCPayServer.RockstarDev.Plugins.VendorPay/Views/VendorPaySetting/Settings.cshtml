@@ -8,11 +8,11 @@
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
     Layout = "_Layout";
-    ViewData.SetActivePage("VendorPay", "Update Plugin Settings", "VendorPay");
+    ViewData.SetActivePage("VendorPay", "Update Vendor Pay Settings", "VendorPay");
     var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
 }
 
-<form method="post" asp-action="Settings">
+<form method="post" asp-action="Settings" asp-controller="VendorPaySetting">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2>@ViewData["Title"]</h2>
         <button type="submit" class="btn btn-primary" id="Edit" value="Save Changes">Save Changes</button>

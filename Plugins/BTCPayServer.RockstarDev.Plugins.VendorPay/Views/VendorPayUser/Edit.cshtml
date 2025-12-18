@@ -50,7 +50,7 @@
                 <div class="input-group">
                     <input asp-for="Password" class="form-control" placeholder="***********" readonly />
                     <div class="input-group-append">
-                        <a asp-controller="PayrollUser" asp-action="ResetPassword" asp-route-userId="@Model.Id"
+                        <a asp-controller="VendorPayUser" asp-action="ResetPassword" asp-route-userId="@Model.Id"
                            asp-route-storeId="@storeId" class="btn btn-secondary">Reset Password</a>
                     </div>
                 </div>

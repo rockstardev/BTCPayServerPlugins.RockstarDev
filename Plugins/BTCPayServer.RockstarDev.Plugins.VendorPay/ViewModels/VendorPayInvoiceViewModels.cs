@@ -12,7 +12,7 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 public class VendorPayInvoiceListViewModel
 {
     public bool All { get; set; }
-    public List<VendorPayInvoiceViewModel> PayrollInvoices { get; set; }
+    public List<VendorPayInvoiceViewModel> VendorPayInvoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
 }
 
@@ -41,7 +41,7 @@ public class VendorPayInvoiceUploadViewModel
     [DisplayName("User")]
     public string UserId { get; set; }
 
-    public SelectList PayrollUsers { get; set; }
+    public SelectList VendorPayUsers { get; set; }
 
     [Required]
     public string Destination { get; set; }

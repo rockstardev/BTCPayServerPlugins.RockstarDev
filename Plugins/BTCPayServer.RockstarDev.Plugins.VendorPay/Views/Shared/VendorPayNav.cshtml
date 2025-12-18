@@ -10,7 +10,7 @@
 @if (!string.IsNullOrEmpty(storeId))
 {
     <li class="nav-item">
-        <a asp-controller="PayrollInvoice" asp-action="List" asp-route-storeId="@storeId" class="nav-link @ViewData.ActivePageClass("VendorPay")"
+		<a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="nav-link @ViewData.ActivePageClass("VendorPay")"
            permission="@VendorPayPolicies.CanManageVendorPay">
 
             <svg class="icon" role="img" viewBox="0 0 122.88 102.3">

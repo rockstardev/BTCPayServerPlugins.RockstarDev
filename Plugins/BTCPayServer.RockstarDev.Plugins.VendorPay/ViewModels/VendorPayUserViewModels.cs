@@ -7,7 +7,7 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 
 public class VendorPayUserListViewModel
 {
-    public List<PayrollUser> DisplayedPayrollUsers { get; set; }
+    public List<PayrollUser> DisplayedVendorPayUsers { get; set; }
 
     public CountsData Counts { get; set; }
     public class CountsData

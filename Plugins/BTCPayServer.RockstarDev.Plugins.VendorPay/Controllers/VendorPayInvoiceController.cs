@@ -35,7 +35,7 @@ public class VendorPayInvoiceController(
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
     EmailService emailService,
-    VendorPayInvoiceUploadHelper payrollInvoiceUploadHelper,
+    VendorPayInvoiceUploadHelper vendorPayInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
@@ -45,12 +45,12 @@ public class VendorPayInvoiceController(
     public async Task<IActionResult> List(string storeId, bool all)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        var payrollInvoices = await ctx.PayrollInvoices
+        var vendorPayInvoices = await ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && !p.IsArchived)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
+        if (!all) vendorPayInvoices = vendorPayInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
 
         // triggering saving of admin user id if needed
         var adminset = await settingsRepository.GetSettingAsync<VendorPayPluginSettings>();
@@ -66,7 +66,7 @@ public class VendorPayInvoiceController(
         {
             All = all,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
-            PayrollInvoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel
+            VendorPayInvoices = vendorPayInvoices.Select(tuple => new VendorPayInvoiceViewModel
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
@@ -239,18 +239,18 @@ public class VendorPayInvoiceController(
         };
 
         await using var ctx = pluginDbContextFactory.CreateContext();
-        model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
-        if (!model.PayrollUsers.Any()) return NoUserResult(storeId);
-        if (model.PayrollUsers.Any()) model.UserId = model.PayrollUsers.First().Value;
+        model.VendorPayUsers = getVendorPayUsers(ctx, CurrentStore.Id);
+        if (!model.VendorPayUsers.Any()) return NoUserResult(storeId);
+        if (model.VendorPayUsers.Any()) model.UserId = model.VendorPayUsers.First().Value;
         return View(model);
     }
 
-    private static SelectList getPayrollUsers(PluginDbContext ctx, string storeId)
+    private static SelectList getVendorPayUsers(PluginDbContext ctx, string storeId)
     {
-        var payrollUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId && a.State == VendorPayUserState.Active)
+        var vendorPayUsers = ctx.PayrollUsers.Where(a => a.StoreId == storeId && a.State == VendorPayUserState.Active)
             .Select(a => new SelectListItem { Text = $"{a.Name} <{a.Email}>", Value = a.Id })
             .ToList();
-        return new SelectList(payrollUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
+        return new SelectList(vendorPayUsers, nameof(SelectListItem.Value), nameof(SelectListItem.Text));
     }
 
 
@@ -260,11 +260,11 @@ public class VendorPayInvoiceController(
         if (CurrentStore is null)
             return NotFound();
 
-        var validation = await payrollInvoiceUploadHelper.Process(storeId, model.UserId, model);
+        var validation = await vendorPayInvoiceUploadHelper.Process(storeId, model.UserId, model);
         if (!validation.IsValid)
         {
             await using var ctx = pluginDbContextFactory.CreateContext();
-            model.PayrollUsers = getPayrollUsers(ctx, CurrentStore.Id);
+            model.VendorPayUsers = getVendorPayUsers(ctx, CurrentStore.Id);
             validation.ApplyToModelState(ModelState);
             return View(model);
         }
@@ -340,7 +340,7 @@ public class VendorPayInvoiceController(
         {
             Severity = StatusMessageModel.StatusSeverity.Error,
             Html =
-                $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(VendorPayUserController.Create), "PayrollUser", new { storeId })}' class='alert-link'>user</a> first",
+                $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(VendorPayUserController.Create), "VendorPayUserUser", new { storeId })}' class='alert-link'>user</a> first",
             AllowDismiss = false
         });
         return RedirectToAction(nameof(List), new { storeId });

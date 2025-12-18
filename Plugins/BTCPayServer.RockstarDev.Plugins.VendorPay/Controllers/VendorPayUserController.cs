@@ -57,17 +57,17 @@ Thank you,
         var allStoreUsers =
             ctx.PayrollUsers.Where(a => a.StoreId == storeId).OrderBy(a => a.Name).ToList();
 
-        var payrollUsers = allStoreUsers;
+        var vendorPayUsers = allStoreUsers;
         if (pending)
-            payrollUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Pending).ToList();
+            vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Pending).ToList();
         else if (!all)
-            payrollUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
+            vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
 
-        var payrollUserListViewModel = new VendorPayUserListViewModel
+        var vendorPayUserListViewModel = new VendorPayUserListViewModel
         {
             All = all,
             Pending = pending,
-            DisplayedPayrollUsers = payrollUsers,
+            DisplayedVendorPayUsers = vendorPayUsers,
             Counts = new VendorPayUserListViewModel.CountsData()
             {
                 Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
@@ -75,7 +75,7 @@ Thank you,
                 Total = allStoreUsers.Count
             }
         };
-        return View(payrollUserListViewModel);
+        return View(vendorPayUserListViewModel);
     }
 
     [HttpGet("create")]
@@ -392,11 +392,11 @@ Thank you,
         await using var ctx = pluginDbContextFactory.CreateContext();
         var user = ctx.PayrollUsers.Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
-        var payrollInvoices = await ctx.PayrollInvoices
+        var vendorPayInvoices = await ctx.PayrollInvoices
             .Include(c => c.User)
             .Where(p => p.UserId == user.Id)
             .OrderByDescending(data => data.CreatedAt).ToListAsync();
-        if (!payrollInvoices.Any())
+        if (!vendorPayInvoices.Any())
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
@@ -405,7 +405,7 @@ Thank you,
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        return await invoicesDownloadHelper.Process(payrollInvoices, HttpContext.Request.GetAbsoluteRootUri());
+        return await invoicesDownloadHelper.Process(vendorPayInvoices, HttpContext.Request.GetAbsoluteRootUri());
     }
 
 
@@ -457,10 +457,10 @@ Thank you,
             return NotFound();
 
         await using var ctx = pluginDbContextFactory.CreateContext();
-        var payrollUser = ctx.PayrollUsers
+        var vendorPayUser = ctx.PayrollUsers
             .Single(a => a.Id == userId && a.StoreId == CurrentStore.Id);
 
-        var userInvoices = ctx.PayrollInvoices.Where(a => a.UserId == payrollUser.Id).ToList();
+        var userInvoices = ctx.PayrollInvoices.Where(a => a.UserId == vendorPayUser.Id).ToList();
         if (userInvoices.Any(a => a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled))
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
@@ -470,10 +470,10 @@ Thank you,
             return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
         }
 
-        var payrollUserInvite = ctx.PayrollInvitations.Where(c => c.Email == payrollUser.Email && c.StoreId == payrollUser.StoreId).ToList();
-        if (payrollUserInvite.Any()) ctx.RemoveRange(payrollUserInvite);
+        var vendorPayUserInvite = ctx.PayrollInvitations.Where(c => c.Email == vendorPayUser.Email && c.StoreId == vendorPayUser.StoreId).ToList();
+        if (vendorPayUserInvite.Any()) ctx.RemoveRange(vendorPayUserInvite);
         ctx.RemoveRange(userInvoices);
-        ctx.Remove(payrollUser);
+        ctx.Remove(vendorPayUser);
         await ctx.SaveChangesAsync();
 
         TempData.SetStatusMessageModel(new StatusMessageModel { Message = "User deleted successfully", Severity = StatusMessageModel.StatusSeverity.Success });

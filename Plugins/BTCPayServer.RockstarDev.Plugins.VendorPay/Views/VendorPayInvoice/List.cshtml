@@ -37,13 +37,13 @@
                     <a asp-controller="Public" asp-action="ListInvoices" asp-route-storeId="@storeId" class="dropdown-item" target="_blank">
                         Share Invoice Upload Link <i class="fa fa-external-link"></i>
                     </a>
-                    <a asp-controller="PayrollSetting" asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
+					<a asp-controller="VendorPaySetting" asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
                         Settings
                     </a>
                 </div>
             </div>
-            <a asp-controller="PayrollInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Admin Upload Invoice</a>
-            <a asp-controller="PayrollUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
+			<a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Admin Upload Invoice</a>
+			<a asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
         </div>
     </div>
 </form>
@@ -67,7 +67,7 @@
     </div>
 </nav>
 
-@if (Model.PayrollInvoices.Any())
+@if (Model.VendorPayInvoices.Any())
 {
     <form method="post" asp-action="MassAction" asp-route-storeId="@storeId">
         <div class="table-responsive">
@@ -132,7 +132,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                @foreach (var pp in Model.PayrollInvoices)
+                @foreach (var pp in Model.VendorPayInvoices)
                 {
                     <tr id="invoice_@pp.Id" class="mass-action-row">
                         <td class="only-for-js align-middle">
@@ -219,7 +219,7 @@
                             @if (pp.State == VendorPayInvoiceState.AwaitingApproval)
                             {
                                 <span>-</span>
-                                <a asp-controller="PayrollInvoice"
+                                <a asp-controller="VendorPayInvoice"
                                    asp-action="Delete"
                                    asp-route-id="@pp.Id" asp-route-storeId="@storeId"
                                    class="text-danger">
