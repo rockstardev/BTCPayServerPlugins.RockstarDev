@@ -34,10 +34,6 @@ jobs:
             -   name: Special commands - Running Config Builder to init plugins
                 run: |
                     dotnet run --project ConfigBuilder
-
-            -   name: Publish plugins with dependencies
-                run: |
-                    dotnet publish --no-build --output ./published
                     
             -   name: Cache Playwright browsers
                 uses: actions/cache@v4
