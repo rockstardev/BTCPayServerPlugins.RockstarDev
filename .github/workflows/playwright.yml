@@ -66,6 +66,13 @@ jobs:
                     COMPOSE_DOCKER_CLI_BUILD: 1
                 run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev --build
 
+            -   name: Wait for PostgreSQL to be ready
+                run: |
+                    echo "Waiting for PostgreSQL to initialize..."
+                    sleep 15
+                    echo "Checking PostgreSQL status..."
+                    docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" ps
+                    
             -   name: Run tests
                 run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal --filter "Category=PlaywrightUITest"
 
