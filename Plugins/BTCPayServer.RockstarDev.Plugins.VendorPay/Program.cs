@@ -19,7 +19,7 @@ public class PayrollPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
-        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.2.0" }
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
     ];
 
     public override void Execute(IServiceCollection serviceCollection)
