@@ -1,17 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Logging;
-using BTCPayServer.Plugins.Emails.Services;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data;
-using BTCPayServer.RockstarDev.Plugins.Payroll.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.Services.Mails;
 using BTCPayServer.Services.Stores;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Services;
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
 public class EmailService(
     EmailSenderFactory emailSenderFactory,
