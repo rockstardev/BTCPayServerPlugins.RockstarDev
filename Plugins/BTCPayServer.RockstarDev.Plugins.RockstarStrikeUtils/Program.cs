@@ -25,7 +25,7 @@ public class RockstarStrikeUtilsPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddStrikeHttpClient();
         serviceCollection.AddStrikeClient();
 
-        serviceCollection.AddSingleton<StrikeClientFactory>();
+        serviceCollection.AddScoped<StrikeClientFactory>();
 
         // Add the database related registrations
         serviceCollection.AddSingleton<RockstarStrikeDbContextFactory>();

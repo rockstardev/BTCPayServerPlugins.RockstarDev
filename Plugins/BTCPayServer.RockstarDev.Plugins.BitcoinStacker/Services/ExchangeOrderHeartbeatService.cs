@@ -11,6 +11,7 @@ using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Logic;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.ViewModels.ExchangeOrder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Strike.Client;
 using Strike.Client.CurrencyExchanges;
@@ -23,8 +24,7 @@ public class ExchangeOrderHeartbeatService(
     EventAggregator eventAggregator,
     Logs logs,
     PluginDbContextFactory strikeDbContextFactory,
-    StrikeClientFactory strikeClientFactory,
-    StripeClientFactory stripeClientFactory) : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
+    IServiceScopeFactory serviceScopeFactory) : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {
     public static readonly DateTimeOffset DELAY_UNTIL = new(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset);
     private readonly Dictionary<string, DateTimeOffset> _lastRunForStore = new();
@@ -121,6 +121,8 @@ public class ExchangeOrderHeartbeatService(
                 if (settings.StartDateExchangeOrders > dateToFetch)
                     dateToFetch = settings.StartDateExchangeOrders.Value;
                 
+                using var scope = serviceScopeFactory.CreateScope();
+                var stripeClientFactory = scope.ServiceProvider.GetRequiredService<StripeClientFactory>();
                 var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
                 payouts = payouts.OrderBy(a => a.Created).ToList();
                 foreach (var payout in payouts)
@@ -166,6 +168,8 @@ public class ExchangeOrderHeartbeatService(
             Logs.PayServer.LogInformation("ExchangeOrderHeartbeatService: Initiating deposits on Strike for {0} orders",
                 orders.Count);
 
+            using var strikeScope = serviceScopeFactory.CreateScope();
+            var strikeClientFactory = strikeScope.ServiceProvider.GetRequiredService<StrikeClientFactory>();
             var strikeClient = strikeClientFactory.InitClient(settings.StrikeApiKey);
 
             foreach (var order in orders)

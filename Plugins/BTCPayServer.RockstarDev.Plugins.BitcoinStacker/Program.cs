@@ -27,10 +27,10 @@ public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
         // strike registrations
         serviceCollection.AddStrikeHttpClient();
         serviceCollection.AddStrikeClient();
-        serviceCollection.AddSingleton<StrikeClientFactory>();
+        serviceCollection.AddScoped<StrikeClientFactory>();
 
         // stripe registrations
-        serviceCollection.AddSingleton<StripeClientFactory>();
+        serviceCollection.AddScoped<StripeClientFactory>();
 
         // Add the database related registrations
         serviceCollection.AddSingleton<PluginDbContextFactory>();
