@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
+using BTCPayServer.Views.Stores;
 using Microsoft.Playwright;
 using NBitcoin;
 using Xunit;
@@ -320,13 +321,14 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await user.MakeAdmin(true);
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
-        await CreateVendorPayUser();
         
         // Ensure wallet is set up to avoid 404 on wallet send page and to surface the status alert
-        await GoToStore(user.StoreId);
+        await GoToUrl($"/stores/{user.StoreId}/onchain/BTC");
         await AddDerivationScheme();
         // Return to Vendor Pay list to continue the flow
+        
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser();
 
         // Navigate to list and ensure upload file is optional
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
