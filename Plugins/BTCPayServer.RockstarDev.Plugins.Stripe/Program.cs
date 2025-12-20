@@ -32,7 +32,7 @@ public class StripePlugin : BaseBTCPayServerPlugin
         // this initializes the stripe api key from database as well
         serviceCollection.AddHostedService<StripeMigrationRunner>();
 
-        serviceCollection.AddSingleton<StripeClientFactory>();
+        serviceCollection.AddScoped<StripeClientFactory>();
 
         base.Execute(serviceCollection);
     }

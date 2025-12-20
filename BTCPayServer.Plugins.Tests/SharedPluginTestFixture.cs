@@ -34,6 +34,7 @@ public class ConfigurablePluginTestFixture : IDisposable
             
             var testDir = Path.Combine(Directory.GetCurrentDirectory(), _testDirName);
             ServerTester = testInstance.CreateServerTester(testDir, _useNewDb);
+            ServerTester.PayTester.LoadPluginsInDefaultAssemblyContext = false;
             ServerTester.StartAsync().GetAwaiter().GetResult();
         }
     }
