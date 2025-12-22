@@ -50,13 +50,26 @@ public class PayrollInvoiceController(
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("list")]
-    public async Task<IActionResult> List(string storeId, bool all)
+    public async Task<IActionResult> List(string storeId, bool all, string searchTerm = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        var payrollInvoices = await ctx.PayrollInvoices
+        var query = ctx.PayrollInvoices
             .Include(data => data.User)
-            .Where(p => p.User.StoreId == storeId && !p.IsArchived)
-            .OrderByDescending(data => data.CreatedAt).ToListAsync();
+            .Where(p => p.User.StoreId == storeId && !p.IsArchived);
+
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.Trim().ToLower();
+            query = query.Where(p => 
+                p.Destination.ToLower().Contains(search) ||
+                (p.PurchaseOrder != null && p.PurchaseOrder.ToLower().Contains(search)) ||
+                (p.Description != null && p.Description.ToLower().Contains(search)) ||
+                p.User.Name.ToLower().Contains(search) ||
+                p.User.Email.ToLower().Contains(search));
+        }
+
+        var payrollInvoices = await query.OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == PayrollUserState.Active).ToList();
 
@@ -73,6 +86,7 @@ public class PayrollInvoiceController(
         var model = new PayrollInvoiceListViewModel
         {
             All = all,
+            SearchTerm = searchTerm,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             PayrollInvoices = payrollInvoices.Select(tuple => new PayrollInvoiceViewModel
             {

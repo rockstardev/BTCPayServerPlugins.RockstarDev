@@ -12,6 +12,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Payroll.ViewModels;
 public class PayrollInvoiceListViewModel
 {
     public bool All { get; set; }
+    public string SearchTerm { get; set; }
     public List<PayrollInvoiceViewModel> PayrollInvoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
 }
