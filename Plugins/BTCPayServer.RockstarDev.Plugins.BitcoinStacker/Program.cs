@@ -17,7 +17,7 @@ public class BitcoinStackerPlugin : BaseBTCPayServerPlugin
 
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
-        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.1.5" }
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
     ];
 
     public override void Execute(IServiceCollection serviceCollection)
