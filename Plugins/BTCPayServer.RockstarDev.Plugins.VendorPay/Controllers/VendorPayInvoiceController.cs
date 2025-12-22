@@ -354,7 +354,7 @@ public class VendorPayInvoiceController(
         {
             Severity = StatusMessageModel.StatusSeverity.Error,
             Html =
-                $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(VendorPayUserController.Create), "PayrollUser", new { storeId })}' class='alert-link'>user</a> first",
+                $"To upload a payroll, you need to create a <a href='{Url.Action(nameof(VendorPayUserController.Create), "VendorPayUser", new { storeId })}' class='alert-link'>user</a> first",
             AllowDismiss = false
         });
         return RedirectToAction(nameof(List), new { storeId });
