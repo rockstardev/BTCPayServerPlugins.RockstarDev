@@ -50,11 +50,36 @@
 
 <partial name="_StatusMessage" />
 
+<div class="row mb-2">
+    <div class="col-lg-6 ms-auto">
+        <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All">
+            <div class="input-group">
+                <input type="text" 
+                       class="form-control" 
+                       name="searchTerm" 
+                       value="@Model.SearchTerm" 
+                       placeholder="Search by user, destination, purchase order, or description..." 
+                       aria-label="Search invoices" />
+                <button class="btn btn-secondary" type="submit">
+                    <i class="fa fa-search"></i> Search
+                </button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" class="btn btn-secondary">
+                        <i class="fa fa-times"></i> Clear
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
 <nav id="SectionNav" class="mb-3">
     <div class="nav">
         <a id="active-view"
            asp-action="List"
            asp-route-storeId="@storeId"
+           asp-route-searchTerm="@Model.SearchTerm"
            class="nav-link @(!Model.All ? "active" : "")"
            role="tab">Active</a>
 
@@ -62,6 +87,7 @@
            asp-action="List"
            asp-route-storeId="@storeId"
            asp-route-all="true"
+           asp-route-searchTerm="@Model.SearchTerm"
            class="nav-link @(Model.All ? "active" : "")"
            role="tab">All</a>
     </div>

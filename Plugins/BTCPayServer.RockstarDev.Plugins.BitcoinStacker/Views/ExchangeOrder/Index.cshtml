@@ -30,6 +30,15 @@
                 </a>
             </div>
         </div>
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="ExportDropdownToggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Export
+            </button>
+            <div class="dropdown-menu" aria-labelledby="ExportDropdownToggle">
+                <a asp-action="Export" asp-route-storeId="@storeId" asp-route-format="csv" class="dropdown-item export-link" target="_blank" id="ExportCSV">CSV</a>
+                <a asp-action="Export" asp-route-storeId="@storeId" asp-route-format="json" class="dropdown-item export-link" target="_blank" id="ExportJSON">JSON</a>
+            </div>
+        </div>
         <a asp-controller="ExchangeOrder" asp-action="Create" asp-route-storeId="@storeId"
            class="btn btn-primary" id="CreateExchangeOrder">Create Exchange Order</a>
     </div>

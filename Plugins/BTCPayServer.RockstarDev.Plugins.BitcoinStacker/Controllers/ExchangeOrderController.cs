@@ -1,5 +1,7 @@
 using System;
+using System.Globalization;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -295,5 +297,46 @@ public class ExchangeOrderController(
 
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Index), new { StoreId });
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> Export(string format = "csv")
+    {
+        await using var db = pluginDbContextFactory.CreateContext();
+        
+        // Get all exchange orders for this store
+        var orders = await db.ExchangeOrders
+            .Where(a => a.StoreId == StoreId)
+            .OrderByDescending(a => a.CreatedForDate)
+            .ThenByDescending(a => a.Created)
+            .ToListAsync();
+
+        var export = new ExchangeOrderExport();
+        var result = export.Process(orders, format);
+        
+        var fileType = format switch
+        {
+            "csv" => "csv",
+            "json" => "json",
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
+        
+        var mimeType = format switch
+        {
+            "csv" => "text/csv",
+            "json" => "application/json",
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
+        
+        var cd = new ContentDisposition
+        {
+            FileName = $"bitcoin-stacker-{StoreId}-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.{fileType}",
+            Inline = true
+        };
+        
+        Response.Headers.Add("Content-Disposition", cd.ToString());
+        Response.Headers.Add("X-Content-Type-Options", "nosniff");
+        
+        return Content(result, mimeType);
     }
 }
