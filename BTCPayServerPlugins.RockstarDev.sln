@@ -29,7 +29,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Plugins.Tests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.RockstarDev.Plugins.Vouchers", "Plugins\BTCPayServer.RockstarDev.Plugins.Vouchers\BTCPayServer.RockstarDev.Plugins.Vouchers.csproj", "{ED061A37-488F-429C-A291-6A5188A47443}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.RockstarDev.Plugins.VendorPay", "Plugins\BTCPayServer.RockstarDev.Plugins.VendorPay\BTCPayServer.RockstarDev.Plugins.VendorPay.csproj", "{437BFB39-5C8D-402B-A4ED-CD27604A7845}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.RockstarDev.Plugins.Payroll", "Plugins\BTCPayServer.RockstarDev.Plugins.Payroll\BTCPayServer.RockstarDev.Plugins.Payroll.csproj", "{437BFB39-5C8D-402B-A4ED-CD27604A7845}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.AdminPassReset", "Plugins\BTCPayServer.RockstarDev.Plugins.AdminPassReset\BTCPayServer.RockstarDev.Plugins.AdminPassReset.csproj", "{4E801CDD-E61D-45D1-90D7-682512E90197}"
 EndProject

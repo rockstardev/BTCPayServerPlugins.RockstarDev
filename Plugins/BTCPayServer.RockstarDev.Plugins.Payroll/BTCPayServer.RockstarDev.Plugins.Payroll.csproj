@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <LangVersion>12</LangVersion>
+        <RootNamespace>BTCPayServer.RockstarDev.Plugins.VendorPay</RootNamespace>
     </PropertyGroup>
     <!-- -->
     <!-- Plugin specific properties -->
@@ -11,7 +12,7 @@
         <Description>
             Accept invoices from various sources and easily pay them out from Bitcoin wallet. Pay all your vendors using Bitcoin.
         </Description>
-        <Version>0.7.0</Version>
+        <Version>0.7.1</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>

@@ -17,6 +17,7 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        // we keep the original database schema since we don't want to migrate it right now
         modelBuilder.HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.Payroll");
 
         PayrollInvoice.OnModelCreating(modelBuilder);

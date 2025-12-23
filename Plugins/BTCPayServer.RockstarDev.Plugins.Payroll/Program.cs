@@ -15,7 +15,7 @@ using Microsoft.Extensions.Hosting;
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // ReSharper disable once UnusedType.Global
-public class PayrollPlugin : BaseBTCPayServerPlugin
+public class VendorPayPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
