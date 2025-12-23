@@ -50,7 +50,7 @@ public class StripeController(StripeClientFactory stripeClientFactory, StripeDbC
 
         return View(model);
     }
-
+     
     [HttpGet("~/plugins/stripe/payouts")]
     public async Task<IActionResult> Payouts(string startingAfter)
     {
