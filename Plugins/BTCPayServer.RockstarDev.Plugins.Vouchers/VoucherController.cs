@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -9,6 +9,8 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
+using BTCPayServer.Data.Subscriptions;
+using BTCPayServer.Events;
 using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
 using BTCPayServer.ModelBinders;
@@ -16,6 +18,7 @@ using BTCPayServer.Models;
 using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale.Models;
+using BTCPayServer.Plugins.Subscriptions;
 using BTCPayServer.Rating;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
@@ -33,6 +36,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 public class VoucherController : Controller
 {
     private const string CURRENCY = "USD";
+    private const string APPID = "VoucherPlugin";
     private readonly AppService _appService;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
@@ -64,24 +68,34 @@ public class VoucherController : Controller
         _appService = appService;
     }
 
+    public Data.StoreData CurrentStore => HttpContext.GetStoreData();
+
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
-    public IActionResult Keypad(string storeId)
+    public async Task<IActionResult> Keypad(string storeId)
     {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var store = await _storeRepository.FindStore(CurrentStore.Id);
+        if (store == null)
+            return NotFound();
+
         var settings = new PointOfSaleSettings { Title = "Bitcoin Vouchers" };
         var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(CURRENCY);
         var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
-        //var store = new Data.StoreData();
-        //var storeBlob = new StoreBlob();
 
-        return View(new ViewPointOfSaleViewModel
+        var storeBlob = store.GetStoreBlob();
+
+
+        /*return View(new ViewPointOfSaleViewModel
         {
             Title = settings.Title,
-            //StoreName = store.StoreName,
-            //BrandColor = storeBlob.BrandColor,
-            //CssFileId = storeBlob.CssFileId,
+            StoreName = store.StoreName,
+            BrandColor = storeBlob.BrandColor,
+            CssFileId = storeBlob.CssFileId,
             //LogoFileId = storeBlob.LogoFileId,
             Step = step.ToString(CultureInfo.InvariantCulture),
             //ViewType = BTCPayServer.Plugins.PointOfSale.PosViewType.Light,
@@ -113,6 +127,43 @@ public class VoucherController : Controller
             //Description = settings.Description,
             //EmbeddedCSS = settings.EmbeddedCSS,
             //RequiresRefundEmail = settings.RequiresRefundEmail
+        });*/
+
+        return View(new ViewPointOfSaleViewModel
+        {
+            Title = settings.Title,
+            StoreName = store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, storeBlob),
+            Step = step.ToString(CultureInfo.InvariantCulture),
+            ViewType = BTCPayServer.Plugins.PointOfSale.PosViewType.Light,
+            ShowItems = settings.ShowItems,
+            ShowCustomAmount = settings.ShowCustomAmount,
+            ShowDiscount = settings.ShowDiscount,
+            ShowSearch = settings.ShowSearch,
+            ShowCategories = settings.ShowCategories,
+            EnableTips = settings.EnableTips,
+            CurrencyCode = settings.Currency,
+            CurrencySymbol = numberFormatInfo.CurrencySymbol,
+            CurrencyInfo = new ViewPointOfSaleViewModel.CurrencyInfoData
+            {
+                CurrencySymbol = string.IsNullOrEmpty(numberFormatInfo.CurrencySymbol) ? settings.Currency : numberFormatInfo.CurrencySymbol,
+                Divisibility = numberFormatInfo.CurrencyDecimalDigits,
+                DecimalSeparator = numberFormatInfo.CurrencyDecimalSeparator,
+                ThousandSeparator = numberFormatInfo.NumberGroupSeparator,
+                Prefixed = new[] { 0, 2 }.Contains(numberFormatInfo.CurrencyPositivePattern),
+                SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
+            },
+            Items = AppService.Parse(settings.Template, false),
+            ButtonText = settings.ButtonText,
+            CustomButtonText = settings.CustomButtonText,
+            CustomTipText = settings.CustomTipText,
+            CustomTipPercentages = settings.CustomTipPercentages,
+            DefaultTaxRate = settings.DefaultTaxRate,
+            // AppId = appId,
+            StoreId = store.Id,
+            HtmlLang = settings.HtmlLang,
+            HtmlMetaTags = settings.HtmlMetaTags,
+            Description = settings.Description,
         });
     }
 
@@ -331,5 +382,33 @@ public class VoucherController : Controller
             BrandColor = branding.BrandColor;
             return this;
         }
+
+
+        /*public static async Task<(string AppId, string OfferingId)> CreateVoucherApp(this AppService appService, string storeId, string name)
+        {
+            var app = new AppData()
+            {
+                Name = name,
+                AppType = SubscriptionsAppType.AppType,
+                StoreDataId = storeId
+            };
+            app.SetSettings(new SubscriptionsAppType.AppConfig());
+            await appService.UpdateOrCreateApp(app, sendEvents: false);
+
+            await using var ctx = appService.ContextFactory.CreateContext();
+            var o = new OfferingData()
+            {
+                AppId = app.Id,
+            };
+            ctx.Offerings.Add(o);
+            await ctx.SaveChangesAsync();
+            app.SetSettings(new SubscriptionsAppType.AppConfig()
+            {
+                OfferingId = o.Id
+            });
+            await appService.UpdateOrCreateApp(app, sendEvents: false);
+            appService.EventAggregator.Publish(new AppEvent.Created(app));
+            return (app.Id, o.Id);
+        }*/
     }
 }
