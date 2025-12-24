@@ -34,6 +34,10 @@ public class VoucherPluginAppType : AppBaseType
         _btcPayServerOptions = btcPayServerOptions.Value;
     }
 
+    public class AppConfig : PointOfSaleSettings
+    {
+    }
+
     public override Task<object?> GetInfo(AppData appData)
         => Task.FromResult<object?>(null);
 
