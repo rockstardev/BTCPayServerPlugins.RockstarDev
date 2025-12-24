@@ -12,7 +12,10 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
 public class VoucherPlugin : BaseBTCPayServerPlugin
 {
-    public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } = { new() { Identifier = nameof(BTCPayServer), Condition = ">=2.1.0" } };
+    public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
+    [
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
+    ];
 
     public override void Execute(IServiceCollection applicationBuilder)
     {
@@ -43,12 +46,14 @@ public class VoucherPluginAppType : AppBaseType
 
     public override Task<string> ConfigureLink(AppData app)
     {
-        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.StoreDataId }, _btcPayServerOptions.RootPath)!);
+        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.StoreDataId },
+            _btcPayServerOptions.RootPath)!);
     }
 
     public override Task<string> ViewLink(AppData app)
     {
-        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.StoreDataId }, _btcPayServerOptions.RootPath)!);
+        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.StoreDataId },
+            _btcPayServerOptions.RootPath)!);
     }
 
     public override Task SetDefaultSettings(AppData appData, string defaultCurrency)

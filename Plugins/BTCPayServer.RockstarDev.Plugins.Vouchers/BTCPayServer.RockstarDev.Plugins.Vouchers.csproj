@@ -2,14 +2,14 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>10</LangVersion>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>Vouchers</Product>
+        <Product>zzz - Vouchers</Product>
         <Description>THIS IS PRE-RELEASE ALPHA! Do NOT install unless you know what you are doing and want to test!</Description>
-        <Version>1.0.10</Version>
+        <Version>1.0.11</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
