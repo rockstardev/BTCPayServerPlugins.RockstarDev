@@ -43,12 +43,12 @@ public class VoucherPluginAppType : AppBaseType
 
     public override Task<string> ConfigureLink(AppData app)
     {
-        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.Id }, _btcPayServerOptions.RootPath)!);
+        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.StoreDataId }, _btcPayServerOptions.RootPath)!);
     }
 
     public override Task<string> ViewLink(AppData app)
     {
-        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.Id }, _btcPayServerOptions.RootPath)!);
+        return Task.FromResult(_linkGenerator.GetPathByAction(nameof(VoucherController.ListVouchers), "Voucher", new { storeId = app.StoreDataId }, _btcPayServerOptions.RootPath)!);
     }
 
     public override Task SetDefaultSettings(AppData appData, string defaultCurrency)
