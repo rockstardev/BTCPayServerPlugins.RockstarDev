@@ -280,11 +280,8 @@ public class PublicController(
             .Include(i => i.User)
             .OrderByDescending(i => i.CreatedAt)
             .FirstOrDefaultAsync(i => i.UserId == vali.UserId);
-        
-        if (createdInvoice != null)
-        {
-            await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
-        }
+
+        if (createdInvoice != null) await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
 
         TempData.SetStatusMessageModel(new StatusMessageModel
         {

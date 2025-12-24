@@ -1,8 +1,5 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.Abstractions.TagHelpers
-@using BTCPayServer.TagHelpers
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model VendorPaySettingViewModel
 @inject IScopeProvider ScopeProvider
 @{
@@ -33,24 +30,25 @@
                 <span asp-validation-for="PurchaseOrdersRequired" class="text-danger"></span>
             </div>
 
-			<div class="form-group d-flex align-items-center">
-				<input asp-for="InvoiceFiatConversionAdjustment" type="checkbox" class="btcpay-toggle me-3" data-bs-toggle="collapse" data-bs-target="#spreadInput">
-				<label asp-for="InvoiceFiatConversionAdjustment" class="form-label mb-0 me-1"></label>
-			</div>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="InvoiceFiatConversionAdjustment" type="checkbox" class="btcpay-toggle me-3" data-bs-toggle="collapse"
+                       data-bs-target="#spreadInput">
+                <label asp-for="InvoiceFiatConversionAdjustment" class="form-label mb-0 me-1"></label>
+            </div>
 
-			<div class="collapse @(Model.InvoiceFiatConversionAdjustment ? "show" : "")" id="spreadInput">
-				<div class="form-group">
-					<label asp-for="InvoiceFiatConversionAdjustmentPercentage" class="form-label"></label>
-					<div class="input-group">
-						<input inputmode="decimal" asp-for="InvoiceFiatConversionAdjustmentPercentage" class="form-control" />
-						<span class="input-group-text">%</span>
-					</div>
-					<span asp-validation-for="InvoiceFiatConversionAdjustmentPercentage" class="text-danger"></span>
+            <div class="collapse @(Model.InvoiceFiatConversionAdjustment ? "show" : "")" id="spreadInput">
+                <div class="form-group">
+                    <label asp-for="InvoiceFiatConversionAdjustmentPercentage" class="form-label"></label>
+                    <div class="input-group">
+                        <input inputmode="decimal" asp-for="InvoiceFiatConversionAdjustmentPercentage" class="form-control" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <span asp-validation-for="InvoiceFiatConversionAdjustmentPercentage" class="text-danger"></span>
                     <div class="text-secondary">
                         <span text-translate="true">Add (positive %) or reduce (negative %) to the final BTC amount after fiat conversion.</span>
                     </div>
-				</div>
-			</div>
+                </div>
+            </div>
 
             <h3>Emails</h3>
             <div class="form-group d-flex align-items-center">
@@ -123,7 +121,8 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                                first.</a>
                         </div>
                     }
                 </div>
@@ -131,9 +130,9 @@
             <div id="emailAdminUploadGroup" style="display: none;">
                 <div class="form-group">
                     <label asp-for="EmailAdminOnInvoiceUploadedAddress" class="form-label"></label>
-                    <input asp-for="EmailAdminOnInvoiceUploadedAddress" type="text" class="form-control" 
-                        placeholder="admin@example.com, admin2@example.com"
-                        autocomplete="email" />
+                    <input asp-for="EmailAdminOnInvoiceUploadedAddress" type="text" class="form-control"
+                           placeholder="admin@example.com, admin2@example.com"
+                           autocomplete="email" />
                     <small class="form-text text-muted">Comma-separated list of email addresses</small>
                     <span asp-validation-for="EmailAdminOnInvoiceUploadedAddress" class="text-danger"></span>
                 </div>
@@ -159,7 +158,8 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it first.</a>
+                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                                first.</a>
                         </div>
                     }
                 </div>
@@ -167,9 +167,9 @@
             <div id="emailAdminDeleteGroup" style="display: none;">
                 <div class="form-group">
                     <label asp-for="EmailAdminOnInvoiceDeletedAddress" class="form-label"></label>
-                    <input asp-for="EmailAdminOnInvoiceDeletedAddress" type="text" class="form-control" 
-                        placeholder="admin@example.com, admin2@example.com"
-                        autocomplete="email" />
+                    <input asp-for="EmailAdminOnInvoiceDeletedAddress" type="text" class="form-control"
+                           placeholder="admin@example.com, admin2@example.com"
+                           autocomplete="email" />
                     <small class="form-text text-muted">Comma-separated list of email addresses</small>
                     <span asp-validation-for="EmailAdminOnInvoiceDeletedAddress" class="text-danger"></span>
                 </div>

@@ -13,6 +13,7 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using MimeKit;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
@@ -45,11 +46,14 @@ public class VendorPaySettingController(
             EmailRemindersBody = settings.EmailRemindersBody ?? VendorPaySettingViewModel.Defaults.EmailRemindersBody,
             EmailAdminOnInvoiceUploaded = settings.EmailAdminOnInvoiceUploaded,
             EmailAdminOnInvoiceUploadedAddress = settings.EmailAdminOnInvoiceUploadedAddress,
-            EmailAdminOnInvoiceUploadedSubject = settings.EmailAdminOnInvoiceUploadedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceUploadedSubject,
-            EmailAdminOnInvoiceUploadedBody = settings.EmailAdminOnInvoiceUploadedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceUploadedBody,
+            EmailAdminOnInvoiceUploadedSubject =
+                settings.EmailAdminOnInvoiceUploadedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceUploadedSubject,
+            EmailAdminOnInvoiceUploadedBody =
+                settings.EmailAdminOnInvoiceUploadedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceUploadedBody,
             EmailAdminOnInvoiceDeleted = settings.EmailAdminOnInvoiceDeleted,
             EmailAdminOnInvoiceDeletedAddress = settings.EmailAdminOnInvoiceDeletedAddress,
-            EmailAdminOnInvoiceDeletedSubject = settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
+            EmailAdminOnInvoiceDeletedSubject =
+                settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
             EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody
         };
 
@@ -71,21 +75,18 @@ public class VendorPaySettingController(
 
         if (model.EmailAdminOnInvoiceUploaded && string.IsNullOrEmpty(model.EmailAdminOnInvoiceUploadedAddress))
             ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceUploadedAddress), "Admin email address is required when notifications are enabled");
-        
+
         if (model.EmailAdminOnInvoiceUploaded && !string.IsNullOrEmpty(model.EmailAdminOnInvoiceUploadedAddress))
-        {
             if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceUploadedAddress))
-                ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceUploadedAddress), "Invalid email address format. Use comma-separated email addresses.");
-        }
+                ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceUploadedAddress),
+                    "Invalid email address format. Use comma-separated email addresses.");
 
         if (model.EmailAdminOnInvoiceDeleted && string.IsNullOrEmpty(model.EmailAdminOnInvoiceDeletedAddress))
             ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Admin email address is required when notifications are enabled");
-        
+
         if (model.EmailAdminOnInvoiceDeleted && !string.IsNullOrEmpty(model.EmailAdminOnInvoiceDeletedAddress))
-        {
             if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceDeletedAddress))
                 ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Invalid email address format. Use comma-separated email addresses.");
-        }
 
         if (!ModelState.IsValid)
         {
@@ -145,6 +146,6 @@ public class VendorPaySettingController(
             return false;
 
         // Validate each email address using MimeKit's InternetAddress.TryParse
-        return emails.All(email => MimeKit.InternetAddress.TryParse(email, out _));
+        return emails.All(email => InternetAddress.TryParse(email, out _));
     }
 }

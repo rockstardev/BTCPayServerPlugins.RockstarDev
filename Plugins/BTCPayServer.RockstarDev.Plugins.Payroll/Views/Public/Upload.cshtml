@@ -1,12 +1,12 @@
 @model PublicVendorPayInvoiceUploadViewModel
 @{
-	Layout = "Views/Public/_VendorPayPublicLayout";
+    Layout = "Views/Public/_VendorPayPublicLayout";
     ViewData["Title"] = "Upload Invoice";
 }
 
 <div id="FormView" class="public-page-wrap" style="--wrap-max-width: 576px;">
     <div class="d-flex flex-column justify-content-center gap-4">
-		<form method="post" asp-action="Upload" enctype="multipart/form-data" class="preventdoubleclick">
+        <form method="post" asp-action="Upload" enctype="multipart/form-data" class="preventdoubleclick">
             <partial name="_StatusMessage" />
 
             <div class="row">
@@ -74,5 +74,5 @@
 </div>
 
 @section PageFootContent {
-	<script src="~/Resources/js/disable_double_click.js"></script>
+    <script src="~/Resources/js/disable_double_click.js"></script>
 }

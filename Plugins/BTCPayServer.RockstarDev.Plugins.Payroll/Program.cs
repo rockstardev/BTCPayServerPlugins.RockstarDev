@@ -6,6 +6,7 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
+using BTCPayServer.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,8 +31,8 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
         serviceCollection.AddAuthorization(options =>
         {
-            options.AddPolicy(VendorPayPolicies.CanManageVendorPay, 
-                policy => policy.AddRequirements(new BTCPayServer.Security.PolicyRequirement(VendorPayPolicies.CanManageVendorPay)));
+            options.AddPolicy(VendorPayPolicies.CanManageVendorPay,
+                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPolicies.CanManageVendorPay)));
         });
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();

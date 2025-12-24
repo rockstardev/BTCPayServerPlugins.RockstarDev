@@ -1,8 +1,6 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
-@using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Security
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
@@ -10,7 +8,7 @@
 @if (!string.IsNullOrEmpty(storeId))
 {
     <li class="nav-item">
-		<a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="nav-link @ViewData.ActivePageClass("VendorPay")"
+        <a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="nav-link @ViewData.ActivePageClass("VendorPay")"
            permission="@VendorPayPolicies.CanManageVendorPay">
 
             <svg class="icon" role="img" viewBox="0 0 122.88 102.3">

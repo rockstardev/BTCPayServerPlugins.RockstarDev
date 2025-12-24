@@ -33,7 +33,7 @@ public class ExchangeOrderHeartbeatService(
 
     public async Task Do(CancellationToken cancellationToken)
     {
-        if (cancellationToken.IsCancellationRequested) 
+        if (cancellationToken.IsCancellationRequested)
             return;
 
         if (_isItFirstRun)
@@ -47,22 +47,18 @@ public class ExchangeOrderHeartbeatService(
         {
             await using var db = strikeDbContextFactory.CreateContext();
             stores = await db.Settings.Where(a => a.Key == nameof(DbSettingKeys.ExchangeOrderSettings))
-                .ToListAsync(cancellationToken: cancellationToken);
+                .ToListAsync(cancellationToken);
         }
         catch (Exception ex)
         {
             Logs.PayServer.LogError(ex, $"{GetType().Name}: Error fetching stores in Do method. Service will not process any stores in this cycle.");
-            return; 
+            return;
         }
 
         foreach (var store in stores)
-        {
             try
             {
-                if (!_lastRunForStore.TryGetValue(store.StoreId, out var lastRun))
-                {
-                    lastRun = DateTimeOffset.MinValue;
-                }
+                if (!_lastRunForStore.TryGetValue(store.StoreId, out var lastRun)) lastRun = DateTimeOffset.MinValue;
 
                 var setting = SettingsViewModel.FromDbSettings(store);
                 if (!setting.AutoEnabled)
@@ -70,7 +66,7 @@ public class ExchangeOrderHeartbeatService(
 
                 var nextRunTime = lastRun.AddMinutes(setting.MinutesHeartbeatInterval);
                 var currentTime = DateTimeOffset.UtcNow;
-                
+
                 if (nextRunTime < currentTime)
                 {
                     _lastRunForStore[store.StoreId] = currentTime;
@@ -79,9 +75,9 @@ public class ExchangeOrderHeartbeatService(
             }
             catch (Exception ex)
             {
-                Logs.PayServer.LogError(ex, $"{GetType().Name}: Error processing store {store?.StoreId} in Do method's inner try-catch. Skipping this store for this cycle.");
+                Logs.PayServer.LogError(ex,
+                    $"{GetType().Name}: Error processing store {store?.StoreId} in Do method's inner try-catch. Skipping this store for this cycle.");
             }
-        }
     }
 
     protected override void SubscribeToEvents()
@@ -120,7 +116,7 @@ public class ExchangeOrderHeartbeatService(
                     lastOrder?.CreatedForDate ?? (settings.StartDateExchangeOrders ?? DateTimeOffset.UtcNow);
                 if (settings.StartDateExchangeOrders > dateToFetch)
                     dateToFetch = settings.StartDateExchangeOrders.Value;
-                
+
                 using var scope = serviceScopeFactory.CreateScope();
                 var stripeClientFactory = scope.ServiceProvider.GetRequiredService<StripeClientFactory>();
                 var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);

@@ -139,10 +139,10 @@ public class EmailService(
         try
         {
             var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-            if (settings?.EmailAdminOnInvoiceUploaded != true || 
+            if (settings?.EmailAdminOnInvoiceUploaded != true ||
                 string.IsNullOrWhiteSpace(settings.EmailAdminOnInvoiceUploadedAddress))
                 return;
-            
+
             var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
             if (emailSettings?.IsComplete() != true)
                 return;
@@ -152,7 +152,7 @@ public class EmailService(
             {
                 await using var ctx = pluginDbContextFactory.CreateContext();
                 invoice.User = await ctx.PayrollUsers.FindAsync(invoice.UserId);
-            
+
                 if (invoice.User == null)
                 {
                     logs.PayServer.LogWarning($"Could not find user {invoice.UserId} for invoice {invoice.Id} notification");
@@ -198,7 +198,7 @@ public class EmailService(
         try
         {
             var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-            if (settings?.EmailAdminOnInvoiceDeleted != true || 
+            if (settings?.EmailAdminOnInvoiceDeleted != true ||
                 string.IsNullOrWhiteSpace(settings.EmailAdminOnInvoiceDeletedAddress))
                 return;
 
@@ -238,6 +238,7 @@ public class EmailService(
             logs.PayServer.LogError(ex, $"Error sending admin notification for invoice deletion {invoice.Id}");
         }
     }
+
     public class EmailRecipient
     {
         public InternetAddress Address { get; set; }

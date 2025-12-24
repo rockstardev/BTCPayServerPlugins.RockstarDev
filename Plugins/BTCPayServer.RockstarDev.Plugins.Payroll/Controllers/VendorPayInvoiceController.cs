@@ -53,7 +53,7 @@ public class VendorPayInvoiceController(
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.Trim().ToLower();
-            query = query.Where(p => 
+            query = query.Where(p =>
                 p.Destination.ToLower().Contains(search) ||
                 (p.PurchaseOrder != null && p.PurchaseOrder.ToLower().Contains(search)) ||
                 (p.Description != null && p.Description.ToLower().Contains(search)) ||
@@ -205,7 +205,7 @@ public class VendorPayInvoiceController(
                 var adjustedRate = rate.BidAsk.Bid;
                 if (settings?.InvoiceFiatConversionAdjustment == true)
                     adjustedRate = ApplyAdjustment(adjustedRate, settings.InvoiceFiatConversionAdjustmentPercentage);
-                
+
                 rates.Add(currency, adjustedRate);
             }
 
@@ -214,7 +214,7 @@ public class VendorPayInvoiceController(
         foreach (var invoice in invoices)
         {
             var rate = rates[invoice.Currency];
-            
+
             var satsAmount = Math.Ceiling(invoice.Amount * rate * 100_000_000);
             var amountInBtc = satsAmount / 100_000_000;
 
@@ -232,14 +232,18 @@ public class VendorPayInvoiceController(
         var strRates = string.Join(", ", rates.Select(a => $"BTC/{a.Key}:{Math.Ceiling(100 / a.Value) / 100}"));
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Info, Message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
+            Severity = StatusMessageModel.StatusSeverity.Info,
+            Message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
         });
 
         return new RedirectToActionResult("WalletSend", "UIWallets",
             new { walletId = new WalletId(CurrentStore.Id, VendorPayPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 
-    private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent) => originalAmount * (1 + (decimal)adjustmentPercent / 100m);
+    private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent)
+    {
+        return originalAmount * (1 + (decimal)adjustmentPercent / 100m);
+    }
 
     [HttpGet("upload")]
     public async Task<IActionResult> Upload(string storeId)

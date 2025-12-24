@@ -16,8 +16,8 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-			<a asp-controller="VendorPayUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-			<a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
+            <a asp-controller="VendorPayUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
+            <a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
         </div>
     </div>
 
@@ -84,7 +84,8 @@
                                         @if (pp.State == VendorPayUserState.Pending)
                                         {
                                             <li>
-                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="ResendInvitation" asp-route-storeId="@storeId"
+                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="ResendInvitation"
+                                                   asp-route-storeId="@storeId"
                                                    asp-route-userId="@pp.Id">Resend Invitation</a>
                                             </li>
                                         }
@@ -105,7 +106,8 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="DownloadInvoices" asp-route-storeId="@storeId"
+                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="DownloadInvoices"
+                                                   asp-route-storeId="@storeId"
                                                    asp-route-userId="@pp.Id">Download all invoices</a>
                                             </li>
                                         }

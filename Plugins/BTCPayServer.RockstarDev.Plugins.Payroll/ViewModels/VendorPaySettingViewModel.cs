@@ -12,6 +12,7 @@ public class VendorPaySettingViewModel
 
     [Display(Name = "Invoice fiat conversion adjustment")]
     public bool InvoiceFiatConversionAdjustment { get; set; }
+
     [Display(Name = "Invoice fiat conversion adjustment percentage")]
     public double InvoiceFiatConversionAdjustmentPercentage { get; set; }
 
@@ -28,8 +29,8 @@ public class VendorPaySettingViewModel
 
     public string EmailRemindersSubject { get; set; }
     public string EmailRemindersBody { get; set; }
-    
-    
+
+
     //
     [Display(Name = "Email admin when invoice is uploaded")]
     public bool EmailAdminOnInvoiceUploaded { get; set; }

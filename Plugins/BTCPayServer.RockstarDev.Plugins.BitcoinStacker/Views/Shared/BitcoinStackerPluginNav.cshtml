@@ -1,7 +1,6 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Client
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
@@ -26,7 +25,7 @@
             <span>Bitcoin Stacker</span>
         </a>
     </li>
-    
+
     @if (isActive)
     {
         <li class="nav-item nav-item-sub">

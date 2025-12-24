@@ -68,7 +68,7 @@ Thank you,
             All = all,
             Pending = pending,
             DisplayedVendorPayUsers = vendorPayUsers,
-            Counts = new VendorPayUserListViewModel.CountsData()
+            Counts = new VendorPayUserListViewModel.CountsData
             {
                 Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
                 Pending = allStoreUsers.Count(a => a.State == VendorPayUserState.Pending),

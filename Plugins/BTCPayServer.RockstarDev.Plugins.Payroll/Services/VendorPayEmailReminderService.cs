@@ -28,7 +28,7 @@ public class VendorPayEmailReminderService(
 
             foreach (var storeId in stores)
             {
-                if (await emailService.IsEmailSettingsConfigured(storeId) == false)
+                if (!await emailService.IsEmailSettingsConfigured(storeId))
                     continue;
 
                 var settings = await db.GetSettingAsync(storeId);

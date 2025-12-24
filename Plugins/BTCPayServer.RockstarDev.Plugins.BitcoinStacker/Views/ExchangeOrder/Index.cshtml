@@ -1,7 +1,6 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IndexViewModel
 @inject IScopeProvider ScopeProvider
 @{
@@ -31,11 +30,13 @@
             </div>
         </div>
         <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="ExportDropdownToggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="ExportDropdownToggle" data-bs-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">
                 Export
             </button>
             <div class="dropdown-menu" aria-labelledby="ExportDropdownToggle">
-                <a asp-action="Export" asp-route-storeId="@storeId" asp-route-format="csv" class="dropdown-item export-link" target="_blank" id="ExportCSV">CSV</a>
+                <a asp-action="Export" asp-route-storeId="@storeId" asp-route-format="csv" class="dropdown-item export-link" target="_blank"
+                   id="ExportCSV">CSV</a>
                 <a asp-action="Export" asp-route-storeId="@storeId" asp-route-format="json" class="dropdown-item export-link" target="_blank" id="ExportJSON">JSON</a>
             </div>
         </div>
@@ -51,7 +52,7 @@
     <div>Balances on Strike: <b>@Model.BTCBalance</b> BTC | <b>@Model.USDBalance</b> USD</div>
     @if (!string.IsNullOrEmpty(Model.StackerProfitUSD))
     {
-        <div> 
+        <div>
             Total Stacker Purchases: <b>@Model.StackerTotalUsdCost</b> USD |
             Bitcoin Stacked: <b>@Model.StackerTotalBitcoin</b> BTC |
             Profit: <b>@Model.StackerProfitUSD</b>

@@ -10,15 +10,16 @@ public class VendorPayUserListViewModel
     public List<PayrollUser> DisplayedVendorPayUsers { get; set; }
 
     public CountsData Counts { get; set; }
+
+    public bool Pending { get; set; }
+    public bool All { get; set; }
+
     public class CountsData
     {
         public int Active { get; set; }
         public int Pending { get; set; }
         public int Total { get; set; }
     }
-
-    public bool Pending { get; set; }
-    public bool All { get; set; }
 }
 
 public class VendorPayUserCreateViewModel

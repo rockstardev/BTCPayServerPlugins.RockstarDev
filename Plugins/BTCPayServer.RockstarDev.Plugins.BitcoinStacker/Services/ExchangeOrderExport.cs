@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Data.Models;
+using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
 using Newtonsoft.Json;
@@ -47,7 +48,7 @@ public class ExchangeOrderExport
     private static string ProcessCsv(IEnumerable<ExportExchangeOrder> orders)
     {
         using StringWriter writer = new();
-        using var csvWriter = new CsvHelper.CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture), true);
+        using var csvWriter = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture), true);
         csvWriter.Context.RegisterClassMap<ExportExchangeOrderMap>();
         csvWriter.WriteHeader<ExportExchangeOrder>();
         csvWriter.NextRecord();
@@ -69,32 +70,32 @@ public class ExportExchangeOrder
 {
     [Name("Order Id")]
     public string Id { get; set; } = string.Empty;
-    
+
     public string Operation { get; set; } = string.Empty;
-    
+
     [Name("Amount (USD)")]
     public decimal Amount { get; set; }
-    
+
     [Name("Created")]
     public DateTimeOffset Created { get; set; }
-    
+
     [Name("Created By")]
     public string CreatedBy { get; set; } = string.Empty;
-    
+
     [Name("Created For Date")]
     public DateTimeOffset? CreatedForDate { get; set; }
-    
+
     public string State { get; set; } = string.Empty;
-    
+
     [Name("Target Amount (BTC)")]
     public decimal? TargetAmount { get; set; }
-    
+
     [Name("Conversion Rate")]
     public decimal? ConversionRate { get; set; }
-    
+
     [Name("Deposit Id")]
     public string? DepositId { get; set; }
-    
+
     [Name("Delay Until")]
     public DateTimeOffset? DelayUntil { get; set; }
 }

@@ -12,8 +12,8 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirement>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly StoreRepository _storeRepository;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public VendorPayAuthorizationHandler(
         IHttpContextAccessor httpContextAccessor,
@@ -67,11 +67,8 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
 
         // Check if user has the custom VendorPay permission (for future use)
         var storeRole = store.GetStoreRoleOfUser(user.Id);
-        if (storeRole?.Permissions != null && 
+        if (storeRole?.Permissions != null &&
             storeRole.Permissions.Contains(VendorPayPolicies.CanManageVendorPay))
-        {
             context.Succeed(requirement);
-            return;
-        }
     }
 }

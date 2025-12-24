@@ -38,12 +38,12 @@ public class ExchangeOrderController(
         int count = 100)
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        
+
         // Get total count for pagination
         var totalCount = await db.ExchangeOrders
             .Where(a => a.StoreId == StoreId)
             .CountAsync();
-        
+
         // Get paginated list
         var list = await db.ExchangeOrders
             .Where(a => a.StoreId == StoreId)
@@ -52,9 +52,9 @@ public class ExchangeOrderController(
             .Skip(skip)
             .Take(count)
             .ToListAsync();
-        
-        var viewModel = new IndexViewModel 
-        { 
+
+        var viewModel = new IndexViewModel
+        {
             List = list,
             Skip = skip,
             Count = count,
@@ -84,12 +84,12 @@ public class ExchangeOrderController(
                 var profitsSource = db.ExchangeOrders
                     .Where(a => a.StoreId == StoreId)
                     .Where(a => a.TargetAmount.HasValue);
-                
+
                 var totalCost = profitsSource.Sum(a => a.Amount);
                 var totalBitcoin = profitsSource.Sum(a => a.TargetAmount) ?? 0;
 
                 var totalBitcoinInUsd = totalBitcoin * exchangeRate.Value;
-                
+
                 viewModel.StackerTotalUsdCost = totalCost.ToString("N2");
                 viewModel.StackerTotalBitcoin = totalBitcoin.ToString("N2");
                 viewModel.StackerProfitUSD = (totalBitcoinInUsd - totalCost).ToString("N2");
@@ -303,7 +303,7 @@ public class ExchangeOrderController(
     public async Task<IActionResult> Export(string format = "csv")
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        
+
         // Get all exchange orders for this store
         var orders = await db.ExchangeOrders
             .Where(a => a.StoreId == StoreId)
@@ -313,30 +313,29 @@ public class ExchangeOrderController(
 
         var export = new ExchangeOrderExport();
         var result = export.Process(orders, format);
-        
+
         var fileType = format switch
         {
             "csv" => "csv",
             "json" => "json",
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
         };
-        
+
         var mimeType = format switch
         {
             "csv" => "text/csv",
             "json" => "application/json",
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
         };
-        
+
         var cd = new ContentDisposition
         {
-            FileName = $"bitcoin-stacker-{StoreId}-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.{fileType}",
-            Inline = true
+            FileName = $"bitcoin-stacker-{StoreId}-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.{fileType}", Inline = true
         };
-        
+
         Response.Headers.Add("Content-Disposition", cd.ToString());
         Response.Headers.Add("X-Content-Type-Options", "nosniff");
-        
+
         return Content(result, mimeType);
     }
 }
