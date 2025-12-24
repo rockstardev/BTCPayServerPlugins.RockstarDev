@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -15,6 +15,7 @@ using BTCPayServer.ModelBinders;
 using BTCPayServer.Models;
 using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payouts;
+using BTCPayServer.Plugins.PointOfSale;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
 using BTCPayServer.Services;
@@ -33,6 +34,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 public class VoucherController : Controller
 {
     private const string CURRENCY = "USD";
+    private const string APPID = "VoucherPlugin";
     private readonly AppService _appService;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
@@ -64,33 +66,54 @@ public class VoucherController : Controller
         _appService = appService;
     }
 
+    public StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
-    public IActionResult Keypad(string storeId)
+    public async Task<IActionResult> Keypad(string storeId)
     {
-        var settings = new PointOfSaleSettings { Title = "Bitcoin Vouchers" };
-        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(CURRENCY);
-        var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
-        //var store = new Data.StoreData();
-        //var storeBlob = new StoreBlob();
+        if (CurrentStore == null)
+            return NotFound();
 
+        var store = await _storeRepository.FindStore(CurrentStore.Id);
+        if (store == null)
+            return NotFound();
+
+        var pm = PayoutMethodId.Parse("BTC-LN");
+        var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
+        if (!paymentMethods.Any() || !paymentMethods.TryGetValue(pm, out var handler) || handler == null)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = "You must enable Lightning payouts before creating a voucher.",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
+        }
+
+        var app = await GetVoucherAppData();
+        if (app == null)
+            return NotFound();
+
+        var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
+        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(settings.Currency);
+        var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
+        var storeBlob = store.GetStoreBlob();
         return View(new ViewPointOfSaleViewModel
         {
             Title = settings.Title,
-            //StoreName = store.StoreName,
-            //BrandColor = storeBlob.BrandColor,
-            //CssFileId = storeBlob.CssFileId,
-            //LogoFileId = storeBlob.LogoFileId,
+            StoreName = store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, storeBlob),
             Step = step.ToString(CultureInfo.InvariantCulture),
-            //ViewType = BTCPayServer.Plugins.PointOfSale.PosViewType.Light,
-            //ShowCustomAmount = settings.ShowCustomAmount,
-            //ShowDiscount = settings.ShowDiscount,
-            //ShowSearch = settings.ShowSearch,
-            //ShowCategories = settings.ShowCategories,
-            //EnableTips = settings.EnableTips,
-            CurrencyCode = CURRENCY,
+            ViewType = PosViewType.Light,
+            ShowItems = settings.ShowItems,
+            ShowCustomAmount = settings.ShowCustomAmount,
+            ShowDiscount = settings.ShowDiscount,
+            ShowSearch = settings.ShowSearch,
+            ShowCategories = settings.ShowCategories,
+            EnableTips = settings.EnableTips,
+            CurrencyCode = settings.Currency,
             CurrencySymbol = numberFormatInfo.CurrencySymbol,
             CurrencyInfo = new ViewPointOfSaleViewModel.CurrencyInfoData
             {
@@ -102,17 +125,16 @@ public class VoucherController : Controller
                 SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
             },
             Items = AppService.Parse(settings.Template, false),
-            //ButtonText = settings.ButtonText,
-            //CustomButtonText = settings.CustomButtonText,
-            //CustomTipText = settings.CustomTipText,
-            //CustomTipPercentages = settings.CustomTipPercentages,
-            //CustomCSSLink = settings.CustomCSSLink,
-            //CustomLogoLink = storeBlob.CustomLogo,
-            //AppId = "vouchers",
-            StoreId = storeId
-            //Description = settings.Description,
-            //EmbeddedCSS = settings.EmbeddedCSS,
-            //RequiresRefundEmail = settings.RequiresRefundEmail
+            ButtonText = settings.ButtonText,
+            CustomButtonText = settings.CustomButtonText,
+            CustomTipText = settings.CustomTipText,
+            CustomTipPercentages = settings.CustomTipPercentages,
+            DefaultTaxRate = settings.DefaultTaxRate,
+            AppId = app.Id,
+            StoreId = store.Id,
+            HtmlLang = settings.HtmlLang,
+            HtmlMetaTags = settings.HtmlMetaTags,
+            Description = settings.Description,
         });
     }
 
@@ -131,11 +153,6 @@ public class VoucherController : Controller
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
-        //this.TempData.SetStatusMessageModel(new StatusMessageModel()
-        //{
-        //    Message = "Pull payment request created",
-        //    Severity = StatusMessageModel.StatusSeverity.Success
-        //});
         return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res });
     }
 
@@ -177,6 +194,7 @@ public class VoucherController : Controller
     public async Task<IActionResult> ListVouchers(string storeId)
     {
         var now = DateTimeOffset.UtcNow;
+        await GetVoucherAppData();
         await using var ctx = _dbContextFactory.CreateContext();
         var ppsQuery = await ctx.PullPayments
             .Include(data => data.Payouts)
@@ -235,7 +253,6 @@ public class VoucherController : Controller
         if (!paymentMethods.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "You must enable at least one payment method before creating a voucher.";
-
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
 
@@ -245,11 +262,12 @@ public class VoucherController : Controller
             return View();
         }
 
+        var app = await GetVoucherAppData();
+        var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
         var store = HttpContext.GetStoreData();
         var storeBlob = store.GetStoreBlob();
-        var currency = CURRENCY;
 
-        var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, "BTC"),
+        var rate = await _rateFetcher.FetchRate(new CurrencyPair(settings.Currency, "BTC"),
             storeBlob.GetRateRules(_defaultRulesCollection), new StoreIdRateContext(storeId), CancellationToken.None);
         if (rate.BidAsk == null)
         {
@@ -260,7 +278,7 @@ public class VoucherController : Controller
         var description = string.Empty;
         var satsAmount = Math.Floor(amount * rate.BidAsk.Bid * 100_000_000);
         var amountInBtc = satsAmount / 100_000_000;
-        if (currency != "BTC") description = $"{amount} {currency} voucher redeemable for {amountInBtc} BTC";
+        if (settings.Currency != "BTC") description = $"{amount} {settings.Currency} voucher redeemable for {amountInBtc} BTC";
 
         var pp = await _pullPaymentHostedService.CreatePullPayment(store, new()
         {
@@ -307,6 +325,40 @@ public class VoucherController : Controller
         }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
 
+    public async Task CreateVoucherAppData(string storeId)
+    {
+        string defaultCurrency = (await _storeRepository.FindStore(storeId)).GetStoreBlob().DefaultCurrency;
+        var settings = new VoucherPluginAppType.AppConfig
+        {
+            Currency = defaultCurrency.Trim().ToUpperInvariant(),
+            Title = "Bitcoin Vouchers",
+            CustomButtonText = "Buy Voucher",
+            ShowCustomAmount = true,
+            ShowCategories = true,
+            DefaultView = PosViewType.Light,
+            DefaultTaxRate = 0
+        };
+        var app = new AppData()
+        {
+            Name = VoucherPluginAppType.AppType,
+            AppType = VoucherPluginAppType.AppType,
+            StoreDataId = storeId
+        };
+        app.SetSettings(settings);
+        await _appService.UpdateOrCreateApp(app, sendEvents: false);
+    }
+
+    public async Task<AppData> GetVoucherAppData()
+    {
+        var apps = await _appService.GetApps(VoucherPluginAppType.AppType);
+        var app = apps.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
+        if (app != null)
+            return app;
+
+        await CreateVoucherAppData(CurrentStore.Id);
+        apps = await _appService.GetApps(VoucherPluginAppType.AppType);
+        return apps.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
+    }
 
     public class VoucherViewModel
     {
