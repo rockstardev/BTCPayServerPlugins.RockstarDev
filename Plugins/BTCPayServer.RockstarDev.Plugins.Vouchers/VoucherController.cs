@@ -17,7 +17,6 @@ using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale;
 using BTCPayServer.Plugins.PointOfSale.Models;
-using BTCPayServer.Plugins.Subscriptions;
 using BTCPayServer.Rating;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
@@ -67,15 +66,13 @@ public class VoucherController : Controller
         _appService = appService;
     }
 
-    public Data.StoreData CurrentStore => HttpContext.GetStoreData();
-
+    public StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     [XFrameOptions(XFrameOptionsAttribute.XFrameOptions.Unset)]
     public async Task<IActionResult> Keypad(string storeId)
     {
-
         if (CurrentStore == null)
             return NotFound();
 
@@ -83,17 +80,24 @@ public class VoucherController : Controller
         if (store == null)
             return NotFound();
 
-        var app = await GetVoucherAppData();
-        if (app == null)
+        var pm = PayoutMethodId.Parse("BTC-LN");
+        var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
+        if (!paymentMethods.Any() || !paymentMethods.TryGetValue(pm, out var handler) || handler == null)
         {
-            await CreateVoucherAppData(CurrentStore.Id);
-            app = await GetVoucherAppData();
-            if (app == null)
-                return NotFound();
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = "You must enable Lightning payouts before creating a voucher.",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
 
+        var app = await GetVoucherAppData();
+        if (app == null)
+            return NotFound();
+
         var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
-        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(CURRENCY);
+        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(settings.Currency);
         var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
         var storeBlob = store.GetStoreBlob();
         return View(new ViewPointOfSaleViewModel
@@ -149,11 +153,6 @@ public class VoucherController : Controller
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
-        //this.TempData.SetStatusMessageModel(new StatusMessageModel()
-        //{
-        //    Message = "Pull payment request created",
-        //    Severity = StatusMessageModel.StatusSeverity.Success
-        //});
         return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res });
     }
 
@@ -195,6 +194,7 @@ public class VoucherController : Controller
     public async Task<IActionResult> ListVouchers(string storeId)
     {
         var now = DateTimeOffset.UtcNow;
+        await GetVoucherAppData();
         await using var ctx = _dbContextFactory.CreateContext();
         var ppsQuery = await ctx.PullPayments
             .Include(data => data.Payouts)
@@ -253,7 +253,6 @@ public class VoucherController : Controller
         if (!paymentMethods.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "You must enable at least one payment method before creating a voucher.";
-
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
 
@@ -263,11 +262,12 @@ public class VoucherController : Controller
             return View();
         }
 
+        var app = await GetVoucherAppData();
+        var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
         var store = HttpContext.GetStoreData();
         var storeBlob = store.GetStoreBlob();
-        var currency = CURRENCY;
 
-        var rate = await _rateFetcher.FetchRate(new CurrencyPair(currency, "BTC"),
+        var rate = await _rateFetcher.FetchRate(new CurrencyPair(settings.Currency, "BTC"),
             storeBlob.GetRateRules(_defaultRulesCollection), new StoreIdRateContext(storeId), CancellationToken.None);
         if (rate.BidAsk == null)
         {
@@ -278,7 +278,7 @@ public class VoucherController : Controller
         var description = string.Empty;
         var satsAmount = Math.Floor(amount * rate.BidAsk.Bid * 100_000_000);
         var amountInBtc = satsAmount / 100_000_000;
-        if (currency != "BTC") description = $"{amount} {currency} voucher redeemable for {amountInBtc} BTC";
+        if (settings.Currency != "BTC") description = $"{amount} {settings.Currency} voucher redeemable for {amountInBtc} BTC";
 
         var pp = await _pullPaymentHostedService.CreatePullPayment(store, new()
         {
@@ -350,8 +350,14 @@ public class VoucherController : Controller
 
     public async Task<AppData> GetVoucherAppData()
     {
-        var app = await _appService.GetApps(VoucherPluginAppType.AppType);
-        return app.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
+        var apps = await _appService.GetApps(VoucherPluginAppType.AppType);
+        var app = apps.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
+        if (app != null)
+            return app;
+
+        await CreateVoucherAppData(CurrentStore.Id);
+        apps = await _appService.GetApps(VoucherPluginAppType.AppType);
+        return apps.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
     }
 
     public class VoucherViewModel
