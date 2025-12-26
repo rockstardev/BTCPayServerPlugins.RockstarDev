@@ -1,16 +1,6 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using BTCPayServer.Client.Models;
-using BTCPayServer.Plugins.Tests;
-using BTCPayServer.Services.Invoices;
 using BTCPayServer.Tests;
-using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
-using NBitcoin;
-using BTCPayServer;
-using BTCPayServer.Abstractions.Models;
 
 namespace BTCPayServer.Plugins.Tests;
 

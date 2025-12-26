@@ -28,6 +28,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
     public string Password { get; private set; }
     public string StoreId { get; private set; }
     public bool IsAdmin { get; private set; }
+
     public static bool IsRunningInCI =>
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
@@ -72,7 +73,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
             SlowMo = IsRunningInCI ? 100 : 50 // Delay to improve stability
         };
         if (serverTester.PayTester.InContainer)
-        {
             launchOptions.Args = new List<string>
             {
                 "--disable-dev-shm-usage",
@@ -80,7 +80,6 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
                 "--disable-setuid-sandbox",
                 "--disable-gpu"
             };
-        }
         Browser = await Playwright.Chromium.LaunchAsync(launchOptions);
 
         var context = await Browser.NewContextAsync();

@@ -1,7 +1,5 @@
-using System.Linq;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
-using BTCPayServer.Services.Invoices;
 using BTCPayServer.Tests;
 using Microsoft.Playwright;
 using Xunit;
@@ -32,8 +30,8 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
-        await GoToUrl($"/login");
+        await user.MakeAdmin();
+        await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/stores/{user.StoreId}/markpaid/method/CASH");
         var checkboxSelector = "input#Enabled";
@@ -55,7 +53,7 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/stores/{user.StoreId}/markpaid/method/CASH");
@@ -70,14 +68,14 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
         Assert.True(await checkBox.IsCheckedAsync());
-        
+
         // Create invoice and verify initial state
         var invoiceId = await CreateInvoice(user.StoreId, 0.001m, "BTC", "a@x.com");
         var invoice = await ServerTester.PayTester.InvoiceRepository.GetInvoice(invoiceId);
         Assert.Equal(InvoiceStatus.New, invoice.Status);
         var initialPayments = invoice.GetPayments(false);
         Assert.Empty(initialPayments);
-        
+
         // Navigate to checkout
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         await Page.WaitForSelectorAsync("iframe[name='btcpay']");
@@ -86,17 +84,17 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         var frame = await frameElement.ContentFrameAsync();
         Assert.NotNull(frame);
         await frame.WaitForSelectorAsync("#Checkout");
-        
+
         // Select CASH payment method if not already selected
-        var cashPaymentMethod = frame.Locator(".payment-method").Filter(new() { HasText = "CASH" });
+        var cashPaymentMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "CASH" });
         if (await cashPaymentMethod.CountAsync() > 0)
         {
             await cashPaymentMethod.ClickAsync();
             await Task.Delay(500); // Wait for component to render
         }
-        
+
         // Click Mark Settled button and wait for page reload
-        await frame.GetByRole(AriaRole.Link, new() { Name = "Mark Settled" }).ClickAsync();
+        await frame.GetByRole(AriaRole.Link, new FrameGetByRoleOptions { Name = "Mark Settled" }).ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Re-acquire the checkout frame after reload
@@ -136,8 +134,8 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
-        await GoToUrl($"/login");
+        await user.MakeAdmin();
+        await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/stores/{user.StoreId}/markpaid/method/CASH");
         var checkboxSelector = "input#Enabled";

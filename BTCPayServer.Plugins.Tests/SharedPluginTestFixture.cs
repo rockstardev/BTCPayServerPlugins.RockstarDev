@@ -1,6 +1,4 @@
 using BTCPayServer.Tests;
-using System;
-using System.IO;
 using Xunit;
 
 namespace BTCPayServer.Plugins.Tests;
@@ -10,13 +8,14 @@ public class ConfigurablePluginTestFixture : IDisposable
 {
     private readonly string _testDirName;
     private readonly bool _useNewDb;
-    public ServerTester ServerTester { get; private set; }
 
     public ConfigurablePluginTestFixture(string testDirName = "SharedPluginTests", bool useNewDb = true)
     {
         _testDirName = testDirName;
         _useNewDb = useNewDb;
     }
+
+    public ServerTester ServerTester { get; private set; }
 
     public void Dispose()
     {
@@ -31,7 +30,7 @@ public class ConfigurablePluginTestFixture : IDisposable
             // Set fast sweep interval for all tests (1 second)
             // This is safe because the sweeper only processes enabled configurations
             Environment.SetEnvironmentVariable("BTCPAY_WALLETSWEEPER_INTERVAL", "1");
-            
+
             var testDir = Path.Combine(Directory.GetCurrentDirectory(), _testDirName);
             ServerTester = testInstance.CreateServerTester(testDir, _useNewDb);
             ServerTester.PayTester.LoadPluginsInDefaultAssemblyContext = false;
@@ -43,7 +42,7 @@ public class ConfigurablePluginTestFixture : IDisposable
 // Specific fixture implementations for different collections
 public class SharedPluginTestFixture : ConfigurablePluginTestFixture
 {
-    public SharedPluginTestFixture() : base("SharedPluginTests", true) { }
+    public SharedPluginTestFixture() : base() { }
 }
 
 [CollectionDefinition("Plugin Tests")]
@@ -57,7 +56,7 @@ public class PluginTestCollection : ICollectionFixture<SharedPluginTestFixture>
 //
 public class StandalonePluginTestFixture : ConfigurablePluginTestFixture
 {
-    public StandalonePluginTestFixture() : base("StandalonePluginTests", true) { }
+    public StandalonePluginTestFixture() : base("StandalonePluginTests") { }
 }
 
 [CollectionDefinition("Standalone Tests")]

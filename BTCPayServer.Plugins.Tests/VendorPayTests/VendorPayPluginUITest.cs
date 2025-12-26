@@ -1,7 +1,7 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
-using BTCPayServer.Views.Stores;
 using Microsoft.Playwright;
 using NBitcoin;
 using Xunit;
@@ -34,7 +34,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
@@ -52,7 +52,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -69,7 +69,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -91,7 +91,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -115,7 +115,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -130,7 +130,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -149,7 +149,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -178,7 +178,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -199,7 +199,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -228,7 +228,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -252,7 +252,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
@@ -318,15 +318,15 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        
+
         // Ensure wallet is set up to avoid 404 on wallet send page and to surface the status alert
         await GoToUrl($"/stores/{user.StoreId}/onchain/BTC");
         await AddDerivationScheme();
         // Return to Vendor Pay list to continue the flow
-        
+
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
 
@@ -355,8 +355,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var relativeDrop = (baselineDisplayedRate - adjustedDisplayedRate) / baselineDisplayedRate;
         // Allow some tolerance due to rounding in the displayed rate (ceil to 2 decimals)
         Assert.True(relativeDrop > 0.005m && relativeDrop < 0.02m,
-            $"Expected ~1% decrease; actual change: {(relativeDrop * 100m):F2}% (Before: {baselineDisplayedRate}, After: {adjustedDisplayedRate})");
-        
+            $"Expected ~1% decrease; actual change: {relativeDrop * 100m:F2}% (Before: {baselineDisplayedRate}, After: {adjustedDisplayedRate})");
+
         async Task EnableFiatConversionAdjustment(double percent)
         {
             await Page.Locator("#StatusOptionsToggle").ClickAsync();
@@ -364,7 +364,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
             await Page.Locator("#InvoiceFiatConversionAdjustment").CheckAsync();
             await Page.FillAsync("#InvoiceFiatConversionAdjustmentPercentage", percent.ToString());
             await Page.Locator("#Edit").ClickAsync();
-            var statusText = (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+            var statusText = (await FindAlertMessageAsync()).TextContentAsync();
             Assert.Equal("Vendor pay settings updated successfully", (await statusText)?.Trim());
         }
 
@@ -387,7 +387,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
             // Example: "Vendor Pay on 2025-08-14 for 1 invoices. BTC/USD:100000"
             var m = Regex.Match(statusText ?? string.Empty, @"BTC\/[A-Z]{3}:(?<rate>[0-9]+(?:\.[0-9]+)?)");
             Assert.True(m.Success, $"Could not find displayed rate in status: '{statusText}'");
-            return decimal.Parse(m.Groups["rate"].Value, System.Globalization.CultureInfo.InvariantCulture);
+            return decimal.Parse(m.Groups["rate"].Value, CultureInfo.InvariantCulture);
         }
     }
 }

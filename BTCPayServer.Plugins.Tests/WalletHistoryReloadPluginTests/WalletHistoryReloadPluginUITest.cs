@@ -1,6 +1,3 @@
-using System.Threading.Tasks;
-using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Plugins.Tests;
 using BTCPayServer.Tests;
 using Microsoft.Playwright;
 using Xunit;
@@ -30,7 +27,7 @@ public class WalletHistoryReloadPluginUITest : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var account = ServerTester.NewAccount();
         await account.GrantAccessAsync();
-        await account.MakeAdmin(true);
+        await account.MakeAdmin();
 
         await GoToUrl("/login");
         await LogIn(account.RegisterDetails.Email, account.RegisterDetails.Password);
@@ -42,12 +39,12 @@ public class WalletHistoryReloadPluginUITest : PlaywrightBaseTest
 
         await GoToUrl($"/{storeId}/plugins/wallet-history-reload/BTC");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.Contains("Wallet History Reload", pageContent);
         Assert.Contains("Wallet Information", pageContent);
         Assert.Contains("Total Transactions", pageContent);
-        
+
         TestLogs.LogInformation("✓ Successfully visited Wallet History Reload plugin page");
     }
 }

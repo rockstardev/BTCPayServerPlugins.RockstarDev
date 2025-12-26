@@ -1,8 +1,8 @@
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
-using Xunit.Abstractions;
-using Xunit;
 using Newtonsoft.Json;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.Tests;
 
@@ -29,10 +29,10 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        await GoToUrl($"/server/stores/counter");
+        await GoToUrl("/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
@@ -46,17 +46,16 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
     }
 
 
-
     [Fact]
     public async Task TransactionCounterPublicUrlTest()
     {
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        await GoToUrl($"/server/stores/counter");
+        await GoToUrl("/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
@@ -92,10 +91,10 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
 
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        await GoToUrl($"/server/stores/counter");
+        await GoToUrl("/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var testPassword = "0000";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
@@ -142,10 +141,10 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
-        await user.MakeAdmin(true);
+        await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        await GoToUrl($"/server/stores/counter");
+        await GoToUrl("/server/stores/counter");
         var checkboxSelector = "input#Enabled";
         var checkBox = await Page.QuerySelectorAsync(checkboxSelector);
         Assert.NotNull(checkBox);
@@ -158,22 +157,23 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
         isChecked = await includeTransactionVolumeCheckBox.IsCheckedAsync();
         if (!isChecked)
             await includeTransactionVolumeCheckBox.CheckAsync();
-            
+
         var now = DateTime.UtcNow;
         var start = now.AddHours(-4);
         var end = now.AddHours(-1);
         var count = 100;
         var extraTransactions = new[]
         {
-                new {
-                    source = "test",
-                    start = start.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    end = end.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    amount = 21,
-                    currency = "NGN",
-                    count
-                }
-            };
+            new
+            {
+                source = "test",
+                start = start.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                end = end.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                amount = 21,
+                currency = "NGN",
+                count
+            }
+        };
         var json = JsonConvert.SerializeObject(extraTransactions, Formatting.Indented);
         await Page.Locator("#extra-transactions-json").FillAsync(json);
         await Page.Locator("#Password").FillAsync("");
@@ -198,7 +198,7 @@ public class TransactionCounterPluginUITestStandalone : PlaywrightBaseTest
         Assert.True(parsed.TryGetValue("volumeByCurrency", out var volumeObj));
         var volumeByCurrency = JsonConvert.DeserializeObject<Dictionary<string, decimal>>(volumeObj.ToString() ?? "{}");
         Assert.NotNull(volumeByCurrency);
-        Assert.True(volumeByCurrency.TryGetValue("NGN", out decimal eurVolume));
+        Assert.True(volumeByCurrency.TryGetValue("NGN", out var eurVolume));
         Assert.Equal(21, eurVolume);
         await popup1.CloseAsync();
     }
