@@ -189,32 +189,22 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> ListVouchers(string storeId,
-            VoucherPaymentState voucherPaymentState,
-            int skip = 0,
-            int count = 50,
-            string sortOrder = "desc")
+    public async Task<IActionResult> ListVouchers(string storeId, VoucherPaymentState voucherPaymentState)
     {
         var now = DateTimeOffset.UtcNow;
         await GetVoucherAppData();
         await using var ctx = _dbContextFactory.CreateContext();
-        var ppsQuery = await ctx.PullPayments
-            .Include(data => data.Payouts)
-            .Where(p => p.StoreId == storeId && p.Archived == false)
-            .OrderByDescending(data => data.StartDate).ToListAsync();
+        var query = ctx.PullPayments.Include(c => c.Payouts).Where(p => p.StoreId == storeId);
+        query = voucherPaymentState switch
+        {
+            VoucherPaymentState.Active => query.Where(p => !p.Archived),
+            // VoucherPaymentState.Expired => query.Where(p => !p.Archived && p.EndDate <= now), Right now EndDate is null
+            VoucherPaymentState.Archived => query.Where(p => p.Archived),
+            _ => query
+        };
+        var ppsQuery = await query.OrderByDescending(p => p.StartDate).ToListAsync();
 
         var vouchers = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
-
-        var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
-        if (!paymentMethods.Any())
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel
-            {
-                Message = "You must enable at least one payment method before creating a voucher.", Severity = StatusMessageModel.StatusSeverity.Error
-            });
-            return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
-        }
-
         var vm = vouchers.Select(tuple => new VoucherViewModel
         {
             Amount = tuple.PullPayment.Limit,
@@ -225,7 +215,30 @@ public class VoucherController : Controller
             PayoutMethods = tuple.Blob.SupportedPayoutMethods,
             Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(tuple.PullPayment, now)
         }).ToList();
-        return View(new ListVoucherViewModel { Vouchers = vm });
+        return View(new ListVoucherViewModel { Vouchers = vm, ActiveState = voucherPaymentState });
+    }
+
+
+    [HttpGet("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
+    [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public IActionResult ArchiveVoucher(string storeId,
+        string pullPaymentId)
+    {
+        return View("Confirm", new ConfirmModel("Archive Voucher", "Do you really want to archive the pull payment?", "Archive"));
+    }
+
+    [HttpPost("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
+    [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> ArchiveVoucherPost(string storeId,
+        string pullPaymentId)
+    {
+        await _pullPaymentHostedService.Cancel(new PullPaymentHostedService.CancelRequest(pullPaymentId));
+        TempData.SetStatusMessageModel(new StatusMessageModel
+        {
+            Message = "Voucher archived successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(ListVouchers), new { storeId });
     }
 
     [HttpGet("~/plugins/{storeId}/vouchers/create")]
