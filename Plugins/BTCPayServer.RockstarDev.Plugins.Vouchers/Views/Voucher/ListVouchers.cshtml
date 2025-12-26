@@ -1,11 +1,12 @@
-﻿@inject IScopeProvider ScopeProvider
+@inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.Services
-@model List<BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel>
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
+@model ListVoucherViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("Voucher", "Voucher", "Voucher");
@@ -44,13 +45,24 @@
         </div>
     </div>
 
-
     <partial name="_StatusMessage" />
 
+	<nav id="SectionNav" class="mb-3">
+		<div class="nav">
+			@foreach (var state in Enum.GetValues(typeof(VoucherPaymentState)).Cast<VoucherPaymentState>())
+			{
+				<a id="@state-view"
+				   asp-action="ListVouchers"
+				   asp-route-storeId="@storeId"
+				   asp-route-voucherPaymentState="@state"
+				   class="nav-link @(state == Model.ActiveState ? "active" : "")" role="tab">@state</a>
+			}
+		</div>
+	</nav>
 
-    @if (Model.Any())
+    @if (Model.Vouchers.Any())
     {
-        @foreach (var pp in Model)
+        @foreach (var pp in Model.Vouchers)
         {
             <script id="tooptip_template_@pp.Id" type="text/template">
                 <span>Awaiting:&nbsp;<span class="float-end">@pp.Progress.AwaitingFormatted</span></span>
@@ -77,7 +89,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                @foreach (var pp in Model)
+                @foreach (var pp in Model.Vouchers)
                 {
                     <tr>
                         <td>
@@ -163,6 +175,4 @@
             There are no active vouchers.
         </p>
     }
-
-
 </form>

@@ -1,10 +1,11 @@
 @using BTCPayServer.Abstractions.TagHelpers
 @using BTCPayServer.Components.QRCode
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
 @using BTCPayServer.Security
 @using BTCPayServer.Services
 @using LNURL
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel
+@model VoucherViewModel
 @inject ContentSecurityPolicies Csp
 @inject BTCPayServerEnvironment Env
 @inject DisplayFormatter DisplayFormatter

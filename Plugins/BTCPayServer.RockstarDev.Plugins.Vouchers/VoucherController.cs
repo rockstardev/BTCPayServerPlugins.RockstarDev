@@ -13,11 +13,11 @@ using BTCPayServer.Filters;
 using BTCPayServer.HostedServices;
 using BTCPayServer.ModelBinders;
 using BTCPayServer.Models;
-using BTCPayServer.Models.WalletViewModels;
 using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
+using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
@@ -33,8 +33,6 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
 public class VoucherController : Controller
 {
-    private const string CURRENCY = "USD";
-    private const string APPID = "VoucherPlugin";
     private readonly AppService _appService;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
@@ -191,7 +189,11 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> ListVouchers(string storeId)
+    public async Task<IActionResult> ListVouchers(string storeId,
+            VoucherPaymentState voucherPaymentState,
+            int skip = 0,
+            int count = 50,
+            string sortOrder = "desc")
     {
         var now = DateTimeOffset.UtcNow;
         await GetVoucherAppData();
@@ -213,7 +215,7 @@ public class VoucherController : Controller
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
 
-        return View(vouchers.Select(tuple => new VoucherViewModel
+        var vm = vouchers.Select(tuple => new VoucherViewModel
         {
             Amount = tuple.PullPayment.Limit,
             Currency = tuple.PullPayment.Currency,
@@ -222,7 +224,8 @@ public class VoucherController : Controller
             Description = tuple.Blob.Description,
             PayoutMethods = tuple.Blob.SupportedPayoutMethods,
             Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(tuple.PullPayment, now)
-        }).ToList());
+        }).ToList();
+        return View(new ListVoucherViewModel { Vouchers = vm });
     }
 
     [HttpGet("~/plugins/{storeId}/vouchers/create")]
@@ -358,30 +361,5 @@ public class VoucherController : Controller
         await CreateVoucherAppData(CurrentStore.Id);
         apps = await _appService.GetApps(VoucherPluginAppType.AppType);
         return apps.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
-    }
-
-    public class VoucherViewModel
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public decimal Amount { get; set; }
-        public string Currency { get; set; }
-        public PayoutMethodId[] PayoutMethods { get; set; }
-        public PullPaymentsModel.PullPaymentModel.ProgressModel Progress { get; set; }
-        public string StoreName { get; set; }
-        public string LogoUrl { get; set; }
-        public string BrandColor { get; set; }
-        public string CssUrl { get; set; }
-        public bool SupportsLNURL { get; set; }
-        public string Description { get; set; }
-
-        public async Task<VoucherViewModel> SetStoreBranding(HttpRequest request, UriResolver uriResolver, StoreBlob storeBlob)
-        {
-            var branding = await StoreBrandingViewModel.CreateAsync(request, uriResolver, storeBlob);
-            LogoUrl = branding.LogoUrl;
-            CssUrl = branding.CssUrl;
-            BrandColor = branding.BrandColor;
-            return this;
-        }
     }
 }
