@@ -38,12 +38,13 @@ public class VoucherViewModel
 public class ListVoucherViewModel
 {
     public List<VoucherViewModel> Vouchers { get; set; }
+    public string? SearchText { get; set; }
     public VoucherPaymentState ActiveState { get; set; } = VoucherPaymentState.Active;
 }
 
 public enum VoucherPaymentState
 {
     Active,
-    Expired,
+    //Expired,
     Archived
 }

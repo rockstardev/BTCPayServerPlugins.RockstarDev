@@ -189,7 +189,7 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> ListVouchers(string storeId, VoucherPaymentState voucherPaymentState)
+    public async Task<IActionResult> ListVouchers(string storeId, string searchText, VoucherPaymentState voucherPaymentState)
     {
         var now = DateTimeOffset.UtcNow;
         await GetVoucherAppData();
@@ -198,31 +198,61 @@ public class VoucherController : Controller
         query = voucherPaymentState switch
         {
             VoucherPaymentState.Active => query.Where(p => !p.Archived),
-            // VoucherPaymentState.Expired => query.Where(p => !p.Archived && p.EndDate <= now), Right now EndDate is null
             VoucherPaymentState.Archived => query.Where(p => p.Archived),
             _ => query
         };
-        var ppsQuery = await query.OrderByDescending(p => p.StartDate).ToListAsync();
+        var pullPayments = await query.OrderByDescending(p => p.StartDate).ToListAsync();
 
-        var vouchers = ppsQuery.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(blob => blob.Blob.Name.StartsWith("Voucher")).ToList();
-        var vm = vouchers.Select(tuple => new VoucherViewModel
+        var vouchers = pullPayments.Select(pp => (PullPayment: pp, Blob: pp.GetBlob())).Where(x => x.Blob.Name.StartsWith("Voucher"))
+        .Where(x => string.IsNullOrWhiteSpace(searchText) || x.Blob.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) || x.PullPayment.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+        .Select(x => new VoucherViewModel
         {
-            Amount = tuple.PullPayment.Limit,
-            Currency = tuple.PullPayment.Currency,
-            Id = tuple.PullPayment.Id,
-            Name = tuple.Blob.Name,
-            Description = tuple.Blob.Description,
-            PayoutMethods = tuple.Blob.SupportedPayoutMethods,
-            Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(tuple.PullPayment, now)
+            Id = x.PullPayment.Id,
+            Name = x.Blob.Name,
+            Description = x.Blob.Description,
+            Amount = x.PullPayment.Limit,
+            Currency = x.PullPayment.Currency,
+            PayoutMethods = x.Blob.SupportedPayoutMethods,
+            Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(x.PullPayment, now)
         }).ToList();
-        return View(new ListVoucherViewModel { Vouchers = vm, ActiveState = voucherPaymentState });
+        return View(new ListVoucherViewModel { Vouchers = vouchers, ActiveState = voucherPaymentState, SearchText = searchText });
     }
 
+    [HttpGet("~/plugins/{storeId}/vouchers/settings")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> VocuherSettings(string storeId)
+    {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        return View(new VoucherSettings
+        { 
+            FunModeEnabled = settings.FunModeEnabled
+        });
+    }
+
+    [HttpPost("~/plugins/{storeId}/vouchers/settings")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> VocuherSettings(string storeId, VoucherSettingsViewModel model)
+    {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        settings.FunModeEnabled = model.FunModeEnabled;
+        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+        TempData.SetStatusMessageModel(new StatusMessageModel
+        {
+            Severity = StatusMessageModel.StatusSeverity.Success,
+            Message = "Voucher settings updated"
+        });
+        return RedirectToAction(nameof(VocuherSettings), new { storeId });
+    }
 
     [HttpGet("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
     [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public IActionResult ArchiveVoucher(string storeId,
-        string pullPaymentId)
+    public IActionResult ArchiveVoucher(string storeId, string pullPaymentId)
     {
         return View("Confirm", new ConfirmModel("Archive Voucher", "Do you really want to archive the pull payment?", "Archive"));
     }
