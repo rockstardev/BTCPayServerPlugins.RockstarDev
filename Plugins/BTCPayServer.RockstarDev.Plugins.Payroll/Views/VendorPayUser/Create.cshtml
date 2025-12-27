@@ -1,8 +1,11 @@
 @using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPayUserCreateViewModel
 @{
-    Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage("VendorPay", "Create Vendor Pay User", "VendorPay");
+    Layout = "_Layout";
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayUsers), "Create Vendor Pay User")
+        { ActiveCategory = nameof(VendorPayNavPages) });
     var storeEmailSettingsConfigured = Model.StoreEmailSettingsConfigured;
 }
 
