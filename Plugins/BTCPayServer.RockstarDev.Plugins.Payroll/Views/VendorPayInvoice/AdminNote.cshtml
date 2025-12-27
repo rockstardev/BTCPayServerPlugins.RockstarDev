@@ -1,7 +1,10 @@
 ﻿@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model AdminNoteViewModel
 @{
-    ViewData.SetActivePage("VendorPay", "Admin Note on Invoice", "VendorPay");
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayInvoices), "Admin Note on Invoice")
+        { ActiveCategory = nameof(VendorPayNavPages) });
 }
 
 <form method="post" asp-action="AdminNote" enctype="multipart/form-data">

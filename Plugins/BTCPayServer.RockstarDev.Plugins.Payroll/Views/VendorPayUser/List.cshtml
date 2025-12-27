@@ -3,10 +3,12 @@
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Data
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPayUserListViewModel
 @{
-    Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage("VendorPay", "Vendor Pay Users", "VendorPay");
+    Layout = "_Layout";
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayUsers), "Vendor Pay Users")
+        { ActiveCategory = nameof(VendorPayNavPages) });
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
@@ -17,7 +19,6 @@
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
             <a asp-controller="VendorPayUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-            <a asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Invoices</a>
         </div>
     </div>
 

@@ -4,10 +4,12 @@
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPayInvoiceListViewModel
 @{
-    Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage("VendorPay", "Vendor Invoices", "VendorPay");
+    Layout = "_Layout";
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayInvoices), "Vendor Invoices")
+        { ActiveCategory = nameof(VendorPayNavPages) });
 
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
@@ -28,22 +30,10 @@
                 <vc:icon symbol="nav-reporting" />
                 <span text-translate="true">Reporting</span>
             </a>
-            <div class="dropdown">
-                <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                    <span>Options</span>
-                </button>
-                <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
-                    <a asp-controller="Public" asp-action="ListInvoices" asp-route-storeId="@storeId" class="dropdown-item" target="_blank">
-                        Share Invoice Upload Link <i class="fa fa-external-link"></i>
-                    </a>
-                    <a asp-controller="VendorPaySetting" asp-action="Settings" asp-route-storeId="@storeId" class="dropdown-item">
-                        Settings
-                    </a>
-                </div>
-            </div>
+            <a asp-controller="Public" asp-action="ListInvoices" asp-route-storeId="@storeId" class="btn btn-secondary" target="_blank">
+                Share Invoice Upload Link
+            </a>
             <a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Admin Upload Invoice</a>
-            <a asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId" class="btn btn-secondary">Manage Users</a>
         </div>
     </div>
 </form>
@@ -304,22 +294,22 @@
                 }
 
                 function toggleButtons() {
-                    const emailConfirmation = document.getElementById('emailconfirmation') instanceof HTMLElement;
-                    const markPaidButton = document.getElementById('markpaid') instanceof HTMLElement;
-                    const payInvoicesButton = document.getElementById('payinvoices') instanceof HTMLElement;
-                    const downloadButton = document.getElementById('download') instanceof HTMLElement;
+                    const emailConfirmation = document.getElementById('emailconfirmation');
+                    const markPaidButton = document.getElementById('markpaid');
+                    const payInvoicesButton = document.getElementById('payinvoices');
+                    const downloadButton = document.getElementById('download');
 
                     const allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
                     if (allCheckedItems.length > 0) {
-                        emailConfirmation.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
-                        markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
-                        payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
-                        downloadButton.style.display = 'inline-block';
+                        if (emailConfirmation) emailConfirmation.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
+                        if (markPaidButton) markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
+                        if (payInvoicesButton) payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
+                        if (downloadButton) downloadButton.style.display = 'inline-block';
                     } else {
-                        emailConfirmation.style.display = 'none';
-                        markPaidButton.style.display = 'none';
-                        payInvoicesButton.style.display = 'none';
-                        downloadButton.style.display = 'none';
+                        if (emailConfirmation) emailConfirmation.style.display = 'none';
+                        if (markPaidButton) markPaidButton.style.display = 'none';
+                        if (payInvoicesButton) payInvoicesButton.style.display = 'none';
+                        if (downloadButton) downloadButton.style.display = 'none';
                     }
                 }
 

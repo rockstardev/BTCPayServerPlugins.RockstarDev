@@ -1,8 +1,11 @@
 @using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPayInvoiceUploadViewModel
 @{
-    Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage("VendorPay", "Upload Invoice", "VendorPay");
+    Layout = "_Layout";
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayInvoices), "Upload Invoice")
+        { ActiveCategory = nameof(VendorPayNavPages) });
 }
 
 <form method="post" asp-action="Upload" enctype="multipart/form-data" class="preventdoubleclick">

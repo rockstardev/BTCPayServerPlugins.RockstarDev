@@ -1,11 +1,14 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPaySettingViewModel
 @inject IScopeProvider ScopeProvider
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
     Layout = "_Layout";
-    ViewData.SetActivePage("VendorPay", "Update Vendor Pay Settings", "VendorPay");
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPaySettings), "Vendor Pay Settings")
+        { ActiveCategory = nameof(VendorPayNavPages) });
     var storeEmailSettingsConfigured = (bool)ViewData["StoreEmailSettingsConfigured"];
 }
 
