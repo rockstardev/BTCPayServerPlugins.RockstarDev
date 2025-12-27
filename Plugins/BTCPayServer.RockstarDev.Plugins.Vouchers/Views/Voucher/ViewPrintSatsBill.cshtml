@@ -1,10 +1,11 @@
 @using BTCPayServer.Abstractions.TagHelpers
 @using BTCPayServer.Components.QRCode
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
 @using BTCPayServer.Security
 @using BTCPayServer.Services
 @using LNURL
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel
+@model VoucherViewModel
 @inject ContentSecurityPolicies Csp
 @inject BTCPayServerEnvironment Env
 @inject DisplayFormatter DisplayFormatter
@@ -72,7 +73,7 @@
 </head>
 
 <body class="m-0 p-0 bg-white">
-<img src="~/Resources/@Model.Description" style="width: 321px" />
+	<img src="~/Resources/@Model.VoucherImage" style="width: 321px" />
 @* <div style="position: absolute; left:68px; top: 149px;">
         <vc:qr-code data="@lnurl" size="182"></vc:qr-code>
     </div> *@
