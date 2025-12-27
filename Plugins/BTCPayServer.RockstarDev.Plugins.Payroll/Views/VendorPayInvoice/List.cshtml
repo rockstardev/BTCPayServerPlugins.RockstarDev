@@ -294,22 +294,22 @@
                 }
 
                 function toggleButtons() {
-                    const emailConfirmation = document.getElementById('emailconfirmation');
-                    const markPaidButton = document.getElementById('markpaid');
-                    const payInvoicesButton = document.getElementById('payinvoices');
-                    const downloadButton = document.getElementById('download');
+                    const emailConfirmation = document.getElementById('emailconfirmation') instanceof HTMLElement;
+                    const markPaidButton = document.getElementById('markpaid') instanceof HTMLElement;
+                    const payInvoicesButton = document.getElementById('payinvoices') instanceof HTMLElement;
+                    const downloadButton = document.getElementById('download') instanceof HTMLElement;
 
                     const allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
                     if (allCheckedItems.length > 0) {
-                        if (emailConfirmation) emailConfirmation.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
-                        if (markPaidButton) markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
-                        if (payInvoicesButton) payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
-                        if (downloadButton) downloadButton.style.display = 'inline-block';
+                        emailConfirmation.style.display = allSelectedInState('Completed') ? 'inline-block' : 'none';
+                        markPaidButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment', 'InProgress') ? 'inline-block' : 'none';
+                        payInvoicesButton.style.display = allSelectedInState('AwaitingApproval', 'AwaitingPayment') ? 'inline-block' : 'none';
+                        downloadButton.style.display = 'inline-block';
                     } else {
-                        if (emailConfirmation) emailConfirmation.style.display = 'none';
-                        if (markPaidButton) markPaidButton.style.display = 'none';
-                        if (payInvoicesButton) payInvoicesButton.style.display = 'none';
-                        if (downloadButton) downloadButton.style.display = 'none';
+                        emailConfirmation.style.display = 'none';
+                        markPaidButton.style.display = 'none';
+                        payInvoicesButton.style.display = 'none';
+                        downloadButton.style.display = 'none';
                     }
                 }
 

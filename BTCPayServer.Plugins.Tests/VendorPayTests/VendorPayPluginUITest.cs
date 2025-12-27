@@ -258,10 +258,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
         await CreateVendorPayUser();
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
-        await Page.Locator("#StatusOptionsToggle").ClickAsync();
         var popupTask = Page.Context.WaitForPageAsync();
-        await Page.Locator("a.dropdown-item", new PageLocatorOptions { HasTextRegex = new Regex("share invoice upload link", RegexOptions.IgnoreCase) })
-            .ClickAsync();
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameRegex = new Regex("share invoice upload link", RegexOptions.IgnoreCase) }).ClickAsync();
         var popup = await popupTask;
         await popup.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await popup.FillAsync("#Email", VendorPayUserEmail);
@@ -302,8 +300,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
 
     private async Task MakeInvoiceFileUploadOptional()
     {
-        await Page.Locator("#StatusOptionsToggle").ClickAsync();
-        await Page.Locator("a.dropdown-item", new PageLocatorOptions { HasTextString = "Settings" }).ClickAsync();
+        var storeId = Page.Url.Split('/')[4];
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
         await Page.Locator("#MakeInvoiceFileOptional").CheckAsync();
         await Page.Locator("#Edit").ClickAsync();
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
@@ -359,8 +357,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
 
         async Task EnableFiatConversionAdjustment(double percent)
         {
-            await Page.Locator("#StatusOptionsToggle").ClickAsync();
-            await Page.Locator("a.dropdown-item", new PageLocatorOptions { HasTextString = "Settings" }).ClickAsync();
+            var storeId = Page.Url.Split('/')[4];
+            await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
             await Page.Locator("#InvoiceFiatConversionAdjustment").CheckAsync();
             await Page.FillAsync("#InvoiceFiatConversionAdjustmentPercentage", percent.ToString());
             await Page.Locator("#Edit").ClickAsync();
