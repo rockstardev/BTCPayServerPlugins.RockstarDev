@@ -17,6 +17,7 @@ using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
+using BTCPayServer.RockstarDev.Plugins.Vouchers.Utility;
 using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
@@ -28,6 +29,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using NBitcoin.DataEncoders;
+using static BTCPayServer.Plugins.Monetization.Views.SelectExistingOfferingModalViewModel;
+using static Dapper.SqlMapper;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
@@ -138,29 +141,29 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/{storeId}/vouchers/createsatsbill")]
     [Authorize(Policy = Policies.CanCreateNonApprovedPullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> CreateSatsBill(string storeId, int amount, string image)
+    public async Task<IActionResult> CreateSatsBill(string storeId, int satsAmount, string imageKey)
     {
         var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
+        var amountInBtc = satsAmount / 100_000_000;
         var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
         {
-            Name = $"Voucher {amount} Sats",
-            Description = image,
-            Amount = amount,
-            Currency = "SATS",
+            Amount = amountInBtc,
+            Currency = "BTC",
+            Name = "Voucher " + Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
+            Description = VoucherImages.GetImageFile(imageKey),
             PayoutMethods = selectedPaymentMethodIds.Select(c => c.ToString()).ToArray(),
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
-        return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res });
+        return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res, imageKey });
     }
 
     [AllowAnonymous]
     [HttpGet("~/plugins/vouchers/{id}/viewprintsatsbill")]
-    public async Task<IActionResult> ViewPrintSatsBill(string id)
+    public async Task<IActionResult> ViewPrintSatsBill(string id, string imageKey)
     {
         await using var ctx = _dbContextFactory.CreateContext();
-        var pp = await ctx.PullPayments
-            .Include(data => data.Payouts)
+        var pp = await ctx.PullPayments.Include(data => data.Payouts)
             .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
 
         if (pp == null) return NotFound();
@@ -182,10 +185,10 @@ public class VoucherController : Controller
             Progress = progress,
             StoreName = store.StoreName,
             SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
-            Description = blob.Description
+            Description = blob.Description,
+            VoucherImage = VoucherImages.GetImageFile(imageKey)
         }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
-
 
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
@@ -216,59 +219,6 @@ public class VoucherController : Controller
             Progress = _pullPaymentHostedService.CalculatePullPaymentProgress(x.PullPayment, now)
         }).ToList();
         return View(new ListVoucherViewModel { Vouchers = vouchers, ActiveState = voucherPaymentState, SearchText = searchText });
-    }
-
-    [HttpGet("~/plugins/{storeId}/vouchers/settings")]
-    [Authorize(Policy = Policies.CanModifyStoreSettings)]
-    public async Task<IActionResult> VocuherSettings(string storeId)
-    {
-        if (CurrentStore == null)
-            return NotFound();
-
-        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-        return View(new VoucherSettings
-        { 
-            FunModeEnabled = settings.FunModeEnabled
-        });
-    }
-
-    [HttpPost("~/plugins/{storeId}/vouchers/settings")]
-    [Authorize(Policy = Policies.CanModifyStoreSettings)]
-    public async Task<IActionResult> VocuherSettings(string storeId, VoucherSettingsViewModel model)
-    {
-        if (CurrentStore == null)
-            return NotFound();
-
-        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-        settings.FunModeEnabled = model.FunModeEnabled;
-        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
-        TempData.SetStatusMessageModel(new StatusMessageModel
-        {
-            Severity = StatusMessageModel.StatusSeverity.Success,
-            Message = "Voucher settings updated"
-        });
-        return RedirectToAction(nameof(VocuherSettings), new { storeId });
-    }
-
-    [HttpGet("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
-    [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public IActionResult ArchiveVoucher(string storeId, string pullPaymentId)
-    {
-        return View("Confirm", new ConfirmModel("Archive Voucher", "Do you really want to archive the pull payment?", "Archive"));
-    }
-
-    [HttpPost("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
-    [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> ArchiveVoucherPost(string storeId,
-        string pullPaymentId)
-    {
-        await _pullPaymentHostedService.Cancel(new PullPaymentHostedService.CancelRequest(pullPaymentId));
-        TempData.SetStatusMessageModel(new StatusMessageModel
-        {
-            Message = "Voucher archived successfully",
-            Severity = StatusMessageModel.StatusSeverity.Success
-        });
-        return RedirectToAction(nameof(ListVouchers), new { storeId });
     }
 
     [HttpGet("~/plugins/{storeId}/vouchers/create")]
@@ -308,12 +258,14 @@ public class VoucherController : Controller
             return View();
         }
 
+        var voucherSettings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+
         var app = await GetVoucherAppData();
-        var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
+        var appSettings = app.GetSettings<VoucherPluginAppType.AppConfig>();
         var store = HttpContext.GetStoreData();
         var storeBlob = store.GetStoreBlob();
 
-        var rate = await _rateFetcher.FetchRate(new CurrencyPair(settings.Currency, "BTC"),
+        var rate = await _rateFetcher.FetchRate(new CurrencyPair(appSettings.Currency, "BTC"),
             storeBlob.GetRateRules(_defaultRulesCollection), new StoreIdRateContext(storeId), CancellationToken.None);
         if (rate.BidAsk == null)
         {
@@ -324,7 +276,7 @@ public class VoucherController : Controller
         var description = string.Empty;
         var satsAmount = Math.Floor(amount * rate.BidAsk.Bid * 100_000_000);
         var amountInBtc = satsAmount / 100_000_000;
-        if (settings.Currency != "BTC") description = $"{amount} {settings.Currency} voucher redeemable for {amountInBtc} BTC";
+        if (appSettings.Currency != "BTC") description = $"{amount} {appSettings.Currency} voucher redeemable for {amountInBtc} BTC";
 
         var pp = await _pullPaymentHostedService.CreatePullPayment(store, new()
         {
@@ -335,8 +287,67 @@ public class VoucherController : Controller
             PayoutMethods = paymentMethods.Select(c => c.ToString()).ToArray(),
             AutoApproveClaims = true
         });
-
+        if (voucherSettings.FunModeEnabled)
+        {
+            return RedirectToAction(nameof(ViewPrintSatsBill), new { id = pp, imageKey = voucherSettings.SelectedVoucherImage });
+        }
         return RedirectToAction(nameof(View), new { id = pp });
+    }
+
+    [HttpGet("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
+    [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public IActionResult ArchiveVoucher(string storeId, string pullPaymentId)
+    {
+        return View("Confirm", new ConfirmModel("Archive Voucher", "Do you really want to archive the pull payment?", "Archive"));
+    }
+
+    [HttpPost("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
+    [Authorize(Policy = Policies.CanArchivePullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> ArchiveVoucherPost(string storeId,
+        string pullPaymentId)
+    {
+        await _pullPaymentHostedService.Cancel(new PullPaymentHostedService.CancelRequest(pullPaymentId));
+        TempData.SetStatusMessageModel(new StatusMessageModel
+        {
+            Message = "Voucher archived successfully",
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+        return RedirectToAction(nameof(ListVouchers), new { storeId });
+    }
+
+    [HttpGet("~/plugins/{storeId}/vouchers/settings")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> VocuherSettings(string storeId)
+    {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        return View(new VoucherSettingsViewModel
+        {
+            StoreId = CurrentStore.Id,
+            SelectedVoucherImage = settings.SelectedVoucherImage,
+            FunModeEnabled = settings.FunModeEnabled
+        });
+    }
+
+    [HttpPost("~/plugins/{storeId}/vouchers/settings")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> VocuherSettings(string storeId, VoucherSettingsViewModel model)
+    {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        settings.FunModeEnabled = model.FunModeEnabled;
+        settings.SelectedVoucherImage = model.SelectedVoucherImage;
+        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+        TempData.SetStatusMessageModel(new StatusMessageModel
+        {
+            Severity = StatusMessageModel.StatusSeverity.Success,
+            Message = "Voucher settings updated"
+        });
+        return RedirectToAction(nameof(VocuherSettings), new { storeId });
     }
 
     [HttpGet("~/plugins/vouchers/{id}")]
@@ -344,8 +355,7 @@ public class VoucherController : Controller
     public new async Task<IActionResult> View(string id)
     {
         await using var ctx = _dbContextFactory.CreateContext();
-        var pp = await ctx.PullPayments
-            .Include(data => data.Payouts)
+        var pp = await ctx.PullPayments.Include(data => data.Payouts)
             .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
 
         if (pp == null) return NotFound();

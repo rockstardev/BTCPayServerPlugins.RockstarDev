@@ -24,6 +24,7 @@ public class VoucherViewModel
     public string CssUrl { get; set; }
     public bool SupportsLNURL { get; set; }
     public string Description { get; set; }
+    public string VoucherImage { get; set; }
 
     public async Task<VoucherViewModel> SetStoreBranding(HttpRequest request, UriResolver uriResolver, StoreBlob storeBlob)
     {
