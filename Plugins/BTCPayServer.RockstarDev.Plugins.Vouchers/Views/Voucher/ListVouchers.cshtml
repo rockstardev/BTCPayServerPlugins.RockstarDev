@@ -1,11 +1,12 @@
-﻿@inject IScopeProvider ScopeProvider
+@inject IScopeProvider ScopeProvider
 @inject DisplayFormatter DisplayFormatter
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.Services
-@model List<BTCPayServer.RockstarDev.Plugins.Vouchers.VoucherController.VoucherViewModel>
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
+@model ListVoucherViewModel
 @{
     Layout = "_Layout"; // adding so PageFootContent section is detected
     ViewData.SetActivePage("Voucher", "Voucher", "Voucher");
@@ -27,30 +28,53 @@
                         <span>Print Bill</span>
                     </button>
                     <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-jack.png"
+						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="jack"
                            class="dropdown-item">1000 Sats Jack</a>
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-odell.png"
+						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="odell"
                            class="dropdown-item">1000 Sats Odell</a>
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-giacomo.png"
+						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="giacomo"
                            class="dropdown-item">1000 Sats Giacomo</a>
-                        <a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-amount="1000" asp-route-image="1000sats-luke.png"
+						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="luke"
                            class="dropdown-item">1000 Sats Luke</a>
                     </div>
                 </div>
-            </form>
-
+			</form>
+			<a asp-controller="Voucher" asp-action="VocuherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Settings</a>
             <a asp-controller="Voucher" asp-action="Keypad" asp-route-storeId="@storeId" class="btn btn-primary">Create</a>
 
         </div>
     </div>
 
-
     <partial name="_StatusMessage" />
 
+	<form method="get" asp-action="ListVouchers" asp-route-storeId="@storeId" class="mb-3">
+		<div class="row g-2 align-items-center">
+			<input type="hidden" name="voucherPaymentState" value="@Model.ActiveState" />
+			<div class="col-12 col-md-6">
+				<input name="searchText" value="@Model.SearchText" class="form-control" placeholder="Search by voucher name…" />
+			</div>
+			<div class="col-auto">
+				<button class="btn btn-secondary" type="submit">Search</button>
+			</div>
+		</div>
+	</form>
 
-    @if (Model.Any())
+	<nav id="SectionNav" class="mb-3">
+		<div class="nav">
+			@foreach (var state in Enum.GetValues(typeof(VoucherPaymentState)).Cast<VoucherPaymentState>())
+			{
+				<a id="@($"{state}-view")"
+				   asp-action="ListVouchers"
+				   asp-route-storeId="@storeId"
+				   asp-route-voucherPaymentState="@state"
+				   class="nav-link @(state == Model.ActiveState ? "active" : "")" role="tab">@state</a>
+			}
+		</div>
+	</nav>
+
+    @if (Model.Vouchers.Any())
     {
-        @foreach (var pp in Model)
+        @foreach (var pp in Model.Vouchers)
         {
             <script id="tooptip_template_@pp.Id" type="text/template">
                 <span>Awaiting:&nbsp;<span class="float-end">@pp.Progress.AwaitingFormatted</span></span>
@@ -72,19 +96,17 @@
                 <tr>
                     <th scope="col">Name</th>
                     <th scope="col">Amount</th>
+                    <th scope="col">Payment Methods</th>
                     <th scope="col">Progress</th>
                     <th scope="col" class="text-end">Actions</th>
                 </tr>
                 </thead>
                 <tbody>
-                @foreach (var pp in Model)
+                @foreach (var pp in Model.Vouchers)
                 {
                     <tr>
                         <td>
-                            <a asp-action="EditPullPayment"
-                               asp-controller="UIPullPayment"
-                               asp-route-storeId="@storeId"
-                               asp-route-pullPaymentId="@pp.Id">
+                            <a asp-action="EditPullPayment" asp-controller="UIPullPayment" asp-route-storeId="@storeId" asp-route-pullPaymentId="@pp.Id">
                                 @pp.Name
                             </a>
                         </td>
@@ -103,36 +125,25 @@
                             </div>
                         </td>
                         <td class="text-end">
-                            <a asp-action="ArchivePullPayment"
-                               asp-controller="UIStorePullPayments"
-                               permission="@Policies.CanArchivePullPayments"
-                               asp-route-storeId="@storeId"
-                               asp-route-pullPaymentId="@pp.Id"
-                               data-bs-toggle="modal"
-                               data-bs-target="#ConfirmModal"
-                               data-description="Do you really want to archive the pull payment <strong>@Html.Encode(pp.Name)</strong>?">
+							<a asp-action="ArchiveVoucher" asp-controller="Voucher" permission="@Policies.CanArchivePullPayments"
+                               asp-route-storeId="@storeId" asp-route-pullPaymentId="@pp.Id" data-bs-toggle="modal"
+                               data-bs-target="#ConfirmModal" data-description="Do you really want to archive the pull payment voucher <strong>@Html.Encode(pp.Name)</strong>?">
                                 Archive
                             </a>
                             <span> - </span>
-                            <a asp-action="ViewPullPayment"
-                               asp-controller="UIPullPayment"
-                               asp-route-pullPaymentId="@pp.Id">
+                            <a asp-action="ViewPullPayment" asp-controller="UIPullPayment" asp-route-pullPaymentId="@pp.Id">
                                 Full view
                             </a>
                             <span> - </span>
                             @if (pp.Description.EndsWith(".png"))
                             {
-                                <a asp-action="ViewPrintSatsBill"
-                                   asp-controller="Voucher"
-                                   asp-route-id="@pp.Id">
+                                <a asp-action="ViewPrintSatsBill" asp-controller="Voucher" asp-route-id="@pp.Id">
                                     Print view
                                 </a>
                             }
                             else
                             {
-                                <a asp-action="View"
-                                   asp-controller="Voucher"
-                                   asp-route-id="@pp.Id">
+                                <a asp-action="View" asp-controller="Voucher" asp-route-id="@pp.Id">
                                     Print view
                                 </a>
                             }
@@ -159,10 +170,8 @@
     }
     else
     {
-        <p class="text-secondary mt-4">
-            There are no active vouchers.
-        </p>
+		<p class="text-secondary mt-4">
+			There are no @Model.ActiveState.ToString().ToLowerInvariant() vouchers.
+		</p>
     }
-
-
 </form>

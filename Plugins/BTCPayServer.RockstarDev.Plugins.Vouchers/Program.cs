@@ -12,6 +12,7 @@ namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
 public class VoucherPlugin : BaseBTCPayServerPlugin
 {
+    public const string SettingsName = "VoucherSettings";
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
         new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
