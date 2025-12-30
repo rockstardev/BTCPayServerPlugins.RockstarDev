@@ -317,7 +317,7 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/{storeId}/vouchers/settings")]
     [Authorize(Policy = Policies.CanModifyStoreSettings)]
-    public async Task<IActionResult> VocuherSettings(string storeId)
+    public async Task<IActionResult> VoucherSettings(string storeId)
     {
         if (CurrentStore == null)
             return NotFound();
@@ -333,7 +333,7 @@ public class VoucherController : Controller
 
     [HttpPost("~/plugins/{storeId}/vouchers/settings")]
     [Authorize(Policy = Policies.CanModifyStoreSettings)]
-    public async Task<IActionResult> VocuherSettings(string storeId, VoucherSettingsViewModel model)
+    public async Task<IActionResult> VoucherSettings(string storeId, VoucherSettingsViewModel model)
     {
         if (CurrentStore == null)
             return NotFound();
@@ -347,7 +347,7 @@ public class VoucherController : Controller
             Severity = StatusMessageModel.StatusSeverity.Success,
             Message = "Voucher settings updated"
         });
-        return RedirectToAction(nameof(VocuherSettings), new { storeId });
+        return RedirectToAction(nameof(VoucherSettings), new { storeId });
     }
 
     [HttpGet("~/plugins/vouchers/{id}")]
