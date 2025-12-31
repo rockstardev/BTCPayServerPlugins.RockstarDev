@@ -15,7 +15,7 @@
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
 	<h2 class="mb-0">@ViewData["Title"]</h2>
 	<div class="d-flex gap-3 mt-3 mt-sm-0">
-		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-primary">Go to Settings</a>
+		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Go to Settings</a>
 	</div>
 </div>
 
@@ -34,14 +34,21 @@
 
 				<div class="mb-3">
 					<label class="form-label">Image file</label>
-					<input asp-for="NewImageFile" type="file" accept="image/png,image/jpeg"  class="form-control" required />
+					<input asp-for="NewImageFile" type="file" accept="image/png,image/jpeg" class="form-control" required />
+					<div class="form-text">
+						<strong>For best printing results:</strong>
+						<ul class="mb-0 mt-1">
+							<li>Dimensions: 400-600px wide × 1000-1690px tall (portrait)</li>
+							<li>File size: Under 1MB</li>
+							<li>Use high contrast images for thermal printers</li>
+						</ul>
+					</div>
 				</div>
 
 				<div class="d-flex justify-content-end">
 					<button type="submit" class="btn btn-success">Upload Image</button>
 				</div>
 			</form>
-
 			<hr class="mt-4" />
 		</div>
 	</div>
@@ -69,8 +76,9 @@ else
 				{
 					<tr class="mass-action-row">
 						<td>@pp.Name</td>
-						<td>@pp.FileUrl</td>
-
+						<td>
+							<a href="@pp.FileUrl" target="_blank" rel="noopener noreferrer" class="link-primary">View image</a>
+						</td>
 						<td class="text-end">
 							<div class="d-inline-flex align-items-center gap-3">
 								<div class="dropdown">
@@ -87,7 +95,7 @@ else
 										</li>
 										<li class="dropdown-divider"></li>
 										<li>
-											<a class="dropdown-item text-danger" asp-controller="Voucher" asp-action="DeleteVoucherImage"
+											<a class="dropdown-item text-danger" asp-controller="Voucher" asp-action="Delete"
 											   asp-route-storeId="@storeId" asp-route-imageKey="@pp.Key">
 												Delete
 											</a>
@@ -101,6 +109,8 @@ else
 			</tbody>
 		</table>
 	</div>
+
+	<partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
 }
 else
 {

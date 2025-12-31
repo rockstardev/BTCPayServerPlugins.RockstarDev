@@ -1,14 +1,17 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel;
 
 public class VoucherSettings
 {
-    public bool FunModeEnabled { get; set; }
-    public string SelectedVoucherImage { get; set; }
+
     public bool SpreadEnabled { get; set; }
     public decimal SpreadPercentage { get; set; }
+    public bool FunModeEnabled { get; set; }
+    public bool UseRandomImage { get; set; }
+    public string SelectedVoucherImage { get; set; }
     public List<VoucherImageSettings> Images { get; set; } = new();
 }
 
@@ -23,14 +26,17 @@ public class VoucherImageSettings
 
 public class VoucherSettingsViewModel
 {
-    public string StoreId { get; set; }
     public bool FunModeEnabled { get; set; }
+    public bool UseRandomImage { get; set; }
+
+    [Display(Name = "Enable voucher conversion adjustment")]
     public bool SpreadEnabled { get; set; }
+
+    [Display(Name = "Voucher conversion adjustment percentage")]
     public decimal SpreadPercentage { get; set; }
     public string SelectedVoucherImage { get; set; }
-    public List<string> VoucherOptions { get; set; } = new() { "jack", "odell", "giacomo", "luke", "nayib" };
+    public List<string> VoucherOptions { get; set; } = new();
 }
-
 
 public class VoucherImageSettingsViewModel
 {
