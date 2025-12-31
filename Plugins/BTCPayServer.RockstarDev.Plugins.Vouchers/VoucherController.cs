@@ -389,7 +389,7 @@ public class VoucherController : Controller
             SpreadPercentage = settings.SpreadPercentage,
             SelectedVoucherImage = settings.SelectedVoucherImage,
             FunModeEnabled = settings.FunModeEnabled,
-            VoucherOptions = settings.Images.Select(c => c.Name).ToList()
+            VoucherOptions = settings.Images.Where(c => c.Enabled).Select(c => c.Name).ToList()
         });
     }
 

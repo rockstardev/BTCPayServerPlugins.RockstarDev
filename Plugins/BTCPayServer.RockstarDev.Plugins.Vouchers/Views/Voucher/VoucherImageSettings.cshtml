@@ -65,6 +65,7 @@ else
 			<thead>
 				<tr>
 					<th scope="col">Name</th>
+					<th scope="col">Status</th>
 					<th scope="col">File Link</th>
 					<th scope="col" class="text-end"></th>
 				</tr>
@@ -74,6 +75,7 @@ else
 				{
 					<tr class="mass-action-row">
 						<td>@pp.Name</td>
+						<td>@(pp.Enabled ? "Active" : "Disabled")</td>
 						<td>
 							<a href="@pp.FileUrl" target="_blank" rel="noopener noreferrer" class="link-primary">View image</a>
 						</td>
