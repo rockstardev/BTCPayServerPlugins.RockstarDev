@@ -20,28 +20,8 @@
     <div class="sticky-header d-sm-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
         <div class="d-flex gap-3 mt-3 mt-sm-0">
-
-            <form asp-action="CreateSatsBill" method="get" class="">
-                <div class="dropdown">
-                    <button id="StatusOptionsToggle" class="btn btn-secondary dropdown-toggle dropdown-toggle-custom-caret" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                        <span>Print Bill</span>
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="StatusOptionsToggle">
-						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="jack"
-                           class="dropdown-item">1000 Sats Jack</a>
-						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="odell"
-                           class="dropdown-item">1000 Sats Odell</a>
-						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="giacomo"
-                           class="dropdown-item">1000 Sats Giacomo</a>
-						<a asp-action="CreateSatsBill" asp-route-storeId="@storeId" asp-route-satsAmount="1000" asp-route-imageKey="luke"
-                           class="dropdown-item">1000 Sats Luke</a>
-                    </div>
-                </div>
-			</form>
 			<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Settings</a>
             <a asp-controller="Voucher" asp-action="Keypad" asp-route-storeId="@storeId" class="btn btn-primary">Create</a>
-
         </div>
     </div>
 

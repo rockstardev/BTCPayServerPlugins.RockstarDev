@@ -28,7 +28,6 @@
 					   data-bs-target="#spreadInput">
 				<label asp-for="SpreadEnabled" class="form-label mb-0 me-1"></label>
 			</div>
-
 			<div class="collapse @(Model.SpreadEnabled ? "show" : "")" id="spreadInput">
 				<div class="form-group">
 					<label asp-for="SpreadPercentage" class="form-label"></label>
@@ -48,7 +47,6 @@
 				<input class="form-check-input" type="radio" asp-for="FunModeEnabled" value="false" id="StandardMode" />
 				<label class="form-check-label" for="StandardMode">Standard mode</label>
 			</div>
-
 			<div class="form-check mb-3">
 				<input class="form-check-input" type="radio" asp-for="FunModeEnabled" value="true" id="FunMode" />
 				<label class="form-check-label" for="FunMode">Fun mode</label>
@@ -58,21 +56,14 @@
 				<h6 class="mb-2">Image Selection</h6>
 
 				<div class="form-check mb-2">
-					<input class="form-check-input" type="radio" name="ImageSelectionMode" value="random" id="RandomImage"
-						   checked="@(Model.UseRandomImage)" />
-					<label class="form-check-label" for="RandomImage">
-						Random image (different image for each voucher)
-					</label>
+					<input class="form-check-input" type="radio" asp-for="UseRandomImage" value="true" id="RandomImage" />
+					<label class="form-check-label" for="RandomImage">Random image for each voucher</label>
 				</div>
 
 				<div class="form-check mb-3">
-					<input class="form-check-input" type="radio" name="ImageSelectionMode" value="specific" id="SpecificImage"
-						   checked="@(!Model.UseRandomImage)" />
-					<label class="form-check-label" for="SpecificImage">
-						Specific image
-					</label>
+					<input class="form-check-input" type="radio" asp-for="UseRandomImage" value="false" id="SpecificImage" />
+					<label class="form-check-label" for="SpecificImage">Specific image</label>
 				</div>
-
 				<div id="specificImageDropdown" class="ms-4" style="display:none;">
 					<label asp-for="SelectedVoucherImage" class="form-label">Choose voucher image</label>
 					<div class="col-md-6">
@@ -80,7 +71,6 @@
 					</div>
 				</div>
 			</div>
-
 		</div>
 	</div>
 </form>
@@ -94,12 +84,10 @@
 				toggleSpecificImageDropdown();
 			}
 		}
-
 		function toggleSpecificImageDropdown() {
 			const specificImageSelected = document.getElementById('SpecificImage').checked;
 			document.getElementById('specificImageDropdown').style.display = specificImageSelected ? 'block' : 'none';
 		}
-
 		document.getElementById('FunMode').addEventListener('change', toggleFunModeOptions);
 		document.getElementById('StandardMode').addEventListener('change', toggleFunModeOptions);
 		document.getElementById('RandomImage').addEventListener('change', toggleSpecificImageDropdown);

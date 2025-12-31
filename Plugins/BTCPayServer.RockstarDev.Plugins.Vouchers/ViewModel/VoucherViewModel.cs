@@ -38,9 +38,10 @@ public class VoucherViewModel
 
 public class ListVoucherViewModel
 {
-    public List<VoucherViewModel> Vouchers { get; set; }
+    public bool MyProperty { get; set; }
     public string? SearchText { get; set; }
     public VoucherPaymentState ActiveState { get; set; } = VoucherPaymentState.Active;
+    public List<VoucherViewModel> Vouchers { get; set; }
 }
 
 public enum VoucherPaymentState

@@ -33,7 +33,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using NBitcoin.DataEncoders;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
@@ -184,7 +183,8 @@ public class VoucherController : Controller
     public async Task<IActionResult> CreateSatsBill(string storeId, int satsAmount, string imageKey)
     {
         var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
-        var amountInBtc = satsAmount / 100_000_000;
+        var amountInBtc = satsAmount / 100_000_000m;
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
         var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
         {
             Amount = amountInBtc,
@@ -195,12 +195,13 @@ public class VoucherController : Controller
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
-        return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res, imageKey });
+        imageKey = settings.Images.First(c => c.Name.ToLower() == imageKey.Trim()).Key;
+        return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = res, imageKey });
     }
 
     [AllowAnonymous]
-    [HttpGet("~/plugins/vouchers/{id}/viewprintsatsbill")]
-    public async Task<IActionResult> ViewPrintSatsBill(string id, string imageKey)
+    [HttpGet("~/plugins/{storeId}/vouchers/{id}/viewprintsatsbill")]
+    public async Task<IActionResult> ViewPrintSatsBill(string storeId, string id, string imageKey)
     {
         await using var ctx = _dbContextFactory.CreateContext();
         var pp = await ctx.PullPayments.Include(data => data.Payouts)
@@ -211,6 +212,7 @@ public class VoucherController : Controller
         var blob = pp.GetBlob();
         if (!blob.Name.StartsWith("Voucher")) return NotFound();
 
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
         var now = DateTimeOffset.UtcNow;
         var store = await _storeRepository.FindStore(pp.StoreId);
         var storeBlob = store.GetStoreBlob();
@@ -226,7 +228,7 @@ public class VoucherController : Controller
             StoreName = store.StoreName,
             SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
             Description = blob.Description,
-            VoucherImage = VoucherImages.GetImageFile(imageKey)
+            VoucherImage = settings.Images.First(c => c.Key == imageKey).FileUrl
         }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
 
@@ -291,15 +293,12 @@ public class VoucherController : Controller
             TempData[WellKnownTempData.ErrorMessage] = "You must enable at least one payment method before creating a voucher.";
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
-
         if (amount <= 0)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Amount must be greater than 0";
             return View();
         }
-
         var voucherSettings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-
         var app = await GetVoucherAppData();
         var appSettings = app.GetSettings<VoucherPluginAppType.AppConfig>();
         var store = HttpContext.GetStoreData();
@@ -331,9 +330,20 @@ public class VoucherController : Controller
             PayoutMethods = paymentMethods.Select(c => c.ToString()).ToArray(),
             AutoApproveClaims = true
         });
-        if (voucherSettings.FunModeEnabled)
+
+        if (voucherSettings.FunModeEnabled && voucherSettings.Images.Any())
         {
-            return RedirectToAction(nameof(ViewPrintSatsBill), new { id = pp, imageKey = voucherSettings.SelectedVoucherImage });
+            string imageKey;
+            if (voucherSettings.UseRandomImage)
+            {
+                var randomIndex = Random.Shared.Next(voucherSettings.Images.Count);
+                imageKey = voucherSettings.Images[randomIndex].Key;
+            }
+            else
+            {
+                imageKey = voucherSettings.Images.First(c => c.Name.ToLower() ==  voucherSettings.SelectedVoucherImage.ToLower()).Key;
+            }
+            return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = pp, imageKey });
         }
         return RedirectToAction(nameof(View), new { id = pp });
     }
@@ -378,7 +388,8 @@ public class VoucherController : Controller
             SpreadEnabled = settings.SpreadEnabled,
             SpreadPercentage = settings.SpreadPercentage,
             SelectedVoucherImage = settings.SelectedVoucherImage,
-            FunModeEnabled = settings.FunModeEnabled
+            FunModeEnabled = settings.FunModeEnabled,
+            VoucherOptions = settings.Images.Select(c => c.Name).ToList()
         });
     }
 
@@ -410,17 +421,6 @@ public class VoucherController : Controller
     public async Task<IActionResult> VoucherImageSettings(string storeId)
     {
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-        var rootUri = Request.GetAbsoluteRootUri();
-        foreach (var image in settings.Images)
-        {
-            if (string.IsNullOrEmpty(image.StoredFileId))
-                continue;
-
-            var fileUrl = await _fileService.GetFileUrl(rootUri, image.StoredFileId);
-            image.FileUrl = fileUrl == null
-                ? null
-                : await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
-        }
         return View(new VoucherImageSettingsViewModel { Images = settings.Images });
     }
 
@@ -449,10 +449,17 @@ public class VoucherController : Controller
             TempData[WellKnownTempData.ErrorMessage] = imageUpload.Response;
             return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
         }
+        var rootUri = Request.GetAbsoluteRootUri();
+        var fileUrl = await _fileService.GetFileUrl(rootUri, imageUpload.StoredFile.Id);
+
+        var imageLink = fileUrl == null
+            ? null : await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
+
         settings.Images.Add(new VoucherImageSettings
         {
             Key = Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
             Name = vm.NewImageTitle.Trim().ToLower(),
+            FileUrl = imageLink,
             StoredFileId = imageUpload.StoredFile.Id
         });
         await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
@@ -616,10 +623,16 @@ public class VoucherController : Controller
             var upload = await _fileService.UploadImage(formFile, GetUserId());
             if (!upload.Success) continue;
 
+            var rootUri = Request.GetAbsoluteRootUri();
+            var fileUrl = await _fileService.GetFileUrl(rootUri, upload.StoredFile.Id);
+            var imageLink = fileUrl == null
+                ? null : await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
+
             settings.Images.Add(new VoucherImageSettings
             {
                 Key = Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
                 Name = key,
+                FileUrl = imageLink,
                 StoredFileId = upload.StoredFile.Id
             });
         }

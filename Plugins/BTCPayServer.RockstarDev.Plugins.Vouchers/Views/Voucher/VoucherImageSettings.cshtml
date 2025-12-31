@@ -11,14 +11,12 @@
 	var storeId = ScopeProvider.GetCurrentStoreId();
 	var canUpload = await FileService.IsAvailable();
 }
-
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
 	<h2 class="mb-0">@ViewData["Title"]</h2>
 	<div class="d-flex gap-3 mt-3 mt-sm-0">
-		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Go to Settings</a>
+		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Go Back</a>
 	</div>
 </div>
-
 <partial name="_StatusMessage" />
 
 @if (canUpload)
@@ -59,7 +57,7 @@ else
 }
 
 
-<h5 class="mb-3">Voucher Images</h5>
+<h6 class="mb-3">Voucher Images</h6>
 @if (Model.Images.Any())
 {
 	<div class="table-responsive-md">
