@@ -1,4 +1,5 @@
 @inject IScopeProvider ScopeProvider
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
@@ -12,6 +13,8 @@
         { ActiveCategory = nameof(VendorPayNavPages) });
 
     var storeId = ScopeProvider.GetCurrentStoreId();
+    var request = HttpContextAccessor.HttpContext?.Request;
+    var publicInvoiceUrl = $"{request.Scheme}://{request.Host}{Url.Action("ListInvoices", "Public", new { storeId })}";
 }
 
 <form method="post">
@@ -30,9 +33,14 @@
                 <vc:icon symbol="nav-reporting" />
                 <span text-translate="true">Reporting</span>
             </a>
-            <a asp-controller="Public" asp-action="ListInvoices" asp-route-storeId="@storeId" class="btn btn-secondary" target="_blank">
-                Share Invoice Upload Link
-            </a>
+            <div class="btn-group" role="group">
+                <a href="@publicInvoiceUrl" target="_blank" class="btn btn-secondary text-truncate" style="max-width: 300px;">
+                    Public Invoice Upload
+                </a>
+                <button type="button" class="btn btn-secondary clipboard-button px-3" data-clipboard="@publicInvoiceUrl">
+                    <vc:icon symbol="actions-copy" />
+                </button>
+            </div>
             <a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Admin Upload Invoice</a>
         </div>
     </div>
