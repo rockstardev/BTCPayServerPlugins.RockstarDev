@@ -1,9 +1,12 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AngleSharp.Dom;
 using BTCPayServer.Abstractions.Constants;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
@@ -25,49 +28,52 @@ using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using NBitcoin.DataEncoders;
-using static BTCPayServer.Plugins.Monetization.Views.SelectExistingOfferingModalViewModel;
-using static Dapper.SqlMapper;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
 public class VoucherController : Controller
 {
     private readonly AppService _appService;
+    private readonly RateFetcher _rateFetcher;
+    private readonly UriResolver _uriResolver;
+    private readonly IFileService _fileService;
+    private readonly StoreRepository _storeRepository;
+    private readonly BTCPayNetworkProvider _networkProvider;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly PayoutMethodHandlerDictionary _payoutHandlers;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
-    private readonly BTCPayNetworkProvider _networkProvider;
-    private readonly PayoutMethodHandlerDictionary _payoutHandlers;
     private readonly PullPaymentHostedService _pullPaymentHostedService;
-    private readonly RateFetcher _rateFetcher;
-    private readonly StoreRepository _storeRepository;
     private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
-    private readonly UriResolver _uriResolver;
 
     public VoucherController(PullPaymentHostedService pullPaymentHostedService,
         UIStorePullPaymentsController uiStorePullPaymentsController,
-        ApplicationDbContextFactory dbContextFactory,
-        DefaultRulesCollection defaultRulesCollection,
-        UriResolver uriResolver,
+        ApplicationDbContextFactory dbContextFactory, UserManager<ApplicationUser> userManager,
+        DefaultRulesCollection defaultRulesCollection, UriResolver uriResolver, IFileService fileService,
         PayoutMethodHandlerDictionary payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
         AppService appService)
     {
-        _pullPaymentHostedService = pullPaymentHostedService;
-        _uiStorePullPaymentsController = uiStorePullPaymentsController;
-        _dbContextFactory = dbContextFactory;
-        _defaultRulesCollection = defaultRulesCollection;
+        _appService = appService;
         _uriResolver = uriResolver;
+        _fileService = fileService;
+        _rateFetcher = rateFetcher;
+        _userManager = userManager;
         _payoutHandlers = payoutHandlers;
         _storeRepository = storeRepository;
-        _rateFetcher = rateFetcher;
         _networkProvider = networkProvider;
-        _appService = appService;
+        _dbContextFactory = dbContextFactory;
+        _defaultRulesCollection = defaultRulesCollection;
+        _pullPaymentHostedService = pullPaymentHostedService;
+        _uiStorePullPaymentsController = uiStorePullPaymentsController;
     }
 
     public StoreData CurrentStore => HttpContext.GetStoreData();
+    private string GetUserId() => _userManager.GetUserId(User);
 
     [HttpGet("~/plugins/{storeId}/vouchers/keypad")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
@@ -139,37 +145,19 @@ public class VoucherController : Controller
         });
     }
 
-    [HttpGet("~/plugins/{storeId}/vouchers/createsatsbill")]
-    [Authorize(Policy = Policies.CanCreateNonApprovedPullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> CreateSatsBill(string storeId, int satsAmount, string imageKey)
-    {
-        var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
-        var amountInBtc = satsAmount / 100_000_000;
-        var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
-        {
-            Amount = amountInBtc,
-            Currency = "BTC",
-            Name = "Voucher " + Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
-            Description = VoucherImages.GetImageFile(imageKey),
-            PayoutMethods = selectedPaymentMethodIds.Select(c => c.ToString()).ToArray(),
-            BOLT11Expiration = TimeSpan.FromDays(21),
-            AutoApproveClaims = true
-        });
-        return RedirectToAction(nameof(ViewPrintSatsBill), new { id = res, imageKey });
-    }
-
+    [HttpGet("~/plugins/vouchers/{id}")]
     [AllowAnonymous]
-    [HttpGet("~/plugins/vouchers/{id}/viewprintsatsbill")]
-    public async Task<IActionResult> ViewPrintSatsBill(string id, string imageKey)
+    public new async Task<IActionResult> View(string id)
     {
         await using var ctx = _dbContextFactory.CreateContext();
-        var pp = await ctx.PullPayments.Include(data => data.Payouts)
-            .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
+        var pp = await ctx.PullPayments.Include(data => data.Payouts).SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
 
-        if (pp == null) return NotFound();
+        if (pp == null)
+            return NotFound();
 
         var blob = pp.GetBlob();
-        if (!blob.Name.StartsWith("Voucher")) return NotFound();
+        if (!blob.Name.StartsWith("Voucher"))
+            return NotFound();
 
         var now = DateTimeOffset.UtcNow;
         var store = await _storeRepository.FindStore(pp.StoreId);
@@ -185,8 +173,69 @@ public class VoucherController : Controller
             Progress = progress,
             StoreName = store.StoreName,
             SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
+            Description = blob.Description
+        }.SetStoreBranding(Request, _uriResolver, storeBlob));
+    }
+
+
+    [HttpGet("~/plugins/{storeId}/vouchers/createsatsbill")]
+    [Authorize(Policy = Policies.CanCreateNonApprovedPullPayments, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> CreateSatsBill(string storeId, int satsAmount, string imageKey)
+    {
+        var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
+        var amountInBtc = satsAmount / 100_000_000m;
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        
+        var matchedImage = settings.Images.FirstOrDefault(c => c.Name.ToLower() == imageKey.Trim().ToLower());
+        if (matchedImage == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image";
+            return RedirectToAction(nameof(ListVouchers), new { storeId });
+        }
+        
+        var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
+        {
+            Amount = amountInBtc,
+            Currency = "BTC",
+            Name = "Voucher " + Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
+            Description = VoucherImages.GetImageFile(imageKey),
+            PayoutMethods = selectedPaymentMethodIds.Select(c => c.ToString()).ToArray(),
+            BOLT11Expiration = TimeSpan.FromDays(21),
+            AutoApproveClaims = true
+        });
+        return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = res, imageKey = matchedImage.Key });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("~/plugins/{storeId}/vouchers/{id}/viewprintsatsbill")]
+    public async Task<IActionResult> ViewPrintSatsBill(string storeId, string id, string imageKey)
+    {
+        await using var ctx = _dbContextFactory.CreateContext();
+        var pp = await ctx.PullPayments.Include(data => data.Payouts)
+            .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
+
+        if (pp == null) return NotFound();
+
+        var blob = pp.GetBlob();
+        if (!blob.Name.StartsWith("Voucher")) return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        var now = DateTimeOffset.UtcNow;
+        var store = await _storeRepository.FindStore(pp.StoreId);
+        var storeBlob = store.GetStoreBlob();
+        var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
+        return View(await new VoucherViewModel
+        {
+            Amount = pp.Limit,
+            Currency = pp.Currency,
+            Id = pp.Id,
+            Name = blob.Name,
+            PayoutMethods = blob.SupportedPayoutMethods,
+            Progress = progress,
+            StoreName = store.StoreName,
+            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
             Description = blob.Description,
-            VoucherImage = VoucherImages.GetImageFile(imageKey)
+            VoucherImage = settings.Images.First(c => c.Key == imageKey).FileUrl
         }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
 
@@ -251,15 +300,12 @@ public class VoucherController : Controller
             TempData[WellKnownTempData.ErrorMessage] = "You must enable at least one payment method before creating a voucher.";
             return RedirectToAction(nameof(UIStoresController.Dashboard), "UIStores", new { storeId });
         }
-
         if (amount <= 0)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Amount must be greater than 0";
             return View();
         }
-
         var voucherSettings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-
         var app = await GetVoucherAppData();
         var appSettings = app.GetSettings<VoucherPluginAppType.AppConfig>();
         var store = HttpContext.GetStoreData();
@@ -272,10 +318,14 @@ public class VoucherController : Controller
             TempData[WellKnownTempData.ErrorMessage] = "Currency is not supported";
             return View();
         }
-
-        var description = string.Empty;
-        var satsAmount = Math.Floor(amount * rate.BidAsk.Bid * 100_000_000);
+        var bidRate = rate.BidAsk.Bid;
+        if (voucherSettings.SpreadEnabled)
+        {
+            bidRate = bidRate * (1 + voucherSettings.SpreadPercentage / 100m);
+        }
+        var satsAmount = Math.Floor(amount * bidRate * 100_000_000);
         var amountInBtc = satsAmount / 100_000_000;
+        var description = string.Empty;
         if (appSettings.Currency != "BTC") description = $"{amount} {appSettings.Currency} voucher redeemable for {amountInBtc} BTC";
 
         var pp = await _pullPaymentHostedService.CreatePullPayment(store, new()
@@ -287,9 +337,37 @@ public class VoucherController : Controller
             PayoutMethods = paymentMethods.Select(c => c.ToString()).ToArray(),
             AutoApproveClaims = true
         });
-        if (voucherSettings.FunModeEnabled)
+
+        if (voucherSettings.FunModeEnabled && voucherSettings.Images.Any())
         {
-            return RedirectToAction(nameof(ViewPrintSatsBill), new { id = pp, imageKey = voucherSettings.SelectedVoucherImage });
+            string imageKey;
+            if (voucherSettings.UseRandomImage)
+            {
+                var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
+                if (!enabledImages.Any())
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "No enabled voucher images available";
+                    return RedirectToAction(nameof(Keypad), new { storeId });
+                }
+                var randomIndex = Random.Shared.Next(enabledImages.Count);
+                imageKey = enabledImages[randomIndex].Key;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "No voucher image selected";
+                    return RedirectToAction(nameof(Keypad), new { storeId });
+                }
+                var matchedImage = voucherSettings.Images.FirstOrDefault(c => c.Name.ToLower() == voucherSettings.SelectedVoucherImage.ToLower());
+                if (matchedImage == null)
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "Selected voucher image not found";
+                    return RedirectToAction(nameof(Keypad), new { storeId });
+                }
+                imageKey = matchedImage.Key;
+            }
+            return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = pp, imageKey });
         }
         return RedirectToAction(nameof(View), new { id = pp });
     }
@@ -315,6 +393,7 @@ public class VoucherController : Controller
         return RedirectToAction(nameof(ListVouchers), new { storeId });
     }
 
+
     [HttpGet("~/plugins/{storeId}/vouchers/settings")]
     [Authorize(Policy = Policies.CanModifyStoreSettings)]
     public async Task<IActionResult> VoucherSettings(string storeId)
@@ -323,11 +402,18 @@ public class VoucherController : Controller
             return NotFound();
 
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        if (!settings.Images.Any())
+        {
+            settings = await UploadDefaultVoucherImages(settings);
+        }
         return View(new VoucherSettingsViewModel
         {
-            StoreId = CurrentStore.Id,
+            UseRandomImage = settings.UseRandomImage,
+            SpreadEnabled = settings.SpreadEnabled,
+            SpreadPercentage = settings.SpreadPercentage,
             SelectedVoucherImage = settings.SelectedVoucherImage,
-            FunModeEnabled = settings.FunModeEnabled
+            FunModeEnabled = settings.FunModeEnabled,
+            VoucherOptions = settings.Images.Where(c => c.Enabled).Select(c => c.Name).ToList()
         });
     }
 
@@ -339,7 +425,10 @@ public class VoucherController : Controller
             return NotFound();
 
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        settings.SpreadPercentage = model.SpreadPercentage;
+        settings.SpreadEnabled = model.SpreadEnabled;
         settings.FunModeEnabled = model.FunModeEnabled;
+        settings.UseRandomImage = model.UseRandomImage;
         settings.SelectedVoucherImage = model.SelectedVoucherImage;
         await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
         TempData.SetStatusMessageModel(new StatusMessageModel
@@ -350,35 +439,158 @@ public class VoucherController : Controller
         return RedirectToAction(nameof(VoucherSettings), new { storeId });
     }
 
-    [HttpGet("~/plugins/vouchers/{id}")]
-    [AllowAnonymous]
-    public new async Task<IActionResult> View(string id)
+
+    [HttpGet("~/plugins/{storeId}/vouchers/settings/images")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> VoucherImageSettings(string storeId)
     {
-        await using var ctx = _dbContextFactory.CreateContext();
-        var pp = await ctx.PullPayments.Include(data => data.Payouts)
-            .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        return View(new VoucherImageSettingsViewModel { Images = settings.Images });
+    }
 
-        if (pp == null) return NotFound();
+    [HttpPost("~/plugins/{storeId}/vouchers/images/upload")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> UploadVoucherImage(string storeId, [FromForm] VoucherImageSettingsViewModel vm)
+    {
+        if (CurrentStore == null)
+            return NotFound();
 
-        var blob = pp.GetBlob();
-        if (!blob.Name.StartsWith("Voucher")) return NotFound();
-
-        var now = DateTimeOffset.UtcNow;
-        var store = await _storeRepository.FindStore(pp.StoreId);
-        var storeBlob = store.GetStoreBlob();
-        var progress = _pullPaymentHostedService.CalculatePullPaymentProgress(pp, now);
-        return View(await new VoucherViewModel
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        if (settings.Images.Any(c => c.Name == vm.NewImageTitle.Trim().ToLower()))
         {
-            Amount = pp.Limit,
-            Currency = pp.Currency,
-            Id = pp.Id,
-            Name = blob.Name,
-            PayoutMethods = blob.SupportedPayoutMethods,
-            Progress = progress,
-            StoreName = store.StoreName,
-            SupportsLNURL = _pullPaymentHostedService.SupportsLNURL(pp, blob),
-            Description = blob.Description
-        }.SetStoreBranding(Request, _uriResolver, storeBlob));
+            TempData[WellKnownTempData.ErrorMessage] = "An existing voucher image exist with that title";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        var validationResult = ValidateImageForPosPrinting(vm.NewImageFile);
+        if (!validationResult.IsValid)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = validationResult.ErrorMessage;
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        UploadImageResultModel imageUpload = await _fileService.UploadImage(vm.NewImageFile, GetUserId());
+        if (!imageUpload.Success)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = imageUpload.Response;
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        var rootUri = Request.GetAbsoluteRootUri();
+        var fileUrl = await _fileService.GetFileUrl(rootUri, imageUpload.StoredFile.Id);
+
+        var imageLink = fileUrl == null
+            ? null : await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
+
+        settings.Images.Add(new VoucherImageSettings
+        {
+            Key = Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
+            Name = vm.NewImageTitle.Trim().ToLower(),
+            FileUrl = imageLink,
+            StoredFileId = imageUpload.StoredFile.Id
+        });
+        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+        TempData[WellKnownTempData.SuccessMessage] = $"Voucher image uploaded successfully";
+        return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+    }
+
+
+    [HttpGet("~/plugins/{storeId}/vouchers/images/{imageKey}/toggle")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> ToggleVoucherImage(string storeId, string imageKey)
+    {
+        if (CurrentStore is null) return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        if (settings?.Images == null || !settings.Images.Any())
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
+        if (voucherImage == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+
+        return View("Confirm",
+            new ConfirmModel($"{(voucherImage.Enabled ? "Disable" : "Enable")} voucher image",
+                $"The voucher image ({voucherImage.Name}) will be {(voucherImage.Enabled ? "disabled" : "enabled")}. Are you sure?", voucherImage.Enabled ? "Disable" : "Enable"));
+    }
+
+    [HttpPost("~/plugins/{storeId}/vouchers/images/{imageKey}/toggle")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> ToggleVoucherImagePost(string storeId, string imageKey)
+    {
+        if (CurrentStore is null) 
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        if (settings?.Images == null || !settings.Images.Any())
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
+        if (voucherImage == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        voucherImage.Enabled = !voucherImage.Enabled;
+        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+        TempData[WellKnownTempData.SuccessMessage] = $"Voucher image {(voucherImage.Enabled ? "enabled" : "disabled")} successfully";
+        return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+    }
+
+
+    [HttpGet("~/plugins/{storeId}/vouchers/images/{imageKey}/delete")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> Delete(string storeId, string imageKey)
+    {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        if (settings?.Images == null || !settings.Images.Any())
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
+        if (voucherImage == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        return View("Confirm", new ConfirmModel("Delete user", $"The voucher image: {voucherImage.Name} will be deleted. Are you sure?", "Delete"));
+    }
+
+    [HttpPost("~/plugins/{storeId}/vouchers/images/{imageKey}/delete")]
+    [Authorize(Policy = Policies.CanModifyStoreSettings)]
+    public async Task<IActionResult> DeletePost(string storeId, string imageKey)
+    {
+        if (CurrentStore == null)
+            return NotFound();
+
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        if (settings?.Images == null || !settings.Images.Any())
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+
+        var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
+        if (voucherImage == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
+            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        }
+        if (settings.SelectedVoucherImage == voucherImage.Name)
+            settings.SelectedVoucherImage = null;
+
+        settings.Images.Remove(voucherImage);
+        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+        TempData[WellKnownTempData.SuccessMessage] = "Voucher image deleted successfully";
+        return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
     }
 
     public async Task CreateVoucherAppData(string storeId)
@@ -414,5 +626,60 @@ public class VoucherController : Controller
         await CreateVoucherAppData(CurrentStore.Id);
         apps = await _appService.GetApps(VoucherPluginAppType.AppType);
         return apps.FirstOrDefault(c => c.StoreDataId == CurrentStore.Id);
+    }
+
+    public async Task<VoucherSettings> UploadDefaultVoucherImages(VoucherSettings settings)
+    {
+        if (!await _fileService.IsAvailable()) return settings;
+
+        foreach (var (key, fileName) in VoucherImages.ImageMap)
+        {
+            if (settings.Images.Any(i => i.Key == key)) continue;
+
+            await using var stream = VoucherImages.GetImageStream(fileName);
+            if (stream == null) continue;
+
+            IFormFile formFile = new FormFile(stream, 0, stream.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "image/png"
+            };
+            var upload = await _fileService.UploadImage(formFile, GetUserId());
+            if (!upload.Success) continue;
+
+            var rootUri = Request.GetAbsoluteRootUri();
+            var fileUrl = await _fileService.GetFileUrl(rootUri, upload.StoredFile.Id);
+            var imageLink = fileUrl == null
+                ? null : await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
+
+            settings.Images.Add(new VoucherImageSettings
+            {
+                Key = Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
+                Name = key,
+                FileUrl = imageLink,
+                StoredFileId = upload.StoredFile.Id
+            });
+        }
+        await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+        return settings;
+    }
+
+    private (bool IsValid, string ErrorMessage) ValidateImageForPosPrinting(IFormFile imageFile)
+    {
+        const long MaxFileSize = 1024 * 1024;
+        if (imageFile.Length >= MaxFileSize)
+        {
+            return (false, "Image file is too large. File size should be less than 1MB");
+        }
+        var extension = Path.GetExtension(imageFile.FileName)?.ToLowerInvariant();
+        if (extension != ".png" && extension != ".jpg" && extension != ".jpeg")
+        {
+            return (false, "Only PNG and JPEG images are supported");
+        }
+        if (!imageFile.ContentType.StartsWith("image/"))
+        {
+            return (false, "Invalid image file");
+        }
+        return (true, string.Empty);
     }
 }

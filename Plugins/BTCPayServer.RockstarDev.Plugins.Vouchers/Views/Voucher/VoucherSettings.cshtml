@@ -14,44 +14,86 @@
     <h2 text-translate="true">@ViewData["Title"]</h2>
 	<div class="d-flex gap-3 mt-3 mt-sm-0">
 		<a asp-action="ListVouchers" asp-controller="Voucher" asp-route-storeId="@storeId" class="btn btn-secondary">Go Back</a>
+		<a asp-action="VoucherImageSettings" asp-controller="Voucher" asp-route-storeId="@storeId" class="btn btn-secondary">Voucher Images</a>
 		<button type="submit" form="voucher-settings-form" class="btn btn-success">Save Changes</button>
     </div>
 </div>
 <partial name="_StatusMessage" />
 
 <form id="voucher-settings-form" class="mt-4" asp-action="VoucherSettings" asp-controller="Voucher" asp-route-storeId="@storeId" method="post">
-	<div class="mb-4">
-		<h5 class="mb-3">Voucher Display Mode</h5>
-
-		<div class="form-check mb-2">
-			<input class="form-check-input" type="radio" asp-for="FunModeEnabled" value="false" id="StandardMode" />
-			<label class="form-check-label" for="StandardMode">Standard mode</label>
-		</div>
-
-		<div class="form-check mb-3">
-			<input class="form-check-input" type="radio" asp-for="FunModeEnabled" value="true" id="FunMode" />
-			<label class="form-check-label" for="FunMode">Fun mode</label>
-		</div>
-
-		<div id="funModeDropdown" class="mb-3" style="display:none;">
-			<label for="SelectedVoucher" class="form-label">Select Voucher Image</label>
-			<div class="col-3">
-				<select class="form-select" asp-for="SelectedVoucherImage" asp-items="@(new SelectList(Model.VoucherOptions))">
-				</select>
+	<div class="row">
+		<div class="col-xl-10 col-xxl-constrain">
+			<div class="form-group d-flex align-items-center">
+				<input asp-for="SpreadEnabled" type="checkbox" class="btcpay-toggle me-3" data-bs-toggle="collapse"
+					   data-bs-target="#spreadInput">
+				<label asp-for="SpreadEnabled" class="form-label mb-0 me-1"></label>
 			</div>
+			<div class="collapse @(Model.SpreadEnabled ? "show" : "")" id="spreadInput">
+				<div class="form-group">
+					<label asp-for="SpreadPercentage" class="form-label"></label>
+					<div class="input-group">
+						<input inputmode="decimal" asp-for="SpreadPercentage" class="form-control" />
+						<span class="input-group-text">%</span>
+					</div>
+					<span asp-validation-for="SpreadPercentage" class="text-danger"></span>
+					<div class="text-secondary">
+						<span text-translate="true">Add (positive %) or reduce (negative %) to the final BTC amount after fiat conversion.</span>
+					</div>
+				</div>
+			</div>
+			<h5 class="mb-3">Voucher Display Mode</h5>
+			<div class="d-flex gap-4 mb-3">
+				<div class="form-check">
+					<input class="form-check-input" type="radio" asp-for="FunModeEnabled" value="false" id="StandardMode" />
+					<label class="form-check-label" for="StandardMode">Standard mode</label>
+				</div>
+				<div class="form-check">
+					<input class="form-check-input" type="radio" asp-for="FunModeEnabled" value="true" id="FunMode" />
+					<label class="form-check-label" for="FunMode">Fun mode</label>
+				</div>
+			</div>
+
+			<div id="funModeOptions" class="mb-3 ps-3 border-start border-2 border-light" style="display:none;">
+				<h6 class="mb-2">Image Selection</h6>
+				<div class="d-flex gap-3 flex-wrap">
+					<div class="form-check">
+						<input class="form-check-input" type="radio" asp-for="UseRandomImage" value="true" id="RandomImage" />
+						<label class="form-check-label" for="RandomImage">Random image for each voucher</label>
+					</div>
+					<div class="form-check">
+						<input class="form-check-input" type="radio" asp-for="UseRandomImage" value="false" id="SpecificImage" />
+						<label class="form-check-label" for="SpecificImage">Specific image</label>
+					</div>
+				</div>
+				<div id="specificImageDropdown" class="mt-2" style="display:none;">
+					<label asp-for="SelectedVoucherImage" class="form-label">Choose voucher image</label>
+					<select class="form-select" asp-for="SelectedVoucherImage" asp-items="@(new SelectList(Model.VoucherOptions))"></select>
+				</div>
+			</div>
+
 		</div>
 	</div>
 </form>
 
 @section PageFootContent {
 	<script>
-		function toggleFunModeDropdown() {
+		function toggleFunModeOptions() {
 			const funModeEnabled = document.getElementById('FunMode').checked;
-			document.getElementById('funModeDropdown').style.display = funModeEnabled ? 'block' : 'none';
+			document.getElementById('funModeOptions').style.display = funModeEnabled ? 'block' : 'none';
+			if (funModeEnabled) {
+				toggleSpecificImageDropdown();
+			}
 		}
-		document.getElementById('FunMode').addEventListener('change', toggleFunModeDropdown);
-		document.getElementById('StandardMode').addEventListener('change', toggleFunModeDropdown);
-		toggleFunModeDropdown();
+		function toggleSpecificImageDropdown() {
+			const specificImageSelected = document.getElementById('SpecificImage').checked;
+			document.getElementById('specificImageDropdown').style.display = specificImageSelected ? 'block' : 'none';
+		}
+		document.getElementById('FunMode').addEventListener('change', toggleFunModeOptions);
+		document.getElementById('StandardMode').addEventListener('change', toggleFunModeOptions);
+		document.getElementById('RandomImage').addEventListener('change', toggleSpecificImageDropdown);
+		document.getElementById('SpecificImage').addEventListener('change', toggleSpecificImageDropdown);
+
+		toggleFunModeOptions();
 	</script>
 }
 

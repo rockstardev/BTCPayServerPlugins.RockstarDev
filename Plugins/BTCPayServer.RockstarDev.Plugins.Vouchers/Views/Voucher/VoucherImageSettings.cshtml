@@ -1,0 +1,120 @@
+@using BTCPayServer.Abstractions.Contracts
+@inject IFileService FileService
+@inject IScopeProvider ScopeProvider
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
+@model VoucherImageSettingsViewModel
+@{
+	Layout = "_Layout";
+	ViewData.SetActivePage("Voucher", "Voucher Images", "Voucher");
+	var storeId = ScopeProvider.GetCurrentStoreId();
+	var canUpload = await FileService.IsAvailable();
+}
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+	<h2 class="mb-0">@ViewData["Title"]</h2>
+	<div class="d-flex gap-3 mt-3 mt-sm-0">
+		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Go Back</a>
+	</div>
+</div>
+<partial name="_StatusMessage" />
+
+@if (canUpload)
+{
+	<div class="mt-4 row">
+		<div class="col-md-6">
+			<form method="post" enctype="multipart/form-data" asp-controller="Voucher" asp-action="UploadVoucherImage" asp-route-storeId="@storeId" class="p-3">
+				<h6 class="mb-3">Upload Voucher Image</h6>
+				<div class="mb-3">
+					<label class="form-label">Title</label>
+					<input asp-for="NewImageTitle" class="form-control" placeholder="e.g. Jack, Nayib Bukele" required />
+				</div>
+
+				<div class="mb-3">
+					<label class="form-label">Image file</label>
+					<input asp-for="NewImageFile" type="file" accept="image/png,image/jpeg" class="form-control" required />
+					<div class="form-text">
+						<strong>For best printing results:</strong>
+						<ul class="mb-0 mt-1">
+							<li>Dimensions: 400-600px wide × 1000-1690px tall (portrait)</li>
+							<li>File size: Under 1MB</li>
+							<li>Use high contrast images for thermal printers</li>
+						</ul>
+					</div>
+				</div>
+
+				<div class="d-flex justify-content-end">
+					<button type="submit" class="btn btn-success">Upload Image</button>
+				</div>
+			</form>
+			<hr class="mt-4" />
+		</div>
+	</div>
+}
+else
+{
+	<p class="text-warning mt-4">File uploads are not available on this instance.</p>
+}
+
+
+<h6 class="mb-3">Voucher Images</h6>
+@if (Model.Images.Any())
+{
+	<div class="table-responsive-md">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th scope="col">Name</th>
+					<th scope="col">Status</th>
+					<th scope="col">File Link</th>
+					<th scope="col" class="text-end"></th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var pp in Model.Images)
+				{
+					<tr class="mass-action-row">
+						<td>@pp.Name</td>
+						<td>@(pp.Enabled ? "Active" : "Disabled")</td>
+						<td>
+							<a href="@pp.FileUrl" target="_blank" rel="noopener noreferrer" class="link-primary">View image</a>
+						</td>
+						<td class="text-end">
+							<div class="d-inline-flex align-items-center gap-3">
+								<div class="dropdown">
+									<button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown"
+											aria-expanded="false" id="ToggleActions-@pp.Key">
+										<vc:icon symbol="dots" />
+									</button>
+									<ul class="dropdown-menu dropdown-menu-end">
+										<li>
+											<a class="dropdown-item" asp-controller="Voucher" asp-action="ToggleVoucherImage"
+											   asp-route-storeId="@storeId" asp-route-imageKey="@pp.Key">
+												@(pp.Enabled ? "Disable" : "Enable") Voucher Image
+											</a>
+										</li>
+										<li class="dropdown-divider"></li>
+										<li>
+											<a class="dropdown-item text-danger" asp-controller="Voucher" asp-action="Delete"
+											   asp-route-storeId="@storeId" asp-route-imageKey="@pp.Key">
+												Delete
+											</a>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+
+	<partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
+}
+else
+{
+	<p class="text-secondary mt-4">
+		<span>There are no voucher images available</span>
+	</p>
+}
