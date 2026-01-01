@@ -259,7 +259,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await CreateVendorPayUser();
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         var popupTask = Page.Context.WaitForPageAsync();
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameRegex = new Regex("public invoice upload", RegexOptions.IgnoreCase) }).ClickAsync();
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameRegex = new Regex("Public Invoice Upload", RegexOptions.IgnoreCase) }).ClickAsync();
         var popup = await popupTask;
         await popup.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await popup.FillAsync("#Email", VendorPayUserEmail);
