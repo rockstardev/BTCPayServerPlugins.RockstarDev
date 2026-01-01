@@ -185,6 +185,14 @@ public class VoucherController : Controller
         var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
         var amountInBtc = satsAmount / 100_000_000m;
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        
+        var matchedImage = settings.Images.FirstOrDefault(c => c.Name.ToLower() == imageKey.Trim().ToLower());
+        if (matchedImage == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image";
+            return RedirectToAction(nameof(ListVouchers), new { storeId });
+        }
+        
         var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
         {
             Amount = amountInBtc,
@@ -195,8 +203,7 @@ public class VoucherController : Controller
             BOLT11Expiration = TimeSpan.FromDays(21),
             AutoApproveClaims = true
         });
-        imageKey = settings.Images.First(c => c.Name.ToLower() == imageKey.Trim()).Key;
-        return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = res, imageKey });
+        return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = res, imageKey = matchedImage.Key });
     }
 
     [AllowAnonymous]
@@ -312,7 +319,7 @@ public class VoucherController : Controller
             return View();
         }
         var bidRate = rate.BidAsk.Bid;
-        if (voucherSettings.SpreadEnabled && voucherSettings.SpreadPercentage > 0)
+        if (voucherSettings.SpreadEnabled)
         {
             bidRate = bidRate * (1 + voucherSettings.SpreadPercentage / 100m);
         }
@@ -336,12 +343,29 @@ public class VoucherController : Controller
             string imageKey;
             if (voucherSettings.UseRandomImage)
             {
-                var randomIndex = Random.Shared.Next(voucherSettings.Images.Count);
-                imageKey = voucherSettings.Images[randomIndex].Key;
+                var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
+                if (!enabledImages.Any())
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "No enabled voucher images available";
+                    return RedirectToAction(nameof(Keypad), new { storeId });
+                }
+                var randomIndex = Random.Shared.Next(enabledImages.Count);
+                imageKey = enabledImages[randomIndex].Key;
             }
             else
             {
-                imageKey = voucherSettings.Images.First(c => c.Name.ToLower() ==  voucherSettings.SelectedVoucherImage.ToLower()).Key;
+                if (string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "No voucher image selected";
+                    return RedirectToAction(nameof(Keypad), new { storeId });
+                }
+                var matchedImage = voucherSettings.Images.FirstOrDefault(c => c.Name.ToLower() == voucherSettings.SelectedVoucherImage.ToLower());
+                if (matchedImage == null)
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "Selected voucher image not found";
+                    return RedirectToAction(nameof(Keypad), new { storeId });
+                }
+                imageKey = matchedImage.Key;
             }
             return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = pp, imageKey });
         }
