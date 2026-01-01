@@ -456,7 +456,7 @@ public class VoucherController : Controller
             return NotFound();
 
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-        if (settings.Images.Any(c => c.Name == vm.NewImageTitle.Trim().ToLower()))
+        if (settings.Images.Any(c => c.Name.ToLower() == vm.NewImageTitle.Trim().ToLower()))
         {
             TempData[WellKnownTempData.ErrorMessage] = "An existing voucher image exist with that title";
             return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
