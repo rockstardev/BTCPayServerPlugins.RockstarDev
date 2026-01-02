@@ -4,12 +4,13 @@
 @using BTCPayServer.Client
 @using BTCPayServer.Client.Models
 @using BTCPayServer.Models
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
 @using BTCPayServer.Security
 @using BTCPayServer.Services
 @using BTCPayServer.TagHelpers
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @using Newtonsoft.Json.Linq
-@model BTCPayServer.Plugins.PointOfSale.Models.ViewPointOfSaleViewModel
+@model VoucherPointOfSaleViewModel
 @functions {
 	private string GetItemPriceFormatted(AppItem item)
 	{
@@ -36,6 +37,22 @@
 <div id="PosKeypad" class="public-page-wrap">
 	<partial name="_StatusMessage" />
 	<partial name="_StoreHeader" model="(string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title, Model.StoreBranding)" />
+	<div class="position-relative">
+		@if (Model.PoSApps?.Any() == true)
+		{
+			<div class="dropdown" style="position: relative;">
+				<button class="btn btn-light rounded-circle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+					<vc:icon symbol="caret-down" />
+				</button>
+				<ul class="dropdown-menu">
+					@foreach (var item in Model.PoSApps)
+					{
+						<li><a class="dropdown-item" href="@item.Url">@item.Name</a></li>
+					}
+				</ul>
+			</div>
+		}
+	</div>
 
 	<form id="app" method="post" asp-action="CreateVoucher" asp-route-storeId="@Model.StoreId" asp-antiforgery="false" v-on:submit="handleFormSubmit" class="d-flex flex-column gap-4 my-auto" v-cloak>
 		<input type="hidden" name="amount" :value="totalNumeric">

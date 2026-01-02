@@ -22,6 +22,7 @@ public class VoucherPlugin : BaseBTCPayServerPlugin
     {
         applicationBuilder.AddSingleton<AppBaseType, VoucherPluginAppType>();
         applicationBuilder.AddUIExtension("store-integrations-nav", "VoucherNav");
+        applicationBuilder.AddUIExtension("pos-header", "PosViewSwitcher");
         base.Execute(applicationBuilder);
     }
 }

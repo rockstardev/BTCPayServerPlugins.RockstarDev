@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -18,6 +19,7 @@ using BTCPayServer.ModelBinders;
 using BTCPayServer.Models;
 using BTCPayServer.Payouts;
 using BTCPayServer.Plugins.PointOfSale;
+using BTCPayServer.Plugins.PointOfSale.Controllers;
 using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.Vouchers.Utility;
@@ -103,12 +105,30 @@ public class VoucherController : Controller
         if (app == null)
             return NotFound();
 
+        var posApps = await _appService.GetApps(PointOfSaleAppType.AppType);
+        List<StorePosAppItem> posAppItems = new();
+        foreach (var item in posApps.Where(c => c.StoreDataId == CurrentStore.Id))
+        {
+            var posSettings = item.GetSettings<PointOfSaleSettings>();
+            Enum.TryParse<PosViewType>(posSettings.DefaultView.ToString(), true, out var posView);
+            if (posView == PosViewType.Light)
+            {
+                posAppItems.Add(new StorePosAppItem
+                {
+                    Name = item.Name,
+                    Url = Url.Action(nameof(UIPointOfSaleController.ViewPointOfSale), "UIPointOfSale", new { appId = item.Id }, Request.Scheme)
+                });
+            }
+        }
+
         var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
         var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(settings.Currency);
         var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
         var storeBlob = store.GetStoreBlob();
-        return View(new ViewPointOfSaleViewModel
+        return View(new VoucherPointOfSaleViewModel
         {
+            PoSApps = posAppItems,
+            CurrentAppId = app.Id,
             Title = settings.Title,
             StoreName = store.StoreName,
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, storeBlob),
