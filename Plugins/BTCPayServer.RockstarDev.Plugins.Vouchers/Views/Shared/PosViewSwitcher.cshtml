@@ -19,16 +19,19 @@
 
 @if (posApp != null && voucherStoreApp != null)
 {
-	<div class="position-relative">
-		<button type="button" class="btn btn-light rounded-circle" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 3rem;">
-			<vc:icon symbol="caret-down" />
-		</button>
-		<ul class="dropdown-menu">
-			<li>
-				<a class="dropdown-item" href="@voucherUrl">
-					Voucher
-				</a>
-			</li>
-		</ul>
+	<div class="w-100 d-flex justify-content-end pe-5 mt-3">
+		<div class="dropdown">
+			<button type="button" class="btn btn-light rounded-circle" data-bs-toggle="dropdown" aria-expanded="false">
+				<vc:icon symbol="pos-cart" />
+			</button>
+			<ul class="dropdown-menu dropdown-menu-end">
+				<li>
+					<a class="dropdown-item d-flex align-items-center gap-1" href="@voucherUrl">
+						<partial name="_VoucherIcon" />
+						<span>Voucher</span>
+					</a>
+				</li>
+			</ul>
+		</div>
 	</div>
 }
