@@ -5,7 +5,6 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
-using BTCPayServer.Events;
 using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.PaymentHandlers;
 using BTCPayServer.Services.Invoices;
@@ -91,11 +90,8 @@ public class MarkPaidStoreController(
             PaymentMethodId = handler.PaymentMethodId.ToString()
         }.Set(invoice, handler, new object());
         var payment = await paymentService.AddPayment(paymentData);
-        
-        if (payment != null)
-        {
-            await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
-        }
+
+        if (payment != null) await invoiceRepository.MarkInvoiceStatus(invoice.Id, InvoiceStatus.Settled);
 
         return Json(new { success = true, status = invoice.Status.ToString() });
     }

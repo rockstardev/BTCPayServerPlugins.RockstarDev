@@ -58,13 +58,9 @@ public class MarkPaidServerController(SettingsRepository settings, PaymentMethod
             // Check if this token would conflict with an external payment method
             // Note: We normalize to uppercase to match plugin startup behavior (line 48 in plugin)
             if (PaymentMethodId.TryParse(token, out var pmi) && pmi is not null)
-            {
                 // Block any method that has a registered handler that's NOT from this plugin
                 if (paymentHandlers.TryGetValue(pmi, out var handler) && handler is not MarkPaidPaymentMethodHandler)
-                {
                     reserved.Add(token);
-                }
-            }
         }
 
         if (invalid.Count > 0)

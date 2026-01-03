@@ -2,9 +2,11 @@
 
 Accept off-chain payments like cash, credit cards, or bank transfers. Mark invoices as paid directly from the checkout page.
 
-By default, the plugin provides a **CASH** payment method. No additional configuration is needed to start using it - after you install plugin, just go to the store you want to enable it for.
+By default, the plugin provides a **CASH** payment method. No additional configuration is needed to start using it - after you install plugin, just go to the
+store you want to enable it for.
 
-If you want to add more payment methods, you can do so by going to the MarkPaid plugin Server settings, and update the textbox to say "CASH,CREDIT". Please be aware you'll need to restart the server for settings to take effect.
+If you want to add more payment methods, you can do so by going to the MarkPaid plugin Server settings, and update the textbox to say "CASH,CREDIT". Please be
+aware you'll need to restart the server for settings to take effect.
 
 ## Demo
 
@@ -24,7 +26,7 @@ If you want to add more payment methods, you can do so by going to the MarkPaid 
 
 - **Point of Sale**: Accept cash payments at physical locations
 - **Credit Card Processing**: Record payments processed through external payment processors
-- **Custom Payment Methods**: Support any other off-chain payment method needed 
+- **Custom Payment Methods**: Support any other off-chain payment method needed
 
 ## License
 
