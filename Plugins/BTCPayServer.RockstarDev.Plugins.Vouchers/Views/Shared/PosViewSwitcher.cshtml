@@ -19,8 +19,7 @@
 
 @if (posApp != null && voucherStoreApp != null)
 {
-	<div class="w-100 d-flex justify-content-end pe-5 mt-3">
-		<div class="dropdown">
+    <div class="dropdown" style="position: absolute; z-index: 1; top: 0; right: 4rem;">
 			<button type="button" class="btn btn-light rounded-circle" data-bs-toggle="dropdown" aria-expanded="false">
 				<vc:icon symbol="pos-cart" />
 			</button>
@@ -33,5 +32,4 @@
 				</li>
 			</ul>
 		</div>
-	</div>
 }

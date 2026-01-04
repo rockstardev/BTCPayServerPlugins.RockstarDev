@@ -37,31 +37,27 @@
 <div id="PosKeypad" class="public-page-wrap">
 	<partial name="_StatusMessage" />
 	<partial name="_StoreHeader" model="(string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title, Model.StoreBranding)" />
-	<div class="position-relative">
-		@if (Model.PoSApps?.Any() == true)
-		{
-			<div class="w-100 d-flex justify-content-end pe-5 mt-n5">
-				<div class="dropdown">
-					<button class="btn btn-light rounded-circle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-						<span class="d-block" style="margin-left: 3px; margin-right: -6px; filter: drop-shadow(0 0 0.5px currentColor);">
-							<partial name="_VoucherIcon" class="d-block" />
-						</span>
-					</button>
-					<ul class="dropdown-menu dropdown-menu-end">
-						@foreach (var item in Model.PoSApps)
-						{
-							<li>
-								<a class="dropdown-item d-flex align-items-center gap-2" href="@item.Url">
-									<vc:icon symbol="pos-cart" />
-									<span>@item.Name</span>
-								</a>
-							</li>
-						}
-					</ul>
-				</div>
-			</div>
-		}
-	</div>
+	@if (Model.PoSApps?.Any() == true)
+	{
+		<div class="dropdown" style="position: absolute; z-index: 1; top: 0; right: 4rem;">
+			<button class="btn btn-light rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 3.25em; width: 3.25em; color: var(--btcpay-header-link);">
+				<span style="margin-left: 3px; margin-right: -6px; filter: drop-shadow(0 0 0.5px currentColor);">
+					<partial name="_VoucherIcon" />
+				</span>
+			</button>
+			<ul class="dropdown-menu dropdown-menu-end">
+				@foreach (var item in Model.PoSApps)
+				{
+					<li>
+						<a class="dropdown-item d-flex align-items-center gap-2" href="@item.Url">
+							<vc:icon symbol="pos-cart" />
+							<span>@item.Name</span>
+						</a>
+					</li>
+				}
+			</ul>
+		</div>
+	}
 
 	<form id="app" method="post" asp-action="CreateVoucher" asp-route-storeId="@Model.StoreId" asp-antiforgery="false" v-on:submit="handleFormSubmit" class="d-flex flex-column gap-4 my-auto" v-cloak>
 		<input type="hidden" name="amount" :value="totalNumeric">
