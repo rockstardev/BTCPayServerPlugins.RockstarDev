@@ -1,0 +1,35 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Plugins.PointOfSale
+@using BTCPayServer.Plugins.PointOfSale.Models
+@using BTCPayServer.RockstarDev.Plugins.Vouchers
+@using BTCPayServer.Services.Apps
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Routing
+@inject LinkGenerator LinkGenerator
+@inject AppService appService
+@inject IScopeProvider ScopeProvider
+@model ViewPointOfSaleViewModel
+@{
+	var storeId = ScopeProvider.GetCurrentStoreId();
+	var posApp = await appService.GetApp(Model.AppId, PointOfSaleAppType.AppType);
+	var voucherApps = await appService.GetApps(VoucherPluginAppType.AppType);
+	var voucherStoreApp = voucherApps.FirstOrDefault(c => c.StoreDataId == Model.StoreId);
+	var voucherUrl = LinkGenerator.GetPathByAction(nameof(VoucherController.Keypad), "Voucher", new { storeId = Model.StoreId });
+}
+
+@if (posApp != null && voucherStoreApp != null)
+{
+    <div class="dropdown" style="position: absolute; z-index: 1; top: 0; right: 4rem;">
+			<button type="button" class="btn btn-light rounded-circle" data-bs-toggle="dropdown" aria-expanded="false">
+				<vc:icon symbol="pos-cart" />
+			</button>
+			<ul class="dropdown-menu dropdown-menu-end">
+				<li>
+					<a class="dropdown-item d-flex align-items-center gap-1" href="@voucherUrl">
+						<partial name="_VoucherIcon" />
+						<span>Voucher</span>
+					</a>
+				</li>
+			</ul>
+		</div>
+}
