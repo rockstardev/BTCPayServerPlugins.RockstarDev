@@ -259,6 +259,26 @@ public class VoucherController : Controller
         }.SetStoreBranding(Request, _uriResolver, storeBlob));
     }
 
+    [AllowAnonymous]
+    [HttpGet("~/plugins/{storeId}/vouchers/{id}/printvoucher")]
+    public async Task<IActionResult> PrintVoucher(string storeId, string id)
+    {
+        await using var ctx = _dbContextFactory.CreateContext();
+        var pp = await ctx.PullPayments.Include(data => data.Payouts)
+            .SingleOrDefaultAsync(p => p.Id == id && p.Archived == false);
+
+        if (pp == null)
+            return NotFound();
+
+        var blob = pp.GetBlob();
+        if (!blob.Name.StartsWith("Voucher"))
+            return NotFound();
+
+        var voucherSettings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+        return HandleImageRedirectView(voucherSettings, nameof(ListVouchers), storeId, pp.Id);
+    }
+
+
     [HttpGet("~/plugins/{storeId}/vouchers")]
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> ListVouchers(string storeId, string searchText, VoucherPaymentState voucherPaymentState)
@@ -357,39 +377,7 @@ public class VoucherController : Controller
             PayoutMethods = paymentMethods.Select(c => c.ToString()).ToArray(),
             AutoApproveClaims = true
         });
-
-        if (voucherSettings.FunModeEnabled && voucherSettings.Images.Any())
-        {
-            string imageKey;
-            if (voucherSettings.UseRandomImage)
-            {
-                var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
-                if (!enabledImages.Any())
-                {
-                    TempData[WellKnownTempData.ErrorMessage] = "No enabled voucher images available";
-                    return RedirectToAction(nameof(Keypad), new { storeId });
-                }
-                var randomIndex = Random.Shared.Next(enabledImages.Count);
-                imageKey = enabledImages[randomIndex].Key;
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
-                {
-                    TempData[WellKnownTempData.ErrorMessage] = "No voucher image selected";
-                    return RedirectToAction(nameof(Keypad), new { storeId });
-                }
-                var matchedImage = voucherSettings.Images.FirstOrDefault(c => c.Name.ToLower() == voucherSettings.SelectedVoucherImage.ToLower());
-                if (matchedImage == null)
-                {
-                    TempData[WellKnownTempData.ErrorMessage] = "Selected voucher image not found";
-                    return RedirectToAction(nameof(Keypad), new { storeId });
-                }
-                imageKey = matchedImage.Key;
-            }
-            return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId = CurrentStore.Id, id = pp, imageKey });
-        }
-        return RedirectToAction(nameof(View), new { id = pp });
+        return HandleImageRedirectView(voucherSettings, nameof(Keypad), storeId, pp);
     }
 
     [HttpGet("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
@@ -502,7 +490,7 @@ public class VoucherController : Controller
         settings.Images.Add(new VoucherImageSettings
         {
             Key = Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
-            Name = vm.NewImageTitle.Trim().ToLower(),
+            Name = vm.NewImageTitle.Trim(),
             FileUrl = imageLink,
             StoredFileId = imageUpload.StoredFile.Id
         });
@@ -613,6 +601,42 @@ public class VoucherController : Controller
         return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
     }
 
+    private IActionResult HandleImageRedirectView(VoucherSettings voucherSettings, string fallbackAction, string storeId, string pullPaymentId)
+    {
+        if (voucherSettings.FunModeEnabled && voucherSettings.Images.Any())
+        {
+            string imageKey;
+            if (voucherSettings.UseRandomImage)
+            {
+                var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
+                if (!enabledImages.Any())
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "No enabled voucher images available";
+                    return RedirectToAction(fallbackAction, new { storeId });
+                }
+                var randomIndex = Random.Shared.Next(enabledImages.Count);
+                imageKey = enabledImages[randomIndex].Key;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "No voucher image selected";
+                    return RedirectToAction(fallbackAction, new { storeId });
+                }
+                var matchedImage = voucherSettings.Images.FirstOrDefault(c => c.Name.ToLower() == voucherSettings.SelectedVoucherImage.ToLower());
+                if (matchedImage == null)
+                {
+                    TempData[WellKnownTempData.ErrorMessage] = "Selected voucher image not found";
+                    return RedirectToAction(fallbackAction, new { storeId });
+                }
+                imageKey = matchedImage.Key;
+            }
+            return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId, id = pullPaymentId, imageKey });
+        }
+        return RedirectToAction(nameof(View), new { id = pullPaymentId });
+    }
+
     public async Task CreateVoucherAppData(string storeId)
     {
         string defaultCurrency = (await _storeRepository.FindStore(storeId)).GetStoreBlob().DefaultCurrency;
@@ -669,9 +693,10 @@ public class VoucherController : Controller
 
             var rootUri = Request.GetAbsoluteRootUri();
             var fileUrl = await _fileService.GetFileUrl(rootUri, upload.StoredFile.Id);
-            var imageLink = fileUrl == null
-                ? null : await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
 
+            if (fileUrl == null) continue;
+
+            var imageLink = await _uriResolver.Resolve(rootUri, new UnresolvedUri.Raw(fileUrl));
             settings.Images.Add(new VoucherImageSettings
             {
                 Key = Encoders.Base58.EncodeData(RandomUtils.GetBytes(6)),
