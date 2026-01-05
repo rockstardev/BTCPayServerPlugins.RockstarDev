@@ -54,6 +54,8 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
         await user.MakeAdmin();
+        await ServerTester.ExplorerNode.GenerateAsync(1);
+        await user.RegisterDerivationSchemeAsync("BTC", importKeysToNBX: true);
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         await GoToUrl($"/stores/{user.StoreId}/markpaid/method/CASH");
