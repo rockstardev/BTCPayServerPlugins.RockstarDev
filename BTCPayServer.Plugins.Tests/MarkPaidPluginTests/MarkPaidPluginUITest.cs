@@ -85,9 +85,10 @@ public class MarkPaidPluginUITest : PlaywrightBaseTest
         Assert.NotNull(frame);
         await frame.WaitForSelectorAsync("#Checkout");
 
-        // Select CASH payment method if not already selected
+        // Select CASH payment method if selector is visible
+        // Note: BTCPayServer hides the payment method selector when there's only one method
         var cashPaymentMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "CASH" });
-        if (await cashPaymentMethod.CountAsync() > 0)
+        if (await cashPaymentMethod.CountAsync() > 0 && await cashPaymentMethod.IsVisibleAsync())
         {
             await cashPaymentMethod.ClickAsync();
             await Task.Delay(500); // Wait for component to render
