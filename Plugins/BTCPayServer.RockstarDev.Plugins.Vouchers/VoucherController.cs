@@ -271,11 +271,11 @@ public class VoucherController : Controller
             return NotFound();
 
         var blob = pp.GetBlob();
-        if (!blob.Name.StartsWith("Voucher"))
+        if (blob == null || !blob.Name.StartsWith("Voucher"))
             return NotFound();
 
         var voucherSettings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-        return HandleImageRedirectView(voucherSettings, nameof(ListVouchers), storeId, pp.Id);
+        return HandleImageRedirectView(voucherSettings, nameof(ListVouchers), storeId, id);
     }
 
 
