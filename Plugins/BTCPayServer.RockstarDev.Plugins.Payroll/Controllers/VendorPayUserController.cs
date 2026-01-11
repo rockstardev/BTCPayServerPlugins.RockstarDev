@@ -50,12 +50,22 @@ Thank you,
 
 
     [HttpGet("list")]
-    public async Task<IActionResult> List(string storeId, bool all, bool pending)
+    public async Task<IActionResult> List(string storeId, bool all, bool pending, string searchTerm = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
 
-        var allStoreUsers =
-            ctx.PayrollUsers.Where(a => a.StoreId == storeId).OrderBy(a => a.Name).ToList();
+        var query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
+
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.Trim().ToLower();
+            query = query.Where(u =>
+                u.Name.ToLower().Contains(search) ||
+                u.Email.ToLower().Contains(search));
+        }
+
+        var allStoreUsers = query.OrderBy(a => a.Name).ToList();
 
         var vendorPayUsers = allStoreUsers;
         if (pending)
@@ -67,6 +77,7 @@ Thank you,
         {
             All = all,
             Pending = pending,
+            SearchTerm = searchTerm,
             DisplayedVendorPayUsers = vendorPayUsers,
             Counts = new VendorPayUserListViewModel.CountsData
             {

@@ -13,6 +13,7 @@ public class VendorPayUserListViewModel
 
     public bool Pending { get; set; }
     public bool All { get; set; }
+    public string SearchTerm { get; set; }
 
     public class CountsData
     {
