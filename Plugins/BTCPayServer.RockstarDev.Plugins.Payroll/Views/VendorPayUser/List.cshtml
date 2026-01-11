@@ -107,6 +107,11 @@
                                                 </a>
                                             </li>
                                             <li>
+                                                <a class="dropdown-item" asp-controller="VendorPayInvoice" asp-action="List"
+                                                   asp-route-storeId="@storeId"
+                                                   asp-route-searchTerm="@pp.Name">View all invoices</a>
+                                            </li>
+                                            <li>
                                                 <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="DownloadInvoices"
                                                    asp-route-storeId="@storeId"
                                                    asp-route-userId="@pp.Id">Download all invoices</a>
