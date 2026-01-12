@@ -19,11 +19,11 @@
 @if (ViewData.IsCategory(nameof(VoucherPages)))
 {
 	<li class="nav-item nav-item-sub">
-		<a layout-menu-item="@nameof(VoucherPages.VoucherSettings)" asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId"
-		   text-translate="true">Voucher Settings</a>
+		<a layout-menu-item="@nameof(VoucherPages.Settings)" asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId"
+		   text-translate="true">Settings</a>
 	</li>
 	<li class="nav-item nav-item-sub">
-		<a layout-menu-item="@nameof(VoucherPages.VoucherTemplate)" asp-controller="Voucher" asp-action="VoucherTemplateSettings" asp-route-storeId="@storeId"
-		   text-translate="true">Voucher Template</a>
+		<a layout-menu-item="@nameof(VoucherPages.BillTemplates)" asp-controller="Voucher" asp-action="VoucherTemplateSettings" asp-route-storeId="@storeId"
+		   text-translate="true">Bill Templates</a>
 	</li>
 }

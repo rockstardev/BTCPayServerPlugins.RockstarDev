@@ -10,7 +10,7 @@
 	Layout = "_Layout";
 	var storeId = ScopeProvider.GetCurrentStoreId();
 	var canUpload = await FileService.IsAvailable();
-	ViewData.SetLayoutModel(new LayoutModel(nameof(VoucherPages.VoucherTemplate), "Voucher Template") { ActiveCategory = nameof(VoucherPages) });
+	ViewData.SetLayoutModel(new LayoutModel(nameof(VoucherPages.BillTemplates), "Bill Templates") { ActiveCategory = nameof(VoucherPages) });
 }
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
 	<h2 class="mb-0">@ViewData["Title"]</h2>
