@@ -1,6 +1,7 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Client
+@using BTCPayServer.RockstarDev.Plugins.Vouchers
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject IScopeProvider ScopeProvider
 @{
@@ -8,11 +9,21 @@
 }
 @if (!string.IsNullOrEmpty(storeId))
 {
-    <li class="nav-item">
-        <a asp-controller="Voucher" asp-action="ListVouchers" asp-route-storeId="@storeId" class="nav-link @ViewData.ActivePageClass("Voucher")"
-           permission="@Policies.CanModifyStoreSettings">
+	<li class="nav-item" permission="@Policies.CanModifyStoreSettings">
+		<a layout-menu-item="@nameof(VoucherPages.Vouchers)" asp-controller="Voucher" asp-action="ListVouchers" asp-route-storeId="@storeId">
 			<partial name="_VoucherIcon" />
             <span>Vouchers</span>
         </a>
     </li>
+}
+@if (ViewData.IsCategory(nameof(VoucherPages)))
+{
+	<li class="nav-item nav-item-sub">
+		<a layout-menu-item="@nameof(VoucherPages.VoucherSettings)" asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId"
+		   text-translate="true">Voucher Settings</a>
+	</li>
+	<li class="nav-item nav-item-sub">
+		<a layout-menu-item="@nameof(VoucherPages.VoucherTemplate)" asp-controller="Voucher" asp-action="VoucherTemplateSettings" asp-route-storeId="@storeId"
+		   text-translate="true">Voucher Template</a>
+	</li>
 }

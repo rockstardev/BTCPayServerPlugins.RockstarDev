@@ -4,21 +4,20 @@
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
+@using BTCPayServer.RockstarDev.Plugins.Vouchers
 @using BTCPayServer.Services
 @using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
 @model ListVoucherViewModel
 @{
-    Layout = "_Layout"; // adding so PageFootContent section is detected
-    ViewData.SetActivePage("Voucher", "Voucher", "Voucher");
-
-    var storeId = ScopeProvider.GetCurrentStoreId();
+	Layout = "_Layout";
+	var storeId = ScopeProvider.GetCurrentStoreId();
+	ViewData.SetLayoutModel(new LayoutModel(nameof(VoucherPages.Vouchers), "Vouchers") { ActiveCategory = nameof(VoucherPages) });
 }
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
 	<h2 class="mb-0">@ViewData["Title"]</h2>
 	<div class="d-flex gap-3 mt-3 mt-sm-0">
-		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Settings</a>
 		<a asp-controller="Voucher" asp-action="Keypad" asp-route-storeId="@storeId" class="btn btn-primary">Create</a>
 	</div>
 </div>

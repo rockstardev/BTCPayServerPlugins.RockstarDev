@@ -448,9 +448,9 @@ public class VoucherController : Controller
     }
 
 
-    [HttpGet("~/plugins/{storeId}/vouchers/settings/images")]
+    [HttpGet("~/plugins/{storeId}/vouchers/settings/template")]
     [Authorize(Policy = Policies.CanModifyStoreSettings)]
-    public async Task<IActionResult> VoucherImageSettings(string storeId)
+    public async Task<IActionResult> VoucherTemplateSettings(string storeId)
     {
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
         return View(new VoucherImageSettingsViewModel { Images = settings.Images });
