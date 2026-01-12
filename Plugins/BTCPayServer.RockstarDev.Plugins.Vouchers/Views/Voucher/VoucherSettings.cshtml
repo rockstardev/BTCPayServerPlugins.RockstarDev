@@ -1,4 +1,6 @@
 @using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.Vouchers
 @using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
 @using BTCPayServer.Services
 @using BTCPayServer.Abstractions.Contracts
@@ -6,15 +8,13 @@
 @model VoucherSettingsViewModel
 @{
 	Layout = "_Layout";
-	ViewData.SetActivePage("Voucher", "Voucher Settings", "Voucher");
-    var storeId = ScopeProvider.GetCurrentStoreId();
+	var storeId = ScopeProvider.GetCurrentStoreId();
+	ViewData.SetLayoutModel(new LayoutModel(nameof(VoucherPages.Settings), "Voucher Settings") { ActiveCategory = nameof(VoucherPages) });
 }
 
 <div class="sticky-header">
     <h2 text-translate="true">@ViewData["Title"]</h2>
 	<div class="d-flex gap-3 mt-3 mt-sm-0">
-		<a asp-action="ListVouchers" asp-controller="Voucher" asp-route-storeId="@storeId" class="btn btn-secondary">Go Back</a>
-		<a asp-action="VoucherImageSettings" asp-controller="Voucher" asp-route-storeId="@storeId" class="btn btn-secondary">Voucher Images</a>
 		<button type="submit" form="voucher-settings-form" class="btn btn-success">Save Changes</button>
     </div>
 </div>

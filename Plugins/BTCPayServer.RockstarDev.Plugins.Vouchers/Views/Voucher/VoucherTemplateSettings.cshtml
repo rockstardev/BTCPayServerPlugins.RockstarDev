@@ -3,19 +3,17 @@
 @inject IScopeProvider ScopeProvider
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.Vouchers
 @using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
 @model VoucherImageSettingsViewModel
 @{
 	Layout = "_Layout";
-	ViewData.SetActivePage("Voucher", "Voucher Images", "Voucher");
 	var storeId = ScopeProvider.GetCurrentStoreId();
 	var canUpload = await FileService.IsAvailable();
+	ViewData.SetLayoutModel(new LayoutModel(nameof(VoucherPages.BillTemplates), "Bill Templates") { ActiveCategory = nameof(VoucherPages) });
 }
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
 	<h2 class="mb-0">@ViewData["Title"]</h2>
-	<div class="d-flex gap-3 mt-3 mt-sm-0">
-		<a asp-controller="Voucher" asp-action="VoucherSettings" asp-route-storeId="@storeId" class="btn btn-secondary">Go Back</a>
-	</div>
 </div>
 <partial name="_StatusMessage" />
 
