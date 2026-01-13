@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>Wallet Sweeper</Product>
         <Description>Automatically sweep funds from store's onchain wallet to another store or external address based on balance thresholds and schedules</Description>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
