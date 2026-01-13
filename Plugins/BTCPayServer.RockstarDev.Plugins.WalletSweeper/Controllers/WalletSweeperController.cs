@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -7,6 +8,7 @@ using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.ViewModels;
+using BTCPayServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +26,7 @@ public class WalletSweeperController(
     UtxoMonitoringService utxoMonitoringService,
     BTCPayNetworkProvider networkProvider,
     ExplorerClientProvider explorerClientProvider,
+    IFeeProviderFactory feeProviderFactory,
     ILogger<WalletSweeperController> logger) : Controller
 {
     [HttpGet]
@@ -40,9 +43,12 @@ public class WalletSweeperController(
     }
 
     [HttpGet("create")]
-    public IActionResult Create(string storeId)
+    public async Task<IActionResult> Create(string storeId)
     {
+        var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         var model = new CreateConfigurationViewModel();
+        model.RecommendedSatoshiPerByte = (await GetRecommendedFees(network, feeProviderFactory)).Where(o => o != null).ToList()!;
+        model.FeeBlockTarget = 1; // Default to 10 minutes
         return View(model);
     }
 
@@ -148,7 +154,9 @@ public class WalletSweeperController(
             return RedirectToAction(nameof(Index), new { storeId });
         }
 
+        var network = networkProvider.GetNetwork<BTCPayNetwork>("BTC");
         var model = EditConfigurationViewModel.FromModel(config);
+        model.RecommendedSatoshiPerByte = (await GetRecommendedFees(network, feeProviderFactory)).Where(o => o != null).ToList()!;
         return View(model);
     }
 
@@ -188,7 +196,7 @@ public class WalletSweeperController(
         config.MaximumBalance = model.MaximumBalance;
         config.ReserveAmount = model.ReserveAmount;
         config.IntervalMinutes = model.IntervalMinutes;
-        config.FeeRate = model.FeeRate;
+        config.FeeBlockTarget = model.FeeBlockTarget;
         config.DestinationType = model.DestinationType;
         config.DestinationAddress = model.DestinationAddress;
         config.AutoGenerateLabel = model.AutoGenerateLabel;
@@ -205,7 +213,7 @@ public class WalletSweeperController(
         config.MaximumBalance = model.MaximumBalance;
         config.ReserveAmount = model.ReserveAmount;
         config.IntervalMinutes = model.IntervalMinutes;
-        config.FeeRate = model.FeeRate;
+        config.FeeBlockTarget = model.FeeBlockTarget;
         config.DestinationType = model.DestinationType;
         config.DestinationAddress = model.DestinationAddress;
         config.AutoGenerateLabel = model.AutoGenerateLabel;
@@ -272,5 +280,31 @@ public class WalletSweeperController(
             TempData[WellKnownTempData.ErrorMessage] = $"Sweep failed: {result.ErrorMessage}";
 
         return RedirectToAction(nameof(Details), new { storeId, id });
+    }
+
+    private static async Task<FeeRateOption?[]> GetRecommendedFees(BTCPayNetwork network, IFeeProviderFactory feeProviderFactory)
+    {
+        var feeProvider = feeProviderFactory.CreateFeeProvider(network);
+        List<FeeRateOption?> options = new();
+        foreach (var time in new[] {
+                    TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(60.0), TimeSpan.FromHours(6.0),
+                    TimeSpan.FromHours(24.0),
+                })
+        {
+            try
+            {
+                var result = await feeProvider.GetFeeRateAsync((int)network.NBitcoinNetwork.Consensus.GetExpectedBlocksFor(time));
+                options.Add(new FeeRateOption()
+                {
+                    Target = time,
+                    FeeRate = result.SatoshiPerByte
+                });
+            }
+            catch (Exception)
+            {
+                options.Add(null);
+            }
+        }
+        return options.ToArray();
     }
 }

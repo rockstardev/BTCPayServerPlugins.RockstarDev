@@ -122,9 +122,31 @@
             </div>
             
             <div class="form-group mb-4">
-                <label asp-for="FeeRate" class="form-label"></label>
-                <input asp-for="FeeRate" type="number" class="form-control" />
-                <span asp-validation-for="FeeRate" class="text-danger"></span>
+                <label asp-for="FeeBlockTarget" class="form-label">
+                    <span text-translate="true">Fee confirmation target</span>
+                </label>
+                @if (Model.RecommendedSatoshiPerByte.Any())
+                {
+                    <select asp-for="FeeBlockTarget" class="form-select" id="feeBlockTargetSelect">
+                        @for (var index = 0; index < Model.RecommendedSatoshiPerByte.Count; index++)
+                        {
+                            var feeRateOption = Model.RecommendedSatoshiPerByte[index];
+                            var blockTarget = (int)feeRateOption.Target.TotalMinutes / 10; // Approximate blocks
+                            var displayText = $"Confirm in {feeRateOption.Target.TimeString()} ({feeRateOption.FeeRate:F1} sat/vB, ~{blockTarget} blocks)";
+                            <option value="@blockTarget">@displayText</option>
+                        }
+                    </select>
+                    @for (var index = 0; index < Model.RecommendedSatoshiPerByte.Count; index++)
+                    {
+                        <input type="hidden" asp-for="RecommendedSatoshiPerByte[index].Target" />
+                        <input type="hidden" asp-for="RecommendedSatoshiPerByte[index].FeeRate" />
+                    }
+                }
+                else
+                {
+                    <input asp-for="FeeBlockTarget" type="number" inputmode="numeric" min="1" step="1" class="form-control" />
+                }
+                <span asp-validation-for="FeeBlockTarget" class="text-danger"></span>
             </div>
             
             <!-- Destination -->

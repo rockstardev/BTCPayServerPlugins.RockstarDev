@@ -85,7 +85,7 @@ public class ConfigurationViewModel
             MaximumBalance = config.MaximumBalance,
             ReserveAmount = config.ReserveAmount,
             IntervalSeconds = config.IntervalMinutes,
-            FeeRate = config.FeeRate,
+            FeeRate = config.FeeBlockTarget,
             DestinationType = config.DestinationType,
             DestinationAddress = config.DestinationAddress,
             AutoGenerateLabel = config.AutoGenerateLabel,

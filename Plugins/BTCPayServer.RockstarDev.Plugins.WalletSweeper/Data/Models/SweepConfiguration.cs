@@ -54,7 +54,7 @@ public class SweepConfiguration
     [Column(TypeName = "decimal(18,8)")]
     public decimal ReserveAmount { get; set; } = 0m;
 
-    public int FeeRate { get; set; } = 1;
+    public int FeeBlockTarget { get; set; } = 1;
 
     // Destination configuration
     public DestinationType DestinationType { get; set; } = DestinationType.ThisStore;

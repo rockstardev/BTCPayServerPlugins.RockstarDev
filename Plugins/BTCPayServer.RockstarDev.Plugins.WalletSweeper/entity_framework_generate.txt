@@ -1,1 +1,1 @@
-dotnet ef migrations add InitialCreate -p Plugins/BTCPayServer.RockstarDev.Plugins.WalletSweeper -c PluginDbContext -o Data/Migrations
+dotnet ef migrations add RenameToFeeBlockTarget -p Plugins/BTCPayServer.RockstarDev.Plugins.WalletSweeper -c PluginDbContext -o Data/Migrations

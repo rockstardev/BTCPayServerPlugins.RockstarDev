@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data.Models;
 
@@ -58,9 +59,11 @@ public class CreateConfigurationViewModel
     [Display(Name = "Monitoring Interval (minutes)")]
     public int IntervalMinutes { get; set; } = 10;
 
-    [Range(1, 100)]
-    [Display(Name = "Fee Rate (sat/vB)")]
-    public int FeeRate { get; set; } = 1;
+    [Range(1, 1000)]
+    [Display(Name = "Fee confirmation target (blocks)")]
+    public int FeeBlockTarget { get; set; } = 1;
+
+    public List<FeeRateOption> RecommendedSatoshiPerByte { get; set; } = new();
 
     [Display(Name = "Destination Type")]
     public DestinationType DestinationType { get; set; } = DestinationType.ThisStore;

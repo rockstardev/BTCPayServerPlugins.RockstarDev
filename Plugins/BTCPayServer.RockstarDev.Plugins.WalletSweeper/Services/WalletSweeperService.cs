@@ -31,6 +31,7 @@ public class WalletSweeperService(
     PaymentMethodHandlerDictionary handlers,
     SeedEncryptionService seedEncryptionService,
     WalletRepository walletRepository,
+    IFeeProviderFactory feeProviderFactory,
     ILogger<WalletSweeperService> logger) : IPeriodicTask
 {
     /// <summary>
@@ -264,9 +265,13 @@ public class WalletSweeperService(
 
             if (!allUtxos.Any()) throw new InvalidOperationException("No unspent UTXOs available to sweep");
 
-            // Calculate fee rate - FeeRate expects satoshis per kilobyte
-            var feeRateSatPerVByte = config.FeeRate;
+            // Fetch dynamic fee rate based on FeeBlockTarget
+            var feeProvider = feeProviderFactory.CreateFeeProvider(network);
+            var feeRateResult = await feeProvider.GetFeeRateAsync(config.FeeBlockTarget);
+            var feeRateSatPerVByte = (int)Math.Ceiling(feeRateResult.SatoshiPerByte);
             var feeRate = new FeeRate(Money.Satoshis(feeRateSatPerVByte * 1000));
+            
+            logger.LogInformation($"WalletSweeperService: Using dynamic fee rate {feeRateSatPerVByte} sat/vB for {config.FeeBlockTarget} block target");
 
             // Calculate minimum viable UTXO value based on fee rate
             // A typical input costs ~68 vBytes to spend, so exclude UTXOs smaller than that cost

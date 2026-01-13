@@ -27,6 +27,7 @@
                 <th>Name</th>
                 <th>Status</th>
                 <th>Balance</th>
+                <th>Fee Target</th>
                 <th>Last Monitored</th>
                 <th>Actions</th>
             </tr>
@@ -56,6 +57,9 @@
                         }
                     </td>
                     <td>@config.CurrentBalance.ToString("N8") BTC</td>
+                    <td>
+                        <span class="text-muted">~@config.FeeBlockTarget blocks</span>
+                    </td>
                     <td>
                         @if (config.LastMonitored.HasValue)
                         {
