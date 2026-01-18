@@ -30,97 +30,97 @@
 <div class="row">
     <div class="col-xxl-constrain col-xl-8">
         <form id="ConfigForm" method="post" asp-action="Create" asp-route-storeId="@storeId">
-            
+
             <!-- Basic Info -->
             <h4 class="mb-3">Basic Information</h4>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="ConfigName" class="form-label"></label>
                 <input asp-for="ConfigName" class="form-control" placeholder="e.g., Exchange Wallet, Store A" />
                 <span asp-validation-for="ConfigName" class="text-danger"></span>
             </div>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="Description" class="form-label"></label>
                 <textarea asp-for="Description" class="form-control" rows="2" placeholder="Optional description"></textarea>
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
-            
+
             <div class="form-check mb-4">
                 <input asp-for="AutoEnabled" type="checkbox" class="form-check-input" />
                 <label asp-for="AutoEnabled" class="form-check-label"></label>
             </div>
-            
+
             <!-- Wallet Configuration -->
             <h4 class="mb-3 mt-4">External Wallet Configuration</h4>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="SeedPhrase" class="form-label"></label>
-                <textarea asp-for="SeedPhrase" class="form-control" rows="3" 
+                <textarea asp-for="SeedPhrase" class="form-control" rows="3"
                           placeholder="word1 word2 word3 ..."></textarea>
                 <span asp-validation-for="SeedPhrase" class="text-danger"></span>
                 <small class="form-text text-muted">12 or 24 word BIP39 mnemonic</small>
             </div>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="SeedPassword" class="form-label"></label>
                 <input asp-for="SeedPassword" type="password" class="form-control" />
                 <span asp-validation-for="SeedPassword" class="text-danger"></span>
                 <small class="form-text text-muted">Password to encrypt the seed phrase (minimum 4 characters)</small>
             </div>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="SeedPasswordConfirm" class="form-label"></label>
                 <input asp-for="SeedPasswordConfirm" type="password" class="form-control" />
                 <span asp-validation-for="SeedPasswordConfirm" class="text-danger"></span>
             </div>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="DerivationPath" class="form-label"></label>
                 <input asp-for="DerivationPath" class="form-control" placeholder="m/84'/1'/0'" />
                 <span asp-validation-for="DerivationPath" class="text-danger"></span>
                 <small class="form-text text-muted">BIP32 derivation path (e.g., m/84'/1'/0' for native SegWit testnet)</small>
             </div>
-            
+
             <div class="form-group mb-4">
                 <label asp-for="AddressGapLimit" class="form-label"></label>
                 <input asp-for="AddressGapLimit" type="number" class="form-control" />
                 <span asp-validation-for="AddressGapLimit" class="text-danger"></span>
                 <small class="form-text text-muted">Number of consecutive unused addresses to check</small>
             </div>
-            
+
             <!-- Balance Thresholds -->
             <h4 class="mb-3 mt-4">Balance Thresholds</h4>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="MinimumBalance" class="form-label"></label>
                 <input asp-for="MinimumBalance" type="number" step="0.00000001" class="form-control" />
                 <span asp-validation-for="MinimumBalance" class="text-danger"></span>
             </div>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="MaximumBalance" class="form-label"></label>
                 <input asp-for="MaximumBalance" type="number" step="0.00000001" class="form-control" />
                 <span asp-validation-for="MaximumBalance" class="text-danger"></span>
             </div>
-            
+
             <div class="form-group mb-4">
                 <label asp-for="ReserveAmount" class="form-label"></label>
                 <input asp-for="ReserveAmount" type="number" step="0.00000001" class="form-control" />
                 <span asp-validation-for="ReserveAmount" class="text-danger"></span>
                 <small class="form-text text-muted">Amount to keep in wallet (0 = sweep all)</small>
             </div>
-            
+
             <!-- Sweep Settings -->
             <h4 class="mb-3 mt-4">Sweep Settings</h4>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="IntervalMinutes" class="form-label"></label>
                 <input asp-for="IntervalMinutes" type="number" class="form-control" />
                 <span asp-validation-for="IntervalMinutes" class="text-danger"></span>
                 <small class="form-text text-muted">How often to check for new funds (minutes)</small>
             </div>
-            
+
             <div class="form-group mb-4">
                 <label asp-for="FeeBlockTarget" class="form-label">
                     <span text-translate="true">Fee confirmation target</span>
@@ -148,10 +148,10 @@
                 }
                 <span asp-validation-for="FeeBlockTarget" class="text-danger"></span>
             </div>
-            
+
             <!-- Destination -->
             <h4 class="mb-3 mt-4">Destination</h4>
-            
+
             <div class="form-group mb-3">
                 <label asp-for="DestinationType" class="form-label"></label>
                 <select asp-for="DestinationType" class="form-select" id="destinationTypeSelect">
@@ -160,30 +160,30 @@
                 </select>
                 <span asp-validation-for="DestinationType" class="text-danger"></span>
             </div>
-            
+
             <div class="form-group mb-3" id="destinationAddressGroup">
                 <label asp-for="DestinationAddress" class="form-label"></label>
                 <input asp-for="DestinationAddress" class="form-control" placeholder="Optional: specify custom address" />
                 <span asp-validation-for="DestinationAddress" class="text-danger"></span>
             </div>
-            
+
             <div class="form-check mb-4">
                 <input asp-for="AutoGenerateLabel" type="checkbox" class="form-check-input" />
                 <label asp-for="AutoGenerateLabel" class="form-check-label"></label>
                 <small class="form-text text-muted ms-4">Label transactions as "Sweep from [Config Name]"</small>
             </div>
-            
+
         </form>
     </div>
 </div>
 
 @section PageFootContent {
-    <partial name="_ValidationScriptsPartial"/>
+    <partial name="_ValidationScriptsPartial" />
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const destinationTypeSelect = document.getElementById('destinationTypeSelect');
             const destinationAddressGroup = document.getElementById('destinationAddressGroup');
-            
+
             function toggleDestinationAddress() {
                 if (destinationTypeSelect.value === 'CustomAddress') {
                     destinationAddressGroup.style.display = 'block';
@@ -191,10 +191,10 @@
                     destinationAddressGroup.style.display = 'none';
                 }
             }
-            
+
             // Set initial state
             toggleDestinationAddress();
-            
+
             // Listen for changes
             destinationTypeSelect.addEventListener('change', toggleDestinationAddress);
         });

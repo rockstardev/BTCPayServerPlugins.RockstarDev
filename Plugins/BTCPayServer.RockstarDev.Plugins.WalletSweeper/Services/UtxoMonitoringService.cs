@@ -161,7 +161,8 @@ public class UtxoMonitoringService(
                 .Include(c => c.TrackedUtxos)
                 .FirstOrDefaultAsync(c => c.Id == configId, cancellationToken);
 
-            if (config != null) await MonitorConfiguration(config, db, cancellationToken);
+            if (config != null)
+                await MonitorConfiguration(config, db, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -185,7 +186,8 @@ public class UtxoMonitoringService(
                         .Include(c => c.TrackedUtxos)
                         .FirstOrDefaultAsync(c => c.Id == configId, cancellationToken);
 
-                    if (config != null) await MonitorConfiguration(config, db, cancellationToken);
+                    if (config != null)
+                        await MonitorConfiguration(config, db, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -351,7 +353,8 @@ public class UtxoMonitoringService(
             logger.LogInformation(
                 $"UtxoMonitoringService: Scanned {config.ConfigName} - New: {newUtxosFound}, Spent: {spentUtxosMarked}, Confirmations updated: {confirmationsUpdated}");
 
-            if (newUtxosFound > 0 || spentUtxosMarked > 0 || confirmationsUpdated > 0) await db.SaveChangesAsync(cancellationToken);
+            if (newUtxosFound > 0 || spentUtxosMarked > 0 || confirmationsUpdated > 0)
+                await db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {

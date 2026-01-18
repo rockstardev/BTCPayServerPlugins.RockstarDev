@@ -13,175 +13,175 @@
 }
 
 <div class="sticky-header-setup"></div>
-    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
-        <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a asp-controller="VendorPayUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
-        </div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div class="d-flex gap-3 mt-3 mt-sm-0">
+        <a asp-controller="VendorPayUser" asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary">Create User</a>
     </div>
+</div>
 
-    <partial name="_StatusMessage" />
+<partial name="_StatusMessage" />
 
-    <div class="row mb-2">
-        <div class="col-lg-6 ms-auto">
-            <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending">
-                <div class="input-group">
-                    <input type="text"
-                           class="form-control"
-                           name="searchTerm"
-                           value="@Model.SearchTerm"
-                           placeholder="Search by username or email..."
-                           aria-label="Search users" />
-                    <button class="btn btn-secondary" type="submit">
-                        <i class="fa fa-search"></i> Search
-                    </button>
-                    @if (!string.IsNullOrEmpty(Model.SearchTerm))
-                    {
-                        <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" class="btn btn-secondary">
-                            <i class="fa fa-times"></i> Clear
-                        </a>
-                    }
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <nav id="SectionNav" class="mb-3">
-        <div class="nav">
-            <a id="Active-view"
-               asp-action="List"
-               asp-route-storeId="@storeId"
-               class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
-               role="tab">Active (@Model.Counts.Active)</a>
-
-            <a id="Pending-view"
-               asp-action="List"
-               asp-route-storeId="@storeId"
-               asp-route-pending="true"
-               class="nav-link @(Model.Pending ? "active" : "")"
-               role="tab">Pending (@Model.Counts.Pending)</a>
-
-            <a id="all-view"
-               asp-action="List"
-               asp-route-storeId="@storeId"
-               asp-route-all="true"
-               class="nav-link @(Model.All ? "active" : "")"
-               role="tab">All (@Model.Counts.Total)</a>
-        </div>
-    </nav>
-
-    @if (Model.DisplayedVendorPayUsers.Any())
-    {
-        <div class="table-responsive-md">
-            <table class="table table-hover">
-                <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Email Reminder Days</th>
-                    <th scope="col">State</th>
-                    <th scope="col" class="text-end"></th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var pp in Model.DisplayedVendorPayUsers)
+<div class="row mb-2">
+    <div class="col-lg-6 ms-auto">
+        <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending">
+            <div class="input-group">
+                <input type="text"
+                       class="form-control"
+                       name="searchTerm"
+                       value="@Model.SearchTerm"
+                       placeholder="Search by username or email..."
+                       aria-label="Search users" />
+                <button class="btn btn-secondary" type="submit">
+                    <i class="fa fa-search"></i> Search
+                </button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
                 {
-                    <tr class="mass-action-row">
-                        <td>@pp.Name</td>
-                        <td>@pp.Email</td>
-                        <td>@(!string.IsNullOrEmpty(pp.EmailReminder) ? pp.EmailReminder : "-")</td>
-                        <td>@pp.State</td>
-                        <td class="align-middle">
-                        </td>
+                    <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" class="btn btn-secondary">
+                        <i class="fa fa-times"></i> Clear
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
 
-                        <td class="text-end">
-                            <div class="d-inline-flex align-items-center gap-3">
-                                <div class="dropdown">
-                                    <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown"
-                                            aria-expanded="false" id="ToggleActions-@pp.Id">
-                                        <vc:icon symbol="dots" />
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
+<nav id="SectionNav" class="mb-3">
+    <div class="nav">
+        <a id="Active-view"
+           asp-action="List"
+           asp-route-storeId="@storeId"
+           class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
+           role="tab">Active (@Model.Counts.Active)</a>
 
-                                        @if (pp.State == VendorPayUserState.Pending)
-                                        {
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="ResendInvitation"
-                                                   asp-route-storeId="@storeId"
-                                                   asp-route-userId="@pp.Id">Resend Invitation</a>
-                                            </li>
-                                        }
-                                        else
-                                        {
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="Edit" asp-route-storeId="@storeId"
-                                                   asp-route-userId="@pp.Id">Edit</a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item"
-                                                   asp-controller="VendorPayUser"
-                                                   asp-action="ToggleUserStatus"
-                                                   asp-route-userId="@pp.Id"
-                                                   asp-route-storeId="@storeId"
-                                                   asp-route-enable="@(pp.State == VendorPayUserState.Disabled)">
-                                                    @(pp.State == VendorPayUserState.Disabled ? "Activate" : "Disable")
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="VendorPayInvoice" asp-action="List"
-                                                   asp-route-storeId="@storeId"
-                                                   asp-route-searchTerm="@pp.Name">View all invoices</a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="DownloadInvoices"
-                                                   asp-route-storeId="@storeId"
-                                                   asp-route-userId="@pp.Id">Download all invoices</a>
-                                            </li>
-                                        }
-                                        <li class="dropdown-divider"></li>
+        <a id="Pending-view"
+           asp-action="List"
+           asp-route-storeId="@storeId"
+           asp-route-pending="true"
+           class="nav-link @(Model.Pending ? "active" : "")"
+           role="tab">Pending (@Model.Counts.Pending)</a>
+
+        <a id="all-view"
+           asp-action="List"
+           asp-route-storeId="@storeId"
+           asp-route-all="true"
+           class="nav-link @(Model.All ? "active" : "")"
+           role="tab">All (@Model.Counts.Total)</a>
+    </div>
+</nav>
+
+@if (Model.DisplayedVendorPayUsers.Any())
+{
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Email Reminder Days</th>
+                <th scope="col">State</th>
+                <th scope="col" class="text-end"></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var pp in Model.DisplayedVendorPayUsers)
+            {
+                <tr class="mass-action-row">
+                    <td>@pp.Name</td>
+                    <td>@pp.Email</td>
+                    <td>@(!string.IsNullOrEmpty(pp.EmailReminder) ? pp.EmailReminder : "-")</td>
+                    <td>@pp.State</td>
+                    <td class="align-middle">
+                    </td>
+
+                    <td class="text-end">
+                        <div class="d-inline-flex align-items-center gap-3">
+                            <div class="dropdown">
+                                <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown"
+                                        aria-expanded="false" id="ToggleActions-@pp.Id">
+                                    <vc:icon symbol="dots" />
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+
+                                    @if (pp.State == VendorPayUserState.Pending)
+                                    {
                                         <li>
-                                            <a asp-controller="VendorPayUser"
-                                               asp-action="Delete"
+                                            <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="ResendInvitation"
+                                               asp-route-storeId="@storeId"
+                                               asp-route-userId="@pp.Id">Resend Invitation</a>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="Edit" asp-route-storeId="@storeId"
+                                               asp-route-userId="@pp.Id">Edit</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item"
+                                               asp-controller="VendorPayUser"
+                                               asp-action="ToggleUserStatus"
                                                asp-route-userId="@pp.Id"
                                                asp-route-storeId="@storeId"
-                                               class="dropdown-item text-danger">
-                                                Delete
+                                               asp-route-enable="@(pp.State == VendorPayUserState.Disabled)">
+                                                @(pp.State == VendorPayUserState.Disabled ? "Activate" : "Disable")
                                             </a>
                                         </li>
-                                    </ul>
-                                </div>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="VendorPayInvoice" asp-action="List"
+                                               asp-route-storeId="@storeId"
+                                               asp-route-searchTerm="@pp.Name">View all invoices</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="VendorPayUser" asp-action="DownloadInvoices"
+                                               asp-route-storeId="@storeId"
+                                               asp-route-userId="@pp.Id">Download all invoices</a>
+                                        </li>
+                                    }
+                                    <li class="dropdown-divider"></li>
+                                    <li>
+                                        <a asp-controller="VendorPayUser"
+                                           asp-action="Delete"
+                                           asp-route-userId="@pp.Id"
+                                           asp-route-storeId="@storeId"
+                                           class="dropdown-item text-danger">
+                                            Delete
+                                        </a>
+                                    </li>
+                                </ul>
                             </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 
-        <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
+    <partial name="_Confirm" model="@(new ConfirmModel("Delete User", "Do you really want to delete the user ...", "Delete"))" />
 
-        @section PageFootContent {
-            <script>
-                const ppProgresses = document.getElementsByClassName("ppProgress");
-                for (var i = 0; i < ppProgresses.length; i++) {
-                    var pp = ppProgresses[i];
-                    var ppId = pp.getAttribute("data-pp");
-                    var template = document.getElementById("tooptip_template_" + ppId);
-                    pp.setAttribute("title", template.innerHTML);
-                }
-            </script>
+    @section PageFootContent {
+        <script>
+            const ppProgresses = document.getElementsByClassName("ppProgress");
+            for (var i = 0; i < ppProgresses.length; i++) {
+                var pp = ppProgresses[i];
+                var ppId = pp.getAttribute("data-pp");
+                var template = document.getElementById("tooptip_template_" + ppId);
+                pp.setAttribute("title", template.innerHTML);
+            }
+        </script>
+    }
+}
+else
+{
+    <p class="text-secondary mt-4">
+        @if (Model.All)
+        {
+            <span>There are no users created yet. Why don't you create one?</span>
         }
-    }
-    else
-    {
-        <p class="text-secondary mt-4">
-            @if (Model.All)
-            {
-                <span>There are no users created yet. Why don't you create one?</span>
-            }
-            else
-            {
-                <span>There are no users found</span>
-            }
-        </p>
-    }
+        else
+        {
+            <span>There are no users found</span>
+        }
+    </p>
+}

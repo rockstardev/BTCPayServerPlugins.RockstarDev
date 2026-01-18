@@ -66,7 +66,8 @@ public class VendorPayReportProvider(
 
         var store = await storeRepository.FindStore(queryContext.StoreId);
         var trackedCurrencies = store?.GetStoreBlob().GetTrackedRates() ?? new HashSet<string>();
-        foreach (var curr in trackedCurrencies) queryContext.ViewDefinition.Fields.Add(new StoreReportResponse.Field($"Rate ({curr})", "amount"));
+        foreach (var curr in trackedCurrencies)
+            queryContext.ViewDefinition.Fields.Add(new StoreReportResponse.Field($"Rate ({curr})", "amount"));
 
         var rateBooks = txObjects
             .Select(t => (t.Key, RateBook.FromTxWalletObject(t.Value)))

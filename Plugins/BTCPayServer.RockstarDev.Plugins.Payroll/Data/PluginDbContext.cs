@@ -27,7 +27,8 @@ public class PluginDbContext(DbContextOptions<PluginDbContext> options, bool des
     public async Task<VendorPayStoreSetting> GetSettingAsync(string storeId)
     {
         var setting = await PayrollSettings.FirstOrDefaultAsync(a => a.StoreId == storeId);
-        if (setting is null) return new VendorPayStoreSetting();
+        if (setting is null)
+            return new VendorPayStoreSetting();
 
         // need to deserialize the setting from json
         var payrollStoreSetting = JsonConvert.DeserializeObject<VendorPayStoreSetting>(setting.Setting);

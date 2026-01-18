@@ -482,7 +482,8 @@ Thank you,
         }
 
         var vendorPayUserInvite = ctx.PayrollInvitations.Where(c => c.Email == vendorPayUser.Email && c.StoreId == vendorPayUser.StoreId).ToList();
-        if (vendorPayUserInvite.Any()) ctx.RemoveRange(vendorPayUserInvite);
+        if (vendorPayUserInvite.Any())
+            ctx.RemoveRange(vendorPayUserInvite);
         ctx.RemoveRange(userInvoices);
         ctx.Remove(vendorPayUser);
         await ctx.SaveChangesAsync();

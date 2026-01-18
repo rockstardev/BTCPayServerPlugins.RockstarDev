@@ -1,56 +1,56 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>12</LangVersion>
-    </PropertyGroup>
-    <!-- -->
-    <!-- Plugin specific properties -->
-    <PropertyGroup>
-        <Product>Wallet Sweeper</Product>
-        <Description>Automatically sweep funds from store's onchain wallet to another store or external address based on balance thresholds and schedules</Description>
-        <Version>0.0.2</Version>
-    </PropertyGroup>
-    <!-- Plugin development properties -->
-    <PropertyGroup>
-        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-        <PreserveCompilationContext>false</PreserveCompilationContext>
-        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+  </PropertyGroup>
+  <!-- -->
+  <!-- Plugin specific properties -->
+  <PropertyGroup>
+    <Product>Wallet Sweeper</Product>
+    <Description>Automatically sweep funds from store's onchain wallet to another store or external address based on balance thresholds and schedules</Description>
+    <Version>0.0.2</Version>
+  </PropertyGroup>
+  <!-- Plugin development properties -->
+  <PropertyGroup>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <PreserveCompilationContext>false</PreserveCompilationContext>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+  </PropertyGroup>
 
-    <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
-    <ItemDefinitionGroup>
-        <ProjectReference>
-            <Properties>StaticWebAssetsEnabled=false</Properties>
-            <Private>false</Private>
-            <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
-        </ProjectReference>
-    </ItemDefinitionGroup>
+  <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
+  <ItemDefinitionGroup>
+    <ProjectReference>
+      <Properties>StaticWebAssetsEnabled=false</Properties>
+      <Private>false</Private>
+      <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
+    </ProjectReference>
+  </ItemDefinitionGroup>
 
-    <!-- This is all so that we can generate entity framework migrations in design mode -->
-    <!-- Uncomment this if you need to copy DLLs to the output directory for EF migrations
-    <Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
-        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
-              DestinationFolder="$(OutputPath)"
-              Condition="'$(Configuration)' == 'Debug'"/>
-        <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer.Abstractions\bin\Debug\net8.0\BTCPayServer.Abstractions.dll"
-              DestinationFolder="$(OutputPath)"
-              Condition="'$(Configuration)' == 'Debug'"/>
-    </Target>
-    -->
-
-
-    <ItemGroup Condition="'$(Configuration)' != 'Release'">
-        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11"/>
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11"/>
-    </ItemGroup>
+  <!-- This is all so that we can generate entity framework migrations in design mode -->
+  <!-- Uncomment this if you need to copy DLLs to the output directory for EF migrations
+  <Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
+      <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
+            DestinationFolder="$(OutputPath)"
+            Condition="'$(Configuration)' == 'Debug'"/>
+      <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer.Abstractions\bin\Debug\net8.0\BTCPayServer.Abstractions.dll"
+            DestinationFolder="$(OutputPath)"
+            Condition="'$(Configuration)' == 'Debug'"/>
+  </Target>
+  -->
 
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
-    </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.10.0"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.10.0"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11"/>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11"/>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
+  </ItemGroup>
 
 </Project>

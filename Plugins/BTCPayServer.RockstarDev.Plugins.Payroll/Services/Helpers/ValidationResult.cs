@@ -19,6 +19,7 @@ public class ValidationResult
 
     public void ApplyToModelState(ModelStateDictionary modelState)
     {
-        foreach (var error in _errors) modelState.AddModelError(error.Key, error.Value);
+        foreach (var error in _errors)
+            modelState.AddModelError(error.Key, error.Value);
     }
 }

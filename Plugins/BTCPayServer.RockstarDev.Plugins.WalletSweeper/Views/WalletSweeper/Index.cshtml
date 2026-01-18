@@ -78,7 +78,8 @@
                         <a href="#" class="text-danger" onclick="return confirmDelete('@config.Id', '@storeId', '@config.ConfigName')">
                             Delete
                         </a>
-                        <form id="delete-form-@config.Id" method="post" asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@config.Id" class="d-none">
+                        <form id="delete-form-@config.Id" method="post" asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@config.Id"
+                              class="d-none">
                         </form>
                     </td>
                 </tr>

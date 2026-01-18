@@ -63,7 +63,8 @@ public class VendorPayInvoiceController(
 
         var payrollInvoices = await query.OrderByDescending(data => data.CreatedAt).ToListAsync();
 
-        if (!all) payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
+        if (!all)
+            payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
 
         // triggering saving of admin user id if needed
         var adminset = await settingsRepository.GetSettingAsync<VendorPayPluginSettings>();
@@ -200,7 +201,8 @@ public class VendorPayInvoiceController(
             {
                 var rate = await rateFetcher.FetchRate(new CurrencyPair(currency, VendorPayPluginConst.BTC_CRYPTOCODE),
                     CurrentStore.GetStoreBlob().GetRateRules(defaultRulesCollection), new StoreIdRateContext(CurrentStore.Id), CancellationToken.None);
-                if (rate.BidAsk == null) throw new Exception("Currency is not supported");
+                if (rate.BidAsk == null)
+                    throw new Exception("Currency is not supported");
 
                 var adjustedRate = rate.BidAsk.Bid;
                 if (settings?.InvoiceFiatConversionAdjustment == true)
@@ -258,8 +260,10 @@ public class VendorPayInvoiceController(
 
         await using var ctx = pluginDbContextFactory.CreateContext();
         model.VendorPayUsers = getPayrollUsers(ctx, CurrentStore.Id);
-        if (!model.VendorPayUsers.Any()) return NoUserResult(storeId);
-        if (model.VendorPayUsers.Any()) model.UserId = model.VendorPayUsers.First().Value;
+        if (!model.VendorPayUsers.Any())
+            return NoUserResult(storeId);
+        if (model.VendorPayUsers.Any())
+            model.UserId = model.VendorPayUsers.First().Value;
         return View(model);
     }
 

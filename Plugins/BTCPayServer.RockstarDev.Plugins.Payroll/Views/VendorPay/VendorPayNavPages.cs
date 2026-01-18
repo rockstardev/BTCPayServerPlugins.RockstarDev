@@ -1,9 +1,8 @@
-namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Views
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Views;
+
+public enum VendorPayNavPages
 {
-    public enum VendorPayNavPages
-    {
-        VendorPayInvoices,
-        VendorPayUsers,
-        VendorPaySettings
-    }
+    VendorPayInvoices,
+    VendorPayUsers,
+    VendorPaySettings
 }

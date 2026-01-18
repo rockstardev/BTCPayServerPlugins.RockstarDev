@@ -83,7 +83,8 @@ public class EmailService(
                         .Replace("{VendorPayPublicLink}", setting.VendorPayPublicLink)
                 });
 
-            if (emailRecipients.Any()) await SendBulkEmail(storeGroup.Key, emailRecipients);
+            if (emailRecipients.Any())
+                await SendBulkEmail(storeGroup.Key, emailRecipients);
         }
     }
 

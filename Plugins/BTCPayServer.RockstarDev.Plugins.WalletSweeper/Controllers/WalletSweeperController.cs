@@ -286,15 +286,15 @@ public class WalletSweeperController(
     {
         var feeProvider = feeProviderFactory.CreateFeeProvider(network);
         List<FeeRateOption?> options = new();
-        foreach (var time in new[] {
-                    TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(60.0), TimeSpan.FromHours(6.0),
-                    TimeSpan.FromHours(24.0),
-                })
-        {
+        foreach (var time in new[]
+                 {
+                     TimeSpan.FromMinutes(10.0), TimeSpan.FromMinutes(60.0), TimeSpan.FromHours(6.0),
+                     TimeSpan.FromHours(24.0)
+                 })
             try
             {
                 var result = await feeProvider.GetFeeRateAsync((int)network.NBitcoinNetwork.Consensus.GetExpectedBlocksFor(time));
-                options.Add(new FeeRateOption()
+                options.Add(new FeeRateOption
                 {
                     Target = time,
                     FeeRate = result.SatoshiPerByte
@@ -304,7 +304,7 @@ public class WalletSweeperController(
             {
                 options.Add(null);
             }
-        }
+
         return options.ToArray();
     }
 }

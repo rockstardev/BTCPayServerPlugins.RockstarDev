@@ -1,11 +1,12 @@
 @inject IScopeProvider ScopeProvider
-@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject IHttpContextAccessor HttpContextAccessor
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
+@using Microsoft.AspNetCore.Http
 @model VendorPayInvoiceListViewModel
 @{
     Layout = "_Layout";

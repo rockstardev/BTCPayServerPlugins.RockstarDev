@@ -46,7 +46,8 @@ public class VendorPayEmailReminderService(
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
     {
-        if (evt is PeriodProcessEvent sequentialExecute) await HandleEmailReminders(sequentialExecute.StoreId, sequentialExecute.Setting);
+        if (evt is PeriodProcessEvent sequentialExecute)
+            await HandleEmailReminders(sequentialExecute.StoreId, sequentialExecute.Setting);
 
         await base.ProcessEvent(evt, cancellationToken);
     }

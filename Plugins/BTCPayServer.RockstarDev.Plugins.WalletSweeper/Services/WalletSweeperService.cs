@@ -58,7 +58,8 @@ public class WalletSweeperService(
             .Include(c => c.TrackedUtxos.Where(u => !u.IsSpent))
             .FirstOrDefaultAsync(c => c.Id == configId, cancellationToken);
 
-        if (config == null) return SweepResult.Failure("Configuration not found");
+        if (config == null)
+            return SweepResult.Failure("Configuration not found");
 
         // Check balance threshold
         if (config.CurrentBalance < config.MinimumBalance)
@@ -221,10 +222,12 @@ public class WalletSweeperService(
             {
                 // Get store and generate new address
                 var store = await storeRepository.FindStore(config.StoreId);
-                if (store == null) throw new InvalidOperationException("Store not found");
+                if (store == null)
+                    throw new InvalidOperationException("Store not found");
 
                 var derivationScheme = store.GetDerivationSchemeSettings(handlers, "BTC");
-                if (derivationScheme == null) throw new InvalidOperationException("Store has no BTC wallet configured");
+                if (derivationScheme == null)
+                    throw new InvalidOperationException("Store has no BTC wallet configured");
 
                 var wallet = walletProvider.GetWallet("BTC");
 
@@ -245,7 +248,8 @@ public class WalletSweeperService(
             else
             {
                 // Use custom address
-                if (string.IsNullOrEmpty(config.DestinationAddress)) throw new InvalidOperationException("Destination address not configured");
+                if (string.IsNullOrEmpty(config.DestinationAddress))
+                    throw new InvalidOperationException("Destination address not configured");
                 destinationAddress = BitcoinAddress.Create(config.DestinationAddress, network.NBitcoinNetwork);
                 history.DestinationAddress = config.DestinationAddress;
             }
@@ -263,14 +267,15 @@ public class WalletSweeperService(
                 $"WalletSweeperService: NBXplorer returned {utxoChanges.Confirmed.UTXOs.Count} confirmed + {utxoChanges.Unconfirmed.UTXOs.Count} unconfirmed UTXOs");
             var allUtxos = utxoChanges.GetUnspentUTXOs().ToList();
 
-            if (!allUtxos.Any()) throw new InvalidOperationException("No unspent UTXOs available to sweep");
+            if (!allUtxos.Any())
+                throw new InvalidOperationException("No unspent UTXOs available to sweep");
 
             // Fetch dynamic fee rate based on FeeBlockTarget
             var feeProvider = feeProviderFactory.CreateFeeProvider(network);
             var feeRateResult = await feeProvider.GetFeeRateAsync(config.FeeBlockTarget);
             var feeRateSatPerVByte = (int)Math.Ceiling(feeRateResult.SatoshiPerByte);
             var feeRate = new FeeRate(Money.Satoshis(feeRateSatPerVByte * 1000));
-            
+
             logger.LogInformation($"WalletSweeperService: Using dynamic fee rate {feeRateSatPerVByte} sat/vB for {config.FeeBlockTarget} block target");
 
             // Calculate minimum viable UTXO value based on fee rate
@@ -342,7 +347,8 @@ public class WalletSweeperService(
                 $"WalletSweeperService: Including {spendableUtxos.Count} outpoints: {string.Join(", ", spendableUtxos.Select(u => $"{u.Outpoint.Hash}:{u.Outpoint.N}"))}");
 
             var psbtResponse = await explorerClient.CreatePSBTAsync(derivationStrategy, createPSBTRequest, cancellationToken);
-            if (psbtResponse?.PSBT == null) throw new InvalidOperationException("Failed to create PSBT - response was null");
+            if (psbtResponse?.PSBT == null)
+                throw new InvalidOperationException("Failed to create PSBT - response was null");
             var psbt = psbtResponse.PSBT;
 
             // Update actual amounts from PSBT
