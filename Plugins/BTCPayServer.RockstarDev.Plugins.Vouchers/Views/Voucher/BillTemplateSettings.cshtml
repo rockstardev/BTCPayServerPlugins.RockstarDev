@@ -34,15 +34,14 @@
 						<div class="form-group mb-3">
 							<label for="imageInput" class="form-label">Portrait Photo</label>
 							<input type="file" id="imageInput" accept="image/png,image/jpeg,image/jpg" class="form-control" required />
-							<small class="form-text text-muted">PNG or JPEG, max 1MB</small>
+							<small class="form-text text-muted">PNG or JPEG, max 500KB</small>
 						</div>
 						<div class="alert alert-info mb-3">
-							<strong>Tips for best results:</strong>
-							<ul class="mb-0 mt-2 small">
-								<li>Use centered, front-facing portrait under 1MB</li>
-								<li>Ensure good lighting and high contrast</li>
-							</ul>
+							<small>
+								Use a front-facing portrait under 500KB with good lighting.
+							</small>
 						</div>
+
 						<button type="submit" class="btn btn-primary w-100" id="uploadBtn" disabled>Save Voucher Bill</button>
 						<input type="hidden" asp-for="NewImageFile" id="hiddenFileInput" />
 					</form>
@@ -92,8 +91,8 @@
 				return;
 			}
 
-			if (file.size >= 1 * 1024 * 1024) {
-				alert('File size must be less than 1MB');
+			if (file.size >= 500 * 1024) {
+				alert('File size must be less than 500KB');
 				imageInput.value = '';
 				return;
 			}
@@ -125,13 +124,7 @@
 
 				ctx.save();
 				ctx.beginPath();
-				ctx.ellipse(
-					OVAL_CENTER_X,
-					OVAL_CENTER_Y,
-					OVAL_RADIUS_X,
-					OVAL_RADIUS_Y,
-					0, 0, 2 * Math.PI
-				);
+				ctx.ellipse(OVAL_CENTER_X, OVAL_CENTER_Y, OVAL_RADIUS_X, OVAL_RADIUS_Y,	0, 0, 2 * Math.PI);
 				ctx.clip();
 
 				const portraitX = OVAL_CENTER_X - OVAL_RADIUS_X;
@@ -156,16 +149,11 @@
 					cropY = (uploadedImg.height - cropHeight) / 2;
 				}
 
-				ctx.drawImage(
-					uploadedImg,
-					cropX, cropY, cropWidth, cropHeight,
-					portraitX, portraitY, portraitWidth, portraitHeight
-				);
-
+				ctx.drawImage(uploadedImg, cropX, cropY, cropWidth, cropHeight,	portraitX, portraitY, portraitWidth, portraitHeight);
 				ctx.restore();
 
 				const rotatedCanvas = document.createElement('canvas');
-				rotatedCanvas.width = previewCanvas.height;  // Swap dimensions
+				rotatedCanvas.width = previewCanvas.height;
 				rotatedCanvas.height = previewCanvas.width;
 				const rotatedCtx = rotatedCanvas.getContext('2d');
 
