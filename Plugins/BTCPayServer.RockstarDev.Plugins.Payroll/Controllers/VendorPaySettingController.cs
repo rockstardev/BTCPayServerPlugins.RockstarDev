@@ -56,7 +56,7 @@ public class VendorPaySettingController(
                 settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
             EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody,
             AccountlessUploadEnabled = settings.AccountlessUploadEnabled,
-            AccountlessUploadCode = settings.AccountlessUploadCode,
+            UploadCode = settings.UploadCode,
             DescriptionTitle = settings.DescriptionTitle ?? VendorPaySettingViewModel.Defaults.DescriptionTitle,
             AllowOneTimeAccountConversion = settings.AllowOneTimeAccountConversion
         };
@@ -92,8 +92,8 @@ public class VendorPaySettingController(
             if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceDeletedAddress))
                 ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Invalid email address format. Use comma-separated email addresses.");
 
-        if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.AccountlessUploadCode))
-            ModelState.AddModelError(nameof(model.AccountlessUploadCode), "Upload code is required");
+        if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.UploadCode))
+            ModelState.AddModelError(nameof(model.UploadCode), "Upload Code is required");
 
         if (!ModelState.IsValid)
         {
@@ -129,7 +129,7 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedSubject = model.EmailAdminOnInvoiceDeletedSubject,
             EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody,
             AccountlessUploadEnabled = model.AccountlessUploadEnabled,
-            AccountlessUploadCode = model.AccountlessUploadCode,
+            UploadCode = model.UploadCode,
             DescriptionTitle = model.DescriptionTitle,
             AllowOneTimeAccountConversion = model.AllowOneTimeAccountConversion
         };

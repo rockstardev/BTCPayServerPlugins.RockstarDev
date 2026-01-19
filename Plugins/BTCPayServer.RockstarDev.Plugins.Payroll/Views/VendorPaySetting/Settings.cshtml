@@ -61,17 +61,17 @@
             </div>
             <div id="accountlessUploadGroup" style="display: none;">
                 <div class="form-group">
-                    <label asp-for="AccountlessUploadCode" class="form-label"></label>
-                    <input asp-for="AccountlessUploadCode" type="password" class="form-control" />
-                    <span asp-validation-for="AccountlessUploadCode" class="text-danger"></span>
+                    <label asp-for="UploadCode" class="form-label"></label>
+                    <input asp-for="UploadCode" type="text" class="form-control" />
+                    <span asp-validation-for="UploadCode" class="text-danger"></span>
                     <small class="form-text text-muted">This code will be required for accountless uploads</small>
                 </div>
                 <div class="form-group">
                     <label asp-for="DescriptionTitle" class="form-label"></label>
                     <input asp-for="DescriptionTitle" type="text" class="form-control" 
-                           placeholder="What is this invoice for? Describe in detail." />
+                           placeholder="Description" />
                     <span asp-validation-for="DescriptionTitle" class="text-danger"></span>
-                    <small class="form-text text-muted">Allows you to change title of description field, to ask questions during invoice uploading.</small>
+                    <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled, description becomes a required field.</small>
                 </div>
                 <div class="form-group d-flex align-items-center">
                     <input asp-for="AllowOneTimeAccountConversion" type="checkbox" class="btcpay-toggle me-3" />

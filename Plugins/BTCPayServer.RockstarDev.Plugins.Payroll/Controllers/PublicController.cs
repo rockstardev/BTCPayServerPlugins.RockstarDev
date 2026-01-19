@@ -471,9 +471,9 @@ public class PublicController(
         model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, store.GetStoreBlob());
         model.DescriptionTitle = settings.DescriptionTitle;
 
-        if (model.UploadCode != settings.AccountlessUploadCode)
+        if (model.UploadCode != settings.UploadCode)
         {
-            ModelState.AddModelError(nameof(model.UploadCode), "Invalid upload code");
+            ModelState.AddModelError(nameof(model.UploadCode), "Invalid Upload Code");
         }
 
         if (!string.IsNullOrEmpty(settings.DescriptionTitle) && string.IsNullOrWhiteSpace(model.Description))

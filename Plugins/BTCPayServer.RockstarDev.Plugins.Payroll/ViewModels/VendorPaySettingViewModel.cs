@@ -56,7 +56,7 @@ public class VendorPaySettingViewModel
     public bool AccountlessUploadEnabled { get; set; }
 
     [Display(Name = "Upload code")]
-    public string AccountlessUploadCode { get; set; }
+    public string UploadCode { get; set; }
 
     [Display(Name = "Description title")]
     public string DescriptionTitle { get; set; }
