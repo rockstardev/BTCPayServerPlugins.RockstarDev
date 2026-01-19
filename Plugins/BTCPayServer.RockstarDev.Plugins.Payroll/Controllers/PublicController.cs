@@ -90,7 +90,7 @@ public class PublicController(
             }
         }
 
-        // if we end up here, credentials are invalid 
+        // if we end up here, credentials are invalid
         ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
         return View(model);
     }
@@ -356,7 +356,7 @@ public class PublicController(
             return View(model);
 
 
-        // 
+        //
         userInDb!.Password = hasher.HashPassword(vali.UserId, model.NewPassword);
         await dbPlugins.SaveChangesAsync();
 
@@ -518,27 +518,22 @@ public class PublicController(
             return View(model);
 
         await using var dbPlugin = pluginDbContextFactory.CreateContext();
-        
-        var existingUser = dbPlugin.PayrollUsers.SingleOrDefault(u => 
+
+        var existingUser = dbPlugin.PayrollUsers.SingleOrDefault(u =>
             u.StoreId == storeId && u.Email == model.Email.ToLowerInvariant());
 
         string userId;
-        if (existingUser != null)
+        if (existingUser != null && existingUser.State != VendorPayUserState.OneTime)
         {
-            // Security check: Block if user has Active or Pending state (real user account)
-            if (existingUser.State == VendorPayUserState.Active || existingUser.State == VendorPayUserState.Pending)
-            {
-                ModelState.AddModelError(nameof(model.Email), 
-                    "This email is registered. Please log in to upload invoices.");
-                return View(model);
-            }
+            ModelState.AddModelError(nameof(model.Email),
+                "This email is registered. Please log in to upload invoices.");
+            return View(model);
+        }
 
-            // Allow reuse for OneTime or Disabled users
+
+        if (existingUser is { State: VendorPayUserState.OneTime })
+        {
             userId = existingUser.Id;
-            existingUser.Name = model.Name;
-            existingUser.State = VendorPayUserState.OneTime;
-            dbPlugin.Update(existingUser);
-            await dbPlugin.SaveChangesAsync();
         }
         else
         {
@@ -581,36 +576,9 @@ public class PublicController(
         if (createdInvoice != null)
         {
             await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
-
-            // Send account conversion email if enabled
-            if (settings.AllowOneTimeAccountConversion)
-            {
-                var user = await dbPlugin.PayrollUsers.FindAsync(userId);
-                if (user != null && user.State == VendorPayUserState.OneTime)
-                {
-                    // Create invitation for account conversion
-                    var invitation = new PayrollInvitation
-                    {
-                        StoreId = storeId,
-                        Email = user.Email,
-                        Token = Guid.NewGuid().ToString(),
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    dbPlugin.Add(invitation);
-                    await dbPlugin.SaveChangesAsync();
-
-                    var registrationLink = Url.Action(
-                        "AcceptInvitation",
-                        "Public",
-                        new { storeId, token = invitation.Token },
-                        HttpContext.Request.Scheme,
-                        HttpContext.Request.Host.Value);
-
-                    await emailService.SendOneTimeAccountConversionEmail(storeId, user, registrationLink);
-                }
-            }
         }
 
+        model.EmailNotificationsEnabled = settings.EmailOnInvoicePaid;
         return View("AccountlessUploadSuccess", model);
     }
 

@@ -79,6 +79,7 @@ public class AccountlessUploadViewModel : BaseVendorPayPublicViewModel
     public string UploadCode { get; set; }
 
     public string DescriptionTitle { get; set; }
+    public bool EmailNotificationsEnabled { get; set; }
 
     [Required]
     public string Destination { get; set; }
