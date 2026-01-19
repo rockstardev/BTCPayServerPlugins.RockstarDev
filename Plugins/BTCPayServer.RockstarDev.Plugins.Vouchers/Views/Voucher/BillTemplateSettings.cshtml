@@ -1,0 +1,284 @@
+@using BTCPayServer.Abstractions.Contracts
+@inject IFileService FileService
+@inject IScopeProvider ScopeProvider
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.Vouchers
+@using BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel
+@model VoucherImageSettingsViewModel
+@{
+	Layout = "_Layout";
+	var storeId = ScopeProvider.GetCurrentStoreId();
+	var canUpload = await FileService.IsAvailable();
+	ViewData.SetLayoutModel(new LayoutModel(nameof(VoucherPages.BillTemplates), "Bill Templates") { ActiveCategory = nameof(VoucherPages) });
+}
+
+<div class="sticky-header">
+	<h2 class="mb-0">@ViewData["Title"]</h2>
+	<p class="text-muted">Create custom voucher bills with portrait photos</p>
+</div>
+
+<partial name="_StatusMessage" />
+
+@if (canUpload)
+{
+	<div class="row mt-4">
+		<div class="col-lg-4">
+			<div class="card">
+				<div class="card-header">
+					<h5 class="mb-0">Upload Portrait</h5>
+				</div>
+				<div class="card-body">
+					<form method="post" enctype="multipart/form-data" asp-controller="Voucher" asp-action="UploadVoucherImage" asp-route-storeId="@storeId" id="uploadForm">
+						<div class="form-group mb-3">
+							<label asp-for="NewImageTitle" class="form-label">Name</label>
+							<input asp-for="NewImageTitle" class="form-control" placeholder="e.g. Jack, Nayib Bukele" required />
+							<small class="form-text text-muted">Identifier for this voucher bill</small>
+						</div>
+						<div class="form-group mb-3">
+							<label for="imageInput" class="form-label">Portrait Photo</label>
+							<input type="file" id="imageInput" accept="image/png,image/jpeg,image/jpg" class="form-control" required />
+							<small class="form-text text-muted">PNG or JPEG, max 1MB</small>
+						</div>
+						<div class="alert alert-info mb-3">
+							<strong>Tips for best results:</strong>
+							<ul class="mb-0 mt-2 small">
+								<li>Use centered, front-facing portrait</li>
+								<li>Ensure good lighting and high contrast</li>
+								<li>Recommended: 400-600px wide, under 1MB</li>
+							</ul>
+						</div>
+						<button type="submit" class="btn btn-primary w-100" id="uploadBtn" disabled>Save Voucher Bill
+						</button>
+						<input type="hidden" asp-for="NewImageFile" id="hiddenFileInput" />
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-8">
+			<div class="card" id="previewCard" style="display: none;">
+				<div class="card-header">
+					<h5 class="mb-0">Preview</h5>
+				</div>
+				<div class="card-body">
+					<div class="text-center">
+						<canvas id="previewCanvas" width="1562" height="562" style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 4px;"></canvas>
+					</div>
+					<p class="text-center text-muted mt-3 mb-0">
+						<small>This combined image will be saved</small>
+					</p>
+				</div>
+			</div>
+			<div class="card" id="placeholderCard">
+				<div class="card-body text-center py-5">
+					<p class="text-muted mb-0">Upload a photo to see preview</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const imageInput = document.getElementById('imageInput');
+		const previewCanvas = document.getElementById('previewCanvas');
+		const previewCard = document.getElementById('previewCard');
+		const placeholderCard = document.getElementById('placeholderCard');
+		const uploadBtn = document.getElementById('uploadBtn');
+		const uploadForm = document.getElementById('uploadForm');
+
+		const OVAL_CENTER_X = 781;
+		const OVAL_CENTER_Y = 270;
+		const OVAL_RADIUS_X = 120;
+		const OVAL_RADIUS_Y = 142;
+
+		imageInput.addEventListener('change', function(e) {
+			const file = e.target.files[0];
+			if (!file) return;
+
+			if (!file.type.match('image/png') && !file.type.match('image/jpeg')) {
+				alert('Please select a PNG or JPEG image');
+				imageInput.value = '';
+				return;
+			}
+
+			if (file.size >= 1 * 1024 * 1024) {
+				alert('File size must be less than 1MB');
+				imageInput.value = '';
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = function(event) {
+				const img = new Image();
+				img.onload = function() {
+					createCombinedBill(img);
+				};
+				img.onerror = function() {
+					alert('Could not load the image. Please try another file.');
+					imageInput.value = '';
+				};
+				img.src = event.target.result;
+			};
+			reader.readAsDataURL(file);
+		});
+
+		function createCombinedBill(uploadedImg) {
+			const billTemplate = new Image();
+			billTemplate.crossOrigin = "anonymous";
+
+			billTemplate.onload = function() {
+				const ctx = previewCanvas.getContext('2d');
+
+				ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+				ctx.drawImage(billTemplate, 0, 0, previewCanvas.width, previewCanvas.height);
+
+				ctx.save();
+				ctx.beginPath();
+				ctx.ellipse(
+					OVAL_CENTER_X,
+					OVAL_CENTER_Y,
+					OVAL_RADIUS_X,
+					OVAL_RADIUS_Y,
+					0, 0, 2 * Math.PI
+				);
+				ctx.clip();
+
+				const portraitX = OVAL_CENTER_X - OVAL_RADIUS_X;
+				const portraitY = OVAL_CENTER_Y - OVAL_RADIUS_Y;
+				const portraitWidth = OVAL_RADIUS_X * 2;
+				const portraitHeight = OVAL_RADIUS_Y * 2;
+
+				const sourceAspect = uploadedImg.width / uploadedImg.height;
+				const targetAspect = portraitWidth / portraitHeight;
+
+				let cropWidth, cropHeight, cropX, cropY;
+
+				if (sourceAspect > targetAspect) {
+					cropHeight = uploadedImg.height;
+					cropWidth = cropHeight * targetAspect;
+					cropX = (uploadedImg.width - cropWidth) / 2;
+					cropY = 0;
+				} else {
+					cropWidth = uploadedImg.width;
+					cropHeight = cropWidth / targetAspect;
+					cropX = 0;
+					cropY = (uploadedImg.height - cropHeight) / 2;
+				}
+
+				ctx.drawImage(
+					uploadedImg,
+					cropX, cropY, cropWidth, cropHeight,
+					portraitX, portraitY, portraitWidth, portraitHeight
+				);
+
+				ctx.restore();
+
+				const rotatedCanvas = document.createElement('canvas');
+				rotatedCanvas.width = previewCanvas.height;  // Swap dimensions
+				rotatedCanvas.height = previewCanvas.width;
+				const rotatedCtx = rotatedCanvas.getContext('2d');
+
+				rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+				rotatedCtx.rotate(90 * Math.PI / 180);
+				rotatedCtx.drawImage(previewCanvas, -previewCanvas.width / 2, -previewCanvas.height / 2);
+
+				placeholderCard.style.display = 'none';
+				previewCard.style.display = 'block';
+
+				rotatedCanvas.toBlob(function(blob) {
+					const combinedFile = new File([blob], 'voucher-bill-combined.jpg', { type: 'image/jpeg' });
+					const dataTransfer = new DataTransfer();
+					dataTransfer.items.add(combinedFile);
+
+					const fileInput = document.createElement('input');
+					fileInput.type = 'file';
+					fileInput.name = 'NewImageFile';
+					fileInput.files = dataTransfer.files;
+					fileInput.style.display = 'none';
+					fileInput.id = 'NewImageFile';
+
+					const oldInput = document.getElementById('NewImageFile');
+					if (oldInput) oldInput.remove();
+
+					uploadForm.appendChild(fileInput);
+					uploadBtn.disabled = false;
+
+				}, 'image/jpeg', 0.85);
+			};
+
+			billTemplate.onerror = function() {
+				alert('Could not load the voucher bill template.');
+			};
+
+			billTemplate.src = '/Resources/empty_voucher_bill.png';
+		}
+	</script>
+}
+else
+{
+	<div class="alert alert-warning mt-4">
+		File uploads are not available on this instance.
+	</div>
+}
+
+
+<hr class="my-5" />
+<h6 class="mb-3">Saved Voucher Bills</h6>
+@if (Model.Images.Any())
+{
+	<div class="table-responsive-md">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th scope="col">Name</th>
+					<th scope="col">Status</th>
+					<th scope="col">Preview</th>
+					<th scope="col" class="text-end"></th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var pp in Model.Images)
+				{
+					<tr class="mass-action-row">
+						<td>@pp.Name</td>
+						<td>@(pp.Enabled ? "Active" : "Disabled")</td>
+						<td>
+							<a href="@pp.FileUrl" target="_blank" rel="noopener noreferrer" class="link-primary">View Bill</a>
+						</td>
+						<td class="text-end">
+							<div class="d-inline-flex align-items-center gap-3">
+								<div class="dropdown">
+									<button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret text-body" type="button" data-bs-toggle="dropdown"
+											aria-expanded="false" id="ToggleActions-@pp.Key">
+										<vc:icon symbol="dots" />
+									</button>
+									<ul class="dropdown-menu dropdown-menu-end">
+										<li>
+											<a class="dropdown-item" asp-controller="Voucher" asp-action="ToggleVoucherImage"
+											   asp-route-storeId="@storeId" asp-route-imageKey="@pp.Key">
+												@(pp.Enabled ? "Disable" : "Enable")
+											</a>
+										</li>
+										<li class="dropdown-divider"></li>
+										<li>
+											<a class="dropdown-item text-danger" asp-controller="Voucher" asp-action="DeleteVoucherImage"
+											   asp-route-storeId="@storeId" asp-route-imageKey="@pp.Key">
+												Delete
+											</a>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+else
+{
+	<p class="text-secondary mt-4">
+		<span>There are no voucher bills saved yet</span>
+	</p>
+}

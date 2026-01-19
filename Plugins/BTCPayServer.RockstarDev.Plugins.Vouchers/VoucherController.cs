@@ -450,7 +450,7 @@ public class VoucherController : Controller
 
     [HttpGet("~/plugins/{storeId}/vouchers/settings/template")]
     [Authorize(Policy = Policies.CanModifyStoreSettings)]
-    public async Task<IActionResult> VoucherTemplateSettings(string storeId)
+    public async Task<IActionResult> BillTemplateSettings(string storeId)
     {
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(storeId, VoucherPlugin.SettingsName) ?? new VoucherSettings();
         return View(new VoucherImageSettingsViewModel { Images = settings.Images });
@@ -475,7 +475,16 @@ public class VoucherController : Controller
             TempData[WellKnownTempData.ErrorMessage] = validationResult.ErrorMessage;
             return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
         }
-        UploadImageResultModel imageUpload = await _fileService.UploadImage(vm.NewImageFile, GetUserId());
+
+        var originalFile = vm.NewImageFile;
+        var newFileName = $"voucher_template_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{Path.GetExtension(originalFile.FileName)}";
+        var renamedFile = new FormFile(originalFile.OpenReadStream(), 0, originalFile.Length, originalFile.Name, newFileName)
+        {
+            Headers = originalFile.Headers,
+            ContentType = originalFile.ContentType
+        };
+
+        UploadImageResultModel imageUpload = await _fileService.UploadImage(renamedFile, GetUserId());
         if (!imageUpload.Success)
         {
             TempData[WellKnownTempData.ErrorMessage] = imageUpload.Response;
