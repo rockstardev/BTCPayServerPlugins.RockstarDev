@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -34,6 +36,13 @@ public class PublicController(
 {
     private const string VENDORPAY_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
 
+    private static string GenerateUploadHash(string storeId, string uploadCode)
+    {
+        var input = storeId + uploadCode;
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return hashString[..12]; // First 12 characters
+    }
 
     [HttpGet("login")]
     public async Task<IActionResult> Login(string storeId)
@@ -426,8 +435,8 @@ public class PublicController(
         return RedirectToAction(nameof(ListInvoices), new { storeId });
     }
 
-    [HttpGet("accountless-upload")]
-    public async Task<IActionResult> AccountlessUpload(string storeId)
+    [HttpGet("accountless-upload/{hash}")]
+    public async Task<IActionResult> AccountlessUpload(string storeId, string hash)
     {
         await using var dbMain = dbContextFactory.CreateContext();
         var store = await dbMain.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
@@ -435,9 +444,21 @@ public class PublicController(
             return NotFound();
 
         var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        
+
         if (!settings.AccountlessUploadEnabled)
             return NotFound();
+
+        // Validate hash
+        var expectedHash = GenerateUploadHash(storeId, settings.UploadCode);
+        if (hash != expectedHash)
+        {
+            var errorModel = new BaseVendorPayPublicViewModel
+            {
+                StoreName = store.StoreName,
+                StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, store.GetStoreBlob())
+            };
+            return View("AccountlessUploadInvalidLink", errorModel);
+        }
 
         var model = new AccountlessUploadViewModel
         {
@@ -453,8 +474,8 @@ public class PublicController(
         return View(model);
     }
 
-    [HttpPost("accountless-upload")]
-    public async Task<IActionResult> AccountlessUpload(string storeId, AccountlessUploadViewModel model)
+    [HttpPost("accountless-upload/{hash}")]
+    public async Task<IActionResult> AccountlessUpload(string storeId, string hash, AccountlessUploadViewModel model)
     {
         await using var dbMain = dbContextFactory.CreateContext();
         var store = await dbMain.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
@@ -462,9 +483,21 @@ public class PublicController(
             return NotFound();
 
         var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-        
+
         if (!settings.AccountlessUploadEnabled)
             return NotFound();
+
+        // Validate hash
+        var expectedHash = GenerateUploadHash(storeId, settings.UploadCode);
+        if (hash != expectedHash)
+        {
+            var errorModel = new BaseVendorPayPublicViewModel
+            {
+                StoreName = store.StoreName,
+                StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, store.GetStoreBlob())
+            };
+            return View("AccountlessUploadInvalidLink", errorModel);
+        }
 
         model.StoreId = store.Id;
         model.StoreName = store.StoreName;

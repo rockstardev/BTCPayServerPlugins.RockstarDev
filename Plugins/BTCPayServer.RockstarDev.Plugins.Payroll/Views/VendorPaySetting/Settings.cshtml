@@ -68,7 +68,7 @@
                 </div>
                 <div class="form-group">
                     <label asp-for="DescriptionTitle" class="form-label"></label>
-                    <input asp-for="DescriptionTitle" type="text" class="form-control" 
+                    <input asp-for="DescriptionTitle" type="text" class="form-control"
                            placeholder="Description" />
                     <span asp-validation-for="DescriptionTitle" class="text-danger"></span>
                     <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled, description becomes a required field.</small>
@@ -86,8 +86,21 @@
                 <div class="form-group">
                     <label class="form-label">Accountless Upload Link</label>
                     <div class="input-group">
-                        <input type="text" class="form-control" id="accountlessUploadLink" readonly 
-                               value="@Url.Action("AccountlessUpload", "Public", new { storeId }, Context.Request.Scheme)" />
+                        @{
+                            var uploadHash = "";
+                            if (!string.IsNullOrEmpty(Model.UploadCode))
+                            {
+                                var input = storeId + Model.UploadCode;
+                                var hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
+                                var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
+                                uploadHash = hashString.Substring(0, 12);
+                            }
+                            var uploadUrl = !string.IsNullOrEmpty(uploadHash)
+                                ? Url.Action("AccountlessUpload", "Public", new { storeId, hash = uploadHash }, Context.Request.Scheme)
+                                : "";
+                        }
+                        <input type="text" class="form-control" id="accountlessUploadLink" readonly
+                               value="@uploadUrl" />
                         <button type="button" class="btn btn-secondary" onclick="copyAccountlessLink()">
                             <i class="fa fa-copy"></i> Copy
                         </button>
