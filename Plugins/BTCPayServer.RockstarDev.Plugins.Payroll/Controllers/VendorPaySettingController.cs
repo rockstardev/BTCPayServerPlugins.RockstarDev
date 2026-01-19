@@ -57,8 +57,7 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody,
             AccountlessUploadEnabled = settings.AccountlessUploadEnabled,
             UploadCode = settings.UploadCode,
-            DescriptionTitle = settings.DescriptionTitle ?? VendorPaySettingViewModel.Defaults.DescriptionTitle,
-            AllowOneTimeAccountConversion = settings.AllowOneTimeAccountConversion
+            DescriptionTitle = settings.DescriptionTitle ?? VendorPaySettingViewModel.Defaults.DescriptionTitle
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -130,8 +129,7 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody,
             AccountlessUploadEnabled = model.AccountlessUploadEnabled,
             UploadCode = model.UploadCode,
-            DescriptionTitle = model.DescriptionTitle,
-            AllowOneTimeAccountConversion = model.AllowOneTimeAccountConversion
+            DescriptionTitle = model.DescriptionTitle
         };
 
 

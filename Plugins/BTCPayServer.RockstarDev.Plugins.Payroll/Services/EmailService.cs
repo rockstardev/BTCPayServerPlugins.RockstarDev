@@ -240,49 +240,6 @@ public class EmailService(
         }
     }
 
-    public async Task SendOneTimeAccountConversionEmail(string storeId, PayrollUser user, string registrationLink)
-    {
-        try
-        {
-            var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
-            if (!settings.AllowOneTimeAccountConversion)
-                return;
-
-            var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
-            if (emailSettings?.IsComplete() != true)
-                return;
-
-            var storeName = (await storeRepo.FindStore(storeId))?.StoreName;
-
-            var subject = "[Payroll] Create an Account to Track Your Invoice";
-            var body = $@"Hello {user.Name},
-
-Thank you for submitting your invoice. Your invoice has been received and is awaiting approval.
-
-To track the status of your invoice and manage future submissions, you can create a full account by clicking the link below:
-
-{registrationLink}
-
-This link will expire in 7 days.
-
-Thank you,
-{storeName}";
-
-            var recipient = new EmailRecipient
-            {
-                Address = InternetAddress.Parse(user.Email),
-                Subject = subject,
-                MessageText = body
-            };
-
-            await SendBulkEmail(storeId, new List<EmailRecipient> { recipient });
-        }
-        catch (Exception ex)
-        {
-            logs.PayServer.LogError(ex, $"Error sending account conversion email to {user.Email}");
-        }
-    }
-
     public class EmailRecipient
     {
         public InternetAddress Address { get; set; }

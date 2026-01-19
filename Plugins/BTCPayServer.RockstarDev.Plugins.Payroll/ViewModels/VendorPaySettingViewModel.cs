@@ -61,9 +61,6 @@ public class VendorPaySettingViewModel
     [Display(Name = "Description title")]
     public string DescriptionTitle { get; set; }
 
-    [Display(Name = "Allow one-time users to create full accounts")]
-    public bool AllowOneTimeAccountConversion { get; set; }
-
     public record Defaults
     {
         public const string EmailOnInvoicePaidSubject = @"[VendorPay] Invoice paid";

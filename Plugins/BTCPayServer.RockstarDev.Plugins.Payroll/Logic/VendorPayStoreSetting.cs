@@ -35,5 +35,4 @@ public class VendorPayStoreSetting
     public bool AccountlessUploadEnabled { get; set; }
     public string UploadCode { get; set; }
     public string DescriptionTitle { get; set; }
-    public bool AllowOneTimeAccountConversion { get; set; }
 }

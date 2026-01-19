@@ -74,16 +74,6 @@
                     <span asp-validation-for="DescriptionTitle" class="text-danger"></span>
                     <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled, description becomes a required field.</small>
                 </div>
-                <div class="form-group d-flex align-items-center">
-                    <input asp-for="AllowOneTimeAccountConversion" type="checkbox" class="btcpay-toggle me-3" />
-                    <div>
-                        <label asp-for="AllowOneTimeAccountConversion" class="form-label mb-0 me-1"></label>
-                        <span asp-validation-for="AllowOneTimeAccountConversion" class="text-danger"></span>
-                        <div class="text-secondary">
-                            <small>When enabled, one-time users will receive an email invitation to create a full account to track their invoice status</small>
-                        </div>
-                    </div>
-                </div>
                 @if (!string.IsNullOrEmpty(Model.UploadCode))
                 {
                     <div class="form-group">

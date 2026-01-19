@@ -50,7 +50,7 @@ Thank you,
 
 
     [HttpGet("list")]
-    public async Task<IActionResult> List(string storeId, bool all, bool pending, string searchTerm = null)
+    public async Task<IActionResult> List(string storeId, bool all, bool pending, bool oneTime, string searchTerm = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
 
@@ -70,6 +70,8 @@ Thank you,
         var vendorPayUsers = allStoreUsers;
         if (pending)
             vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Pending).ToList();
+        else if (oneTime)
+            vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.OneTime).ToList();
         else if (!all)
             vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
 
@@ -77,12 +79,14 @@ Thank you,
         {
             All = all,
             Pending = pending,
+            OneTime = oneTime,
             SearchTerm = searchTerm,
             DisplayedVendorPayUsers = vendorPayUsers,
             Counts = new VendorPayUserListViewModel.CountsData
             {
                 Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
                 Pending = allStoreUsers.Count(a => a.State == VendorPayUserState.Pending),
+                OneTime = allStoreUsers.Count(a => a.State == VendorPayUserState.OneTime),
                 Total = allStoreUsers.Count
             }
         };
