@@ -51,6 +51,19 @@ public class VendorPaySettingViewModel
     public string EmailAdminOnInvoiceDeletedSubject { get; set; }
     public string EmailAdminOnInvoiceDeletedBody { get; set; }
 
+    //
+    [Display(Name = "Enable accountless invoice upload")]
+    public bool AccountlessUploadEnabled { get; set; }
+
+    [Display(Name = "Upload code")]
+    public string AccountlessUploadCode { get; set; }
+
+    [Display(Name = "Description title")]
+    public string DescriptionTitle { get; set; }
+
+    [Display(Name = "Allow one-time users to create full accounts")]
+    public bool AllowOneTimeAccountConversion { get; set; }
+
     public record Defaults
     {
         public const string EmailOnInvoicePaidSubject = @"[VendorPay] Invoice paid";
@@ -98,5 +111,7 @@ Amount: {Amount} {Currency}
 Destination: {Destination}
 
 Thank you.";
+
+        public const string DescriptionTitle = @"What is this invoice for? Describe in detail.";
     }
 }

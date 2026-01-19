@@ -54,7 +54,11 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedAddress = settings.EmailAdminOnInvoiceDeletedAddress,
             EmailAdminOnInvoiceDeletedSubject =
                 settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
-            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody
+            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody,
+            AccountlessUploadEnabled = settings.AccountlessUploadEnabled,
+            AccountlessUploadCode = settings.AccountlessUploadCode,
+            DescriptionTitle = settings.DescriptionTitle ?? VendorPaySettingViewModel.Defaults.DescriptionTitle,
+            AllowOneTimeAccountConversion = settings.AllowOneTimeAccountConversion
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -88,6 +92,9 @@ public class VendorPaySettingController(
             if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceDeletedAddress))
                 ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Invalid email address format. Use comma-separated email addresses.");
 
+        if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.AccountlessUploadCode))
+            ModelState.AddModelError(nameof(model.AccountlessUploadCode), "Upload code is required");
+
         if (!ModelState.IsValid)
         {
             ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -120,7 +127,11 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeleted = model.EmailAdminOnInvoiceDeleted,
             EmailAdminOnInvoiceDeletedAddress = model.EmailAdminOnInvoiceDeletedAddress,
             EmailAdminOnInvoiceDeletedSubject = model.EmailAdminOnInvoiceDeletedSubject,
-            EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody
+            EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody,
+            AccountlessUploadEnabled = model.AccountlessUploadEnabled,
+            AccountlessUploadCode = model.AccountlessUploadCode,
+            DescriptionTitle = model.DescriptionTitle,
+            AllowOneTimeAccountConversion = model.AllowOneTimeAccountConversion
         };
 
 

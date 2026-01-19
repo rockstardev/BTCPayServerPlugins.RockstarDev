@@ -30,4 +30,10 @@ public class VendorPayStoreSetting
     public string EmailAdminOnInvoiceDeletedAddress { get; set; }
     public string EmailAdminOnInvoiceDeletedSubject { get; set; }
     public string EmailAdminOnInvoiceDeletedBody { get; set; }
+
+    // Accountless upload settings
+    public bool AccountlessUploadEnabled { get; set; }
+    public string AccountlessUploadCode { get; set; }
+    public string DescriptionTitle { get; set; }
+    public bool AllowOneTimeAccountConversion { get; set; }
 }

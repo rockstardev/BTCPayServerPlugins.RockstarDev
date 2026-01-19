@@ -5,5 +5,6 @@ public enum VendorPayUserState
     Disabled,
     Active,
     Archived,
-    Pending
+    Pending,
+    OneTime
 }

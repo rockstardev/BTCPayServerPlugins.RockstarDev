@@ -53,6 +53,49 @@
                 </div>
             </div>
 
+            <h3>Accountless Upload</h3>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="AccountlessUploadEnabled" type="checkbox" class="btcpay-toggle me-3" id="accountlessUploadToggle" />
+                <label asp-for="AccountlessUploadEnabled" class="form-label mb-0 me-1"></label>
+                <span asp-validation-for="AccountlessUploadEnabled" class="text-danger"></span>
+            </div>
+            <div id="accountlessUploadGroup" style="display: none;">
+                <div class="form-group">
+                    <label asp-for="AccountlessUploadCode" class="form-label"></label>
+                    <input asp-for="AccountlessUploadCode" type="password" class="form-control" />
+                    <span asp-validation-for="AccountlessUploadCode" class="text-danger"></span>
+                    <small class="form-text text-muted">This code will be required for accountless uploads</small>
+                </div>
+                <div class="form-group">
+                    <label asp-for="DescriptionTitle" class="form-label"></label>
+                    <input asp-for="DescriptionTitle" type="text" class="form-control" 
+                           placeholder="What is this invoice for? Describe in detail." />
+                    <span asp-validation-for="DescriptionTitle" class="text-danger"></span>
+                    <small class="form-text text-muted">Allows you to change title of description field, to ask questions during invoice uploading.</small>
+                </div>
+                <div class="form-group d-flex align-items-center">
+                    <input asp-for="AllowOneTimeAccountConversion" type="checkbox" class="btcpay-toggle me-3" />
+                    <div>
+                        <label asp-for="AllowOneTimeAccountConversion" class="form-label mb-0 me-1"></label>
+                        <span asp-validation-for="AllowOneTimeAccountConversion" class="text-danger"></span>
+                        <div class="text-secondary">
+                            <small>When enabled, one-time users will receive an email invitation to create a full account to track their invoice status</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Accountless Upload Link</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="accountlessUploadLink" readonly 
+                               value="@Url.Action("AccountlessUpload", "Public", new { storeId }, Context.Request.Scheme)" />
+                        <button type="button" class="btn btn-secondary" onclick="copyAccountlessLink()">
+                            <i class="fa fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Share this link with users who need to upload invoices without an account</small>
+                </div>
+            </div>
+
             <h3>Emails</h3>
             <div class="form-group d-flex align-items-center">
 
@@ -199,7 +242,8 @@
                 {toggle: 'emailToggle', target: 'emailTemplateGroup'},
                 {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'},
                 {toggle: 'emailAdminUploadToggle', target: 'emailAdminUploadGroup'},
-                {toggle: 'emailAdminDeleteToggle', target: 'emailAdminDeleteGroup'}
+                {toggle: 'emailAdminDeleteToggle', target: 'emailAdminDeleteGroup'},
+                {toggle: 'accountlessUploadToggle', target: 'accountlessUploadGroup'}
             ];
 
             const toggleVisibility = (toggle, target) => {
@@ -212,5 +256,19 @@
                 toggleVisibility(toggle, target);
             });
         });
+
+        function copyAccountlessLink() {
+            const linkInput = document.getElementById('accountlessUploadLink');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                const btn = event.target.closest('button');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa fa-check"></i> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                }, 2000);
+            });
+        }
     </script>
 }

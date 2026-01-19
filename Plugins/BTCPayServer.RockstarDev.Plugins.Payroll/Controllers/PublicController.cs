@@ -66,11 +66,20 @@ public class PublicController(
             a.StoreId == storeId && a.Email == model.Email.ToLowerInvariant());
 
         if (userInDb != null)
+        {
+            // Block OneTime users from logging in
+            if (userInDb.State == VendorPayUserState.OneTime)
+            {
+                ModelState.AddModelError(nameof(model.Password), "This account cannot log in. Please contact the administrator.");
+                return View(model);
+            }
+
             if (userInDb.State == VendorPayUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
             {
                 httpContextAccessor.HttpContext!.Session.SetString(VENDORPAY_AUTH_USER_ID, userInDb!.Id);
                 return RedirectToAction(nameof(ListInvoices), new { storeId });
             }
+        }
 
         // if we end up here, credentials are invalid 
         ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
@@ -415,6 +424,167 @@ public class PublicController(
         TempData.SetStatusMessageModel(
             new StatusMessageModel { Message = "Invoice deleted successfully", Severity = StatusMessageModel.StatusSeverity.Success });
         return RedirectToAction(nameof(ListInvoices), new { storeId });
+    }
+
+    [HttpGet("accountless-upload")]
+    public async Task<IActionResult> AccountlessUpload(string storeId)
+    {
+        await using var dbMain = dbContextFactory.CreateContext();
+        var store = await dbMain.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
+        if (store == null)
+            return NotFound();
+
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+        
+        if (!settings.AccountlessUploadEnabled)
+            return NotFound();
+
+        var model = new AccountlessUploadViewModel
+        {
+            StoreId = store.Id,
+            StoreName = store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, store.GetStoreBlob()),
+            Amount = 0,
+            Currency = store.GetStoreBlob().DefaultCurrency,
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
+            DescriptionTitle = settings.DescriptionTitle
+        };
+
+        return View(model);
+    }
+
+    [HttpPost("accountless-upload")]
+    public async Task<IActionResult> AccountlessUpload(string storeId, AccountlessUploadViewModel model)
+    {
+        await using var dbMain = dbContextFactory.CreateContext();
+        var store = await dbMain.Stores.SingleOrDefaultAsync(a => a.Id == storeId);
+        if (store == null)
+            return NotFound();
+
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+        
+        if (!settings.AccountlessUploadEnabled)
+            return NotFound();
+
+        model.StoreId = store.Id;
+        model.StoreName = store.StoreName;
+        model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, store.GetStoreBlob());
+        model.DescriptionTitle = settings.DescriptionTitle;
+
+        if (model.UploadCode != settings.AccountlessUploadCode)
+        {
+            ModelState.AddModelError(nameof(model.UploadCode), "Invalid upload code");
+        }
+
+        if (!string.IsNullOrEmpty(settings.DescriptionTitle) && string.IsNullOrWhiteSpace(model.Description))
+        {
+            ModelState.AddModelError(nameof(model.Description), "Description is required");
+        }
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        await using var dbPlugin = pluginDbContextFactory.CreateContext();
+        
+        var existingUser = dbPlugin.PayrollUsers.SingleOrDefault(u => 
+            u.StoreId == storeId && u.Email == model.Email.ToLowerInvariant());
+
+        string userId;
+        if (existingUser != null)
+        {
+            // Security check: Block if user has Active or Pending state (real user account)
+            if (existingUser.State == VendorPayUserState.Active || existingUser.State == VendorPayUserState.Pending)
+            {
+                ModelState.AddModelError(nameof(model.Email), 
+                    "This email is registered. Please log in to upload invoices.");
+                return View(model);
+            }
+
+            // Allow reuse for OneTime or Disabled users
+            userId = existingUser.Id;
+            existingUser.Name = model.Name;
+            existingUser.State = VendorPayUserState.OneTime;
+            dbPlugin.Update(existingUser);
+            await dbPlugin.SaveChangesAsync();
+        }
+        else
+        {
+            var newUser = new PayrollUser
+            {
+                StoreId = storeId,
+                Name = model.Name,
+                Email = model.Email.ToLowerInvariant(),
+                State = VendorPayUserState.OneTime,
+                Password = hasher.HashPassword(Guid.NewGuid().ToString(), Guid.NewGuid().ToString())
+            };
+            dbPlugin.Add(newUser);
+            await dbPlugin.SaveChangesAsync();
+            userId = newUser.Id;
+        }
+
+        var uploadModel = new PublicVendorPayInvoiceUploadViewModel
+        {
+            Amount = model.Amount,
+            Currency = model.Currency,
+            Destination = model.Destination,
+            Description = model.Description,
+            Invoice = model.Invoice,
+            PurchaseOrder = model.PurchaseOrder,
+            ExtraFiles = model.ExtraFiles
+        };
+
+        var validation = await vendorPayInvoiceUploadHelper.Process(storeId, userId, uploadModel);
+        if (!validation.IsValid)
+        {
+            validation.ApplyToModelState(ModelState);
+            return View(model);
+        }
+
+        var createdInvoice = await dbPlugin.PayrollInvoices
+            .Include(i => i.User)
+            .OrderByDescending(i => i.CreatedAt)
+            .FirstOrDefaultAsync(i => i.UserId == userId);
+
+        if (createdInvoice != null)
+        {
+            await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
+
+            // Send account conversion email if enabled
+            if (settings.AllowOneTimeAccountConversion)
+            {
+                var user = await dbPlugin.PayrollUsers.FindAsync(userId);
+                if (user != null && user.State == VendorPayUserState.OneTime)
+                {
+                    // Create invitation for account conversion
+                    var invitation = new PayrollInvitation
+                    {
+                        StoreId = storeId,
+                        Email = user.Email,
+                        Token = Guid.NewGuid().ToString(),
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    dbPlugin.Add(invitation);
+                    await dbPlugin.SaveChangesAsync();
+
+                    var registrationLink = Url.Action(
+                        "AcceptInvitation",
+                        "Public",
+                        new { storeId, token = invitation.Token },
+                        HttpContext.Request.Scheme,
+                        HttpContext.Request.Host.Value);
+
+                    await emailService.SendOneTimeAccountConversionEmail(storeId, user, registrationLink);
+                }
+            }
+        }
+
+        TempData.SetStatusMessageModel(new StatusMessageModel
+        {
+            Message = "Invoice uploaded successfully", 
+            Severity = StatusMessageModel.StatusSeverity.Success
+        });
+
+        return View("AccountlessUploadSuccess", model);
     }
 
     private class StoreUserValidator
