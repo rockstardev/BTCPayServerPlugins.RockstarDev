@@ -15,7 +15,6 @@
 
 <div class="sticky-header">
 	<h2 class="mb-0">@ViewData["Title"]</h2>
-	<p class="text-muted">Create custom voucher bills with portrait photos</p>
 </div>
 
 <partial name="_StatusMessage" />
@@ -25,9 +24,6 @@
 	<div class="row mt-4">
 		<div class="col-lg-4">
 			<div class="card">
-				<div class="card-header">
-					<h5 class="mb-0">Upload Portrait</h5>
-				</div>
 				<div class="card-body">
 					<form method="post" enctype="multipart/form-data" asp-controller="Voucher" asp-action="UploadVoucherImage" asp-route-storeId="@storeId" id="uploadForm">
 						<div class="form-group mb-3">
@@ -43,13 +39,11 @@
 						<div class="alert alert-info mb-3">
 							<strong>Tips for best results:</strong>
 							<ul class="mb-0 mt-2 small">
-								<li>Use centered, front-facing portrait</li>
+								<li>Use centered, front-facing portrait under 1MB</li>
 								<li>Ensure good lighting and high contrast</li>
-								<li>Recommended: 400-600px wide, under 1MB</li>
 							</ul>
 						</div>
-						<button type="submit" class="btn btn-primary w-100" id="uploadBtn" disabled>Save Voucher Bill
-						</button>
+						<button type="submit" class="btn btn-primary w-100" id="uploadBtn" disabled>Save Voucher Bill</button>
 						<input type="hidden" asp-for="NewImageFile" id="hiddenFileInput" />
 					</form>
 				</div>
@@ -65,9 +59,6 @@
 					<div class="text-center">
 						<canvas id="previewCanvas" width="1562" height="562" style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 4px;"></canvas>
 					</div>
-					<p class="text-center text-muted mt-3 mb-0">
-						<small>This combined image will be saved</small>
-					</p>
 				</div>
 			</div>
 			<div class="card" id="placeholderCard">
@@ -261,7 +252,7 @@ else
 										</li>
 										<li class="dropdown-divider"></li>
 										<li>
-											<a class="dropdown-item text-danger" asp-controller="Voucher" asp-action="DeleteVoucherImage"
+											<a class="dropdown-item text-danger" asp-controller="Voucher" asp-action="Delete"
 											   asp-route-storeId="@storeId" asp-route-imageKey="@pp.Key">
 												Delete
 											</a>

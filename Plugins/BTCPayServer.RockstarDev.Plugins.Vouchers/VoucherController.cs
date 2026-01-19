@@ -467,13 +467,13 @@ public class VoucherController : Controller
         if (settings.Images.Any(c => c.Name.ToLower() == vm.NewImageTitle.Trim().ToLower()))
         {
             TempData[WellKnownTempData.ErrorMessage] = "An existing voucher image exist with that title";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         var validationResult = ValidateImageForPosPrinting(vm.NewImageFile);
         if (!validationResult.IsValid)
         {
             TempData[WellKnownTempData.ErrorMessage] = validationResult.ErrorMessage;
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
 
         var originalFile = vm.NewImageFile;
@@ -488,7 +488,7 @@ public class VoucherController : Controller
         if (!imageUpload.Success)
         {
             TempData[WellKnownTempData.ErrorMessage] = imageUpload.Response;
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         var rootUri = Request.GetAbsoluteRootUri();
         var fileUrl = await _fileService.GetFileUrl(rootUri, imageUpload.StoredFile.Id);
@@ -505,7 +505,7 @@ public class VoucherController : Controller
         });
         await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
         TempData[WellKnownTempData.SuccessMessage] = $"Voucher image uploaded successfully";
-        return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
     }
 
 
@@ -519,13 +519,13 @@ public class VoucherController : Controller
         if (settings?.Images == null || !settings.Images.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
         if (voucherImage == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
 
         return View("Confirm",
@@ -544,18 +544,18 @@ public class VoucherController : Controller
         if (settings?.Images == null || !settings.Images.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
         if (voucherImage == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         voucherImage.Enabled = !voucherImage.Enabled;
         await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
         TempData[WellKnownTempData.SuccessMessage] = $"Voucher image {(voucherImage.Enabled ? "enabled" : "disabled")} successfully";
-        return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
     }
 
 
@@ -570,13 +570,13 @@ public class VoucherController : Controller
         if (settings?.Images == null || !settings.Images.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
         if (voucherImage == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         return View("Confirm", new ConfirmModel("Delete user", $"The voucher image: {voucherImage.Name} will be deleted. Are you sure?", "Delete"));
     }
@@ -592,14 +592,14 @@ public class VoucherController : Controller
         if (settings?.Images == null || !settings.Images.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "No voucher images found";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
 
         var voucherImage = settings.Images.FirstOrDefault(c => c.Key == imageKey);
         if (voucherImage == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image specified";
-            return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
         if (settings.SelectedVoucherImage == voucherImage.Name)
             settings.SelectedVoucherImage = null;
@@ -607,7 +607,7 @@ public class VoucherController : Controller
         settings.Images.Remove(voucherImage);
         await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
         TempData[WellKnownTempData.SuccessMessage] = "Voucher image deleted successfully";
-        return RedirectToAction(nameof(VoucherImageSettings), new { storeId });
+        return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
     }
 
     private IActionResult HandleImageRedirectView(VoucherSettings voucherSettings, string fallbackAction, string storeId, string pullPaymentId)
