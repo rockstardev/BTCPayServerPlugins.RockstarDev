@@ -140,7 +140,7 @@ public class VendorPaySettingController(
         {
             Message = "Vendor pay settings updated successfully", Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(VendorPayInvoiceController.List), "VendorPayInvoice", new { storeId = CurrentStore.Id });
+        return RedirectToAction(nameof(Settings), new { storeId });
     }
 
     private bool ValidateEmailAddressList(string emailList)

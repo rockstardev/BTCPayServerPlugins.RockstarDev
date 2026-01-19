@@ -611,12 +611,6 @@ public class PublicController(
             }
         }
 
-        TempData.SetStatusMessageModel(new StatusMessageModel
-        {
-            Message = "Invoice uploaded successfully", 
-            Severity = StatusMessageModel.StatusSeverity.Success
-        });
-
         return View("AccountlessUploadSuccess", model);
     }
 
