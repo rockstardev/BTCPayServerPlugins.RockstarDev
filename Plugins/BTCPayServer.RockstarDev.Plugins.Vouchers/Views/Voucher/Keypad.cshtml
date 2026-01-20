@@ -33,10 +33,39 @@
 	<script src="~/vendor/vuejs/vue.min.js" asp-append-version="true"></script>
 	<script src="~/pos/common.js" asp-append-version="true"></script>
 	<script src="~/pos/keypad.js" asp-append-version="true"></script>
+	<script>
+		function selectVoucherTemplate(element, template) {
+			document.getElementById('selectedVoucherTemplate').value = template;
+			var dropdownItems = element.closest('.dropdown-menu').querySelectorAll('.dropdown-item');
+			dropdownItems.forEach(function(item) {
+				item.classList.remove('active');
+			});
+			element.classList.add('active');
+		}
+	</script>
 }
 <div id="PosKeypad" class="public-page-wrap">
 	<partial name="_StatusMessage" />
 	<partial name="_StoreHeader" model="(string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title, Model.StoreBranding)" />
+	@if (Model.AvailableVoucherTemplates?.Any() == true)
+	{
+		<div class="dropdown" style="position: absolute; z-index: 1; top: 0; left: 0;">
+			<button class="btn btn-light rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 3.25em; width: 3.25em; color: var(--btcpay-header-link);">
+				<vc:icon symbol="caret-down" />
+			</button>
+			<ul class="dropdown-menu dropdown-menu-start">
+				@foreach (var item in Model.AvailableVoucherTemplates)
+				{
+					<li>
+						<a class="dropdown-item @(item == Model.SelectedVoucherTemplate ? "active" : "")" href="#" onclick="selectVoucherTemplate(this, '@item'); return false;">
+							@item
+						</a>
+					</li>
+				}
+			</ul>
+		</div>
+	}
+
 	@if (Model.PoSApps?.Any() == true)
 	{
 		<div class="dropdown" style="position: absolute; z-index: 1; top: 0; right: 4rem;">
@@ -64,6 +93,7 @@
 		<input type="hidden" name="tip" :value="tipNumeric">
 		<input type="hidden" name="discount" :value="discountPercentNumeric">
 		<input type="hidden" name="posdata" :value="posdata">
+		<input type="hidden" name="voucherTemplate" id="selectedVoucherTemplate" value="@Model.SelectedVoucherTemplate">
 		<div ref="display" class="d-flex flex-column align-items-center px-4 mb-auto">
 			<div class="fw-semibold text-muted" id="Currency">{{currencyCode}}</div>
 			<div class="fw-bold lh-sm" ref="amount" v-bind:style="{ fontSize: `${fontSize}px` }" id="Amount">{{ formatCurrency(lastAmount, false) }}</div>

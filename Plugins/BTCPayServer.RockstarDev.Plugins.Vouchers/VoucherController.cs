@@ -121,47 +121,51 @@ public class VoucherController : Controller
             }
         }
 
-        var settings = app.GetSettings<VoucherPluginAppType.AppConfig>();
-        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(settings.Currency);
+        var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
+
+        var appSettings = app.GetSettings<VoucherPluginAppType.AppConfig>();
+        var numberFormatInfo = _appService.Currencies.GetNumberFormatInfo(appSettings.Currency);
         var step = Math.Pow(10, -numberFormatInfo.CurrencyDecimalDigits);
         var storeBlob = store.GetStoreBlob();
         return View(new VoucherPointOfSaleViewModel
         {
+            AvailableVoucherTemplates = settings.Images?.Select(c => c.Name).ToList(),
+            SelectedVoucherTemplate = settings.SelectedVoucherImage,
             PoSApps = posAppItems,
             CurrentAppId = app.Id,
-            Title = settings.Title,
+            Title = appSettings.Title,
             StoreName = store.StoreName,
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, _uriResolver, storeBlob),
             Step = step.ToString(CultureInfo.InvariantCulture),
             ViewType = PosViewType.Light,
-            ShowItems = settings.ShowItems,
-            ShowCustomAmount = settings.ShowCustomAmount,
-            ShowDiscount = settings.ShowDiscount,
-            ShowSearch = settings.ShowSearch,
-            ShowCategories = settings.ShowCategories,
-            EnableTips = settings.EnableTips,
-            CurrencyCode = settings.Currency,
+            ShowItems = appSettings.ShowItems,
+            ShowCustomAmount = appSettings.ShowCustomAmount,
+            ShowDiscount = appSettings.ShowDiscount,
+            ShowSearch = appSettings.ShowSearch,
+            ShowCategories = appSettings.ShowCategories,
+            EnableTips = appSettings.EnableTips,
+            CurrencyCode = appSettings.Currency,
             CurrencySymbol = numberFormatInfo.CurrencySymbol,
             CurrencyInfo = new ViewPointOfSaleViewModel.CurrencyInfoData
             {
-                CurrencySymbol = string.IsNullOrEmpty(numberFormatInfo.CurrencySymbol) ? settings.Currency : numberFormatInfo.CurrencySymbol,
+                CurrencySymbol = string.IsNullOrEmpty(numberFormatInfo.CurrencySymbol) ? appSettings.Currency : numberFormatInfo.CurrencySymbol,
                 Divisibility = numberFormatInfo.CurrencyDecimalDigits,
                 DecimalSeparator = numberFormatInfo.CurrencyDecimalSeparator,
                 ThousandSeparator = numberFormatInfo.NumberGroupSeparator,
                 Prefixed = new[] { 0, 2 }.Contains(numberFormatInfo.CurrencyPositivePattern),
                 SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
             },
-            Items = AppService.Parse(settings.Template, false),
-            ButtonText = settings.ButtonText,
-            CustomButtonText = settings.CustomButtonText,
-            CustomTipText = settings.CustomTipText,
-            CustomTipPercentages = settings.CustomTipPercentages,
-            DefaultTaxRate = settings.DefaultTaxRate,
+            Items = AppService.Parse(appSettings.Template, false),
+            ButtonText = appSettings.ButtonText,
+            CustomButtonText = appSettings.CustomButtonText,
+            CustomTipText = appSettings.CustomTipText,
+            CustomTipPercentages = appSettings.CustomTipPercentages,
+            DefaultTaxRate = appSettings.DefaultTaxRate,
             AppId = app.Id,
             StoreId = store.Id,
-            HtmlLang = settings.HtmlLang,
-            HtmlMetaTags = settings.HtmlMetaTags,
-            Description = settings.Description,
+            HtmlLang = appSettings.HtmlLang,
+            HtmlMetaTags = appSettings.HtmlMetaTags,
+            Description = appSettings.Description,
         });
     }
 
@@ -331,7 +335,7 @@ public class VoucherController : Controller
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> CreateVoucher(string storeId,
         [ModelBinder(typeof(InvariantDecimalModelBinder))]
-        decimal amount)
+        decimal amount, string voucherTemplate = null)
     {
         ModelState.Clear();
         var paymentMethods = _payoutHandlers.GetSupportedPayoutMethods(HttpContext.GetStoreData());
@@ -377,7 +381,7 @@ public class VoucherController : Controller
             PayoutMethods = paymentMethods.Select(c => c.ToString()).ToArray(),
             AutoApproveClaims = true
         });
-        return HandleImageRedirectView(voucherSettings, nameof(Keypad), storeId, pp);
+        return HandleImageRedirectView(voucherSettings, nameof(Keypad), storeId, pp, voucherTemplate);
     }
 
     [HttpGet("~/plugins/{storeId}/vouchers/{pullPaymentId}/archive")]
@@ -627,40 +631,35 @@ public class VoucherController : Controller
         return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
     }
 
-    private IActionResult HandleImageRedirectView(VoucherSettings voucherSettings, string fallbackAction, string storeId, string pullPaymentId)
+    private IActionResult HandleImageRedirectView(VoucherSettings voucherSettings, string fallbackAction, string storeId, string pullPaymentId, string selectedKeypadImage = null)
     {
-        if (voucherSettings.FunModeEnabled && voucherSettings.Images.Any())
+        if (!voucherSettings.Images.Any() || (!voucherSettings.FunModeEnabled && string.IsNullOrEmpty(selectedKeypadImage)))
         {
-            string imageKey;
-            if (voucherSettings.UseRandomImage)
+            return RedirectToAction(nameof(View), new { id = pullPaymentId });
+        }
+        string imageKey = null;
+        if (!string.IsNullOrEmpty(selectedKeypadImage))
+        {
+            imageKey = voucherSettings.Images.FirstOrDefault(c => c.Name.Equals(selectedKeypadImage, StringComparison.OrdinalIgnoreCase))?.Key;
+        }
+        else if (voucherSettings.UseRandomImage)
+        {
+            var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
+            if (enabledImages.Any())
             {
-                var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
-                if (!enabledImages.Any())
-                {
-                    TempData[WellKnownTempData.ErrorMessage] = "No enabled voucher images available";
-                    return RedirectToAction(fallbackAction, new { storeId });
-                }
-                var randomIndex = Random.Shared.Next(enabledImages.Count);
-                imageKey = enabledImages[randomIndex].Key;
+                imageKey = enabledImages[Random.Shared.Next(enabledImages.Count)].Key;
             }
-            else
-            {
-                if (string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
-                {
-                    TempData[WellKnownTempData.ErrorMessage] = "No voucher image selected";
-                    return RedirectToAction(fallbackAction, new { storeId });
-                }
-                var matchedImage = voucherSettings.Images.FirstOrDefault(c => c.Name.ToLower() == voucherSettings.SelectedVoucherImage.ToLower());
-                if (matchedImage == null)
-                {
-                    TempData[WellKnownTempData.ErrorMessage] = "Selected voucher image not found";
-                    return RedirectToAction(fallbackAction, new { storeId });
-                }
-                imageKey = matchedImage.Key;
-            }
+        }
+        else if (!string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
+        {
+            imageKey = voucherSettings.Images.FirstOrDefault(c => c.Name.Equals(voucherSettings.SelectedVoucherImage, StringComparison.OrdinalIgnoreCase))?.Key;
+        }
+        if (!string.IsNullOrEmpty(imageKey))
+        {
             return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId, id = pullPaymentId, imageKey });
         }
-        return RedirectToAction(nameof(View), new { id = pullPaymentId });
+        TempData[WellKnownTempData.ErrorMessage] = "Unable to load voucher image";
+        return RedirectToAction(fallbackAction, new { storeId });
     }
 
     public async Task CreateVoucherAppData(string storeId)
