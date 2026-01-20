@@ -49,7 +49,7 @@
 	<partial name="_StoreHeader" model="(string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title, Model.StoreBranding)" />
 	@if (Model.AvailableVoucherTemplates?.Any() == true)
 	{
-		<div class="dropdown" style="position: absolute; z-index: 1; top: 0; left: 0;">
+		<div class="dropdown" style="position: absolute; z-index: 1; top: 0; left: 1rem;">
 			<button class="btn btn-light rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 3.25em; width: 3.25em; color: var(--btcpay-header-link);">
 				<vc:icon symbol="caret-down" />
 			</button>
