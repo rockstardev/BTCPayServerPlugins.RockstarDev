@@ -33,6 +33,7 @@ public class PublicController(
     : Controller
 {
     private const string VENDORPAY_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
+    private const string VendorpayEmailCookieName = "vendorpay_email";
 
 
     [HttpGet("login")]
@@ -44,7 +45,9 @@ public class PublicController(
 
         var model = new PublicLoginViewModel
         {
-            StoreName = vali.Store.StoreName, StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob())
+            StoreName = vali.Store.StoreName,
+            StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob()),
+            Email = GetRememberedEmail()
         };
 
         return View(model);
@@ -69,10 +72,11 @@ public class PublicController(
             if (userInDb.State == VendorPayUserState.Active && hasher.IsValidPassword(userInDb, model.Password))
             {
                 httpContextAccessor.HttpContext!.Session.SetString(VENDORPAY_AUTH_USER_ID, userInDb!.Id);
+                UpdateRememberedEmail(model);
                 return RedirectToAction(nameof(ListInvoices), new { storeId });
             }
 
-        // if we end up here, credentials are invalid 
+        // if we end up here, credentials are invalid
         ModelState.AddModelError(nameof(model.Password), "Invalid credentials");
         return View(model);
     }
@@ -151,6 +155,33 @@ public class PublicController(
     private RedirectToActionResult redirectToLogin(string storeId)
     {
         return RedirectToAction(nameof(Login), new { storeId });
+    }
+
+    private string GetRememberedEmail()
+    {
+        return httpContextAccessor.HttpContext?.Request.Cookies[VendorpayEmailCookieName];
+    }
+
+    private void UpdateRememberedEmail(PublicLoginViewModel model)
+    {
+        var cookies = httpContextAccessor.HttpContext?.Response.Cookies;
+        if (cookies == null)
+            return;
+
+        if (model.RememberMe && !string.IsNullOrWhiteSpace(model.Email))
+        {
+            cookies.Append(VendorpayEmailCookieName, model.Email.Trim(), new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddDays(30),
+                HttpOnly = true,
+                IsEssential = true,
+                SameSite = SameSiteMode.Lax,
+                Secure = Request.IsHttps
+            });
+            return;
+        }
+
+        cookies.Delete(VendorpayEmailCookieName);
     }
 
     [HttpGet("listinvoices")]
@@ -338,7 +369,7 @@ public class PublicController(
             return View(model);
 
 
-        // 
+        //
         userInDb!.Password = hasher.HashPassword(vali.UserId, model.NewPassword);
         await dbPlugins.SaveChangesAsync();
 
