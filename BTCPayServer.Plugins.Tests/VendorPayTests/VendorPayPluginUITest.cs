@@ -307,6 +307,9 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var expectedSeverity = StatusMessageModel.StatusSeverity.Success;
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         Assert.Equal("Vendor pay settings updated successfully", (await statusText)?.Trim());
+        // Navigate back to invoice list page
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     [Fact]
@@ -364,6 +367,9 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
             await Page.Locator("#Edit").ClickAsync();
             var statusText = (await FindAlertMessageAsync()).TextContentAsync();
             Assert.Equal("Vendor pay settings updated successfully", (await statusText)?.Trim());
+            // Navigate back to invoice list page
+            await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+            await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         }
 
         async Task<string> PayFirstInvoiceAndGetStatusMessage()
