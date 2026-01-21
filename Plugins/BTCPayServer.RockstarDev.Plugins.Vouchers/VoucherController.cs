@@ -469,6 +469,11 @@ public class VoucherController : Controller
             TempData[WellKnownTempData.ErrorMessage] = "An existing voucher image exist with that title";
             return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
         }
+        if (vm.NewImageFile == null)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "No image file provided";
+            return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
+        }
         var validationResult = ValidateImageForPosPrinting(vm.NewImageFile);
         if (!validationResult.IsValid)
         {
@@ -606,6 +611,18 @@ public class VoucherController : Controller
 
         settings.Images.Remove(voucherImage);
         await _storeRepository.UpdateSetting(CurrentStore.Id, VoucherPlugin.SettingsName, settings);
+
+        if (!string.IsNullOrEmpty(voucherImage.StoredFileId))
+        {
+            try
+            {
+                await _fileService.RemoveFile(voucherImage.StoredFileId, GetUserId());
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         TempData[WellKnownTempData.SuccessMessage] = "Voucher image deleted successfully";
         return RedirectToAction(nameof(BillTemplateSettings), new { storeId });
     }
