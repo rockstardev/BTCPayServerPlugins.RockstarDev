@@ -64,7 +64,7 @@ public class VendorPayInvoiceController(
         var payrollInvoices = await query.OrderByDescending(data => data.CreatedAt).ToListAsync();
 
         if (!all)
-            payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active).ToList();
+            payrollInvoices = payrollInvoices.Where(a => a.User.State == VendorPayUserState.Active || a.User.State == VendorPayUserState.OneTime).ToList();
 
         // triggering saving of admin user id if needed
         var adminset = await settingsRepository.GetSettingAsync<VendorPayPluginSettings>();

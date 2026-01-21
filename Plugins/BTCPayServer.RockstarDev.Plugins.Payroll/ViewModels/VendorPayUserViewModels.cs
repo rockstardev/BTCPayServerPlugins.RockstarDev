@@ -12,6 +12,7 @@ public class VendorPayUserListViewModel
     public CountsData Counts { get; set; }
 
     public bool Pending { get; set; }
+    public bool OneTime { get; set; }
     public bool All { get; set; }
     public string SearchTerm { get; set; }
 
@@ -19,6 +20,7 @@ public class VendorPayUserListViewModel
     {
         public int Active { get; set; }
         public int Pending { get; set; }
+        public int OneTime { get; set; }
         public int Total { get; set; }
     }
 }

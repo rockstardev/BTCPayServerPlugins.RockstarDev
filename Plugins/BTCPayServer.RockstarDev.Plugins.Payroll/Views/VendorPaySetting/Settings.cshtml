@@ -22,6 +22,7 @@
 
     <div class="row">
         <div class="col-xl-10 col-xxl-constrain">
+            <h4 class="mb-3">General</h4>
             <div class="form-group d-flex align-items-center">
                 <input asp-for="MakeInvoiceFileOptional" type="checkbox" class="btcpay-toggle me-3" />
                 <label asp-for="MakeInvoiceFileOptional" class="form-label mb-0 me-1"></label>
@@ -53,7 +54,54 @@
                 </div>
             </div>
 
-            <h3>Emails</h3>
+            <h4 class="mt-5 mb-3">Accountless Upload</h4>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="AccountlessUploadEnabled" type="checkbox" class="btcpay-toggle me-3" id="accountlessUploadToggle" />
+                <label asp-for="AccountlessUploadEnabled" class="form-label mb-0 me-1"></label>
+                <span asp-validation-for="AccountlessUploadEnabled" class="text-danger"></span>
+            </div>
+            <div id="accountlessUploadGroup" style="display: none;">
+                <div class="form-group">
+                    <label asp-for="UploadCode" class="form-label"></label>
+                    <input asp-for="UploadCode" type="text" class="form-control" />
+                    <span asp-validation-for="UploadCode" class="text-danger"></span>
+                    <small class="form-text text-muted">This code will be required for accountless uploads</small>
+                </div>
+                <div class="form-group">
+                    <label asp-for="DescriptionTitle" class="form-label"></label>
+                    <input asp-for="DescriptionTitle" type="text" class="form-control"
+                           placeholder="Description" />
+                    <span asp-validation-for="DescriptionTitle" class="text-danger"></span>
+                    <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled, description becomes a required field.</small>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.UploadCode))
+                {
+                    <div class="form-group">
+                        <label class="form-label">Accountless Upload Link</label>
+                        @{
+                            var uploadHash = "";
+                            var input = storeId + Model.UploadCode;
+                            var hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
+                            var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
+                            uploadHash = hashString.Substring(0, 12);
+
+                            var uploadUrl = Url.Action("AccountlessUpload", "Public", new { storeId, hash = uploadHash }, Context.Request.Scheme);
+                        }
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="accountlessUploadLink" readonly
+                                   value="@uploadUrl" />
+                            <button type="button" class="btn btn-secondary clipboard-button" data-clipboard="@uploadUrl">
+                                <vc:icon symbol="actions-copy" />
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">
+                            <a href="@uploadUrl" target="_blank">Share this link</a> with users who need to upload invoices without an account
+                        </small>
+                    </div>
+                }
+            </div>
+
+            <h4 class="mt-5 mb-3">Emails</h4>
             <div class="form-group d-flex align-items-center">
 
                 <input asp-for="EmailOnInvoicePaid" type="checkbox" class="btcpay-toggle me-3" id="emailToggle"
@@ -199,7 +247,8 @@
                 {toggle: 'emailToggle', target: 'emailTemplateGroup'},
                 {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'},
                 {toggle: 'emailAdminUploadToggle', target: 'emailAdminUploadGroup'},
-                {toggle: 'emailAdminDeleteToggle', target: 'emailAdminDeleteGroup'}
+                {toggle: 'emailAdminDeleteToggle', target: 'emailAdminDeleteGroup'},
+                {toggle: 'accountlessUploadToggle', target: 'accountlessUploadGroup'}
             ];
 
             const toggleVisibility = (toggle, target) => {
@@ -212,5 +261,19 @@
                 toggleVisibility(toggle, target);
             });
         });
+
+        function copyAccountlessLink() {
+            const linkInput = document.getElementById('accountlessUploadLink');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                const btn = event.target.closest('button');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa fa-check"></i> Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                }, 2000);
+            });
+        }
     </script>
 }

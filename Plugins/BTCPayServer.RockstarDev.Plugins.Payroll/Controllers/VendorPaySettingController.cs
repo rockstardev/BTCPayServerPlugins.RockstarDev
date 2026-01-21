@@ -54,7 +54,10 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedAddress = settings.EmailAdminOnInvoiceDeletedAddress,
             EmailAdminOnInvoiceDeletedSubject =
                 settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
-            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody
+            EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody,
+            AccountlessUploadEnabled = settings.AccountlessUploadEnabled,
+            UploadCode = settings.UploadCode,
+            DescriptionTitle = settings.DescriptionTitle ?? VendorPaySettingViewModel.Defaults.DescriptionTitle
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -88,6 +91,9 @@ public class VendorPaySettingController(
             if (!ValidateEmailAddressList(model.EmailAdminOnInvoiceDeletedAddress))
                 ModelState.AddModelError(nameof(model.EmailAdminOnInvoiceDeletedAddress), "Invalid email address format. Use comma-separated email addresses.");
 
+        if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.UploadCode))
+            ModelState.AddModelError(nameof(model.UploadCode), "Upload Code is required");
+
         if (!ModelState.IsValid)
         {
             ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -120,7 +126,10 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeleted = model.EmailAdminOnInvoiceDeleted,
             EmailAdminOnInvoiceDeletedAddress = model.EmailAdminOnInvoiceDeletedAddress,
             EmailAdminOnInvoiceDeletedSubject = model.EmailAdminOnInvoiceDeletedSubject,
-            EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody
+            EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody,
+            AccountlessUploadEnabled = model.AccountlessUploadEnabled,
+            UploadCode = model.UploadCode,
+            DescriptionTitle = model.DescriptionTitle
         };
 
 
@@ -129,7 +138,7 @@ public class VendorPaySettingController(
         {
             Message = "Vendor pay settings updated successfully", Severity = StatusMessageModel.StatusSeverity.Success
         });
-        return RedirectToAction(nameof(VendorPayInvoiceController.List), "VendorPayInvoice", new { storeId = CurrentStore.Id });
+        return RedirectToAction(nameof(Settings), new { storeId });
     }
 
     private bool ValidateEmailAddressList(string emailList)

@@ -1,0 +1,113 @@
+@model AccountlessUploadViewModel
+@{
+    Layout = "Views/Public/_VendorPayPublicLayout";
+    ViewData["Title"] = "Upload Invoice";
+}
+
+<div id="FormView" class="public-page-wrap" style="--wrap-max-width: 576px;">
+    <div class="d-flex flex-column justify-content-center gap-4">
+        <form method="post" asp-action="AccountlessUpload" enctype="multipart/form-data" class="preventdoubleclick">
+            <partial name="_StatusMessage" />
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <h2 class="mb-0">@ViewData["Title"]</h2>
+                        <p class="text-muted">Upload your invoice without creating an account</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="UploadCode" class="form-label" data-required></label>
+                        <input asp-for="UploadCode" class="form-control" type="text" />
+                        <span asp-validation-for="UploadCode" class="text-danger"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="form-group">
+                        <label asp-for="Name" class="form-label" data-required></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Email" class="form-label" data-required></label>
+                        <input asp-for="Email" class="form-control" type="email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Destination" class="form-label" data-required></label>
+                        <input asp-for="Destination" class="form-control" />
+                        <span asp-validation-for="Destination" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="form-group col-8">
+                            <label asp-for="Amount" class="form-label" data-required></label>
+                            <input asp-for="Amount" class="form-control" inputmode="decimal" />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                        </div>
+                        <div class="form-group col-4">
+                            <label asp-for="Currency" class="form-label"></label>
+                            <input asp-for="Currency" class="form-control w-auto"
+                                   currency-selection />
+                            <span asp-validation-for="Currency" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    @if (Model.PurchaseOrdersRequired)
+                    {
+                        @Html.HiddenFor(a => a.PurchaseOrdersRequired)
+                        <div class="form-group">
+                            <label asp-for="PurchaseOrder" class="form-label" data-required></label>
+                            <input asp-for="PurchaseOrder" class="form-control" />
+                            <span asp-validation-for="PurchaseOrder" class="text-danger"></span>
+                        </div>
+                    }
+
+                    <div class="form-group">
+                        @if (!string.IsNullOrEmpty(Model.DescriptionTitle))
+                        {
+                            <label class="form-label" style="font-weight: bold;">@Model.DescriptionTitle</label>
+                        }
+                        else
+                        {
+                            <label asp-for="Description" class="form-label"></label>
+                        }
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Invoice" class="form-label"></label>
+                        <input asp-for="Invoice" class="form-control flex-grow" type="file" />
+                        <span asp-validation-for="Invoice" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="ExtraFiles" class="form-label"></label>
+                        <input asp-for="ExtraFiles" class="form-control flex-grow" type="file" multiple="multiple" />
+                        <span asp-validation-for="ExtraFiles" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <span class="ps-3">Upload Invoice</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <footer class="store-footer">
+        <a class="store-powered-by" href="https://btcpayserver.org" target="_blank" rel="noreferrer noopener">
+            Powered by
+            <partial name="_StoreFooterLogo" />
+        </a>
+    </footer>
+</div>
+
+@section PageFootContent {
+    <script src="~/Resources/js/disable_double_click.js"></script>
+}

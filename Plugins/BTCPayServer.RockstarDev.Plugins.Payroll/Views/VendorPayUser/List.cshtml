@@ -24,7 +24,7 @@
 
 <div class="row mb-2">
     <div class="col-lg-6 ms-auto">
-        <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending">
+        <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime">
             <div class="input-group">
                 <input type="text"
                        class="form-control"
@@ -37,7 +37,7 @@
                 </button>
                 @if (!string.IsNullOrEmpty(Model.SearchTerm))
                 {
-                    <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" class="btn btn-secondary">
+                    <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime" class="btn btn-secondary">
                         <i class="fa fa-times"></i> Clear
                     </a>
                 }
@@ -51,7 +51,7 @@
         <a id="Active-view"
            asp-action="List"
            asp-route-storeId="@storeId"
-           class="nav-link @(!Model.Pending && !Model.All ? "active" : "")"
+           class="nav-link @(!Model.Pending && !Model.OneTime && !Model.All ? "active" : "")"
            role="tab">Active (@Model.Counts.Active)</a>
 
         <a id="Pending-view"
@@ -60,6 +60,13 @@
            asp-route-pending="true"
            class="nav-link @(Model.Pending ? "active" : "")"
            role="tab">Pending (@Model.Counts.Pending)</a>
+
+        <a id="OneTime-view"
+           asp-action="List"
+           asp-route-storeId="@storeId"
+           asp-route-oneTime="true"
+           class="nav-link @(Model.OneTime ? "active" : "")"
+           role="tab">One-Time (@Model.Counts.OneTime)</a>
 
         <a id="all-view"
            asp-action="List"

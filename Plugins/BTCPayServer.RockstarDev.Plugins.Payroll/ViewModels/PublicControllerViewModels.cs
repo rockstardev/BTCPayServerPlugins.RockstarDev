@@ -71,6 +71,47 @@ public class PublicChangePasswordViewModel : BaseVendorPayPublicViewModel
     public string ConfirmNewPassword { get; set; }
 }
 
+public class AccountlessUploadViewModel : BaseVendorPayPublicViewModel
+{
+    [Required]
+    [DataType(DataType.Password)]
+    [Display(Name = "Upload Code")]
+    public string UploadCode { get; set; }
+
+    public string DescriptionTitle { get; set; }
+    public bool EmailNotificationsEnabled { get; set; }
+
+    [Required]
+    public string Destination { get; set; }
+
+    [Required]
+    public decimal Amount { get; set; }
+
+    [Required]
+    public string Currency { get; set; }
+
+    [RequiredIf("PurchaseOrdersRequired", true)]
+    [DisplayName("Purchase Order")]
+    [MaxLength(20)]
+    public string PurchaseOrder { get; set; }
+
+    public bool PurchaseOrdersRequired { get; set; }
+    public string Description { get; set; }
+    public IFormFile Invoice { get; set; }
+
+    [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]
+    public List<IFormFile> ExtraFiles { get; set; } = new();
+
+    [Required]
+    [Display(Name = "Name")]
+    public string Name { get; set; }
+
+    [Required]
+    [EmailAddress]
+    [Display(Name = "Email")]
+    public string Email { get; set; }
+}
+
 public class BaseVendorPayPublicViewModel
 {
     // store properties
