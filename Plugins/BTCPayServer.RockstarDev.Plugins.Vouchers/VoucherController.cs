@@ -633,16 +633,23 @@ public class VoucherController : Controller
 
     private IActionResult HandleImageRedirectView(VoucherSettings voucherSettings, string fallbackAction, string storeId, string pullPaymentId, string selectedKeypadImage = null)
     {
-        if (!voucherSettings.Images.Any() || (!voucherSettings.FunModeEnabled && string.IsNullOrEmpty(selectedKeypadImage)))
+        // Standard mode: empty or null selectedKeypadImage means no fun mode, just standard voucher
+        if (string.IsNullOrEmpty(selectedKeypadImage))
         {
             return RedirectToAction(nameof(View), new { id = pullPaymentId });
         }
-        string imageKey = null;
-        if (!string.IsNullOrEmpty(selectedKeypadImage))
+        
+        // Check if images are available
+        if (!voucherSettings.Images.Any())
         {
-            imageKey = voucherSettings.Images.FirstOrDefault(c => c.Name.Equals(selectedKeypadImage, StringComparison.OrdinalIgnoreCase))?.Key;
+            TempData[WellKnownTempData.ErrorMessage] = "No voucher images available";
+            return RedirectToAction(fallbackAction, new { storeId });
         }
-        else if (voucherSettings.UseRandomImage)
+        
+        string imageKey = null;
+        
+        // Random mode: pick random enabled template
+        if (selectedKeypadImage.Equals("Random", StringComparison.OrdinalIgnoreCase))
         {
             var enabledImages = voucherSettings.Images.Where(i => i.Enabled).ToList();
             if (enabledImages.Any())
@@ -650,14 +657,17 @@ public class VoucherController : Controller
                 imageKey = enabledImages[Random.Shared.Next(enabledImages.Count)].Key;
             }
         }
-        else if (!string.IsNullOrEmpty(voucherSettings.SelectedVoucherImage))
+        // Specific template selected
+        else
         {
-            imageKey = voucherSettings.Images.FirstOrDefault(c => c.Name.Equals(voucherSettings.SelectedVoucherImage, StringComparison.OrdinalIgnoreCase))?.Key;
+            imageKey = voucherSettings.Images.FirstOrDefault(c => c.Name.Equals(selectedKeypadImage, StringComparison.OrdinalIgnoreCase))?.Key;
         }
+        
         if (!string.IsNullOrEmpty(imageKey))
         {
             return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId, id = pullPaymentId, imageKey });
         }
+        
         TempData[WellKnownTempData.ErrorMessage] = "Unable to load voucher image";
         return RedirectToAction(fallbackAction, new { storeId });
     }
