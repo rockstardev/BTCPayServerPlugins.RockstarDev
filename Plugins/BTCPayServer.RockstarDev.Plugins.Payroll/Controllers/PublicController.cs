@@ -172,7 +172,7 @@ public class PublicController(
         {
             cookies.Append(VendorpayEmailCookieName, model.Email.Trim(), new CookieOptions
             {
-                Expires = DateTimeOffset.UtcNow.AddDays(30),
+                Expires = DateTimeOffset.UtcNow.AddDays(60),
                 HttpOnly = true,
                 IsEssential = true,
                 SameSite = SameSiteMode.Lax,
