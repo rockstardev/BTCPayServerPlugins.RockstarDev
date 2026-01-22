@@ -33,10 +33,24 @@
 	<script src="~/vendor/vuejs/vue.min.js" asp-append-version="true"></script>
 	<script src="~/pos/common.js" asp-append-version="true"></script>
 	<script src="~/pos/keypad.js" asp-append-version="true"></script>
+	<script>
+		function selectVoucherTemplate(element, template) {
+			document.getElementById('selectedVoucherTemplate').value = template;
+			var dropdownItems = element.closest('.dropdown-menu').querySelectorAll('.dropdown-item');
+			dropdownItems.forEach(function(item) {
+				item.classList.remove('active');
+			});
+			element.classList.add('active');
+			
+			// Submit the form to create voucher with selected template
+			document.getElementById('app').submit();
+		}
+	</script>
 }
 <div id="PosKeypad" class="public-page-wrap">
 	<partial name="_StatusMessage" />
 	<partial name="_StoreHeader" model="(string.IsNullOrEmpty(Model.Title) ? Model.StoreName : Model.Title, Model.StoreBranding)" />
+
 	@if (Model.PoSApps?.Any() == true)
 	{
 		<div class="dropdown" style="position: absolute; z-index: 1; top: 0; right: 4rem;">
@@ -64,6 +78,7 @@
 		<input type="hidden" name="tip" :value="tipNumeric">
 		<input type="hidden" name="discount" :value="discountPercentNumeric">
 		<input type="hidden" name="posdata" :value="posdata">
+		<input type="hidden" name="voucherTemplate" id="selectedVoucherTemplate" value="@Model.SelectedVoucherTemplate">
 		<div ref="display" class="d-flex flex-column align-items-center px-4 mb-auto">
 			<div class="fw-semibold text-muted" id="Currency">{{currencyCode}}</div>
 			<div class="fw-bold lh-sm" ref="amount" v-bind:style="{ fontSize: `${fontSize}px` }" id="Amount">{{ formatCurrency(lastAmount, false) }}</div>
@@ -115,14 +130,44 @@
 				<template v-else>{{ k }}</template>
 			</button>
 		</div>
-		<button class="btn btn-lg btn-primary mx-3" type="submit" :disabled="payButtonLoading || (totalNumeric <= 0 && posOrder.itemLines.length === 0)" id="pay-button">
-			<div v-if="payButtonLoading" class="spinner-border spinner-border-sm" id="pay-button-spinner" role="status">
-				<span class="visually-hidden" text-translate="true">Loading...</span>
-			</div>
-			<template v-else>
-				<span text-translate="true">Buy Voucher</span>
-			</template>
-		</button>
+        <button class="btn btn-lg btn-primary mx-3" type="submit" :disabled="payButtonLoading || (totalNumeric <= 0 && posOrder.itemLines.length === 0)" id="pay-button">
+            <div v-if="payButtonLoading" class="spinner-border spinner-border-sm" id="pay-button-spinner" role="status">
+                <span class="visually-hidden" text-translate="true">Loading...</span>
+            </div>
+            <template v-else>
+                <span text-translate="true">Buy Voucher</span>
+            </template>
+        </button>
+
+        @if (Model.AvailableVoucherTemplates?.Any() == true)
+        {
+            <div class="dropdown" style="top: -99px; right: -25rem;">
+                <button class="btn btn-light rounded-circle" v-show="!payButtonLoading && (totalNumeric > 0 || posOrder.itemLines.length > 0)" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 3.25em; width: 3.25em; color: var(--btcpay-header-link);">
+                    <vc:icon symbol="caret-down" />
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item @(string.IsNullOrEmpty(Model.SelectedVoucherTemplate) ? "active" : "")" href="#" onclick="selectVoucherTemplate(this, ''); return false;">
+                            Standard
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item @(Model.SelectedVoucherTemplate == "Random" ? "active" : "")" href="#" onclick="selectVoucherTemplate(this, 'Random'); return false;">
+                            Random
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    @foreach (var item in Model.AvailableVoucherTemplates)
+                    {
+                        <li>
+                            <a class="dropdown-item @(item == Model.SelectedVoucherTemplate ? "active" : "")" href="#" onclick="selectVoucherTemplate(this, '@item'); return false;">
+                                @item
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
 
 
 		<div class="offcanvas offcanvas-end" data-bs-backdrop="static" tabindex="-1" id="ItemsListOffcanvas" aria-labelledby="ItemsListToggle" v-if="showItems">
