@@ -306,11 +306,18 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         // Open accountless upload page and complete the form
         var accountlessPage = await Page.Context.NewPageAsync();
         await accountlessPage.GotoAsync(accountlessLink);
+        await accountlessPage.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await accountlessPage.WaitForSelectorAsync($"text={descriptionQuestion}");
 
         var accountlessEmail = $"meetup-{RandomUtils.GetUInt256().ToString()[^10..]}@example.com";
         const string accountlessName = "Accountless Tester";
-        const string destinationAddress = "bcrt1q57aydcw3l7pssaxwz2s3lw4n95qfcnnj6lqyk0";
+        const string destinationAddress = "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs";
+        /*  more addresses for future if needed
+        bcrt1q8eehdf2ye6jzyp2j5kaj04swu87f45e8lqv8yy
+        bcrt1q6q7z54w9u8nxz2k322hzsfknn4u8g90khu5rct
+        bcrt1qvdj727gddc4s2zdppz6f2d6wml4hkww6alj07v
+        bcrt1q02yz4j0ttyjxjfx6yz4mlw40lat6c0xe9k5824
+         */
 
         await accountlessPage.FillAsync("#UploadCode", uploadCode);
         await accountlessPage.FillAsync("#Name", accountlessName);
@@ -319,9 +326,24 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await accountlessPage.FillAsync("#Amount", "25");
         await accountlessPage.FillAsync("#Currency", "USD");
         await accountlessPage.FillAsync("#Description", "About 42 attendees");
-        await accountlessPage.ClickAsync("button:has-text('Upload Invoice')");
 
-        await accountlessPage.WaitForSelectorAsync("text=Invoice Uploaded Successfully");
+        // Wait for form to be fully loaded and submit button to be ready
+        var submitButton = accountlessPage.Locator("button[type='submit']");
+        await submitButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        
+        // Click submit and wait for navigation
+        await submitButton.ClickAsync();
+        
+        // Check for validation errors
+        var validationErrors = accountlessPage.Locator(".text-danger:visible");
+        var errorCount = await validationErrors.CountAsync();
+        if (errorCount > 0)
+        {
+            var errorText = await validationErrors.First.TextContentAsync();
+            Assert.Fail($"Form validation failed: {errorText}");
+        }
+        
+        await accountlessPage.WaitForSelectorAsync("h2:has-text('Invoice Uploaded Successfully!')", new PageWaitForSelectorOptions { Timeout = 60000 });
         await accountlessPage.CloseAsync();
 
         // Verify invoice appears in admin list view (Active tab by default)
