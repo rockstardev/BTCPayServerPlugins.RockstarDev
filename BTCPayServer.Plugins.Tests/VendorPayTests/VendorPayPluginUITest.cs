@@ -330,17 +330,17 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
 
         // Wait for the table to load
         await Page.WaitForSelectorAsync("table.mass-action tbody", new PageWaitForSelectorOptions { Timeout = 10000 });
-        
+
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = $"invoice-list-{storeId}.png" });
 
         // Check all rows in the table
         var allRows = Page.Locator("table.mass-action tbody tr.mass-action-row");
         var totalRows = await allRows.CountAsync();
-        
+
         // Look for the invoice by the visible user name
         var newInvoiceRow = Page.Locator("table.mass-action tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = accountlessName });
         var rowCount = await newInvoiceRow.CountAsync();
-        
+
         Assert.True(rowCount > 0, $"Accountless invoice not found. Name: {accountlessName}, Total rows: {totalRows}, Matching rows: {rowCount}");
         Assert.True(await newInvoiceRow.First.Locator("text=AwaitingApproval").IsVisibleAsync());
     }

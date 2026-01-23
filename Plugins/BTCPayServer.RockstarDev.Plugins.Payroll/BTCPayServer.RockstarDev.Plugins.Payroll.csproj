@@ -12,7 +12,7 @@
         <Description>
             Accept invoices from various sources and easily pay them out from Bitcoin wallet. Pay all your vendors using Bitcoin.
         </Description>
-        <Version>0.7.3</Version>
+        <Version>0.7.4</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
@@ -35,7 +35,7 @@
     </ItemGroup>
 
     <!-- This is all so that we can generate entity framework migrations in design mode -->
-    <!-- Uncomment this if you need to copy DLLs to the output directory 
+    <!-- Uncomment this if you need to copy DLLs to the output directory
     <Target Name="PrepareEntityFrameworkMigrationDependency" BeforeTargets="BeforeBuild">
         <Copy SourceFiles="..\..\submodules\btcpayserver\BTCPayServer\bin\Debug\net8.0\BTCPayServer.dll"
               DestinationFolder="$(OutputPath)"
