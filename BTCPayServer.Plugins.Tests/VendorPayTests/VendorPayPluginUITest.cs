@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using BTCPayServer.Abstractions.Models;
@@ -275,6 +276,75 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         Assert.Equal("Password successfully changed", (await statusText)?.Trim());
     }
 
+    [Fact]
+    public async Task AccountlessInvoiceUpload_HappyPath()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        var storeId = user.StoreId;
+        var uploadCode = $"CODE{Guid.NewGuid():N}"[..10];
+        const string descriptionQuestion = "How many people were at the meetup?";
+
+        await ConfigureAccountlessUploadSettings(storeId, uploadCode, descriptionQuestion);
+
+        // Reload settings to verify persistence and capture the accountless link
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
+        Assert.True(await Page.Locator("#MakeInvoiceFileOptional").IsCheckedAsync());
+        Assert.True(await Page.Locator("#accountlessUploadToggle").IsCheckedAsync());
+        Assert.Equal(descriptionQuestion, await Page.InputValueAsync("#DescriptionTitle"));
+
+        await Page.WaitForSelectorAsync("#accountlessUploadLink");
+        var accountlessLink = await Page.InputValueAsync("#accountlessUploadLink");
+        Assert.False(string.IsNullOrWhiteSpace(accountlessLink));
+
+        // Open accountless upload page and complete the form
+        var accountlessPage = await Page.Context.NewPageAsync();
+        await accountlessPage.GotoAsync(accountlessLink);
+        await accountlessPage.WaitForSelectorAsync($"text={descriptionQuestion}");
+
+        var accountlessEmail = $"meetup-{RandomUtils.GetUInt256().ToString()[^10..]}@example.com";
+        const string accountlessName = "Accountless Tester";
+        const string destinationAddress = "bcrt1q57aydcw3l7pssaxwz2s3lw4n95qfcnnj6lqyk0";
+
+        await accountlessPage.FillAsync("#UploadCode", uploadCode);
+        await accountlessPage.FillAsync("#Name", accountlessName);
+        await accountlessPage.FillAsync("#Email", accountlessEmail);
+        await accountlessPage.FillAsync("#Destination", destinationAddress);
+        await accountlessPage.FillAsync("#Amount", "25");
+        await accountlessPage.FillAsync("#Currency", "USD");
+        await accountlessPage.FillAsync("#Description", "About 42 attendees");
+        await accountlessPage.ClickAsync("button:has-text('Upload Invoice')");
+
+        await accountlessPage.WaitForSelectorAsync("text=Invoice Uploaded Successfully");
+        await accountlessPage.CloseAsync();
+
+        // Verify invoice appears in admin list view (Active tab by default)
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Wait for the table to load
+        await Page.WaitForSelectorAsync("table.mass-action tbody", new PageWaitForSelectorOptions { Timeout = 10000 });
+        
+        await Page.ScreenshotAsync(new PageScreenshotOptions { Path = $"invoice-list-{storeId}.png" });
+
+        // Check all rows in the table
+        var allRows = Page.Locator("table.mass-action tbody tr.mass-action-row");
+        var totalRows = await allRows.CountAsync();
+        
+        // Look for the invoice by the visible user name
+        var newInvoiceRow = Page.Locator("table.mass-action tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = accountlessName });
+        var rowCount = await newInvoiceRow.CountAsync();
+        
+        Assert.True(rowCount > 0, $"Accountless invoice not found. Name: {accountlessName}, Total rows: {totalRows}, Matching rows: {rowCount}");
+        Assert.True(await newInvoiceRow.First.Locator("text=AwaitingApproval").IsVisibleAsync());
+    }
+
     private async Task CreateVendorPayUser()
     {
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
@@ -310,6 +380,27 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         // Navigate back to invoice list page
         await GoToUrl($"/plugins/{storeId}/vendorpay/list");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    private async Task ConfigureAccountlessUploadSettings(string storeId, string uploadCode, string descriptionQuestion)
+    {
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
+
+        var invoiceOptionalToggle = Page.Locator("#MakeInvoiceFileOptional");
+        if (!await invoiceOptionalToggle.IsCheckedAsync())
+            await invoiceOptionalToggle.CheckAsync();
+
+        var accountlessToggle = Page.Locator("#accountlessUploadToggle");
+        if (!await accountlessToggle.IsCheckedAsync())
+            await accountlessToggle.CheckAsync();
+
+        await Page.FillAsync("#UploadCode", uploadCode);
+        await Page.FillAsync("#DescriptionTitle", descriptionQuestion);
+
+        await Page.Locator("#Edit").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var statusText = (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+        Assert.Equal("Vendor pay settings updated successfully", (await statusText)?.Trim());
     }
 
     [Fact]
