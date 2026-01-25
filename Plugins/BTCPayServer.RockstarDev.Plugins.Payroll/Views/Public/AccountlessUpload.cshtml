@@ -1,7 +1,7 @@
 @model AccountlessUploadViewModel
 @{
     Layout = "Views/Public/_VendorPayPublicLayout";
-    ViewData["Title"] = "Upload Invoice";
+    ViewData["Title"] = Model.StoreName + " - Upload Invoice";
 }
 
 <div id="FormView" class="public-page-wrap" style="--wrap-max-width: 576px;">
@@ -11,9 +11,9 @@
 
             <div class="row">
                 <div class="col-md-12">
-                    <div class="form-group">
-                        <h2 class="mb-0">@ViewData["Title"]</h2>
-                        <p class="text-muted">Upload your invoice without creating an account</p>
+                    <div class="form-group text-center">
+                        <h2 class="mb-0">Model.StoreName</h2>
+                        <p class="text-muted">Upload your invoice for reimbursement</p>
                     </div>
 
                     <div class="form-group">
