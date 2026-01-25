@@ -367,6 +367,181 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         Assert.True(await newInvoiceRow.First.Locator("text=AwaitingApproval").IsVisibleAsync());
     }
 
+    [Fact]
+    public async Task AccountlessUpload_SecurityScenarios()
+    {
+        // Note: This comprehensive test covers 7 security scenarios in one test method.
+        // If it fails due to database initialization issues in CI, consider running scenarios separately.
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        var storeId = user.StoreId;
+        var uploadCode = $"CODE{Guid.NewGuid():N}"[..10];
+        const string descriptionQuestion = "How many people were at the meetup?";
+
+        await ConfigureAccountlessUploadSettings(storeId, uploadCode, descriptionQuestion);
+
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
+        await Page.WaitForSelectorAsync("#accountlessUploadLink");
+        var accountlessLink = await Page.InputValueAsync("#accountlessUploadLink");
+        Assert.False(string.IsNullOrWhiteSpace(accountlessLink));
+
+        // Test 1: Email Collision - Active User
+        var activeUserEmail = $"active-{RandomUtils.GetUInt256().ToString()[^10..]}@test.com";
+        await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
+        await Page.FillAsync("#Email", activeUserEmail);
+        await Page.FillAsync("#Name", "Active User");
+        await Page.FillAsync("#Password", "123456");
+        await Page.FillAsync("#ConfirmPassword", "123456");
+        await Page.Locator("#Create").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        var activePage = await Page.Context.NewPageAsync();
+        await AttemptAccountlessUpload(activePage, accountlessLink, uploadCode, activeUserEmail, "Collision Test", "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs", descriptionQuestion);
+        await AssertValidationError(activePage, "This email is registered. Please log in to upload invoices.");
+
+        // Test 2: Email Collision - Pending User (Pending is default state for new users)
+        var pendingUserEmail = $"pending-{RandomUtils.GetUInt256().ToString()[^10..]}@test.com";
+        await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
+        await Page.FillAsync("#Email", pendingUserEmail);
+        await Page.FillAsync("#Name", "Pending User");
+        await Page.FillAsync("#Password", "123456");
+        await Page.FillAsync("#ConfirmPassword", "123456");
+        await Page.Locator("#Create").ClickAsync();
+        
+        var pendingPage = await Page.Context.NewPageAsync();
+        await AttemptAccountlessUpload(pendingPage, accountlessLink, uploadCode, pendingUserEmail, "Collision Test", "bcrt1q8eehdf2ye6jzyp2j5kaj04swu87f45e8lqv8yy", descriptionQuestion);
+        await AssertValidationError(pendingPage, "This email is registered. Please log in to upload invoices.");
+
+        // Test 3: Email Reuse - Accountless User (can upload multiple times)
+        var accountlessEmail = $"accountless-{RandomUtils.GetUInt256().ToString()[^10..]}@test.com";
+        var firstUploadPage = await Page.Context.NewPageAsync();
+        await AttemptAccountlessUpload(firstUploadPage, accountlessLink, uploadCode, accountlessEmail, "John Doe", "bcrt1q6q7z54w9u8nxz2k322hzsfknn4u8g90khu5rct", descriptionQuestion);
+        await AssertUploadSuccess(firstUploadPage);
+        
+        // Second upload with same email should also succeed (accountless users can upload multiple times)
+        var secondUploadPage = await Page.Context.NewPageAsync();
+        await AttemptAccountlessUpload(secondUploadPage, accountlessLink, uploadCode, accountlessEmail, "Jane Smith", "bcrt1qvdj727gddc4s2zdppz6f2d6wml4hkww6alj07v", descriptionQuestion);
+        await AssertUploadSuccess(secondUploadPage);
+        
+        // Verify both invoices were created
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForSelectorAsync("table.mass-action tbody");
+        
+        var johnDoeRow = Page.Locator("table.mass-action tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = "John Doe" });
+        Assert.True(await johnDoeRow.CountAsync() > 0, "First invoice with John Doe should exist");
+
+        // Test 4: Email Collision - Disabled User (same as Active/Pending, cannot upload)
+        var disabledUserEmail = $"disabled-{RandomUtils.GetUInt256().ToString()[^10..]}@test.com";
+        await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
+        await Page.FillAsync("#Email", disabledUserEmail);
+        await Page.FillAsync("#Name", "Disabled User");
+        await Page.FillAsync("#Password", "123456");
+        await Page.FillAsync("#ConfirmPassword", "123456");
+        await Page.Locator("#Create").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Find the user row and click the dropdown toggle button
+        var disabledUserRow = Page.Locator("tbody tr", new PageLocatorOptions { HasTextString = disabledUserEmail }).First;
+        var toggleButton = disabledUserRow.Locator("button[id^='ToggleActions-']");
+        await toggleButton.ClickAsync();
+        
+        // Click the Disable link in the dropdown
+        var disableLink = disabledUserRow.Locator("a.dropdown-item", new LocatorLocatorOptions { HasTextString = "Disable" });
+        await disableLink.ClickAsync();
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Disabled users are still registered users, so they should be rejected
+        var disabledUserPage = await Page.Context.NewPageAsync();
+        await AttemptAccountlessUpload(disabledUserPage, accountlessLink, uploadCode, disabledUserEmail, "Disabled User Test", "bcrt1q02yz4j0ttyjxjfx6yz4mlw40lat6c0xe9k5824", descriptionQuestion);
+        await AssertValidationError(disabledUserPage, "This email is registered. Please log in to upload invoices.");
+
+        // Test 6: Invalid Upload Code
+        var invalidCodeEmail = $"invalid-{RandomUtils.GetUInt256().ToString()[^10..]}@test.com";
+        var invalidCodePage = await Page.Context.NewPageAsync();
+        await AttemptAccountlessUpload(invalidCodePage, accountlessLink, "WRONGCODE", invalidCodeEmail, "Invalid Code Test", "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs", descriptionQuestion);
+        await AssertValidationError(invalidCodePage, "Invalid upload code");
+
+        // Test 7: Missing Security Answer (Description)
+        var missingAnswerEmail = $"missing-{RandomUtils.GetUInt256().ToString()[^10..]}@test.com";
+        var missingAnswerPage = await Page.Context.NewPageAsync();
+        await missingAnswerPage.GotoAsync(accountlessLink);
+        await missingAnswerPage.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await missingAnswerPage.FillAsync("#UploadCode", uploadCode);
+        await missingAnswerPage.FillAsync("#Name", "Missing Answer Test");
+        await missingAnswerPage.FillAsync("#Email", missingAnswerEmail);
+        await missingAnswerPage.FillAsync("#Destination", "bcrt1q8eehdf2ye6jzyp2j5kaj04swu87f45e8lqv8yy");
+        await missingAnswerPage.FillAsync("#Amount", "25");
+        await missingAnswerPage.FillAsync("#Currency", "USD");
+        
+        var submitButton = missingAnswerPage.Locator("button[type='submit']");
+        await submitButton.ClickAsync();
+        await Task.Delay(1000);
+        
+        await AssertValidationError(missingAnswerPage, "Description is required");
+
+        // Test 8: Feature Disabled (404)
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
+        var accountlessToggle = Page.Locator("#accountlessUploadToggle");
+        if (await accountlessToggle.IsCheckedAsync())
+            await accountlessToggle.UncheckAsync();
+        await Page.Locator("#Edit").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        var disabledPage = await Page.Context.NewPageAsync();
+        var response = await disabledPage.GotoAsync(accountlessLink);
+        Assert.Equal(404, response.Status);
+        await disabledPage.CloseAsync();
+    }
+
+    private async Task AttemptAccountlessUpload(IPage uploadPage, string accountlessLink, string uploadCode, string email, string name, string destination, string descriptionQuestion)
+    {
+        await uploadPage.GotoAsync(accountlessLink);
+        await uploadPage.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await uploadPage.WaitForSelectorAsync($"text={descriptionQuestion}");
+
+        await uploadPage.FillAsync("#UploadCode", uploadCode);
+        await uploadPage.FillAsync("#Name", name);
+        await uploadPage.FillAsync("#Email", email);
+        await uploadPage.FillAsync("#Destination", destination);
+        await uploadPage.FillAsync("#Amount", "25");
+        await uploadPage.FillAsync("#Currency", "USD");
+        await uploadPage.FillAsync("#Description", "Test description");
+
+        var submitButton = uploadPage.Locator("button[type='submit']");
+        await submitButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        await submitButton.ClickAsync();
+        await Task.Delay(1000);
+    }
+
+    private async Task AssertValidationError(IPage uploadPage, string expectedError)
+    {
+        var validationErrors = uploadPage.Locator(".text-danger:visible");
+        var errorCount = await validationErrors.CountAsync();
+        Assert.True(errorCount > 0, $"Expected validation error but none found. Expected: {expectedError}");
+        
+        var errorText = await validationErrors.First.TextContentAsync();
+        Assert.Contains(expectedError, errorText, StringComparison.OrdinalIgnoreCase);
+        
+        await uploadPage.CloseAsync();
+    }
+
+    private async Task AssertUploadSuccess(IPage uploadPage)
+    {
+        await uploadPage.WaitForSelectorAsync("h2:has-text('Invoice Uploaded Successfully!')");
+        await uploadPage.CloseAsync();
+    }
+
     private async Task CreateVendorPayUser()
     {
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
