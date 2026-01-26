@@ -330,10 +330,10 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         // Wait for form to be fully loaded and submit button to be ready
         var submitButton = accountlessPage.Locator("button[type='submit']");
         await submitButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
-        
+
         // Click submit and wait for navigation
         await submitButton.ClickAsync();
-        
+
         // Check for validation errors
         var validationErrors = accountlessPage.Locator(".text-danger:visible");
         var errorCount = await validationErrors.CountAsync();
@@ -342,7 +342,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
             var errorText = await validationErrors.First.TextContentAsync();
             Assert.Fail($"Form validation failed: {errorText}");
         }
-        
+
         await accountlessPage.WaitForSelectorAsync("h2:has-text('Invoice Uploaded Successfully!')", new PageWaitForSelectorOptions { Timeout = 60000 });
         await accountlessPage.CloseAsync();
 
@@ -368,10 +368,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
     }
 
     [Fact]
-    public async Task AccountlessUpload_SecurityScenarios()
+    public async Task AccountlessInvoiceUpload_SecurityScenarios()
     {
-        // Note: This comprehensive test covers 7 security scenarios in one test method.
-        // If it fails due to database initialization issues in CI, consider running scenarios separately.
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
@@ -401,7 +399,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#ConfirmPassword", "123456");
         await Page.Locator("#Create").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
+
         var activePage = await Page.Context.NewPageAsync();
         await AttemptAccountlessUpload(activePage, accountlessLink, uploadCode, activeUserEmail, "Collision Test", "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs", descriptionQuestion);
         await AssertValidationError(activePage, "This email is registered. Please log in to upload invoices.");
@@ -415,7 +413,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#Password", "123456");
         await Page.FillAsync("#ConfirmPassword", "123456");
         await Page.Locator("#Create").ClickAsync();
-        
+
         var pendingPage = await Page.Context.NewPageAsync();
         await AttemptAccountlessUpload(pendingPage, accountlessLink, uploadCode, pendingUserEmail, "Collision Test", "bcrt1q8eehdf2ye6jzyp2j5kaj04swu87f45e8lqv8yy", descriptionQuestion);
         await AssertValidationError(pendingPage, "This email is registered. Please log in to upload invoices.");
@@ -425,17 +423,17 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var firstUploadPage = await Page.Context.NewPageAsync();
         await AttemptAccountlessUpload(firstUploadPage, accountlessLink, uploadCode, accountlessEmail, "John Doe", "bcrt1q6q7z54w9u8nxz2k322hzsfknn4u8g90khu5rct", descriptionQuestion);
         await AssertUploadSuccess(firstUploadPage);
-        
+
         // Second upload with same email should also succeed (accountless users can upload multiple times)
         var secondUploadPage = await Page.Context.NewPageAsync();
         await AttemptAccountlessUpload(secondUploadPage, accountlessLink, uploadCode, accountlessEmail, "Jane Smith", "bcrt1qvdj727gddc4s2zdppz6f2d6wml4hkww6alj07v", descriptionQuestion);
         await AssertUploadSuccess(secondUploadPage);
-        
+
         // Verify both invoices were created
         await GoToUrl($"/plugins/{storeId}/vendorpay/list");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await Page.WaitForSelectorAsync("table.mass-action tbody");
-        
+
         var johnDoeRow = Page.Locator("table.mass-action tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = "John Doe" });
         Assert.True(await johnDoeRow.CountAsync() > 0, "First invoice with John Doe should exist");
 
@@ -449,18 +447,18 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#ConfirmPassword", "123456");
         await Page.Locator("#Create").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
+
         // Find the user row and click the dropdown toggle button
         var disabledUserRow = Page.Locator("tbody tr", new PageLocatorOptions { HasTextString = disabledUserEmail }).First;
         var toggleButton = disabledUserRow.Locator("button[id^='ToggleActions-']");
         await toggleButton.ClickAsync();
-        
+
         // Click the Disable link in the dropdown
         var disableLink = disabledUserRow.Locator("a.dropdown-item", new LocatorLocatorOptions { HasTextString = "Disable" });
         await disableLink.ClickAsync();
         await Page.Locator("button[type='submit']").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
+
         // Disabled users are still registered users, so they should be rejected
         var disabledUserPage = await Page.Context.NewPageAsync();
         await AttemptAccountlessUpload(disabledUserPage, accountlessLink, uploadCode, disabledUserEmail, "Disabled User Test", "bcrt1q02yz4j0ttyjxjfx6yz4mlw40lat6c0xe9k5824", descriptionQuestion);
@@ -483,11 +481,11 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await missingAnswerPage.FillAsync("#Destination", "bcrt1q8eehdf2ye6jzyp2j5kaj04swu87f45e8lqv8yy");
         await missingAnswerPage.FillAsync("#Amount", "25");
         await missingAnswerPage.FillAsync("#Currency", "USD");
-        
+
         var submitButton = missingAnswerPage.Locator("button[type='submit']");
         await submitButton.ClickAsync();
         await Task.Delay(1000);
-        
+
         await AssertValidationError(missingAnswerPage, "Description is required");
 
         // Test 8: Feature Disabled (404)
@@ -497,7 +495,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
             await accountlessToggle.UncheckAsync();
         await Page.Locator("#Edit").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
+
         var disabledPage = await Page.Context.NewPageAsync();
         var response = await disabledPage.GotoAsync(accountlessLink);
         Assert.Equal(404, response.Status);
@@ -529,10 +527,10 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var validationErrors = uploadPage.Locator(".text-danger:visible");
         var errorCount = await validationErrors.CountAsync();
         Assert.True(errorCount > 0, $"Expected validation error but none found. Expected: {expectedError}");
-        
+
         var errorText = await validationErrors.First.TextContentAsync();
         Assert.Contains(expectedError, errorText, StringComparison.OrdinalIgnoreCase);
-        
+
         await uploadPage.CloseAsync();
     }
 

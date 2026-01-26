@@ -108,7 +108,5 @@ Amount: {Amount} {Currency}
 Destination: {Destination}
 
 Thank you.";
-
-        public const string DescriptionTitle = @"What is this invoice for? Describe in detail.";
     }
 }

@@ -57,7 +57,7 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody,
             AccountlessUploadEnabled = settings.AccountlessUploadEnabled,
             UploadCode = settings.UploadCode,
-            DescriptionTitle = settings.DescriptionTitle ?? VendorPaySettingViewModel.Defaults.DescriptionTitle
+            DescriptionTitle = settings.DescriptionTitle
         };
 
         ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
