@@ -1,3 +1,5 @@
+@using System.Security.Cryptography
+@using System.Text
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
@@ -72,7 +74,8 @@
                     <input asp-for="DescriptionTitle" type="text" class="form-control"
                            placeholder="What is this invoice for? Describe in detail." />
                     <span asp-validation-for="DescriptionTitle" class="text-danger"></span>
-                    <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled, description becomes a required field.</small>
+                    <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled,
+                        description becomes a required field.</small>
                 </div>
                 @if (!string.IsNullOrEmpty(Model.UploadCode))
                 {
@@ -81,7 +84,7 @@
                         @{
                             var uploadHash = "";
                             var input = storeId + Model.UploadCode;
-                            var hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
+                            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
                             var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
                             uploadHash = hashString.Substring(0, 12);
 

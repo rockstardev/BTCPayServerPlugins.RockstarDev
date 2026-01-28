@@ -24,7 +24,8 @@
 
 <div class="row mb-2">
     <div class="col-lg-6 ms-auto">
-        <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime">
+        <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending"
+              asp-route-oneTime="@Model.OneTime">
             <div class="input-group">
                 <input type="text"
                        class="form-control"
@@ -37,7 +38,8 @@
                 </button>
                 @if (!string.IsNullOrEmpty(Model.SearchTerm))
                 {
-                    <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime" class="btn btn-secondary">
+                    <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending"
+                       asp-route-oneTime="@Model.OneTime" class="btn btn-secondary">
                         <i class="fa fa-times"></i> Clear
                     </a>
                 }

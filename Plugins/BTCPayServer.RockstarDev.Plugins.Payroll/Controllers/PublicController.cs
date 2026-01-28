@@ -536,14 +536,10 @@ public class PublicController(
         model.DescriptionTitle = settings.DescriptionTitle;
 
         if (model.UploadCode != settings.UploadCode)
-        {
             ModelState.AddModelError(nameof(model.UploadCode), "Invalid Upload Code");
-        }
 
         if (!string.IsNullOrEmpty(settings.DescriptionTitle) && string.IsNullOrWhiteSpace(model.Description))
-        {
             ModelState.AddModelError(nameof(model.Description), "Description is required");
-        }
 
         if (!ModelState.IsValid)
             return View(model);
@@ -605,9 +601,7 @@ public class PublicController(
             .FirstOrDefaultAsync(i => i.UserId == userId);
 
         if (createdInvoice != null)
-        {
             await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
-        }
 
         model.EmailNotificationsEnabled = settings.EmailOnInvoicePaid;
         return View("AccountlessUploadSuccess", model);
