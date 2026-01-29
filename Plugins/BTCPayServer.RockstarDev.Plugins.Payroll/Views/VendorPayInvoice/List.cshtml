@@ -241,7 +241,7 @@
                                     <vc:icon symbol="actions-download" />
                                 </a>
                             }
-                            @if (pp.State == VendorPayInvoiceState.AwaitingApproval)
+                            @if (pp.State == VendorPayInvoiceState.AwaitingApproval || pp.State == VendorPayInvoiceState.AwaitingPayment)
                             {
                                 <span>-</span>
                                 <a asp-controller="VendorPayInvoice"

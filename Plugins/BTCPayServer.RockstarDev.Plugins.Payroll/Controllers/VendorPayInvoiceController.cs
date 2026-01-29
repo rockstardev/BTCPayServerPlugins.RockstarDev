@@ -313,7 +313,9 @@ public class VendorPayInvoiceController(
         if (invoice == null)
             return NotFound();
 
-        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
+        // TODO: Change logic so await payment is only set once user construct transaction
+        var allowedStates = invoice.State is VendorPayInvoiceState.AwaitingApproval or VendorPayInvoiceState.AwaitingPayment;
+        if (!allowedStates)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
@@ -339,7 +341,9 @@ public class VendorPayInvoiceController(
             .Include(i => i.User)
             .Single(a => a.Id == id);
 
-        if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
+        // TODO: Change logic so await payment is only set once user construct transaction
+        var allowedStates = invoice.State is VendorPayInvoiceState.AwaitingApproval or VendorPayInvoiceState.AwaitingPayment;
+        if (!allowedStates)
         {
             TempData.SetStatusMessageModel(new StatusMessageModel
             {
