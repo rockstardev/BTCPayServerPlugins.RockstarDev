@@ -31,6 +31,11 @@ public class VendorPayStoreSetting
     public string EmailAdminOnInvoiceDeletedSubject { get; set; }
     public string EmailAdminOnInvoiceDeletedBody { get; set; }
 
+    // Uploader confirmation email on invoice upload
+    public bool EmailUploaderOnInvoiceUploaded { get; set; }
+    public string EmailUploaderOnInvoiceUploadedSubject { get; set; }
+    public string EmailUploaderOnInvoiceUploadedBody { get; set; }
+
     // Accountless upload settings
     public bool AccountlessUploadEnabled { get; set; }
     public string UploadCode { get; set; }

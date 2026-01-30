@@ -240,6 +240,56 @@ public class EmailService(
         }
     }
 
+    public async Task SendUploaderConfirmationOnInvoiceUpload(string storeId, PayrollInvoice invoice)
+    {
+        try
+        {
+            var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+            if (settings?.EmailUploaderOnInvoiceUploaded != true)
+                return;
+
+            var emailSettings = await (await emailSenderFactory.GetEmailSender(storeId)).GetEmailSettings();
+            if (emailSettings?.IsComplete() != true)
+                return;
+
+            // Ensure user is loaded
+            if (invoice.User == null)
+            {
+                await using var ctx = pluginDbContextFactory.CreateContext();
+                invoice.User = await ctx.PayrollUsers.FindAsync(invoice.UserId);
+
+                if (invoice.User == null)
+                {
+                    logs.PayServer.LogWarning($"Could not find user {invoice.UserId} for invoice {invoice.Id} uploader confirmation");
+                    return;
+                }
+            }
+
+            var storeName = (await storeRepo.FindStore(storeId))?.StoreName;
+
+            var messageText = settings.EmailUploaderOnInvoiceUploadedBody
+                .Replace("{VendorName}", invoice.User.Name)
+                .Replace("{StoreName}", storeName)
+                .Replace("{InvoiceId}", invoice.Id)
+                .Replace("{Amount}", invoice.Amount.ToString())
+                .Replace("{Currency}", invoice.Currency)
+                .Replace("{Destination}", invoice.Destination);
+
+            var recipient = new EmailRecipient
+            {
+                Address = InternetAddress.Parse(invoice.User.Email),
+                Subject = settings.EmailUploaderOnInvoiceUploadedSubject,
+                MessageText = messageText
+            };
+
+            await SendBulkEmail(storeId, new List<EmailRecipient> { recipient });
+        }
+        catch (Exception ex)
+        {
+            logs.PayServer.LogError(ex, $"Error sending uploader confirmation for invoice upload {invoice.Id}");
+        }
+    }
+
     public class EmailRecipient
     {
         public InternetAddress Address { get; set; }

@@ -62,6 +62,31 @@
                 <label asp-for="AccountlessUploadEnabled" class="form-label mb-0 me-1"></label>
                 <span asp-validation-for="AccountlessUploadEnabled" class="text-danger"></span>
             </div>
+            @if (!string.IsNullOrEmpty(Model.UploadCode))
+            {
+                <div class="form-group">
+                    <label class="form-label">Accountless Upload Link</label>
+                    @{
+                        var uploadHash = "";
+                        var input = storeId + Model.UploadCode;
+                        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+                        var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
+                        uploadHash = hashString.Substring(0, 12);
+
+                        var uploadUrl = Url.Action("AccountlessUpload", "Public", new { storeId, hash = uploadHash }, Context.Request.Scheme);
+                    }
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="accountlessUploadLink" readonly
+                               value="@uploadUrl" />
+                        <button type="button" class="btn btn-secondary clipboard-button" data-clipboard="@uploadUrl">
+                            <vc:icon symbol="actions-copy" />
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">
+                        <a href="@uploadUrl" target="_blank">Share this link</a> with users who need to upload invoices without an account
+                    </small>
+                </div>
+            }
             <div id="accountlessUploadGroup" style="display: none;">
                 <div class="form-group">
                     <label asp-for="UploadCode" class="form-label"></label>
@@ -77,31 +102,35 @@
                     <small class="form-text text-muted">Change the title of description field. Can be used to ask questions during invoice uploading. If filled,
                         description becomes a required field.</small>
                 </div>
-                @if (!string.IsNullOrEmpty(Model.UploadCode))
-                {
-                    <div class="form-group">
-                        <label class="form-label">Accountless Upload Link</label>
-                        @{
-                            var uploadHash = "";
-                            var input = storeId + Model.UploadCode;
-                            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-                            var hashString = Convert.ToHexString(hashBytes).ToLowerInvariant();
-                            uploadHash = hashString.Substring(0, 12);
 
-                            var uploadUrl = Url.Action("AccountlessUpload", "Public", new { storeId, hash = uploadHash }, Context.Request.Scheme);
+                <div class="form-group d-flex align-items-center mt-3">
+                    <input asp-for="EmailUploaderOnInvoiceUploaded" type="checkbox" class="btcpay-toggle me-3" id="emailUploaderUploadToggle"
+                           disabled="@(storeEmailSettingsConfigured ? null : "disabled")" />
+                    <div>
+                        <label asp-for="EmailUploaderOnInvoiceUploaded" class="form-check-label"></label>
+                        <span asp-validation-for="EmailUploaderOnInvoiceUploaded" class="text-danger"></span>
+                        @if (!storeEmailSettingsConfigured)
+                        {
+                            <div class="text-secondary">
+                                <span text-translate="true">Your email server has not been configured.</span>
+                                <a href="/stores/@storeId/email-settings" text-translate="true">Please configure it
+                                    first.</a>
+                            </div>
                         }
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="accountlessUploadLink" readonly
-                                   value="@uploadUrl" />
-                            <button type="button" class="btn btn-secondary clipboard-button" data-clipboard="@uploadUrl">
-                                <vc:icon symbol="actions-copy" />
-                            </button>
-                        </div>
-                        <small class="form-text text-muted">
-                            <a href="@uploadUrl" target="_blank">Share this link</a> with users who need to upload invoices without an account
-                        </small>
                     </div>
-                }
+                </div>
+                <div id="emailUploaderUploadGroup" style="display: none;">
+                    <div class="form-group">
+                        <label asp-for="EmailUploaderOnInvoiceUploadedSubject" class="form-label">Subject</label>
+                        <input asp-for="EmailUploaderOnInvoiceUploadedSubject" class="form-control" />
+                        <span asp-validation-for="EmailUploaderOnInvoiceUploadedSubject" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="EmailUploaderOnInvoiceUploadedBody" class="form-label">Email Body</label>
+                        <textarea asp-for="EmailUploaderOnInvoiceUploadedBody" class="form-control" rows="8"></textarea>
+                        <span asp-validation-for="EmailUploaderOnInvoiceUploadedBody" class="text-danger"></span>
+                    </div>
+                </div>
             </div>
 
             <h4 class="mt-5 mb-3">Emails</h4>
@@ -116,7 +145,7 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                            <a href="/stores/@storeId/email-settings" text-translate="true">Please configure it
                                 first.</a>
                         </div>
                     }
@@ -146,7 +175,7 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                            <a href="/stores/@storeId/email-settings" text-translate="true">Please configure it
                                 first.</a>
                         </div>
                     }
@@ -175,7 +204,7 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                            <a href="/stores/@storeId/email-settings" text-translate="true">Please configure it
                                 first.</a>
                         </div>
                     }
@@ -212,7 +241,7 @@
                     {
                         <div class="text-secondary">
                             <span text-translate="true">Your email server has not been configured.</span>
-                            <a asp-controller="UIStores" asp-action="StoreEmailSettings" text-translate="true" asp-route-storeId="@storeId">Please configure it
+                            <a href="/stores/@storeId/email-settings" text-translate="true">Please configure it
                                 first.</a>
                         </div>
                     }
@@ -251,7 +280,8 @@
                 {toggle: 'emailReminderToggle', target: 'emailReminderTemplateGroup'},
                 {toggle: 'emailAdminUploadToggle', target: 'emailAdminUploadGroup'},
                 {toggle: 'emailAdminDeleteToggle', target: 'emailAdminDeleteGroup'},
-                {toggle: 'accountlessUploadToggle', target: 'accountlessUploadGroup'}
+                {toggle: 'accountlessUploadToggle', target: 'accountlessUploadGroup'},
+                {toggle: 'emailUploaderUploadToggle', target: 'emailUploaderUploadGroup'}
             ];
 
             const toggleVisibility = (toggle, target) => {

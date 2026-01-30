@@ -52,6 +52,13 @@ public class VendorPaySettingViewModel
     public string EmailAdminOnInvoiceDeletedBody { get; set; }
 
     //
+    [Display(Name = "Email confirmation to uploader")]
+    public bool EmailUploaderOnInvoiceUploaded { get; set; }
+
+    public string EmailUploaderOnInvoiceUploadedSubject { get; set; }
+    public string EmailUploaderOnInvoiceUploadedBody { get; set; }
+
+    //
     [Display(Name = "Enable accountless invoice upload")]
     public bool AccountlessUploadEnabled { get; set; }
 
@@ -108,5 +115,20 @@ Amount: {Amount} {Currency}
 Destination: {Destination}
 
 Thank you.";
+
+        public const string EmailUploaderOnInvoiceUploadedSubject = @"[VendorPay] Invoice Upload Confirmation";
+
+        public const string EmailUploaderOnInvoiceUploadedBody = @"Hello {VendorName},
+
+Thank you for uploading your invoice.
+
+Invoice ID: {InvoiceId}
+Amount: {Amount} {Currency}
+Destination: {Destination}
+
+We will process your invoice and notify you once payment is complete.
+
+Thank you,
+{StoreName}";
     }
 }

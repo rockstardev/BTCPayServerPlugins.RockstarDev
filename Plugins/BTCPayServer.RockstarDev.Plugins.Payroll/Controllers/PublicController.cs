@@ -601,7 +601,13 @@ public class PublicController(
             .FirstOrDefaultAsync(i => i.UserId == userId);
 
         if (createdInvoice != null)
+        {
             await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
+            
+            // Send confirmation email to uploader
+            if (settings.EmailUploaderOnInvoiceUploaded)
+                await emailService.SendUploaderConfirmationOnInvoiceUpload(storeId, createdInvoice);
+        }
 
         model.EmailNotificationsEnabled = settings.EmailOnInvoicePaid;
         return View("AccountlessUploadSuccess", model);

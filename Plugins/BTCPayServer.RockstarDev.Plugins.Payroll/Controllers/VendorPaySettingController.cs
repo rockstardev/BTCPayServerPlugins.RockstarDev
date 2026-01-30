@@ -55,6 +55,11 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedSubject =
                 settings.EmailAdminOnInvoiceDeletedSubject ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedSubject,
             EmailAdminOnInvoiceDeletedBody = settings.EmailAdminOnInvoiceDeletedBody ?? VendorPaySettingViewModel.Defaults.EmailAdminOnInvoiceDeletedBody,
+            EmailUploaderOnInvoiceUploaded = settings.EmailUploaderOnInvoiceUploaded,
+            EmailUploaderOnInvoiceUploadedSubject =
+                settings.EmailUploaderOnInvoiceUploadedSubject ?? VendorPaySettingViewModel.Defaults.EmailUploaderOnInvoiceUploadedSubject,
+            EmailUploaderOnInvoiceUploadedBody =
+                settings.EmailUploaderOnInvoiceUploadedBody ?? VendorPaySettingViewModel.Defaults.EmailUploaderOnInvoiceUploadedBody,
             AccountlessUploadEnabled = settings.AccountlessUploadEnabled,
             UploadCode = settings.UploadCode,
             DescriptionTitle = settings.DescriptionTitle
@@ -127,6 +132,9 @@ public class VendorPaySettingController(
             EmailAdminOnInvoiceDeletedAddress = model.EmailAdminOnInvoiceDeletedAddress,
             EmailAdminOnInvoiceDeletedSubject = model.EmailAdminOnInvoiceDeletedSubject,
             EmailAdminOnInvoiceDeletedBody = model.EmailAdminOnInvoiceDeletedBody,
+            EmailUploaderOnInvoiceUploaded = model.EmailUploaderOnInvoiceUploaded,
+            EmailUploaderOnInvoiceUploadedSubject = model.EmailUploaderOnInvoiceUploadedSubject,
+            EmailUploaderOnInvoiceUploadedBody = model.EmailUploaderOnInvoiceUploadedBody,
             AccountlessUploadEnabled = model.AccountlessUploadEnabled,
             UploadCode = model.UploadCode,
             DescriptionTitle = model.DescriptionTitle
