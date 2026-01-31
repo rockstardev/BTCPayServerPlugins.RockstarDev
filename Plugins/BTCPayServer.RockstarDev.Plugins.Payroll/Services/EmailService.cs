@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BTCPayServer.Events;
 using BTCPayServer.Logging;
 using BTCPayServer.Plugins.Emails.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Logging;
 using MimeKit;
@@ -16,7 +18,8 @@ public class EmailService(
     EmailSenderFactory emailSenderFactory,
     Logs logs,
     StoreRepository storeRepo,
-    PluginDbContextFactory pluginDbContextFactory)
+    PluginDbContextFactory pluginDbContextFactory,
+    EventAggregator eventAggregator)
 {
     public async Task<bool> IsEmailSettingsConfigured(string storeId)
     {
@@ -41,7 +44,8 @@ public class EmailService(
                     message.To.Add(recipient.Address);
                     message.Subject = recipient.Subject;
                     message.Body = new TextPart("plain") { Text = recipient.MessageText };
-                    await client.SendAsync(message);
+                    var response = await client.SendAsync(message);
+                    eventAggregator.Publish(new EmailSentEvent(response, message));
                 }
                 catch (Exception ex)
                 {

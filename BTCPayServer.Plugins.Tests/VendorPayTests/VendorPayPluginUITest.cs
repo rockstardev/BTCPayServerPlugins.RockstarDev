@@ -365,6 +365,81 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
 
         Assert.True(rowCount > 0, $"Accountless invoice not found. Name: {accountlessName}, Total rows: {totalRows}, Matching rows: {rowCount}");
         Assert.True(await newInvoiceRow.First.Locator("text=AwaitingApproval").IsVisibleAsync());
+
+        // Configure email settings to use MailPit
+        await GoToUrl($"/stores/{storeId}/email-settings");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        
+        // Click "Use mailpit" button to auto-configure email settings
+        await Page.ClickAsync("#mailpit");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Enable email uploader confirmation in VendorPay settings
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        
+        // Ensure accountless upload is still enabled and expand the section
+        if (!await Page.Locator("#accountlessUploadToggle").IsCheckedAsync())
+        {
+            await Page.Locator("#accountlessUploadToggle").ClickAsync();
+        }
+        
+        // Enable email uploader confirmation toggle
+        await Page.Locator("#emailUploaderUploadToggle").SetCheckedAsync(true);
+        
+        // Fill in email subject and body
+        await Page.FillAsync("#EmailUploaderOnInvoiceUploadedSubject", "[VendorPay] Invoice Upload Confirmation");
+        await Page.FillAsync("#EmailUploaderOnInvoiceUploadedBody", "Hello {VendorName},\n\nThank you for uploading your invoice.\n\nInvoice ID: {InvoiceId}\nAmount: {Amount} {Currency}\n\nThank you,\n{StoreName}");
+        
+        // Save settings
+        await Page.ClickAsync("button[type='submit']");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Upload second invoice and verify email is sent
+        var secondEmail = $"meetup2-{RandomUtils.GetUInt256().ToString()[^10..]}@example.com";
+        const string secondName = "Second Uploader";
+        const string secondDestination = "bcrt1q8eehdf2ye6jzyp2j5kaj04swu87f45e8lqv8yy";
+        
+        var secondUploadPage = await Page.Context.NewPageAsync();
+        await secondUploadPage.GotoAsync(accountlessLink);
+        await secondUploadPage.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        
+        await secondUploadPage.FillAsync("#UploadCode", uploadCode);
+        await secondUploadPage.FillAsync("#Name", secondName);
+        await secondUploadPage.FillAsync("#Email", secondEmail);
+        await secondUploadPage.FillAsync("#Destination", secondDestination);
+        await secondUploadPage.FillAsync("#Amount", "50");
+        await secondUploadPage.FillAsync("#Currency", "USD");
+        await secondUploadPage.FillAsync("#Description", "About 100 attendees");
+        
+        // Submit and wait for success
+        var secondSubmitButton = secondUploadPage.Locator("button[type='submit']");
+        await secondSubmitButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        
+        var emailMessage = await ServerTester.AssertHasEmail(async () =>
+        {
+            await secondSubmitButton.ClickAsync();
+            await secondUploadPage.WaitForSelectorAsync("h2:has-text('Invoice Uploaded Successfully!')", new PageWaitForSelectorOptions { Timeout = 60000 });
+        });
+        
+        await secondUploadPage.CloseAsync();
+        
+        // Verify email was sent correctly
+        Assert.Equal("[VendorPay] Invoice Upload Confirmation", emailMessage.Subject);
+        Assert.Contains("Thank you for uploading your invoice", emailMessage.Text);
+        Assert.Equal(secondEmail, emailMessage.To[0].Address);
+        Assert.Contains(secondName, emailMessage.Text);
+        
+        // Verify second invoice appears in admin list
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForSelectorAsync("table.mass-action tbody", new PageWaitForSelectorOptions { Timeout = 10000 });
+        
+        var secondInvoiceRow = Page.Locator("table.mass-action tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = secondName });
+        var secondRowCount = await secondInvoiceRow.CountAsync();
+        
+        Assert.True(secondRowCount > 0, $"Second accountless invoice not found. Name: {secondName}");
+        Assert.True(await secondInvoiceRow.First.Locator("text=AwaitingApproval").IsVisibleAsync());
     }
 
     [Fact]
