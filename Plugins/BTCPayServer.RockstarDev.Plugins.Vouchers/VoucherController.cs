@@ -11,6 +11,7 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
+using BTCPayServer.Client.Models;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
@@ -28,13 +29,18 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
+using Ganss.Xss;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using NBitcoin;
 using NBitcoin.DataEncoders;
+using Newtonsoft.Json.Linq;
+using PosViewType = BTCPayServer.Plugins.PointOfSale.PosViewType;
+using StoreData = BTCPayServer.Data.StoreData;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers;
 
@@ -45,16 +51,13 @@ public class VoucherController : Controller
     private readonly UriResolver _uriResolver;
     private readonly IFileService _fileService;
     private readonly StoreRepository _storeRepository;
-    private readonly BTCPayNetworkProvider _networkProvider;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly PayoutMethodHandlerDictionary _payoutHandlers;
     private readonly ApplicationDbContextFactory _dbContextFactory;
     private readonly DefaultRulesCollection _defaultRulesCollection;
     private readonly PullPaymentHostedService _pullPaymentHostedService;
-    private readonly UIStorePullPaymentsController _uiStorePullPaymentsController;
 
     public VoucherController(PullPaymentHostedService pullPaymentHostedService,
-        UIStorePullPaymentsController uiStorePullPaymentsController,
         ApplicationDbContextFactory dbContextFactory, UserManager<ApplicationUser> userManager,
         DefaultRulesCollection defaultRulesCollection, UriResolver uriResolver, IFileService fileService,
         PayoutMethodHandlerDictionary payoutHandlers, StoreRepository storeRepository, RateFetcher rateFetcher, BTCPayNetworkProvider networkProvider,
@@ -67,11 +70,9 @@ public class VoucherController : Controller
         _userManager = userManager;
         _payoutHandlers = payoutHandlers;
         _storeRepository = storeRepository;
-        _networkProvider = networkProvider;
         _dbContextFactory = dbContextFactory;
         _defaultRulesCollection = defaultRulesCollection;
         _pullPaymentHostedService = pullPaymentHostedService;
-        _uiStorePullPaymentsController = uiStorePullPaymentsController;
     }
 
     public StoreData CurrentStore => HttpContext.GetStoreData();
@@ -155,7 +156,7 @@ public class VoucherController : Controller
                 Prefixed = new[] { 0, 2 }.Contains(numberFormatInfo.CurrencyPositivePattern),
                 SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
             },
-            Items = AppService.Parse(appSettings.Template, false),
+            Items = new ViewPointOfSaleViewModel.AppItemViewModel[0],
             ButtonText = appSettings.ButtonText,
             CustomButtonText = appSettings.CustomButtonText,
             CustomTipText = appSettings.CustomTipText,
@@ -209,14 +210,14 @@ public class VoucherController : Controller
         var selectedPaymentMethodIds = new[] { PayoutMethodId.Parse("BTC-CHAIN"), PayoutMethodId.Parse("BTC-LN") };
         var amountInBtc = satsAmount / 100_000_000m;
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
-        
+
         var matchedImage = settings.Images.FirstOrDefault(c => c.Name.ToLower() == imageKey.Trim().ToLower());
         if (matchedImage == null)
         {
             TempData[WellKnownTempData.ErrorMessage] = "Invalid voucher image";
             return RedirectToAction(nameof(ListVouchers), new { storeId });
         }
-        
+
         var res = await _pullPaymentHostedService.CreatePullPayment(HttpContext.GetStoreData(), new()
         {
             Amount = amountInBtc,
@@ -546,7 +547,7 @@ public class VoucherController : Controller
     [Authorize(Policy = Policies.CanModifyStoreSettings)]
     public async Task<IActionResult> ToggleVoucherImagePost(string storeId, string imageKey)
     {
-        if (CurrentStore is null) 
+        if (CurrentStore is null)
             return NotFound();
 
         var settings = await _storeRepository.GetSettingAsync<VoucherSettings>(CurrentStore.Id, VoucherPlugin.SettingsName) ?? new VoucherSettings();
@@ -638,16 +639,16 @@ public class VoucherController : Controller
         {
             return RedirectToAction(nameof(View), new { id = pullPaymentId });
         }
-        
+
         // Check if images are available
         if (!voucherSettings.Images.Any())
         {
             TempData[WellKnownTempData.ErrorMessage] = "No voucher images available";
             return RedirectToAction(fallbackAction, new { storeId });
         }
-        
+
         string imageKey = null;
-        
+
         // Random mode: pick random enabled template
         if (selectedKeypadImage.Equals("Random", StringComparison.OrdinalIgnoreCase))
         {
@@ -662,12 +663,12 @@ public class VoucherController : Controller
         {
             imageKey = voucherSettings.Images.FirstOrDefault(c => c.Name.Equals(selectedKeypadImage, StringComparison.OrdinalIgnoreCase))?.Key;
         }
-        
+
         if (!string.IsNullOrEmpty(imageKey))
         {
             return RedirectToAction(nameof(ViewPrintSatsBill), new { storeId, id = pullPaymentId, imageKey });
         }
-        
+
         TempData[WellKnownTempData.ErrorMessage] = "Unable to load voucher image";
         return RedirectToAction(fallbackAction, new { storeId });
     }

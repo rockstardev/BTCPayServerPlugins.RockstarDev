@@ -15,7 +15,7 @@ public class VoucherPlugin : BaseBTCPayServerPlugin
     public const string SettingsName = "VoucherSettings";
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
-        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.4" }
     ];
 
     public override void Execute(IServiceCollection applicationBuilder)
