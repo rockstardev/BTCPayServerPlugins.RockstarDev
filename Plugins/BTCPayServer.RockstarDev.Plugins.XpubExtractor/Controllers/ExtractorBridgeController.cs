@@ -37,8 +37,15 @@ public class ExtractorBridgeController : HWIController
 
         var xpub = await device.GetXPubAsync(keyPath, cancellationToken);
 
-        var factory = network.NBXplorerNetwork.DerivationStrategyFactory;
-        var strategy = factory.CreateDirectDerivationStrategy(xpub, new DerivationStrategyOptions { ScriptPubKeyType = scriptPubKeyTypeType });
+        var suffix = scriptPubKeyTypeType switch
+        {
+            ScriptPubKeyType.Segwit => "",
+            ScriptPubKeyType.Legacy => "-[legacy]",
+            ScriptPubKeyType.SegwitP2SH => "-[p2sh]",
+            ScriptPubKeyType.TaprootBIP86 => "-[taproot]",
+            _ => throw new NotSupportedException($"Unsupported ScriptPubKeyType: {scriptPubKeyTypeType}")
+        };
+        var strategy = network.NBXplorerNetwork.DerivationStrategyFactory.Parse(xpub + suffix);
         ui.ShowFeedback(FeedbackType.Success, ui.StringLocalizer["Public keys successfully fetched."]);
 
         ui.AddElement(new ShowXPubVaultElement(ui)
