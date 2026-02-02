@@ -26,7 +26,7 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
-[Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = VendorPayPermissions.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class VendorPayInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,

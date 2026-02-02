@@ -20,7 +20,7 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/users/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/users/", Order = 1)]
-[Authorize(Policy = VendorPayPolicies.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = VendorPayPermissions.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class VendorPayUserController(
     PluginDbContextFactory pluginDbContextFactory,
     VendorPayPassHasher hasher,

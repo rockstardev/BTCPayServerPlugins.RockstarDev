@@ -94,14 +94,28 @@ public class PluginPermissionUITest : PlaywrightBaseTest
             TestLogs.LogInformation($"Found {storePermissionCount} store permission checkboxes");
             Assert.True(storePermissionCount > 0, "Core store permissions should exist on server roles page");
             
-            // For now, we expect 0 plugin permissions since the feature isn't implemented yet
-            // Once implemented, this test should verify:
-            // 1. Plugin permissions appear after core permissions
-            // 2. Plugin permissions have proper display names
-            // 3. Plugin permissions can be checked/unchecked
-            // 4. Orphaned permissions show warning icons
-            TestLogs.LogInformation($"Current state: {pluginPermissionCount} plugin permissions found (expected 0 until feature is implemented)");
-            Assert.Equal(0, pluginPermissionCount); // Will change to > 0 once feature is implemented
+            // Verify plugin permissions are now visible (feature implemented!)
+            // The VendorPay plugin should register its permission
+            TestLogs.LogInformation($"Plugin permissions found: {pluginPermissionCount}");
+            Assert.True(pluginPermissionCount > 0, "Plugin permissions should be visible now that feature is implemented");
+            
+            // Verify we can find the VendorPay plugin permission
+            var vendorPayManagePermission = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+            var vendorPayManageExists = await vendorPayManagePermission.CountAsync() > 0;
+            TestLogs.LogInformation($"VendorPay plugin 'manage' permission exists: {vendorPayManageExists}");
+            Assert.True(vendorPayManageExists, "VendorPay plugin permission should be visible");
+            
+            if (vendorPayManageExists)
+            {
+                // Verify the display name is shown correctly
+                var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
+                if (await manageLabel.CountAsync() > 0)
+                {
+                    var labelText = await manageLabel.TextContentAsync();
+                    TestLogs.LogInformation($"VendorPay plugin 'manage' permission label: {labelText}");
+                    Assert.Contains("Vendor Pay", labelText);
+                }
+            }
             
             // Take a screenshot for visual verification
             await Page.ScreenshotAsync(new PageScreenshotOptions 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
@@ -16,12 +17,17 @@ using Microsoft.Extensions.Hosting;
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // ReSharper disable once UnusedType.Global
-public class VendorPayPlugin : BaseBTCPayServerPlugin
+public class VendorPayPlugin : BaseBTCPayServerPlugin, IPluginPermissionProvider
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
         new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
     ];
+
+    public IEnumerable<PluginPermission> GetPermissions()
+    {
+        return VendorPayPermissions.AllPermissions(Identifier);
+    }
 
     public override void Execute(IServiceCollection serviceCollection)
     {
@@ -31,10 +37,13 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
         serviceCollection.AddAuthorization(options =>
         {
-            options.AddPolicy(VendorPayPolicies.CanManageVendorPay,
-                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPolicies.CanManageVendorPay)));
+            options.AddPolicy(VendorPayPermissions.CanManageVendorPay,
+                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPermissions.CanManageVendorPay)));
         });
+        // Register as plugin permission provider
+        serviceCollection.AddSingleton<IPluginPermissionProvider>(this);
 
+        
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
 
@@ -57,7 +66,6 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
         serviceCollection.AddReportProvider<VendorPayReportProvider>();
-
 
         var assembly = Assembly.GetExecutingAssembly();
         serviceCollection.PostConfigure<StaticFileOptions>(options =>
