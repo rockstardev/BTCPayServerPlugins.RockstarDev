@@ -142,4 +142,123 @@ public class PluginPermissionUITest : PlaywrightBaseTest
             Assert.Fail("Could not find 'Modify your stores' permission section on the page");
         }
     }
+
+    [Fact]
+    public async Task UserWithoutVendorPayPermission_CannotSeeOrAccessVendorPay()
+    {
+        await InitializePlaywright(ServerTester);
+        
+        // Create admin user and store
+        var admin = ServerTester.NewAccount();
+        await admin.GrantAccessAsync();
+        await admin.MakeAdmin(true); // Make server admin
+        var storeId = admin.StoreId;
+        
+        // Login as admin
+        await GoToUrl("/login");
+        await LogIn(admin.RegisterDetails.Email, admin.RegisterDetails.Password);
+        
+        // Create a custom role without VendorPay permission
+        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        await GoToUrl($"/stores/{storeId}/roles");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Click the "Create Role" link/button
+        var createRoleButton = Page.Locator("a[href*='/roles/create'], button:has-text('Create Role')");
+        await createRoleButton.ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        await Page.FillAsync("#Role", customRoleName);
+        
+        // Check some basic store permissions but NOT VendorPay permission
+        await Page.Locator("input.policy-cb[value='btcpay.store.canviewstoresettings']").First.CheckAsync();
+        await Page.Locator("input.policy-cb[value='btcpay.store.canviewinvoices']").First.CheckAsync();
+        
+        // Make sure VendorPay permission is NOT checked
+        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        if (await vendorPayCheckbox.CountAsync() > 0)
+        {
+            await vendorPayCheckbox.UncheckAsync();
+        }
+        
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        TestLogs.LogInformation($"Created custom role: {customRoleName}");
+        
+        // Create a server user first
+        var restrictedUserEmail = $"restricted-{System.Guid.NewGuid():N}"[..20] + "@test.com";
+        var restrictedUserPassword = "TestPassword123!";
+        
+        await GoToUrl("/server/users");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.Locator("a[href='/server/users/new']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        await Page.FillAsync("#Email", restrictedUserEmail);
+        await Page.FillAsync("#Password", restrictedUserPassword);
+        await Page.FillAsync("#ConfirmPassword", restrictedUserPassword);
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        TestLogs.LogInformation($"Created server user: {restrictedUserEmail}");
+        
+        // Now add the user to the store with the restricted role
+        await GoToUrl($"/stores/{storeId}/users");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        await Page.FillAsync("input[placeholder='user@example.com']", restrictedUserEmail);
+        await Page.Locator("#Role").First.SelectOptionAsync(customRoleName);
+        await Page.Locator("button#AddUser").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        TestLogs.LogInformation($"Added user to store with role {customRoleName}");
+        
+        // Login as the restricted user
+        await Page.Context.ClearCookiesAsync();
+        await GoToUrl("/login");
+        await LogIn(restrictedUserEmail, restrictedUserPassword);
+        
+        // Navigate to the store page
+        await GoToUrl($"/stores/{storeId}");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Verify VendorPay nav item is NOT visible in the sidebar
+        var vendorPayNavItem = Page.Locator("li.nav-item a[href*='/vendorpay']");
+        var navItemCount = await vendorPayNavItem.CountAsync();
+        TestLogs.LogInformation($"VendorPay nav items found: {navItemCount}");
+        Assert.Equal(0, navItemCount);
+        
+        // Verify VendorPayNav section is not rendered at all (permission wrapper prevents rendering)
+        var pageContent = await Page.ContentAsync();
+        var hasVendorPayNavSection = pageContent.Contains("Vendor Pay") && pageContent.Contains("vendorpay");
+        TestLogs.LogInformation($"VendorPayNav section rendered: {hasVendorPayNavSection}");
+        Assert.False(hasVendorPayNavSection, "VendorPayNav section should not be rendered for users without permission");
+        
+        // Try to directly navigate to VendorPay pages - should get 403 or redirect
+        var vendorPayUrls = new[]
+        {
+            $"/plugins/{storeId}/vendorpay/list",
+            $"/plugins/{storeId}/vendorpay/users/list",
+            $"/plugins/{storeId}/vendorpay/settings"
+        };
+        
+        foreach (var url in vendorPayUrls)
+        {
+            TestLogs.LogInformation($"Attempting to access: {url}");
+            await GoToUrl(url);
+            
+            var currentUrl = Page.Url;
+            TestLogs.LogInformation($"Current URL after navigation: {currentUrl}");
+            
+            // Either we're redirected to an error/access denied page or don't end up on vendorpay
+            var isAccessDenied = currentUrl.Contains("/error") ||
+                                 currentUrl.Contains("/login") ||
+                                 !currentUrl.Contains("/vendorpay");
+            
+            Assert.True(isAccessDenied, $"User should not have access to {url}. Current URL: {currentUrl}");
+        }
+        
+        TestLogs.LogInformation("Verified: User without VendorPay permission cannot see or access VendorPay pages");
+    }
 }

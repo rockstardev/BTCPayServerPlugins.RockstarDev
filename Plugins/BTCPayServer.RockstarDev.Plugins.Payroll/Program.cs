@@ -43,7 +43,7 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin, IPluginPermissionProvider
         // Register as plugin permission provider
         serviceCollection.AddSingleton<IPluginPermissionProvider>(this);
 
-        
+
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
 
