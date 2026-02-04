@@ -29,10 +29,9 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     public async Task ServerRolesPage_DisplaysPluginPermissions()
     {
         /*
-         * TEST ASSUMPTIONS:
-         * 1. Server roles page should display plugin permissions
-         * 2. Plugin permissions should appear in "Plugin Permissions" section
-         * 3. VendorPay permission should be visible and checkable
+         * TEST: Verify plugin permissions are displayed on Server Roles page
+         * This is a simpler test than PluginPermission_SavedAndDisplayedCorrectly
+         * which tests the full save/load cycle. This just verifies display.
          */
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
@@ -42,114 +41,29 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         
-        // Navigate directly to Server Roles Owner page
+        // Navigate to Server Roles Owner page
         await GoToUrl("/server/roles/Owner");
-        
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         
-        // Verify we're on the role edit page
-        var rolePageTitle = await Page.Locator("h1, h2").First.TextContentAsync();
-        TestLogs.LogInformation($"Role page title: {rolePageTitle}");
+        // Verify plugin permissions section exists
+        var pluginPermissionsHeading = Page.Locator("h5:has-text('Plugin Permissions')");
+        var hasPluginSection = await pluginPermissionsHeading.CountAsync() > 0;
+        Assert.True(hasPluginSection, "Server Roles page should have Plugin Permissions section");
         
-        // Look for "Permissions" section
-        var permissionsHeading = Page.Locator("h3, h4, h5").Locator("text=/Permissions/i");
-        if (await permissionsHeading.CountAsync() > 0)
+        // Verify VendorPay permission is visible
+        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var vendorPayExists = await vendorPayCheckbox.CountAsync() > 0;
+        Assert.True(vendorPayExists, "VendorPay plugin permission should be visible");
+        
+        // Verify display name
+        var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
+        if (await manageLabel.CountAsync() > 0)
         {
-            TestLogs.LogInformation("Found Permissions heading");
+            var labelText = await manageLabel.TextContentAsync();
+            Assert.Contains("Vendor Pay", labelText);
         }
         
-        // Look for "Modify your stores" permission section
-        var modifyStoresSection = Page.Locator("text=/Modify your stores/i");
-        var modifyStoresExists = await modifyStoresSection.CountAsync() > 0;
-        TestLogs.LogInformation($"'Modify your stores' section exists: {modifyStoresExists}");
-        
-        if (modifyStoresExists)
-        {
-            // Get all permission checkboxes
-            var allCheckboxes = Page.Locator("input.policy-cb");
-            var checkboxCount = await allCheckboxes.CountAsync();
-            TestLogs.LogInformation($"Total permission checkboxes found: {checkboxCount}");
-            
-            // Get all permission labels
-            var allLabels = Page.Locator("label");
-            var labelCount = await allLabels.CountAsync();
-            TestLogs.LogInformation($"Total labels found: {labelCount}");
-            
-            // Log all permission text for debugging
-            for (int i = 0; i < Math.Min(labelCount, 50); i++)
-            {
-                var labelText = await allLabels.Nth(i).TextContentAsync();
-                if (!string.IsNullOrWhiteSpace(labelText))
-                {
-                    TestLogs.LogInformation($"Permission {i}: {labelText.Trim()}");
-                }
-            }
-            
-            // Look for plugin permissions (should appear after "Modify your stores" section)
-            // Plugin permissions should have format like "btcpay.plugin.{pluginname}.{action}"
-            var pluginPermissionCheckboxes = Page.Locator("input.policy-cb[value^='btcpay.plugin.']");
-            var pluginPermissionCount = await pluginPermissionCheckboxes.CountAsync();
-            TestLogs.LogInformation($"Plugin permission checkboxes found: {pluginPermissionCount}");
-            
-            // Verify the page structure is correct for plugin permissions to be added
-            // The permissions form should exist
-            var permissionsForm = Page.Locator("form");
-            Assert.True(await permissionsForm.CountAsync() > 0, "Permissions form should exist");
-            
-            // Verify we have core store permissions (server roles can assign store permissions)
-            // The permission value format is like "btcpay.store.canmodifystoresettings"
-            var storePermissionCheckboxes = Page.Locator("input.policy-cb[value^='btcpay.store']");
-            var storePermissionCount = await storePermissionCheckboxes.CountAsync();
-            TestLogs.LogInformation($"Found {storePermissionCount} store permission checkboxes");
-            Assert.True(storePermissionCount > 0, "Core store permissions should exist on server roles page");
-            
-            // Verify plugin permissions are now visible (feature implemented!)
-            // The VendorPay plugin should register its permission
-            TestLogs.LogInformation($"Plugin permissions found: {pluginPermissionCount}");
-            Assert.True(pluginPermissionCount > 0, "Plugin permissions should be visible now that feature is implemented");
-            
-            // Verify we can find the VendorPay plugin permission
-            var vendorPayManagePermission = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
-            var vendorPayManageExists = await vendorPayManagePermission.CountAsync() > 0;
-            TestLogs.LogInformation($"VendorPay plugin 'manage' permission exists: {vendorPayManageExists}");
-            Assert.True(vendorPayManageExists, "VendorPay plugin permission should be visible");
-            
-            if (vendorPayManageExists)
-            {
-                // Verify the display name is shown correctly
-                var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
-                if (await manageLabel.CountAsync() > 0)
-                {
-                    var labelText = await manageLabel.TextContentAsync();
-                    TestLogs.LogInformation($"VendorPay plugin 'manage' permission label: {labelText}");
-                    Assert.Contains("Vendor Pay", labelText);
-                }
-            }
-            
-            // Take a screenshot for visual verification
-            await Page.ScreenshotAsync(new PageScreenshotOptions 
-            { 
-                Path = $"server-roles-permissions-{DateTime.UtcNow:yyyyMMdd-HHmmss}.png",
-                FullPage = true
-            });
-            
-            TestLogs.LogInformation("Test completed successfully - page structure verified, ready for plugin permissions implementation");
-        }
-        else
-        {
-            // If we can't find the permissions section, log the page content for debugging
-            var pageContent = await Page.ContentAsync();
-            TestLogs.LogInformation($"Page content length: {pageContent.Length}");
-            
-            // Take a screenshot
-            await Page.ScreenshotAsync(new PageScreenshotOptions 
-            { 
-                Path = $"server-roles-page-{DateTime.UtcNow:yyyyMMdd-HHmmss}.png",
-                FullPage = true
-            });
-            
-            Assert.Fail("Could not find 'Modify your stores' permission section on the page");
-        }
+        TestLogs.LogInformation("Verified: Plugin permissions display correctly on Server Roles page");
     }
 
     [Fact]
@@ -409,12 +323,15 @@ public class PluginPermissionUITest : PlaywrightBaseTest
          * 6. Orphaned permissions should still be editable (can be unchecked/removed)
          * 7. Warning section should have alert styling (yellow/warning color)
          * 8. Warning section should explain that permissions are from uninstalled plugins
+         * 9. Orphaned permissions should be preserved when form is submitted if they remain checked
+         * 10. Orphaned permissions should be removed when unchecked and form is submitted
          * 
          * IMPLEMENTATION APPROACH:
          * - Since we can't actually uninstall VendorPay plugin in test, we'll:
          *   1. Create a role with a fake orphaned permission directly in database
          *   2. Verify the UI displays it with warning indicators
-         *   3. Test that it can be removed from the role
+         *   3. Test that it persists when form is submitted with it checked
+         *   4. Test that it can be removed from the role when unchecked
          */
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
@@ -472,14 +389,35 @@ public class PluginPermissionUITest : PlaywrightBaseTest
                 "Orphaned permission label should contain warning indicator");
         }
         
-        // 5. Verify we can uncheck it (should be editable)
+        // 5. Test that orphaned permission persists when form is submitted with it checked
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        TestLogs.LogInformation("Submitted form with orphaned permission checked");
+        
+        // Reload and verify orphaned permission is still there
+        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
+        var stillExists = await orphanedCheckbox.CountAsync() > 0;
+        Assert.True(stillExists, "Orphaned permission should persist after form submission");
+        
+        if (stillExists)
+        {
+            var stillChecked = await orphanedCheckbox.IsCheckedAsync();
+            Assert.True(stillChecked, "Orphaned permission should remain checked after form submission");
+            TestLogs.LogInformation("Verified: Orphaned permission persists when form is submitted with it checked");
+        }
+        
+        // 6. Now test that we can uncheck and remove it
         await orphanedCheckbox.UncheckAsync();
         await orphanedCheckbox.DispatchEventAsync("change");
         
         var isUnchecked = !(await orphanedCheckbox.IsCheckedAsync());
         Assert.True(isUnchecked, "Should be able to uncheck orphaned permission");
         
-        // 6. Save and verify it was removed
+        // 7. Save and verify it was removed
         await Page.Locator("button[type='submit']").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
@@ -488,13 +426,14 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
         orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
-        if (await orphanedCheckbox.CountAsync() > 0)
+        var removedSuccessfully = await orphanedCheckbox.CountAsync() == 0;
+        if (!removedSuccessfully && await orphanedCheckbox.CountAsync() > 0)
         {
-            var stillChecked = await orphanedCheckbox.IsCheckedAsync();
-            Assert.False(stillChecked, "Orphaned permission should have been removed");
+            var stillCheckedAfterRemoval = await orphanedCheckbox.IsCheckedAsync();
+            Assert.False(stillCheckedAfterRemoval, "Orphaned permission should have been removed");
         }
         
-        TestLogs.LogInformation("Verified: Orphaned permissions display with warnings and can be removed");
+        TestLogs.LogInformation("Verified: Orphaned permissions display with warnings, persist when checked, and can be removed when unchecked");
     }
 
     [Fact]
