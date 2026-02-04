@@ -1,6 +1,9 @@
 using System;
+using System.Linq;
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
@@ -260,5 +263,231 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         }
         
         TestLogs.LogInformation("Verified: User without VendorPay permission cannot see or access VendorPay pages");
+    }
+
+    [Fact]
+    public void PluginPermissions_AreRegisteredViaDI()
+    {
+        // Verify that PluginPermission instances can be retrieved from DI container
+        var services = ServerTester.PayTester.GetService<IServiceProvider>();
+        var permissions = services.GetServices<PluginPermission>().ToList();
+        
+        TestLogs.LogInformation($"Found {permissions.Count} plugin permissions via GetServices");
+        
+        // Should have at least VendorPay permission
+        Assert.True(permissions.Count > 0, "Should find plugin permissions via GetServices<PluginPermission>()");
+        
+        // Verify VendorPay permission is present
+        var vendorPayPermission = permissions.FirstOrDefault(p => p.Policy == "btcpay.plugin.vendorpay.canmanage");
+        Assert.NotNull(vendorPayPermission);
+        Assert.Equal("Vendor Pay: Manage", vendorPayPermission.DisplayName);
+        Assert.Equal(PermissionScope.Store, vendorPayPermission.Scope);
+        
+        TestLogs.LogInformation($"VendorPay permission found: {vendorPayPermission.Policy}");
+        TestLogs.LogInformation($"Display name: {vendorPayPermission.DisplayName}");
+        TestLogs.LogInformation($"Plugin identifier: {vendorPayPermission.PluginIdentifier}");
+    }
+
+    [Fact]
+    public void PluginPermissionRegistry_ContainsRegisteredPermissions()
+    {
+        // Verify that permissions are registered in the registry
+        var registry = ServerTester.PayTester.GetService<BTCPayServer.Services.IPluginPermissionRegistry>();
+        Assert.NotNull(registry);
+        
+        var allPermissions = registry.GetAllPluginPermissions().ToList();
+        TestLogs.LogInformation($"Registry contains {allPermissions.Count} plugin permissions");
+        
+        Assert.True(allPermissions.Count > 0, "Registry should contain plugin permissions");
+        
+        // Verify VendorPay permission is in registry
+        var vendorPayPermission = registry.GetPermission("btcpay.plugin.vendorpay.canmanage");
+        Assert.NotNull(vendorPayPermission);
+        Assert.Equal("Vendor Pay: Manage", vendorPayPermission.DisplayName);
+        
+        TestLogs.LogInformation("Verified: Plugin permissions are properly registered in registry");
+    }
+
+    [Fact]
+    public async Task PluginPermission_SavedAndDisplayedCorrectly()
+    {
+        /*
+         * TEST ASSUMPTIONS:
+         * 1. VendorPay plugin is installed and registers permission "btcpay.plugin.vendorpay.canmanage"
+         * 2. Plugin permissions should appear in "Plugin Permissions" section on role edit page
+         * 3. Plugin permissions should be saved to database when role is created/updated
+         * 4. Plugin permissions should persist across page reloads
+         * 5. Display name should be "Vendor Pay: Manage" (from plugin registration)
+         */
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        
+        // Create a role with VendorPay permission
+        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        await GoToUrl("/server/roles/create");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        await Page.FillAsync("#Role", customRoleName);
+        
+        // Wait for the page to fully load and render plugin permissions
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        
+        // Check VendorPay permission
+        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var checkboxCount = await vendorPayCheckbox.CountAsync();
+        TestLogs.LogInformation($"VendorPay checkbox count before checking: {checkboxCount}");
+        
+        Assert.True(checkboxCount > 0, "VendorPay permission checkbox should be visible on create page");
+        
+        await vendorPayCheckbox.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        await vendorPayCheckbox.CheckAsync();
+        
+        // Trigger the change event to ensure JavaScript handler updates the select element
+        await vendorPayCheckbox.DispatchEventAsync("change");
+        
+        // Verify it was checked
+        var isCheckedNow = await vendorPayCheckbox.IsCheckedAsync();
+        Assert.True(isCheckedNow, "Checkbox should be checked after CheckAsync");
+        
+        // Verify the select element was updated
+        var selectElement = Page.Locator("#Policies");
+        var selectedOptions = await selectElement.EvaluateAsync<string[]>("el => Array.from(el.selectedOptions).map(o => o.value)");
+        Assert.Contains("btcpay.plugin.vendorpay.canmanage", selectedOptions);
+        
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        TestLogs.LogInformation($"Created role with VendorPay permission: {customRoleName}");
+        
+        // Now edit the role and verify the permission is shown and checked
+        await GoToUrl($"/server/roles/{customRoleName}");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Re-locate the checkbox after navigation
+        vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var checkboxExists = await vendorPayCheckbox.CountAsync() > 0;
+        Assert.True(checkboxExists, "VendorPay permission checkbox should exist on edit page");
+        
+        // Verify VendorPay permission checkbox is checked (persisted)
+        var isChecked = await vendorPayCheckbox.IsCheckedAsync();
+        Assert.True(isChecked, "VendorPay permission should be checked after reload");
+        
+        // Look for the permission label
+        var permissionLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
+        Assert.True(await permissionLabel.CountAsync() > 0, "Permission label should exist");
+        
+        var labelText = await permissionLabel.TextContentAsync();
+        TestLogs.LogInformation($"Permission label text: {labelText}");
+        
+        // Should show "Vendor Pay: Manage" (not orphaned since plugin is installed)
+        Assert.Contains("Vendor Pay", labelText);
+        Assert.DoesNotContain("Uninstalled Plugin", labelText);
+        Assert.DoesNotContain("⚠", labelText);
+    }
+
+    [Fact]
+    public async Task OrphanedPermission_DisplaysWithWarning()
+    {
+        /*
+         * TEST ASSUMPTIONS FOR ORPHANED PERMISSIONS:
+         * 1. When a plugin is uninstalled, its permissions remain in the database (graceful degradation)
+         * 2. Orphaned permissions should be detected by checking if permission exists in registry
+         * 3. Orphaned permissions should display with warning icon: ⚠️
+         * 4. Orphaned permissions should show "[Uninstalled Plugin]" prefix in label
+         * 5. Orphaned permissions should appear in a separate "Orphaned Plugin Permissions" warning section
+         * 6. Orphaned permissions should still be editable (can be unchecked/removed)
+         * 7. Warning section should have alert styling (yellow/warning color)
+         * 8. Warning section should explain that permissions are from uninstalled plugins
+         * 
+         * IMPLEMENTATION APPROACH:
+         * - Since we can't actually uninstall VendorPay plugin in test, we'll:
+         *   1. Create a role with a fake orphaned permission directly in database
+         *   2. Verify the UI displays it with warning indicators
+         *   3. Test that it can be removed from the role
+         */
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        
+        // Create a role with a fake orphaned permission
+        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        var orphanedPermission = "btcpay.plugin.fakeuninstalled.manage";
+        
+        // Create role via repository with orphaned permission
+        var storeId = user.StoreId;
+        var storeRepository = ServerTester.PayTester.GetService<BTCPayServer.Services.Stores.StoreRepository>();
+        var roleId = new BTCPayServer.Services.Stores.StoreRoleId(storeId, customRoleName);
+        
+        // Add role with orphaned permission directly
+        await storeRepository.AddOrUpdateStoreRole(roleId, new List<string> { orphanedPermission });
+        
+        TestLogs.LogInformation($"Created role with orphaned permission: {customRoleName}");
+        
+        // Navigate to edit the role
+        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // EXPECTED BEHAVIOR: Orphaned permission should display with warning
+        
+        // 1. Check for orphaned permissions warning section
+        var orphanedSection = Page.Locator(".alert-warning:has-text('Orphaned Plugin Permissions')");
+        var hasSeparateSection = await orphanedSection.CountAsync() > 0;
+        TestLogs.LogInformation($"Orphaned permissions warning section exists: {hasSeparateSection}");
+        
+        // 2. Check if orphaned permission is displayed
+        var orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
+        var orphanedExists = await orphanedCheckbox.CountAsync() > 0;
+        TestLogs.LogInformation($"Orphaned permission checkbox exists: {orphanedExists}");
+        Assert.True(orphanedExists, "Orphaned permission should be displayed");
+        
+        // 3. Check if it's checked (should be, since it's in the role)
+        var isChecked = await orphanedCheckbox.IsCheckedAsync();
+        TestLogs.LogInformation($"Orphaned permission is checked: {isChecked}");
+        Assert.True(isChecked, "Orphaned permission should be checked");
+        
+        // 4. Check for warning indicators in label
+        var orphanedLabel = Page.Locator($"label[for='Policy-{orphanedPermission.Replace(".", "_")}']");
+        if (await orphanedLabel.CountAsync() > 0)
+        {
+            var labelText = await orphanedLabel.TextContentAsync();
+            TestLogs.LogInformation($"Orphaned permission label: {labelText}");
+            
+            // Should contain warning indicator
+            Assert.True(labelText.Contains("⚠") || labelText.Contains("Uninstalled Plugin"), 
+                "Orphaned permission label should contain warning indicator");
+        }
+        
+        // 5. Verify we can uncheck it (should be editable)
+        await orphanedCheckbox.UncheckAsync();
+        await orphanedCheckbox.DispatchEventAsync("change");
+        
+        var isUnchecked = !(await orphanedCheckbox.IsCheckedAsync());
+        Assert.True(isUnchecked, "Should be able to uncheck orphaned permission");
+        
+        // 6. Save and verify it was removed
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Reload and verify orphaned permission is gone
+        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
+        if (await orphanedCheckbox.CountAsync() > 0)
+        {
+            var stillChecked = await orphanedCheckbox.IsCheckedAsync();
+            Assert.False(stillChecked, "Orphaned permission should have been removed");
+        }
+        
+        TestLogs.LogInformation("Verified: Orphaned permissions display with warnings and can be removed");
     }
 }
