@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
@@ -17,17 +18,12 @@ using Microsoft.Extensions.Hosting;
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay;
 
 // ReSharper disable once UnusedType.Global
-public class VendorPayPlugin : BaseBTCPayServerPlugin, IPluginPermissionProvider
+public class VendorPayPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
         new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
     ];
-
-    public IEnumerable<PluginPermission> GetPermissions()
-    {
-        return VendorPayPermissions.AllPermissions(Identifier);
-    }
 
     public override void Execute(IServiceCollection serviceCollection)
     {
@@ -40,8 +36,13 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin, IPluginPermissionProvider
             options.AddPolicy(VendorPayPermissions.CanManageVendorPay,
                 policy => policy.AddRequirements(new PolicyRequirement(VendorPayPermissions.CanManageVendorPay)));
         });
-        // Register as plugin permission provider
-        serviceCollection.AddSingleton<IPluginPermissionProvider>(this);
+        
+        // Inject plugin permissions directly into DI container
+        // This follows the maintainer's suggestion to avoid interfaces
+        foreach (var permission in VendorPayPermissions.AllPermissions(Identifier))
+        {
+            serviceCollection.AddSingleton(permission);
+        }
 
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
