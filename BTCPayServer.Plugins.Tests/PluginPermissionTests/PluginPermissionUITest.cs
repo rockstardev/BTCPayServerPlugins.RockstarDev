@@ -28,6 +28,12 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     [Fact]
     public async Task ServerRolesPage_DisplaysPluginPermissions()
     {
+        /*
+         * TEST ASSUMPTIONS:
+         * 1. Server roles page should display plugin permissions
+         * 2. Plugin permissions should appear in "Plugin Permissions" section
+         * 3. VendorPay permission should be visible and checkable
+         */
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
         await user.GrantAccessAsync();
@@ -489,5 +495,76 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         }
         
         TestLogs.LogInformation("Verified: Orphaned permissions display with warnings and can be removed");
+    }
+
+    [Fact]
+    public async Task StoreRolesPage_DisplaysPluginPermissions()
+    {
+        /*
+         * TEST ASSUMPTIONS:
+         * 1. Store roles page should display plugin permissions (same as Server roles)
+         * 2. Plugin permissions should appear in "Plugin Permissions" section
+         * 3. VendorPay permission should be visible and checkable
+         * 4. Plugin permissions should be saved to store roles
+         * 5. Store-scoped plugin permissions should work the same as server-scoped
+         */
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        
+        var storeId = user.StoreId;
+        
+        // Create a new store role
+        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        await GoToUrl($"/stores/{storeId}/roles/create");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        await Page.FillAsync("#Role", customRoleName);
+        
+        // Wait for plugin permissions to load
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        
+        // Check for Plugin Permissions section
+        var pluginPermissionsHeading = Page.Locator("h5:has-text('Plugin Permissions')");
+        var hasPluginSection = await pluginPermissionsHeading.CountAsync() > 0;
+        TestLogs.LogInformation($"Plugin Permissions section exists on Store Roles page: {hasPluginSection}");
+        
+        // This should be true after implementation
+        Assert.True(hasPluginSection, "Store Roles page should have Plugin Permissions section");
+        
+        // Check for VendorPay permission checkbox
+        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var checkboxCount = await vendorPayCheckbox.CountAsync();
+        TestLogs.LogInformation($"VendorPay permission checkbox count: {checkboxCount}");
+        
+        Assert.True(checkboxCount > 0, "VendorPay permission should be visible in Store Roles");
+        
+        // Check the VendorPay permission
+        await vendorPayCheckbox.CheckAsync();
+        await vendorPayCheckbox.DispatchEventAsync("change");
+        
+        // Verify it was checked
+        var isChecked = await vendorPayCheckbox.IsCheckedAsync();
+        Assert.True(isChecked, "VendorPay permission should be checkable");
+        
+        // Save the role
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        TestLogs.LogInformation($"Created store role with VendorPay permission: {customRoleName}");
+        
+        // Navigate back to edit and verify permission persisted
+        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var stillChecked = await vendorPayCheckbox.IsCheckedAsync();
+        Assert.True(stillChecked, "VendorPay permission should persist in store role");
+        
+        TestLogs.LogInformation("Verified: Plugin permissions display and work correctly in Store Roles");
     }
 }
