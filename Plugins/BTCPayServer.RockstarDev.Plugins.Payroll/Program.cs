@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
@@ -31,9 +33,17 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
         serviceCollection.AddAuthorization(options =>
         {
-            options.AddPolicy(VendorPayPolicies.CanManageVendorPay,
-                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPolicies.CanManageVendorPay)));
+            options.AddPolicy(VendorPayPermissions.CanManageVendorPay,
+                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPermissions.CanManageVendorPay)));
         });
+
+        // Inject plugin permissions directly into DI container
+        // This follows the maintainer's suggestion to avoid interfaces
+        // foreach (var permission in VendorPayPermissions.AllPermissions(Identifier))
+        // {
+        //     serviceCollection.AddSingleton(permission);
+        // }
+
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
         serviceCollection.AddSingleton<EmailService>();
@@ -57,7 +67,6 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
         serviceCollection.AddReportProvider<VendorPayReportProvider>();
-
 
         var assembly = Assembly.GetExecutingAssembly();
         serviceCollection.PostConfigure<StaticFileOptions>(options =>

@@ -29,7 +29,8 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
         AuthorizationHandlerContext context,
         PolicyRequirement requirement)
     {
-        if (requirement.Policy != VendorPayPolicies.CanManageVendorPay)
+        // Handle any VendorPay plugin permission (generic approach)
+        if (!requirement.Policy.StartsWith("btcpay.plugin.vendorpay.", System.StringComparison.OrdinalIgnoreCase))
             return;
 
         var httpContext = _httpContextAccessor.HttpContext;
@@ -51,24 +52,19 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
         // Set store data in HTTP context so it's available to controllers/views
         httpContext.SetStoreData(store);
 
-        // Check if user has CanModifyStoreSettings permission
+        // Check if user has the plugin permission in their role
+        var storeRole = store.GetStoreRoleOfUser(user.Id);
+        if (storeRole?.Permissions != null &&
+            storeRole.Permissions.Contains(requirement.Policy))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        // Fallback: Check if user has CanModifyStoreSettings permission (for backward compatibility)
         if (store.HasPermission(user.Id, Policies.CanModifyStoreSettings))
         {
             context.Succeed(requirement);
-            return;
         }
-
-        // Check if user has CanViewStoreSettings permission (workaround - appears in UI)
-        if (store.HasPermission(user.Id, Policies.CanViewStoreSettings))
-        {
-            context.Succeed(requirement);
-            return;
-        }
-
-        // Check if user has the custom VendorPay permission (for future use)
-        var storeRole = store.GetStoreRoleOfUser(user.Id);
-        if (storeRole?.Permissions != null &&
-            storeRole.Permissions.Contains(VendorPayPolicies.CanManageVendorPay))
-            context.Succeed(requirement);
     }
 }

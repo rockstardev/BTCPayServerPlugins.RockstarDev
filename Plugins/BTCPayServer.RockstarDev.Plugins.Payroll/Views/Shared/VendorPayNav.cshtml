@@ -8,7 +8,7 @@
 }
 @if (!string.IsNullOrEmpty(storeId))
 {
-    <li class="nav-item" permission="@VendorPayPolicies.CanManageVendorPay">
+    <li class="nav-item" permission="@VendorPayPermissions.CanManageVendorPay">
         <a layout-menu-item="@nameof(VendorPayNavPages.VendorPayInvoices)" asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId">
             <svg class="icon" role="img" viewBox="0 0 122.88 102.3">
                 <defs>
@@ -23,20 +23,21 @@
             </svg>
             <span text-translate="true">Vendor Pay</span>
         </a>
-    </li>
-}
-@if (ViewData.IsCategory(nameof(VendorPayNavPages)))
-{
-    <li class="nav-item nav-item-sub" permission="@VendorPayPolicies.CanManageVendorPay">
-        <a layout-menu-item="@nameof(VendorPayNavPages.VendorPayInvoices)" asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId"
-           text-translate="true">Invoices</a>
-    </li>
-    <li class="nav-item nav-item-sub" permission="@VendorPayPolicies.CanManageVendorPay">
-        <a layout-menu-item="@nameof(VendorPayNavPages.VendorPayUsers)" asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId"
-           text-translate="true">Users</a>
-    </li>
-    <li class="nav-item nav-item-sub" permission="@VendorPayPolicies.CanManageVendorPay">
-        <a layout-menu-item="@nameof(VendorPayNavPages.VendorPaySettings)" asp-controller="VendorPaySetting" asp-action="Settings" asp-route-storeId="@storeId"
-           text-translate="true">Settings</a>
+        @if (ViewData.IsCategory(nameof(VendorPayNavPages)))
+        {
+        <li class="nav-item nav-item-sub">
+            <a layout-menu-item="@nameof(VendorPayNavPages.VendorPayInvoices)" asp-controller="VendorPayInvoice" asp-action="List" asp-route-storeId="@storeId"
+               text-translate="true">Invoices</a>
+        </li>
+        <li class="nav-item nav-item-sub">
+            <a layout-menu-item="@nameof(VendorPayNavPages.VendorPayUsers)" asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId"
+               text-translate="true">Users</a>
+        </li>
+        <li class="nav-item nav-item-sub">
+            <a layout-menu-item="@nameof(VendorPayNavPages.VendorPaySettings)" asp-controller="VendorPaySetting" asp-action="Settings"
+               asp-route-storeId="@storeId"
+               text-translate="true">Settings</a>
+        </li>
+    }
     </li>
 }
