@@ -156,7 +156,7 @@ public class VoucherController : Controller
                 Prefixed = new[] { 0, 2 }.Contains(numberFormatInfo.CurrencyPositivePattern),
                 SymbolSpace = new[] { 2, 3 }.Contains(numberFormatInfo.CurrencyPositivePattern)
             },
-            Items = new ViewPointOfSaleViewModel.AppItemViewModel[0],
+            Items = Array.Empty<AppItem>(),
             ButtonText = appSettings.ButtonText,
             CustomButtonText = appSettings.CustomButtonText,
             CustomTipText = appSettings.CustomTipText,

@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using BTCPayServer.Client.Models;
 using BTCPayServer.Plugins.PointOfSale.Models;
 
 namespace BTCPayServer.RockstarDev.Plugins.Vouchers.ViewModel;
 
 public class VoucherPointOfSaleViewModel : ViewPointOfSaleViewModel
 {
+    public new AppItem[] Items { get; set; }
     public List<StorePosAppItem> PoSApps { get; set; }
     public string CurrentAppId { get; set; }
     public List<string> AvailableVoucherTemplates { get; set; }

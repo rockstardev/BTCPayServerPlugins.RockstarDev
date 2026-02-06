@@ -7,9 +7,9 @@
     <!-- -->
     <!-- Plugin specific properties -->
     <PropertyGroup>
-        <Product>zzz - Vouchers</Product>
+        <Product>Vouchers</Product>
         <Description>THIS IS PRE-RELEASE ALPHA! Do NOT install unless you know what you are doing and want to test!</Description>
-        <Version>1.0.17</Version>
+        <Version>1.0.18</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
