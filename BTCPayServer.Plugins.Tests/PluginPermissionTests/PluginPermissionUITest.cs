@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.Services;
+using BTCPayServer.Services.Stores;
 using BTCPayServer.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
@@ -59,7 +61,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
         if (await manageLabel.CountAsync() > 0)
         {
-            var labelText = await manageLabel.TextContentAsync();
+            var labelText = await manageLabel.TextContentAsync() ?? string.Empty;
             Assert.Contains("Vendor Pay", labelText);
         }
         
@@ -82,7 +84,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await LogIn(admin.RegisterDetails.Email, admin.RegisterDetails.Password);
         
         // Create a custom role without VendorPay permission
-        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        var customRoleName = $"TestRole_{Guid.NewGuid():N}"[..15];
         await GoToUrl($"/stores/{storeId}/roles");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
@@ -110,7 +112,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         TestLogs.LogInformation($"Created custom role: {customRoleName}");
         
         // Create a server user first
-        var restrictedUserEmail = $"restricted-{System.Guid.NewGuid():N}"[..20] + "@test.com";
+        var restrictedUserEmail = $"restricted-{Guid.NewGuid():N}"[..20] + "@test.com";
         var restrictedUserPassword = "TestPassword123!";
         
         await GoToUrl("/server/users");
@@ -212,7 +214,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     public void PluginPermissionRegistry_ContainsRegisteredPermissions()
     {
         // Verify that permissions are registered in the registry
-        var registry = ServerTester.PayTester.GetService<BTCPayServer.Services.PluginPermissionRegistry>();
+        var registry = ServerTester.PayTester.GetService<PluginPermissionRegistry>();
         Assert.NotNull(registry);
         
         var allPermissions = registry.GetAllPluginPermissions().ToList();
@@ -284,7 +286,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         
         // Create a role with VendorPay permission
-        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        var customRoleName = $"TestRole_{Guid.NewGuid():N}"[..15];
         await GoToUrl("/server/roles/create");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
@@ -337,7 +339,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         var permissionLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
         Assert.True(await permissionLabel.CountAsync() > 0, "Permission label should exist");
         
-        var labelText = await permissionLabel.TextContentAsync();
+        var labelText = await permissionLabel.TextContentAsync() ?? string.Empty;
         TestLogs.LogInformation($"Permission label text: {labelText}");
         
         // Should show "Vendor Pay: Manage" (not orphaned since plugin is installed)
@@ -378,13 +380,14 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
         
         // Create a role with a fake orphaned permission
-        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        var customRoleName = $"TestRole_{Guid.NewGuid():N}"[..15];
         var orphanedPermission = "btcpay.plugin.fakeuninstalled.manage";
         
         // Create role via repository with orphaned permission
         var storeId = user.StoreId;
-        var storeRepository = ServerTester.PayTester.GetService<BTCPayServer.Services.Stores.StoreRepository>();
-        var roleId = new BTCPayServer.Services.Stores.StoreRoleId(storeId, customRoleName);
+        var storeRepository = ServerTester.PayTester.GetService<StoreRepository>();
+        Assert.NotNull(storeRepository);
+        var roleId = new StoreRoleId(storeId, customRoleName);
         
         // Add role with orphaned permission directly
         await storeRepository.AddOrUpdateStoreRole(roleId, new List<string> { orphanedPermission });
@@ -417,7 +420,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         var orphanedLabel = Page.Locator($"label[for='Policy-{orphanedPermission.Replace(".", "_")}']");
         if (await orphanedLabel.CountAsync() > 0)
         {
-            var labelText = await orphanedLabel.TextContentAsync();
+            var labelText = await orphanedLabel.TextContentAsync() ?? string.Empty;
             TestLogs.LogInformation($"Orphaned permission label: {labelText}");
             
             // Should contain warning indicator
@@ -494,7 +497,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         var storeId = user.StoreId;
         
         // Create a new store role
-        var customRoleName = $"TestRole_{System.Guid.NewGuid():N}"[..15];
+        var customRoleName = $"TestRole_{Guid.NewGuid():N}"[..15];
         await GoToUrl($"/stores/{storeId}/roles/create");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
