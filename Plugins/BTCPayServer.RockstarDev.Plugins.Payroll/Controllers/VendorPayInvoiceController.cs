@@ -26,7 +26,7 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [Route("~/plugins/{storeId}/vendorpay/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/", Order = 1)]
-[Authorize(Policy = VendorPayPermissions.CanManageVendorPay, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = VendorPayPermissions.InvoicesView, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 public class VendorPayInvoiceController(
     PluginDbContextFactory pluginDbContextFactory,
     DefaultRulesCollection defaultRulesCollection,
@@ -104,6 +104,7 @@ public class VendorPayInvoiceController(
     }
 
     [HttpPost]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> MassAction(string command, string[] selectedItems)
     {
         IActionResult NotSupported(string err)
@@ -248,6 +249,7 @@ public class VendorPayInvoiceController(
     }
 
     [HttpGet("upload")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> Upload(string storeId)
     {
         var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
@@ -277,6 +279,7 @@ public class VendorPayInvoiceController(
 
 
     [HttpPost("upload")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> Upload(string storeId, VendorPayInvoiceUploadViewModel model)
     {
         if (CurrentStore is null)
@@ -300,6 +303,7 @@ public class VendorPayInvoiceController(
     }
 
     [HttpGet("delete/{id}")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> Delete(string id)
     {
         if (CurrentStore is null)
@@ -330,6 +334,7 @@ public class VendorPayInvoiceController(
     }
 
     [HttpPost("delete/{id}")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> DeletePost(string id)
     {
         if (CurrentStore is null)
@@ -373,6 +378,7 @@ public class VendorPayInvoiceController(
     }
 
     [HttpGet("adminnote/{id}")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> AdminNote(string id)
     {
         if (CurrentStore is null)
@@ -391,6 +397,7 @@ public class VendorPayInvoiceController(
     }
 
     [HttpPost("adminnote/{id}")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> AdminNote(AdminNoteViewModel model)
     {
         if (CurrentStore is null)
