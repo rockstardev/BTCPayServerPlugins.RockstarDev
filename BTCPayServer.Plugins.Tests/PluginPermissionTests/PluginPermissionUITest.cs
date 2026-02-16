@@ -16,6 +16,11 @@ namespace BTCPayServer.Plugins.Tests;
 [Trait("Category", "PlaywrightUITest")]
 public class PluginPermissionUITest : PlaywrightBaseTest
 {
+    private const string VendorPayAdminPolicy = "btcpay.plugin.vendorpay.admin";
+    private const string VendorPayInvoicesManagePolicy = "btcpay.plugin.vendorpay.invoices.manage";
+    private const string VendorPayInvoicesViewPolicy = "btcpay.plugin.vendorpay.invoices.view";
+    private const string VendorPayUsersManagePolicy = "btcpay.plugin.vendorpay.users.manage";
+    private const string VendorPaySettingsManagePolicy = "btcpay.plugin.vendorpay.settings.manage";
     private readonly SharedPluginTestFixture _fixture;
 
     public PluginPermissionUITest(SharedPluginTestFixture fixture, ITestOutputHelper helper) : base(helper)
@@ -53,12 +58,12 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(hasPluginSection, "Server Roles page should have Plugin Permissions section");
         
         // Verify VendorPay permission is visible
-        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         var vendorPayExists = await vendorPayCheckbox.CountAsync() > 0;
         Assert.True(vendorPayExists, "VendorPay plugin permission should be visible");
         
         // Verify display name
-        var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
+        var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_admin']");
         if (await manageLabel.CountAsync() > 0)
         {
             var labelText = await manageLabel.TextContentAsync() ?? string.Empty;
@@ -100,7 +105,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await Page.Locator("input.policy-cb[value='btcpay.store.canviewinvoices']").First.CheckAsync();
         
         // Make sure VendorPay permission is NOT checked
-        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         if (await vendorPayCheckbox.CountAsync() > 0)
         {
             await vendorPayCheckbox.UncheckAsync();
@@ -188,6 +193,79 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public async Task UserWithInvoicesManagePermission_CanAccessInvoiceViewButNotUsersOrSettings()
+    {
+        await InitializePlaywright(ServerTester);
+
+        // Create admin user and store
+        var admin = ServerTester.NewAccount();
+        await admin.GrantAccessAsync();
+        await admin.MakeAdmin(true);
+        var storeId = admin.StoreId;
+
+        await GoToUrl("/login");
+        await LogIn(admin.RegisterDetails.Email, admin.RegisterDetails.Password);
+
+        // Create a custom role with invoices.manage only
+        var customRoleName = $"TestRole_{Guid.NewGuid():N}"[..15];
+        await GoToUrl($"/stores/{storeId}/roles/create");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await Page.FillAsync("#Role", customRoleName);
+        var invoicesManageCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayInvoicesManagePolicy}']");
+        Assert.True(await invoicesManageCheckbox.CountAsync() > 0, "VendorPay invoices.manage checkbox should be visible");
+        await invoicesManageCheckbox.CheckAsync();
+        await invoicesManageCheckbox.DispatchEventAsync("change");
+
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Create a regular user and assign the custom role
+        var restrictedUserEmail = $"manage-only-{Guid.NewGuid():N}"[..20] + "@test.com";
+        var restrictedUserPassword = "TestPassword123!";
+
+        await GoToUrl("/server/users/new");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.FillAsync("#Email", restrictedUserEmail);
+        await Page.FillAsync("#Password", restrictedUserPassword);
+        await Page.FillAsync("#ConfirmPassword", restrictedUserPassword);
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await GoToUrl($"/stores/{storeId}/users");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.FillAsync("input[placeholder='user@example.com']", restrictedUserEmail);
+        await Page.Locator("#Role").First.SelectOptionAsync(customRoleName);
+        await Page.Locator("button#AddUser").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Login as restricted user
+        await Page.Context.ClearCookiesAsync();
+        await GoToUrl("/login");
+        await LogIn(restrictedUserEmail, restrictedUserPassword);
+
+        // invoices.manage should satisfy invoices.view requirement on list endpoint
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        Assert.Contains($"/plugins/{storeId}/vendorpay/list", Page.Url);
+
+        // But users/settings should remain forbidden
+        foreach (var forbiddenUrl in new[]
+                 {
+                     $"/plugins/{storeId}/vendorpay/users/list",
+                     $"/plugins/{storeId}/vendorpay/settings"
+                 })
+        {
+            await GoToUrl(forbiddenUrl);
+            var currentUrl = Page.Url;
+            var denied = currentUrl.Contains("/error") ||
+                         currentUrl.Contains("/login") ||
+                         !currentUrl.Contains("/vendorpay/users/list") && !currentUrl.Contains("/vendorpay/settings");
+            Assert.True(denied, $"User should not have access to {forbiddenUrl}. Current URL: {currentUrl}");
+        }
+    }
+
+    [Fact]
     public void PluginPermissions_AreRegisteredViaDI()
     {
         // Verify that PluginPermission instances can be retrieved from DI container
@@ -200,10 +278,12 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(permissions.Count > 0, "Should find plugin permissions via GetServices<PluginPermission>()");
         
         // Verify VendorPay permission is present
-        var vendorPayPermission = permissions.FirstOrDefault(p => p.Policy == "btcpay.plugin.vendorpay.canmanage");
+        var vendorPayPermission = permissions.FirstOrDefault(p => p.Policy == VendorPayAdminPolicy);
         Assert.NotNull(vendorPayPermission);
-        Assert.Equal("Vendor Pay: Manage", vendorPayPermission.DisplayName);
-        Assert.Equal(PermissionScope.Store, vendorPayPermission.Scope);
+        Assert.Equal("Vendor Pay: Admin", vendorPayPermission.DisplayName);
+
+        var invoicesManagePermission = permissions.FirstOrDefault(p => p.Policy == VendorPayInvoicesManagePolicy);
+        Assert.NotNull(invoicesManagePermission);
         
         TestLogs.LogInformation($"VendorPay permission found: {vendorPayPermission.Policy}");
         TestLogs.LogInformation($"Display name: {vendorPayPermission.DisplayName}");
@@ -223,9 +303,9 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(allPermissions.Count > 0, "Registry should contain plugin permissions");
         
         // Verify VendorPay permission is in registry
-        var vendorPayPermission = registry.GetPermission("btcpay.plugin.vendorpay.canmanage");
+        var vendorPayPermission = registry.GetPermission(VendorPayAdminPolicy);
         Assert.NotNull(vendorPayPermission);
-        Assert.Equal("Vendor Pay: Manage", vendorPayPermission.DisplayName);
+        Assert.Equal("Vendor Pay: Admin", vendorPayPermission.DisplayName);
         
         TestLogs.LogInformation("Verified: Plugin permissions are properly registered in registry");
     }
@@ -267,15 +347,25 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public void VendorPayPolicyNames_AreRegisteredForHierarchyRollout()
+    {
+        var registry = ServerTester.PayTester.GetService<PluginPermissionRegistry>();
+        Assert.NotNull(registry);
+
+        Assert.NotNull(registry.GetPermission(VendorPayInvoicesManagePolicy));
+        Assert.NotNull(registry.GetPermission(VendorPayInvoicesViewPolicy));
+    }
+
+    [Fact]
     public async Task PluginPermission_SavedAndDisplayedCorrectly()
     {
         /*
          * TEST ASSUMPTIONS:
-         * 1. VendorPay plugin is installed and registers permission "btcpay.plugin.vendorpay.canmanage"
+         * 1. VendorPay plugin is installed and registers permission "btcpay.plugin.vendorpay.admin"
          * 2. Plugin permissions should appear in "Plugin Permissions" section on role edit page
          * 3. Plugin permissions should be saved to database when role is created/updated
          * 4. Plugin permissions should persist across page reloads
-         * 5. Display name should be "Vendor Pay: Manage" (from plugin registration)
+         * 5. Display name should be "Vendor Pay: Admin" (from plugin registration)
          */
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
@@ -296,7 +386,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         
         // Check VendorPay permission
-        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         var checkboxCount = await vendorPayCheckbox.CountAsync();
         TestLogs.LogInformation($"VendorPay checkbox count before checking: {checkboxCount}");
         
@@ -315,7 +405,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         // Verify the select element was updated
         var selectElement = Page.Locator("#Policies");
         var selectedOptions = await selectElement.EvaluateAsync<string[]>("el => Array.from(el.selectedOptions).map(o => o.value)");
-        Assert.Contains("btcpay.plugin.vendorpay.canmanage", selectedOptions);
+        Assert.Contains(VendorPayAdminPolicy, selectedOptions);
         
         await Page.Locator("button[type='submit']").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
@@ -327,7 +417,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
         // Re-locate the checkbox after navigation
-        vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         var checkboxExists = await vendorPayCheckbox.CountAsync() > 0;
         Assert.True(checkboxExists, "VendorPay permission checkbox should exist on edit page");
         
@@ -336,13 +426,13 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(isChecked, "VendorPay permission should be checked after reload");
         
         // Look for the permission label
-        var permissionLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_canmanage']");
+        var permissionLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_admin']");
         Assert.True(await permissionLabel.CountAsync() > 0, "Permission label should exist");
         
         var labelText = await permissionLabel.TextContentAsync() ?? string.Empty;
         TestLogs.LogInformation($"Permission label text: {labelText}");
         
-        // Should show "Vendor Pay: Manage" (not orphaned since plugin is installed)
+        // Should show "Vendor Pay: Admin" (not orphaned since plugin is installed)
         Assert.Contains("Vendor Pay", labelText);
         Assert.DoesNotContain("Uninstalled Plugin", labelText);
         Assert.DoesNotContain("⚠", labelText);
@@ -515,7 +605,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(hasPluginSection, "Store Roles page should have Plugin Permissions section");
         
         // Check for VendorPay permission checkbox
-        var vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        var vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         var checkboxCount = await vendorPayCheckbox.CountAsync();
         TestLogs.LogInformation($"VendorPay permission checkbox count: {checkboxCount}");
         
@@ -539,10 +629,157 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         
-        vendorPayCheckbox = Page.Locator("input.policy-cb[value='btcpay.plugin.vendorpay.canmanage']");
+        vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         var stillChecked = await vendorPayCheckbox.IsCheckedAsync();
         Assert.True(stillChecked, "VendorPay permission should persist in store role");
         
         TestLogs.LogInformation("Verified: Plugin permissions display and work correctly in Store Roles");
+    }
+
+    // ── ChildPolicies hierarchy tests ──
+
+    [Fact]
+    public async Task Hierarchy_AdminPolicy_GrantsAccessToAllVendorPayPages()
+    {
+        var (storeId, _) = await CreateUserWithPluginRole(VendorPayAdminPolicy);
+
+        // Admin should access every VendorPay endpoint
+        foreach (var url in new[]
+                 {
+                     $"/plugins/{storeId}/vendorpay/list",
+                     $"/plugins/{storeId}/vendorpay/users/list",
+                     $"/plugins/{storeId}/vendorpay/settings"
+                 })
+        {
+            await GoToUrl(url);
+            await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            TestLogs.LogInformation($"Admin navigated to {url} -> {Page.Url}");
+            Assert.Contains("/vendorpay", Page.Url);
+            AssertNotDenied(Page.Url, url);
+        }
+    }
+
+    [Fact]
+    public async Task Hierarchy_InvoicesViewOnly_CanSeeListButNotManageUsersOrSettings()
+    {
+        var (storeId, _) = await CreateUserWithPluginRole(VendorPayInvoicesViewPolicy);
+
+        // invoices.view is the leaf — should access the invoice list
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        TestLogs.LogInformation($"InvoicesView -> list: {Page.Url}");
+        Assert.Contains($"/plugins/{storeId}/vendorpay/list", Page.Url);
+
+        // Negative: child does NOT satisfy parent or siblings
+        foreach (var forbiddenUrl in new[]
+                 {
+                     $"/plugins/{storeId}/vendorpay/users/list",
+                     $"/plugins/{storeId}/vendorpay/settings"
+                 })
+        {
+            await GoToUrl(forbiddenUrl);
+            await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            TestLogs.LogInformation($"InvoicesView -> {forbiddenUrl}: {Page.Url}");
+            AssertDenied(Page.Url, forbiddenUrl);
+        }
+    }
+
+    [Fact]
+    public async Task Hierarchy_UsersManageOnly_CanAccessUsersButNotInvoicesOrSettings()
+    {
+        var (storeId, _) = await CreateUserWithPluginRole(VendorPayUsersManagePolicy);
+
+        // users.manage should access users page
+        await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        TestLogs.LogInformation($"UsersManage -> users/list: {Page.Url}");
+        Assert.Contains("/vendorpay/users/list", Page.Url);
+
+        // Negative: sibling policies don't imply each other
+        foreach (var forbiddenUrl in new[]
+                 {
+                     $"/plugins/{storeId}/vendorpay/list",
+                     $"/plugins/{storeId}/vendorpay/settings"
+                 })
+        {
+            await GoToUrl(forbiddenUrl);
+            await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            TestLogs.LogInformation($"UsersManage -> {forbiddenUrl}: {Page.Url}");
+            AssertDenied(Page.Url, forbiddenUrl);
+        }
+    }
+
+    // ── Helpers ──
+
+    private async Task<(string storeId, string email)> CreateUserWithPluginRole(params string[] policies)
+    {
+        await InitializePlaywright(ServerTester);
+
+        var admin = ServerTester.NewAccount();
+        await admin.GrantAccessAsync();
+        await admin.MakeAdmin(true);
+        var storeId = admin.StoreId;
+
+        await GoToUrl("/login");
+        await LogIn(admin.RegisterDetails.Email, admin.RegisterDetails.Password);
+
+        // Create a custom role with only the specified plugin policies
+        var roleName = $"Role_{Guid.NewGuid():N}"[..12];
+        await GoToUrl($"/stores/{storeId}/roles/create");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.FillAsync("#Role", roleName);
+
+        foreach (var policy in policies)
+        {
+            var cb = Page.Locator($"input.policy-cb[value='{policy}']");
+            Assert.True(await cb.CountAsync() > 0, $"Checkbox for {policy} should exist");
+            await cb.CheckAsync();
+            await cb.DispatchEventAsync("change");
+        }
+
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        TestLogs.LogInformation($"Created role '{roleName}' with policies: {string.Join(", ", policies)}");
+
+        // Create a user and assign the role
+        var email = $"perm-{Guid.NewGuid():N}"[..18] + "@test.com";
+        var password = "TestPassword123!";
+
+        await GoToUrl("/server/users/new");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.FillAsync("#Email", email);
+        await Page.FillAsync("#Password", password);
+        await Page.FillAsync("#ConfirmPassword", password);
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await GoToUrl($"/stores/{storeId}/users");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.FillAsync("input[placeholder='user@example.com']", email);
+        await Page.Locator("#Role").First.SelectOptionAsync(roleName);
+        await Page.Locator("button#AddUser").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        TestLogs.LogInformation($"Assigned '{email}' to store with role '{roleName}'");
+
+        // Login as the new user
+        await Page.Context.ClearCookiesAsync();
+        await GoToUrl("/login");
+        await LogIn(email, password);
+
+        return (storeId, email);
+    }
+
+    private static void AssertDenied(string currentUrl, string attemptedUrl)
+    {
+        var denied = currentUrl.Contains("/error") ||
+                     currentUrl.Contains("/login") ||
+                     !currentUrl.Contains("/vendorpay");
+        Assert.True(denied, $"Access should be denied for {attemptedUrl}. Current URL: {currentUrl}");
+    }
+
+    private static void AssertNotDenied(string currentUrl, string attemptedUrl)
+    {
+        var denied = currentUrl.Contains("/error") || currentUrl.Contains("/login");
+        Assert.False(denied, $"Access should be granted for {attemptedUrl}. Current URL: {currentUrl}");
     }
 }
