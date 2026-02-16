@@ -229,6 +229,42 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public void PluginPermissionRegistry_ReturnsPermissionsInDeterministicOrder()
+    {
+        var permissions = new[]
+        {
+            new PluginPermission
+            {
+                Policy = "btcpay.plugin.zplugin.canmanage",
+                DisplayName = "Z Plugin: Manage",
+                PluginIdentifier = "zplugin"
+            },
+            new PluginPermission
+            {
+                Policy = "btcpay.plugin.aplugin.canmanage",
+                DisplayName = "A Plugin: Manage",
+                PluginIdentifier = "aplugin"
+            },
+            new PluginPermission
+            {
+                Policy = "btcpay.plugin.mplugin.canmanage",
+                DisplayName = "M Plugin: Manage",
+                PluginIdentifier = "mplugin"
+            }
+        };
+
+        var registry = new PluginPermissionRegistry(permissions);
+        var orderedPolicies = registry.GetAllPluginPermissions().Select(p => p.Policy).ToArray();
+
+        Assert.Equal(new[]
+        {
+            "btcpay.plugin.aplugin.canmanage",
+            "btcpay.plugin.mplugin.canmanage",
+            "btcpay.plugin.zplugin.canmanage"
+        }, orderedPolicies);
+    }
+
+    [Fact]
     public async Task PluginPermission_SavedAndDisplayedCorrectly()
     {
         /*
