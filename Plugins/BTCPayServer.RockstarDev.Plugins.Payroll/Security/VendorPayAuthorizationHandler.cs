@@ -45,7 +45,8 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
         if (user == null)
             return;
 
-        var storeId = httpContext.GetImplicitStoreId();
+        // Fall back to user prefs cookie so nav items render on non-store pages (e.g. Server Settings)
+        var storeId = httpContext.GetImplicitStoreId() ?? httpContext.GetUserPrefsCookie()?.CurrentStoreId;
         if (string.IsNullOrEmpty(storeId))
             return;
 
@@ -58,7 +59,11 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
 
         // Check if user has the plugin permission in their role
         var storeRole = store.GetStoreRoleOfUser(user.Id);
-        if (storeRole?.Permissions != null &&
+        if (storeRole?.Permissions == null)
+            return;
+
+        // Store owners/admins (CanModifyStoreSettings) implicitly have full plugin access
+        if (storeRole.Permissions.Contains(Policies.CanModifyStoreSettings) ||
             _pluginPermissionRegistry.IsSatisfiedByGrantedPolicies(requirement.Policy, storeRole.Permissions))
         {
             context.Succeed(requirement);
