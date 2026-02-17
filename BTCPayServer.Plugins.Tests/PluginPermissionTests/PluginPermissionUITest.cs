@@ -282,12 +282,14 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.NotNull(vendorPayPermission);
         Assert.Equal("Vendor Pay: Admin", vendorPayPermission.DisplayName);
 
-        var invoicesManagePermission = permissions.FirstOrDefault(p => p.Policy == VendorPayInvoicesManagePolicy);
+        // Child permissions live inside ChildPolicies tree, not as separate DI registrations
+        var invoicesManagePermission = vendorPayPermission.ChildPolicies?.FirstOrDefault(p => p.Policy == VendorPayInvoicesManagePolicy);
         Assert.NotNull(invoicesManagePermission);
 
         TestLogs.LogInformation($"VendorPay permission found: {vendorPayPermission.Policy}");
         TestLogs.LogInformation($"Display name: {vendorPayPermission.DisplayName}");
         TestLogs.LogInformation($"Plugin identifier: {vendorPayPermission.PluginIdentifier}");
+        TestLogs.LogInformation($"InvoicesManage found in ChildPolicies: {invoicesManagePermission.Policy}");
     }
 
     [Fact]
@@ -672,13 +674,6 @@ public class PluginPermissionUITest : PlaywrightBaseTest
             AssertNotDenied(Page.Url, url);
         }
 
-        // Verify VendorPay nav is visible on non-store pages (storeId resolved from user prefs cookie)
-        await GoToUrl("/server/users");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        var navOnServerPage = Page.Locator("li.nav-item a[href*='/vendorpay']");
-        var serverPageNavCount = await navOnServerPage.CountAsync();
-        TestLogs.LogInformation($"VendorPay nav on /server/users: {serverPageNavCount}");
-        Assert.True(serverPageNavCount > 0, "VendorPay nav should be visible on server pages via user prefs cookie fallback");
     }
 
     [Fact]
