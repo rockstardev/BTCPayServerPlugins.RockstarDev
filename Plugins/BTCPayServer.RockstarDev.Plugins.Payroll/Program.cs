@@ -33,16 +33,18 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
         serviceCollection.AddAuthorization(options =>
         {
-            options.AddPolicy(VendorPayPermissions.CanManageVendorPay,
-                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPermissions.CanManageVendorPay)));
+            foreach (var policyName in VendorPayPermissions.AllPolicyNames)
+            {
+                options.AddPolicy(policyName, policy => policy.AddRequirements(new PolicyRequirement(policyName)));
+            }
         });
-
+        
         // Inject plugin permissions directly into DI container
         // This follows the maintainer's suggestion to avoid interfaces
-        // foreach (var permission in VendorPayPermissions.AllPermissions(Identifier))
-        // {
-        //     serviceCollection.AddSingleton(permission);
-        // }
+        foreach (var permission in VendorPayPermissions.AllPermissions(Identifier))
+        {
+            serviceCollection.AddSingleton(permission);
+        }
 
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
