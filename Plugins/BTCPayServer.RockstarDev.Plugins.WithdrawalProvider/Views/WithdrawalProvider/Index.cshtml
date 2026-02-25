@@ -1,0 +1,154 @@
+@using BTCPayServer.Abstractions.Extensions
+@using System.Linq
+@model WithdrawalProviderViewModel
+@{
+    ViewData.SetActivePage(WithdrawalProviderPlugin.PluginNavKey, "Withdrawal Provider", "Index");
+}
+
+<div class="sticky-header d-flex align-items-center justify-content-between">
+    <h2>@ViewData["Title"]</h2>
+</div>
+
+<partial name="_StatusMessage" />
+
+<form asp-action="Save" asp-route-storeId="@Model.StoreId" method="post">
+    <div class="row">
+        <div class="col-xl-10 col-xxl-constrain">
+            <div class="form-check form-switch mb-3">
+                <input asp-for="Enabled" class="form-check-input" />
+                <label asp-for="Enabled" class="form-check-label"></label>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ApiKey" class="form-label"></label>
+                <input asp-for="ApiKey" class="form-control" type="password" />
+                <span asp-validation-for="ApiKey" class="text-danger"></span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="Ticker" class="form-label"></label>
+                    <input asp-for="Ticker" class="form-control" />
+                    <span asp-validation-for="Ticker" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="FiatCurrency" class="form-label"></label>
+                    <input asp-for="FiatCurrency" class="form-control" />
+                    <span asp-validation-for="FiatCurrency" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PaymentMethod" class="form-label"></label>
+                    <select asp-for="PaymentMethod" class="form-select">
+                        <option value="LIGHTNING">LIGHTNING</option>
+                        <option value="ON_CHAIN">ON_CHAIN</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="mt-3 d-flex gap-2">
+    <form asp-action="TestApiKey" asp-route-storeId="@Model.StoreId" method="post">
+        <button type="submit" class="btn btn-outline-secondary">Test API Key</button>
+    </form>
+    <form asp-action="Refresh" asp-route-storeId="@Model.StoreId" method="post">
+        <button type="submit" class="btn btn-outline-secondary">Refresh Provider Data</button>
+    </form>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.UserId) || Model.Rate is not null || Model.Balance is not null)
+{
+    <div class="card mt-4">
+        <div class="card-header">Provider Snapshot</div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">User ID</dt>
+                <dd class="col-sm-9">@Model.UserId</dd>
+                <dt class="col-sm-3">Balance</dt>
+                <dd class="col-sm-9">@Model.Balance @Model.FiatCurrency</dd>
+                <dt class="col-sm-3">Quote</dt>
+                <dd class="col-sm-9">
+                    @if (Model.Rate is not null)
+                    {
+                        <text>@Model.Rate.Ticker = @Model.Rate.ProviderPrice (@Model.Rate.Currency)</text>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+}
+
+<div class="card mt-4">
+    <div class="card-header">Create Test Order</div>
+    <div class="card-body">
+        <form asp-action="CreateOrder" asp-route-storeId="@Model.StoreId" method="post">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label asp-for="SourceAmountSats" class="form-label"></label>
+                    <input asp-for="SourceAmountSats" class="form-control" />
+                    <span asp-validation-for="SourceAmountSats" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="IpAddress" class="form-label"></label>
+                    <input asp-for="IpAddress" class="form-control" />
+                    <span asp-validation-for="IpAddress" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PaymentMethod" class="form-label"></label>
+                    <select asp-for="PaymentMethod" class="form-select" name="paymentMethod">
+                        <option value="LIGHTNING">LIGHTNING</option>
+                        <option value="ON_CHAIN">ON_CHAIN</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Create Order</button>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.LastOrderId))
+        {
+            <div class="alert alert-success mt-3 mb-0">
+                Created order <strong>@Model.LastOrderId</strong><br />
+                Destination: <code>@Model.LastOrderDestination</code>
+            </div>
+        }
+    </div>
+</div>
+
+@if (Model.Transactions.Any())
+{
+    <div class="card mt-4">
+        <div class="card-header">Recent Transactions (last 30 days)</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Created</th>
+                        <th>Order ID</th>
+                        <th>Status</th>
+                        <th class="text-end">Source</th>
+                        <th class="text-end">Destination</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var tx in Model.Transactions)
+                {
+                    <tr>
+                        <td>@tx.CreatedAt.ToString("u")</td>
+                        <td>@tx.OrderId</td>
+                        <td>@tx.Status</td>
+                        <td class="text-end">@tx.SourceAmount @tx.SourceCurrency</td>
+                        <td class="text-end">@tx.DestinationAmount @tx.DestinationCurrency</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

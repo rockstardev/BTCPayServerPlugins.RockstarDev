@@ -1,0 +1,20 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Client
+@inject IScopeProvider ScopeProvider
+@{
+    var storeId = ScopeProvider.GetCurrentStoreId();
+    var isActive = Context.Request.Path.Value?.Contains("/withdrawal-provider", StringComparison.OrdinalIgnoreCase) is true;
+}
+@if (!string.IsNullOrEmpty(storeId))
+{
+    <li class="nav-item">
+        <a asp-controller="WithdrawalProvider"
+           permission="@Policies.CanModifyStoreSettings"
+           asp-action="Index"
+           asp-route-storeId="@storeId"
+           class="nav-link @(isActive ? "active" : string.Empty)">
+            <span>Withdrawal Provider</span>
+        </a>
+    </li>
+}
