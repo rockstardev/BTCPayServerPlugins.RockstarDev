@@ -105,6 +105,30 @@ public class WithdrawalProviderController(WithdrawalProviderService service) : C
     [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
     public async Task<IActionResult> CreateOrder(string storeId, long sourceAmountSats, string ipAddress, string paymentMethod)
     {
+        if (sourceAmountSats <= 0)
+        {
+            ModelState.AddModelError(nameof(WithdrawalProviderViewModel.SourceAmountSats), "The field Source Amount (sats) must be between 1 and 9,223,372,036,854,775,807.");
+        }
+
+        if (string.IsNullOrWhiteSpace(ipAddress))
+        {
+            ModelState.AddModelError(nameof(WithdrawalProviderViewModel.IpAddress), "The IP Address field is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(paymentMethod))
+        {
+            ModelState.AddModelError(nameof(WithdrawalProviderViewModel.PaymentMethod), "The Default Payment Method field is required.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            var invalidVm = await BuildViewModel(storeId);
+            invalidVm.SourceAmountSats = sourceAmountSats;
+            invalidVm.IpAddress = ipAddress;
+            invalidVm.PaymentMethod = paymentMethod;
+            return View("Index", invalidVm);
+        }
+
         try
         {
             var order = await service.CreateOrder(storeId, sourceAmountSats, ipAddress, paymentMethod);
