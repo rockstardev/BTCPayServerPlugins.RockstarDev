@@ -267,6 +267,19 @@
                     <span asp-validation-for="EmailAdminOnInvoiceDeletedBody" class="text-danger"></span>
                 </div>
             </div>
+
+			<div>
+				<div class="form-group">
+					<label asp-for="UserInviteEmailSubject" class="form-label"></label>
+					<input asp-for="UserInviteEmailSubject" class="form-control" />
+					<span asp-validation-for="UserInviteEmailSubject" class="text-danger"></span>
+				</div>
+				<div class="form-group">
+					<label asp-for="UserInviteEmailBody" class="form-label"></label>
+					<textarea asp-for="UserInviteEmailBody" class="form-control" rows="8"></textarea>
+					<span asp-validation-for="UserInviteEmailBody" class="text-danger"></span>
+				</div>
+			</div>
         </div>
     </div>
 </form>

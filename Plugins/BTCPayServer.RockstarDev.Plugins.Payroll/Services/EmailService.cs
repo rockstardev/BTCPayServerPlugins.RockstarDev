@@ -85,6 +85,7 @@ public class EmailService(
                         .Replace("{CreatedAt}", invoice.CreatedAt.ToString("MMM dd, yyyy h:mm tt zzz"))
                         .Replace("{PaidAt}", invoice.PaidAt?.ToString("MMM dd, yyyy h:mm tt zzz"))
                         .Replace("{VendorPayPublicLink}", setting.VendorPayPublicLink)
+                        .Replace("{MempoolAddress}", $"https://mempool.space/address/{invoice.Destination}")
                 });
 
             if (emailRecipients.Any())

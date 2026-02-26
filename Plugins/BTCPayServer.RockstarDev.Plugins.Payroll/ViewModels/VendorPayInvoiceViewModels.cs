@@ -48,6 +48,7 @@ public class VendorPayInvoiceUploadViewModel
     public string Destination { get; set; }
 
     [Required]
+    [DisplayName("Destination Address")]
     public decimal Amount { get; set; }
 
     [Required]

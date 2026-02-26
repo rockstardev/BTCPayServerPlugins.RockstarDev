@@ -28,26 +28,7 @@ public class VendorPayUserController(
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
-    private const string UserInviteEmailSubject = "You are invited to create a Vendor Pay account";
-
-    private const string UserInviteEmailBody = @"Hello {Name},
-
-You are invited to create an account on {StoreName}'s Vendor Pay portal by visiting the following link:  
-{VendorPayRegisterLink}
-
-Once your account is created and you log in, you will be able to:
-- View your invoices and submit new ones.
-- Click 'Upload Invoice' to add a payable invoice. Fill out the information accurately. By using the Vendor Pay portal, you are solely responsible for providing an accurate Bitcoin address and assume all liability for any incorrect or inaccessible address.
-- Describe what the payment is related to; be as descriptive as possible to avoid delays.
-- Upload the corresponding invoice file.
-
-Payments will be issued in accordance with the terms of the contracted payment and purchase order.
-
-Thank you,  
-{StoreName}";
-
     public StoreData CurrentStore => HttpContext.GetStoreData();
-
 
     [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all, bool pending, bool oneTime, string searchTerm = null)
@@ -99,12 +80,13 @@ Thank you,
         if (CurrentStore is null)
             return NotFound();
 
+        var settings = await pluginDbContextFactory.GetSettingAsync(CurrentStore.Id);
         var isEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
         var vm = new VendorPayUserCreateViewModel
         {
             StoreId = CurrentStore.Id,
-            UserInviteEmailBody = UserInviteEmailBody,
-            UserInviteEmailSubject = UserInviteEmailSubject,
+            UserInviteEmailBody = settings.UserInviteEmailBody ?? VendorPaySettingViewModel.Defaults.UserInviteEmailBody,
+            UserInviteEmailSubject = settings.UserInviteEmailSubject ?? VendorPaySettingViewModel.Defaults.UserInviteEmailSubject,
             StoreEmailSettingsConfigured = isEmailSettingsConfigured
         };
         return View(vm);
@@ -160,7 +142,7 @@ Thank you,
             try
             {
                 await emailService.SendUserInvitationEmail(dbUser, model.UserInviteEmailSubject, model.UserInviteEmailBody,
-                    Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, invitation.Token }, Request.Scheme));
+                    Url.Action(nameof(PublicController.AcceptInvitation), "Public", new { storeId = CurrentStore.Id, invitation.Token }, Request.Scheme));
             }
             catch (Exception)
             {
@@ -227,7 +209,10 @@ Thank you,
         existingInvitation.CreatedAt = DateTime.UtcNow;
         try
         {
-            await emailService.SendUserInvitationEmail(user, UserInviteEmailSubject, UserInviteEmailBody,
+            var settings = await ctx.GetSettingAsync(storeId);
+            var userInviteEmailBody = settings.UserInviteEmailBody ?? VendorPaySettingViewModel.Defaults.UserInviteEmailBody;
+            var userInviteEmailSubject = settings.UserInviteEmailSubject ?? VendorPaySettingViewModel.Defaults.UserInviteEmailSubject;
+            await emailService.SendUserInvitationEmail(user, userInviteEmailSubject, userInviteEmailBody,
                 Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, existingInvitation.Token }, Request.Scheme));
         }
         catch (Exception)
