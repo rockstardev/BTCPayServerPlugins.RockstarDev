@@ -702,6 +702,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#Description", "Test Vendor pay Invoice creation");
         await Page.Locator("#Upload").ClickAsync();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.ScreenshotAsync(new PageScreenshotOptions { Path = "invoice-upload-result.png" });
         var invoiceCreationStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         Assert.Equal("Invoice uploaded successfully", (await invoiceCreationStatusText)?.Trim());
     }

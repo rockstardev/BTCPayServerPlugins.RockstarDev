@@ -76,5 +76,12 @@ jobs:
             -   name: Run tests
                 run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal --filter "Category=PlaywrightUITest"
 
+            -   name: Upload test screenshots
+                if: failure()
+                uses: actions/upload-artifact@v3
+                with:
+                    name: test-screenshots
+                    path: "**/*.png"
+
             -   name: Cleanup Docker
                 run: docker compose -f submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml down --volumes
