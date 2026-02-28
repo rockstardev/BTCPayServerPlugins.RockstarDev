@@ -165,6 +165,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#EmailOnInvoicePaidSubject", "[VendorPay] Invoice paid");
         await Page.FillAsync("#EmailOnInvoicePaidBody", "Address tracker: {MempoolAddress}");
         await Page.Locator("#Edit").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
 
         await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
@@ -181,7 +182,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.ClickAsync("#markpaid");
         await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
 
-        /*await firstRowCheckbox.CheckAsync();
+        await firstRowCheckbox.CheckAsync();
         var emailMessage = await ServerTester.AssertHasEmail(async () =>
         {
             await Page.ClickAsync("#emailconfirmation");
@@ -189,7 +190,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         });
 
         Assert.Contains("https://mempool.space/regtest/address/", emailMessage.Text);
-        Assert.Contains(destination, emailMessage.Text);*/
+        Assert.Contains(destination, emailMessage.Text);
     }
 
     [Fact]
