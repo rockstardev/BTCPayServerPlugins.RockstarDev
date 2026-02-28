@@ -30,6 +30,7 @@ public class PublicListInvoicesViewModel : BaseVendorPayPublicViewModel
 public class PublicVendorPayInvoiceUploadViewModel : BaseVendorPayPublicViewModel
 {
     [Required]
+    [DisplayName("Destination Address")]
     public string Destination { get; set; }
 
     [Required]

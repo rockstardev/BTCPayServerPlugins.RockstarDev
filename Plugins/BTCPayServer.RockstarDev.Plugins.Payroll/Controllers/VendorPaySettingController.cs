@@ -39,6 +39,8 @@ public class VendorPaySettingController(
             EmailOnInvoicePaid = settings.EmailOnInvoicePaid,
             InvoiceFiatConversionAdjustment = settings.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = settings.InvoiceFiatConversionAdjustmentPercentage,
+            UserInviteEmailSubject = settings.UserInviteEmailSubject ?? VendorPaySettingViewModel.Defaults.UserInviteEmailSubject,
+            UserInviteEmailBody = settings.UserInviteEmailBody ?? VendorPaySettingViewModel.Defaults.UserInviteEmailBody,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = settings.EmailOnInvoicePaidBody ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidBody,
             EmailReminders = settings.EmailReminders,
@@ -99,6 +101,12 @@ public class VendorPaySettingController(
         if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.UploadCode))
             ModelState.AddModelError(nameof(model.UploadCode), "Upload Code is required");
 
+        if (string.IsNullOrWhiteSpace(model.UserInviteEmailSubject))
+            ModelState.AddModelError(nameof(model.UserInviteEmailSubject), "Invite email subject cannot be empty");
+
+        if (string.IsNullOrWhiteSpace(model.UserInviteEmailBody))
+            ModelState.AddModelError(nameof(model.UserInviteEmailBody), "Invite email template cannot be empty");
+
         if (!ModelState.IsValid)
         {
             ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
@@ -121,6 +129,8 @@ public class VendorPaySettingController(
             EmailOnInvoicePaid = model.EmailOnInvoicePaid,
             EmailOnInvoicePaidSubject = model.EmailOnInvoicePaidSubject,
             EmailOnInvoicePaidBody = model.EmailOnInvoicePaidBody,
+            UserInviteEmailBody = model.UserInviteEmailBody,
+            UserInviteEmailSubject = model.UserInviteEmailSubject,
             InvoiceFiatConversionAdjustment = model.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = model.InvoiceFiatConversionAdjustmentPercentage,
             VendorPayPublicLink = link,

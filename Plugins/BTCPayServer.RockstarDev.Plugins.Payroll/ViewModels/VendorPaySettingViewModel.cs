@@ -68,6 +68,14 @@ public class VendorPaySettingViewModel
     [Display(Name = "Description title")]
     public string DescriptionTitle { get; set; }
 
+
+
+    [Display(Name = "User Invite Email Subject")]
+    public string UserInviteEmailSubject { get; set; }
+
+    [Display(Name = "User Invite Email Template")]
+    public string UserInviteEmailBody { get; set; }
+
     public record Defaults
     {
         public const string EmailOnInvoicePaidSubject = @"[VendorPay] Invoice paid";
@@ -75,6 +83,8 @@ public class VendorPaySettingViewModel
         public const string EmailOnInvoicePaidBody = @"Hello {Name},
 
 Your invoice submitted on {CreatedAt} has been paid on {PaidAt}.
+
+View transaction on mempool: {MempoolAddress} 
 
 See all your invoices on: {VendorPayPublicLink}
 
@@ -129,6 +139,25 @@ Destination: {Destination}
 We will process your invoice and notify you once payment is complete.
 
 Thank you,
+{StoreName}";
+
+
+        public const string UserInviteEmailSubject = "You are invited to create a Vendor Pay account";
+
+        public const string UserInviteEmailBody = @"Hello {Name},
+
+You are invited to create an account on {StoreName}'s Vendor Pay portal by visiting the following link:  
+{VendorPayRegisterLink}
+
+Once your account is created and you log in, you will be able to:
+- View your invoices and submit new ones.
+- Click 'Upload Invoice' to add a payable invoice. Fill out the information accurately. By using the Vendor Pay portal, you are solely responsible for providing an accurate Bitcoin address and assume all liability for any incorrect or inaccessible address.
+- Describe what the payment is related to; be as descriptive as possible to avoid delays.
+- Upload the corresponding invoice file.
+
+Payments will be issued in accordance with the terms of the contracted payment and purchase order.
+
+Thank you,  
 {StoreName}";
     }
 }
