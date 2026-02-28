@@ -126,6 +126,73 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public async Task VendorPaySettings_DisallowBlankInviteTemplate()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/settings");
+        await Page.FillAsync("#UserInviteEmailSubject", string.Empty);
+        await Page.FillAsync("#UserInviteEmailBody", string.Empty);
+        await Page.Locator("#Edit").ClickAsync();
+
+        Assert.True(await Page.Locator(".text-danger:has-text('Invite email subject cannot be empty')").IsVisibleAsync());
+        Assert.True(await Page.Locator(".text-danger:has-text('Invite email template cannot be empty')").IsVisibleAsync());
+    }
+
+    [Fact]
+    public async Task EmailConfirmation_UsesRegtestMempoolAddressPlaceholder()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        var storeId = user.StoreId;
+        await GoToUrl($"/stores/{storeId}/email-settings");
+        await Page.ClickAsync("#mailpit");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await GoToUrl($"/plugins/{storeId}/vendorpay/settings");
+        await Page.Locator("#MakeInvoiceFileOptional").CheckAsync();
+        await Page.Locator("#emailToggle").CheckAsync();
+        await Page.FillAsync("#EmailOnInvoicePaidSubject", "[VendorPay] Invoice paid");
+        await Page.FillAsync("#EmailOnInvoicePaidBody", "Address tracker: {MempoolAddress}");
+        await Page.Locator("#Edit").ClickAsync();
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
+        await CreateVendorPayUser();
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        const string destination = "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs";
+        await GoToUrl($"/plugins/{storeId}/vendorpay/list");
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice(destination);
+
+        var firstRowCheckbox = Page.Locator("tbody tr.mass-action-row").First.Locator("input.mass-action-select");
+        await firstRowCheckbox.CheckAsync();
+        await Page.ClickAsync("#markpaid");
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        await firstRowCheckbox.CheckAsync();
+        var emailMessage = await ServerTester.AssertHasEmail(async () =>
+        {
+            await Page.ClickAsync("#emailconfirmation");
+            await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+        });
+
+        Assert.Contains("https://mempool.space/regtest/address/", emailMessage.Text);
+        Assert.Contains(destination, emailMessage.Text);
+    }
+
+    [Fact]
     public async Task CreateVendorPayUserTest_PasswordMismatch()
     {
         await InitializePlaywright(ServerTester);
