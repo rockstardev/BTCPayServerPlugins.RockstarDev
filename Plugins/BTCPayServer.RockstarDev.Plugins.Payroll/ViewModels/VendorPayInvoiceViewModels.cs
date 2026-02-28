@@ -45,10 +45,10 @@ public class VendorPayInvoiceUploadViewModel
     public SelectList VendorPayUsers { get; set; }
 
     [Required]
+    [DisplayName("Destination Address")]
     public string Destination { get; set; }
 
     [Required]
-    [DisplayName("Destination Address")]
     public decimal Amount { get; set; }
 
     [Required]

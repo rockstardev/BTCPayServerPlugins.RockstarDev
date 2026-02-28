@@ -102,6 +102,22 @@ public class VendorPayUserController(
 
         var email = model.Email.ToLowerInvariant();
         model.StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
+
+        if (model.SendRegistrationEmailInviteToUser && string.IsNullOrWhiteSpace(model.UserInviteEmailSubject))
+        {
+            ModelState.AddModelError(nameof(model.UserInviteEmailSubject), "Invite email subject cannot be empty");
+        }
+
+        if (model.SendRegistrationEmailInviteToUser && string.IsNullOrWhiteSpace(model.UserInviteEmailBody))
+        {
+            ModelState.AddModelError(nameof(model.UserInviteEmailBody), "Invite email body cannot be empty");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
@@ -210,8 +226,12 @@ public class VendorPayUserController(
         try
         {
             var settings = await ctx.GetSettingAsync(storeId);
-            var userInviteEmailBody = settings.UserInviteEmailBody ?? VendorPaySettingViewModel.Defaults.UserInviteEmailBody;
-            var userInviteEmailSubject = settings.UserInviteEmailSubject ?? VendorPaySettingViewModel.Defaults.UserInviteEmailSubject;
+            var userInviteEmailBody = string.IsNullOrWhiteSpace(settings.UserInviteEmailBody)
+                ? VendorPaySettingViewModel.Defaults.UserInviteEmailBody
+                : settings.UserInviteEmailBody;
+            var userInviteEmailSubject = string.IsNullOrWhiteSpace(settings.UserInviteEmailSubject)
+                ? VendorPaySettingViewModel.Defaults.UserInviteEmailSubject
+                : settings.UserInviteEmailSubject;
             await emailService.SendUserInvitationEmail(user, userInviteEmailSubject, userInviteEmailBody,
                 Url.Action("AcceptInvitation", "Public", new { storeId = CurrentStore.Id, existingInvitation.Token }, Request.Scheme));
         }

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Events;
 using BTCPayServer.Logging;
+using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Emails.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
@@ -11,6 +13,8 @@ using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using Microsoft.Extensions.Logging;
 using MimeKit;
+using NBitcoin;
+using NBXplorer;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 
@@ -19,7 +23,9 @@ public class EmailService(
     Logs logs,
     StoreRepository storeRepo,
     PluginDbContextFactory pluginDbContextFactory,
-    EventAggregator eventAggregator)
+    EventAggregator eventAggregator,
+    TransactionLinkProviders transactionLinkProviders,
+    NBXplorerNetworkProvider nbxplorerNetworkProvider)
 {
     public async Task<bool> IsEmailSettingsConfigured(string storeId)
     {
@@ -85,12 +91,59 @@ public class EmailService(
                         .Replace("{CreatedAt}", invoice.CreatedAt.ToString("MMM dd, yyyy h:mm tt zzz"))
                         .Replace("{PaidAt}", invoice.PaidAt?.ToString("MMM dd, yyyy h:mm tt zzz"))
                         .Replace("{VendorPayPublicLink}", setting.VendorPayPublicLink)
-                        .Replace("{MempoolAddress}", $"https://mempool.space/address/{invoice.Destination}")
+                        .Replace("{MempoolAddress}", GetAddressExplorerLink(invoice.Destination))
                 });
 
             if (emailRecipients.Any())
                 await SendBulkEmail(storeGroup.Key, emailRecipients);
         }
+    }
+
+    private string GetAddressExplorerLink(string destinationAddress)
+    {
+        if (string.IsNullOrWhiteSpace(destinationAddress))
+            return string.Empty;
+
+        var btcNetwork = nbxplorerNetworkProvider.GetFromCryptoCode("BTC")?.NBitcoinNetwork;
+        if (btcNetwork?.ChainName == ChainName.Regtest)
+        {
+            // Intentionally obvious non-working public URL for regtest environments.
+            return $"https://mempool.space/regtest/address/{destinationAddress}";
+        }
+
+        var txTemplate = transactionLinkProviders.GetBlockExplorerLink(PaymentTypes.CHAIN.GetPaymentMethodId("BTC"));
+        var addressTemplate = txTemplate switch
+        {
+            null or "" => GetDefaultAddressTemplate(btcNetwork),
+            _ => txTemplate
+        };
+
+        if (addressTemplate.Contains("/tx/{0}", StringComparison.OrdinalIgnoreCase))
+        {
+            addressTemplate = addressTemplate.Replace("/tx/{0}", "/address/{0}", StringComparison.OrdinalIgnoreCase);
+        }
+        else if (addressTemplate.Contains("/tx/", StringComparison.OrdinalIgnoreCase))
+        {
+            addressTemplate = addressTemplate.Replace("/tx/", "/address/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (!addressTemplate.Contains("{0}"))
+        {
+            return string.Concat(addressTemplate.TrimEnd('/'), "/", destinationAddress);
+        }
+
+        return string.Format(CultureInfo.InvariantCulture, addressTemplate, destinationAddress);
+    }
+
+    private static string GetDefaultAddressTemplate(Network btcNetwork)
+    {
+        if (btcNetwork?.ChainName == ChainName.Mainnet)
+            return "https://mempool.space/address/{0}";
+
+        if (btcNetwork?.ChainName == Bitcoin.Instance.Signet.ChainName)
+            return "https://mempool.space/signet/address/{0}";
+
+        return "https://mempool.space/testnet/address/{0}";
     }
 
     public async Task SendUserInvitationEmail(PayrollUser model, string subject, string body, string vendorPayRegisterationLink)

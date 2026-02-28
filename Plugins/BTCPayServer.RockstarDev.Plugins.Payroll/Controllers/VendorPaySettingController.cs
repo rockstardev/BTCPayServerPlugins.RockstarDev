@@ -101,6 +101,12 @@ public class VendorPaySettingController(
         if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.UploadCode))
             ModelState.AddModelError(nameof(model.UploadCode), "Upload Code is required");
 
+        if (string.IsNullOrWhiteSpace(model.UserInviteEmailSubject))
+            ModelState.AddModelError(nameof(model.UserInviteEmailSubject), "Invite email subject cannot be empty");
+
+        if (string.IsNullOrWhiteSpace(model.UserInviteEmailBody))
+            ModelState.AddModelError(nameof(model.UserInviteEmailBody), "Invite email template cannot be empty");
+
         if (!ModelState.IsValid)
         {
             ViewData["StoreEmailSettingsConfigured"] = await emailService.IsEmailSettingsConfigured(storeId);
