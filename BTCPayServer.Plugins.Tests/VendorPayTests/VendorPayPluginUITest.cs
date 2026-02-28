@@ -279,8 +279,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var newName = "Nosa";
         await Page.FillAsync("#Name", newName);
         await Page.FillAsync("#Email", "testuser@example.com");
-        await Page.FillAsync("#reminderInput", "2");
-        await Page.Locator("#addReminder").ClickAsync();
+        await Page.Locator(".day-btn[data-day='2']").ClickAsync();
         await Page.Locator("#Edit").ClickAsync();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         Assert.Equal("User details updated successfully", (await statusText)?.Trim());
