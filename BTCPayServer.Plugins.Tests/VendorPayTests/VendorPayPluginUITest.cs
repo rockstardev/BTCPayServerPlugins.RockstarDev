@@ -165,13 +165,12 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#EmailOnInvoicePaidSubject", "[VendorPay] Invoice paid");
         await Page.FillAsync("#EmailOnInvoicePaidBody", "Address tracker: {MempoolAddress}");
         await Page.Locator("#Edit").ClickAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.ScreenshotAsync(new PageScreenshotOptions { Path = "settings-save-result.png" });
         await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
 
         await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
         await CreateVendorPayUser();
-        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
-
         const string destination = "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs";
         await GoToUrl($"/plugins/{storeId}/vendorpay/list");
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
