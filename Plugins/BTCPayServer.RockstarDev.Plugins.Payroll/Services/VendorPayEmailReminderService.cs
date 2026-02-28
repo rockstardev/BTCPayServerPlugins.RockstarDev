@@ -60,7 +60,7 @@ public class VendorPayEmailReminderService(
         var todayDate = DateTime.UtcNow.Date;
         var threeDaysAgo = todayDate.AddDays(-3);
         var usersToEmailCandidates = ctx.PayrollUsers.Where(a =>
-                a.StoreId == storeId && a.State == VendorPayUserState.Active && a.EmailReminder != null && a.EmailReminder != "" &&
+                a.StoreId == storeId && a.State == VendorPayUserState.Active && !string.IsNullOrEmpty(a.EmailReminder) &&
                 !a.PayrollInvoices.Any(i => i.UserId == a.Id && i.CreatedAt >= threeDaysAgo) &&
                 (!a.LastReminderSent.HasValue || a.LastReminderSent.Value.Date != todayDate))
             .ToList();

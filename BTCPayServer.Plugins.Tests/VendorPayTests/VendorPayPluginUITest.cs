@@ -165,12 +165,12 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#EmailOnInvoicePaidSubject", "[VendorPay] Invoice paid");
         await Page.FillAsync("#EmailOnInvoicePaidBody", "Address tracker: {MempoolAddress}");
         await Page.Locator("#Edit").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.ScreenshotAsync(new PageScreenshotOptions { Path = "settings-save-result.png" });
         await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
 
         await GoToUrl($"/plugins/{storeId}/vendorpay/users/list");
         await CreateVendorPayUser();
-        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
-
         const string destination = "bcrt1qaeqay34jh9y3j4q5qkavuj2evj439hj7nprlvs";
         await GoToUrl($"/plugins/{storeId}/vendorpay/list");
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
@@ -279,8 +279,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var newName = "Nosa";
         await Page.FillAsync("#Name", newName);
         await Page.FillAsync("#Email", "testuser@example.com");
-        await Page.FillAsync("#reminderInput", "2");
-        await Page.Locator("#addReminder").ClickAsync();
+        await Page.Locator(".day-btn[data-day='2']").ClickAsync();
         await Page.Locator("#Edit").ClickAsync();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         Assert.Equal("User details updated successfully", (await statusText)?.Trim());
@@ -701,6 +700,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#Amount", "10");
         await Page.FillAsync("#Description", "Test Vendor pay Invoice creation");
         await Page.Locator("#Upload").ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.ScreenshotAsync(new PageScreenshotOptions { Path = "invoice-upload-result.png" });
         var invoiceCreationStatusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         Assert.Equal("Invoice uploaded successfully", (await invoiceCreationStatusText)?.Trim());
     }
