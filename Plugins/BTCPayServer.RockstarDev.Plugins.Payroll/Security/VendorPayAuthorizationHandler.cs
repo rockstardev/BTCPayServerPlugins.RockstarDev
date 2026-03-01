@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.Security;
+using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,15 +15,18 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly StoreRepository _storeRepository;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly PluginPermissionRegistry _pluginPermissionRegistry;
 
     public VendorPayAuthorizationHandler(
         IHttpContextAccessor httpContextAccessor,
         UserManager<ApplicationUser> userManager,
-        StoreRepository storeRepository)
+        StoreRepository storeRepository,
+        PluginPermissionRegistry pluginPermissionRegistry)
     {
         _httpContextAccessor = httpContextAccessor;
         _userManager = userManager;
         _storeRepository = storeRepository;
+        _pluginPermissionRegistry = pluginPermissionRegistry;
     }
 
     protected override async Task HandleRequirementAsync(
@@ -41,7 +45,8 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
         if (user == null)
             return;
 
-        var storeId = httpContext.GetImplicitStoreId();
+        // Fall back to user prefs cookie so nav items render on non-store pages (e.g. Server Settings)
+        var storeId = httpContext.GetImplicitStoreId() ?? httpContext.GetUserPrefsCookie()?.CurrentStoreId;
         if (string.IsNullOrEmpty(storeId))
             return;
 
@@ -54,15 +59,12 @@ public class VendorPayAuthorizationHandler : AuthorizationHandler<PolicyRequirem
 
         // Check if user has the plugin permission in their role
         var storeRole = store.GetStoreRoleOfUser(user.Id);
-        if (storeRole?.Permissions != null &&
-            storeRole.Permissions.Contains(requirement.Policy))
-        {
-            context.Succeed(requirement);
+        if (storeRole?.Permissions == null)
             return;
-        }
 
-        // Fallback: Check if user has CanModifyStoreSettings permission (for backward compatibility)
-        if (store.HasPermission(user.Id, Policies.CanModifyStoreSettings))
+        // Store owners/admins (CanModifyStoreSettings) implicitly have full plugin access
+        if (storeRole.Permissions.Contains(Policies.CanModifyStoreSettings) ||
+            _pluginPermissionRegistry.IsSatisfiedByGrantedPolicies(requirement.Policy, storeRole.Permissions))
         {
             context.Succeed(requirement);
         }
