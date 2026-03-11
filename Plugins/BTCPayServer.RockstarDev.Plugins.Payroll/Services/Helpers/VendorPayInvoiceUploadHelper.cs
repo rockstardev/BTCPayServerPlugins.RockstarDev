@@ -60,6 +60,7 @@ public class VendorPayInvoiceUploadHelper(
 
         var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
             a.Destination == model.Destination &&
+            a.User.StoreId == storeId &&
             a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled);
 
         if (alreadyInvoiceWithAddress)
