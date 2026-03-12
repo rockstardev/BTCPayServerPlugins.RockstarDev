@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
@@ -8,8 +6,6 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
-using BTCPayServer.Security;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -29,22 +25,8 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
     {
         serviceCollection.AddUIExtension("store-integrations-nav", "VendorPayNav");
 
-        // Register authorization handler and policy for custom permission
-        serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
-        serviceCollection.AddAuthorization(options =>
-        {
-            foreach (var policyName in VendorPayPermissions.AllPolicyNames)
-            {
-                options.AddPolicy(policyName, policy => policy.AddRequirements(new PolicyRequirement(policyName)));
-            }
-        });
-        
-        // Inject plugin permissions directly into DI container
-        // This follows the maintainer's suggestion to avoid interfaces
-        foreach (var permission in VendorPayPermissions.AllPermissions(Identifier))
-        {
-            serviceCollection.AddSingleton(permission);
-        }
+        // Register plugin permissions using the new PolicyDefinition system
+        serviceCollection.AddPolicyDefinitions(VendorPayPermissions.GetPolicyDefinitions());
 
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();

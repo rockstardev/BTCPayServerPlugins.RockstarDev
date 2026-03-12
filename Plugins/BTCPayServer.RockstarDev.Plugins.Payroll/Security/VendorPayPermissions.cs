@@ -1,72 +1,50 @@
-using System.Collections.Generic;
-using BTCPayServer.Abstractions.Contracts;
+using BTCPayServer.Client;
+using BTCPayServer.Services;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 
 public static class VendorPayPermissions
 {
-    // Policy strings
-    public const string Admin = "btcpay.plugin.vendorpay.admin";
-    public const string UsersManage = "btcpay.plugin.vendorpay.users.manage";
-    public const string InvoicesManage = "btcpay.plugin.vendorpay.invoices.manage";
-    public const string InvoicesView = "btcpay.plugin.vendorpay.invoices.view";
-    public const string SettingsManage = "btcpay.plugin.vendorpay.settings.manage";
+    public const string Admin = "btcpay.store.vendorpay.admin";
+    public const string UsersManage = "btcpay.store.vendorpay.manageusers";
+    public const string InvoicesManage = "btcpay.store.vendorpay.manageinvoices";
+    public const string InvoicesView = "btcpay.store.vendorpay.viewinvoices";
+    public const string SettingsManage = "btcpay.store.vendorpay.managesettings";
 
-    public static readonly string[] AllPolicyNames =
-    [
-        Admin,
-        UsersManage,
-        InvoicesManage,
-        InvoicesView,
-        SettingsManage
-    ];
-
-    // Full permission definitions for registration
-    public static IEnumerable<PluginPermission> AllPermissions(string pluginIdentifier)
+    public static PolicyDefinition[] GetPolicyDefinitions() => new[]
     {
-        return new[]
-        {
-            new PluginPermission
-            {
-                Policy = Admin,
-                DisplayName = "Vendor Pay: Admin",
-                Description = "Full administration of Vendor Pay users, invoices, and settings.",
-                PluginIdentifier = pluginIdentifier,
-                ChildPolicies = new List<PluginPermission>
-                {
-                    new PluginPermission
-                    {
-                        Policy = UsersManage,
-                        DisplayName = "Vendor Pay: Manage users",
-                        Description = "Create, update, disable, reset, and remove Vendor Pay users.",
-                        PluginIdentifier = pluginIdentifier
-                    },
-                    new PluginPermission
-                    {
-                        Policy = InvoicesManage,
-                        DisplayName = "Vendor Pay: Manage invoices",
-                        Description = "Upload, pay, mark paid, delete, and otherwise action Vendor Pay invoices.",
-                        PluginIdentifier = pluginIdentifier,
-                        ChildPolicies = new List<PluginPermission>
-                        {
-                            new PluginPermission
-                            {
-                                Policy = InvoicesView,
-                                DisplayName = "Vendor Pay: View invoices",
-                                Description = "View and download Vendor Pay invoices.",
-                                PluginIdentifier = pluginIdentifier
-                            },
-                        }
-                    },
-                    new PluginPermission
-                    {
-                        Policy = SettingsManage,
-                        DisplayName = "Vendor Pay: Manage settings",
-                        Description = "View and update Vendor Pay settings and notification templates.",
-                        PluginIdentifier = pluginIdentifier
-                    }
-                }
-            },
-        };
-    }
+        new PolicyDefinition(
+            InvoicesView,
+            new PermissionDisplay("Vendor Pay: View invoices",
+                "View and download Vendor Pay invoices."),
+            new PermissionDisplay("Vendor Pay: View invoices",
+                "View and download Vendor Pay invoices on the selected stores.")),
+        new PolicyDefinition(
+            InvoicesManage,
+            new PermissionDisplay("Vendor Pay: Manage invoices",
+                "Upload, pay, mark paid, delete, and otherwise action Vendor Pay invoices."),
+            new PermissionDisplay("Vendor Pay: Manage invoices",
+                "Manage Vendor Pay invoices on the selected stores."),
+            includedPermissions: new[] { InvoicesView }),
+        new PolicyDefinition(
+            UsersManage,
+            new PermissionDisplay("Vendor Pay: Manage users",
+                "Create, update, disable, reset, and remove Vendor Pay users."),
+            new PermissionDisplay("Vendor Pay: Manage users",
+                "Manage Vendor Pay users on the selected stores.")),
+        new PolicyDefinition(
+            SettingsManage,
+            new PermissionDisplay("Vendor Pay: Manage settings",
+                "View and update Vendor Pay settings and notification templates."),
+            new PermissionDisplay("Vendor Pay: Manage settings",
+                "Manage Vendor Pay settings on the selected stores.")),
+        new PolicyDefinition(
+            Admin,
+            new PermissionDisplay("Vendor Pay: Admin",
+                "Full administration of Vendor Pay users, invoices, and settings."),
+            new PermissionDisplay("Vendor Pay: Admin",
+                "Full administration of Vendor Pay on the selected stores."),
+            includedPermissions: new[] { UsersManage, InvoicesManage, SettingsManage },
+            includedByPermissions: new[] { Policies.CanModifyStoreSettings }),
+    };
 }

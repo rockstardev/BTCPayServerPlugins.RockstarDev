@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.Client;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Stores;
 using BTCPayServer.Tests;
@@ -16,11 +17,11 @@ namespace BTCPayServer.Plugins.Tests;
 [Trait("Category", "PlaywrightUITest")]
 public class PluginPermissionUITest : PlaywrightBaseTest
 {
-    private const string VendorPayAdminPolicy = "btcpay.plugin.vendorpay.admin";
-    private const string VendorPayInvoicesManagePolicy = "btcpay.plugin.vendorpay.invoices.manage";
-    private const string VendorPayInvoicesViewPolicy = "btcpay.plugin.vendorpay.invoices.view";
-    private const string VendorPayUsersManagePolicy = "btcpay.plugin.vendorpay.users.manage";
-    private const string VendorPaySettingsManagePolicy = "btcpay.plugin.vendorpay.settings.manage";
+    private const string VendorPayAdminPolicy = "btcpay.store.vendorpay.admin";
+    private const string VendorPayInvoicesManagePolicy = "btcpay.store.vendorpay.manageinvoices";
+    private const string VendorPayInvoicesViewPolicy = "btcpay.store.vendorpay.viewinvoices";
+    private const string VendorPayUsersManagePolicy = "btcpay.store.vendorpay.manageusers";
+    private const string VendorPaySettingsManagePolicy = "btcpay.store.vendorpay.managesettings";
     private readonly SharedPluginTestFixture _fixture;
 
     public PluginPermissionUITest(SharedPluginTestFixture fixture, ITestOutputHelper helper) : base(helper)
@@ -52,18 +53,13 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         await GoToUrl("/server/roles/Owner");
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
-        // Verify plugin permissions section exists
-        var pluginPermissionsHeading = Page.Locator("h5:has-text('Plugin Permissions')");
-        var hasPluginSection = await pluginPermissionsHeading.CountAsync() > 0;
-        Assert.True(hasPluginSection, "Server Roles page should have Plugin Permissions section");
-
         // Verify VendorPay permission is visible
         var vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
         var vendorPayExists = await vendorPayCheckbox.CountAsync() > 0;
         Assert.True(vendorPayExists, "VendorPay plugin permission should be visible");
 
         // Verify display name
-        var manageLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_admin']");
+        var manageLabel = Page.Locator($"label[for='Policy-{VendorPayAdminPolicy.Replace(".", "_")}']");
         if (await manageLabel.CountAsync() > 0)
         {
             var labelText = await manageLabel.TextContentAsync() ?? string.Empty;
@@ -213,7 +209,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
 
         await Page.FillAsync("#Role", customRoleName);
         var invoicesManageCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayInvoicesManagePolicy}']");
-        Assert.True(await invoicesManageCheckbox.CountAsync() > 0, "VendorPay invoices.manage checkbox should be visible");
+        Assert.True(await invoicesManageCheckbox.CountAsync() > 0, "VendorPay invoices manage checkbox should be visible");
         await invoicesManageCheckbox.CheckAsync();
         await invoicesManageCheckbox.DispatchEventAsync("change");
 
@@ -266,96 +262,73 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     }
 
     [Fact]
-    public void PluginPermissions_AreRegisteredViaDI()
+    public void VendorPayPermissions_AreRegisteredInPermissionService()
     {
-        // Verify that PluginPermission instances can be retrieved from DI container
-        var services = ServerTester.PayTester.GetService<IServiceProvider>();
-        var permissions = services.GetServices<PluginPermission>().ToList();
+        // Verify that VendorPay PolicyDefinitions are registered in the PermissionService
+        var permissionService = ServerTester.PayTester.GetService<PermissionService>();
+        Assert.NotNull(permissionService);
 
-        TestLogs.LogInformation($"Found {permissions.Count} plugin permissions via GetServices");
+        // Admin policy should be registered
+        Assert.True(permissionService.TryGetDefinition(VendorPayAdminPolicy, out var adminDef));
+        Assert.Equal("Vendor Pay: Admin", adminDef.Display.Title);
 
-        // Should have at least VendorPay permission
-        Assert.True(permissions.Count > 0, "Should find plugin permissions via GetServices<PluginPermission>()");
+        // Admin should include child policies in the hierarchy
+        var adminNode = permissionService.PermissionNodesByPolicy[VendorPayAdminPolicy];
+        var childPolicies = adminNode.Children.Select(c => c.Definition.Policy).ToArray();
+        Assert.Contains(VendorPayInvoicesManagePolicy, childPolicies);
+        Assert.Contains(VendorPayUsersManagePolicy, childPolicies);
+        Assert.Contains(VendorPaySettingsManagePolicy, childPolicies);
 
-        // Verify VendorPay permission is present
-        var vendorPayPermission = permissions.FirstOrDefault(p => p.Policy == VendorPayAdminPolicy);
-        Assert.NotNull(vendorPayPermission);
-        Assert.Equal("Vendor Pay: Admin", vendorPayPermission.DisplayName);
-
-        // Child permissions live inside ChildPolicies tree, not as separate DI registrations
-        var invoicesManagePermission = vendorPayPermission.ChildPolicies?.FirstOrDefault(p => p.Policy == VendorPayInvoicesManagePolicy);
-        Assert.NotNull(invoicesManagePermission);
-
-        TestLogs.LogInformation($"VendorPay permission found: {vendorPayPermission.Policy}");
-        TestLogs.LogInformation($"Display name: {vendorPayPermission.DisplayName}");
-        TestLogs.LogInformation($"Plugin identifier: {vendorPayPermission.PluginIdentifier}");
-        TestLogs.LogInformation($"InvoicesManage found in ChildPolicies: {invoicesManagePermission.Policy}");
+        TestLogs.LogInformation($"VendorPay Admin permission found: {adminDef.Policy}");
+        TestLogs.LogInformation($"Display name: {adminDef.Display.Title}");
+        TestLogs.LogInformation($"Child policies: {string.Join(", ", childPolicies)}");
     }
 
     [Fact]
-    public void PluginPermissionRegistry_ContainsRegisteredPermissions()
+    public void PermissionService_ContainsAllVendorPayPermissions()
     {
-        // Verify that permissions are registered in the registry
-        var registry = ServerTester.PayTester.GetService<PluginPermissionRegistry>();
-        Assert.NotNull(registry);
+        // Verify that all VendorPay permissions are registered in the PermissionService
+        var permissionService = ServerTester.PayTester.GetService<PermissionService>();
+        Assert.NotNull(permissionService);
 
-        var allPermissions = registry.GetAllPluginPermissions().ToList();
-        TestLogs.LogInformation($"Registry contains {allPermissions.Count} plugin permissions");
+        Assert.True(permissionService.IsValidPolicy(VendorPayAdminPolicy), $"{VendorPayAdminPolicy} should be registered");
+        Assert.True(permissionService.IsValidPolicy(VendorPayInvoicesManagePolicy), $"{VendorPayInvoicesManagePolicy} should be registered");
+        Assert.True(permissionService.IsValidPolicy(VendorPayInvoicesViewPolicy), $"{VendorPayInvoicesViewPolicy} should be registered");
+        Assert.True(permissionService.IsValidPolicy(VendorPayUsersManagePolicy), $"{VendorPayUsersManagePolicy} should be registered");
+        Assert.True(permissionService.IsValidPolicy(VendorPaySettingsManagePolicy), $"{VendorPaySettingsManagePolicy} should be registered");
 
-        Assert.True(allPermissions.Count > 0, "Registry should contain plugin permissions");
-
-        // Verify VendorPay permission is in registry
-        var vendorPayPermission = registry.GetPermission(VendorPayAdminPolicy);
-        Assert.NotNull(vendorPayPermission);
-        Assert.Equal("Vendor Pay: Admin", vendorPayPermission.DisplayName);
-
-        TestLogs.LogInformation("Verified: Plugin permissions are properly registered in registry");
+        TestLogs.LogInformation("Verified: All VendorPay permissions are properly registered in PermissionService");
     }
 
     [Fact]
-    public void PluginPermissionRegistry_ReturnsPermissionsInDeterministicOrder()
+    public void VendorPayPermissionHierarchy_InvoicesManageIncludesInvoicesView()
     {
-        var permissions = new[]
-        {
-            new PluginPermission
-            {
-                Policy = "btcpay.plugin.zplugin.canmanage",
-                DisplayName = "Z Plugin: Manage",
-                PluginIdentifier = "zplugin"
-            },
-            new PluginPermission
-            {
-                Policy = "btcpay.plugin.aplugin.canmanage",
-                DisplayName = "A Plugin: Manage",
-                PluginIdentifier = "aplugin"
-            },
-            new PluginPermission
-            {
-                Policy = "btcpay.plugin.mplugin.canmanage",
-                DisplayName = "M Plugin: Manage",
-                PluginIdentifier = "mplugin"
-            }
-        };
+        var permissionService = ServerTester.PayTester.GetService<PermissionService>();
+        Assert.NotNull(permissionService);
 
-        var registry = new PluginPermissionRegistry(permissions);
-        var orderedPolicies = registry.GetAllPluginPermissions().Select(p => p.Policy).ToArray();
+        // invoicesManage should include invoicesView as a child
+        var invoicesManageNode = permissionService.PermissionNodesByPolicy[VendorPayInvoicesManagePolicy];
+        var childPolicies = invoicesManageNode.Children.Select(c => c.Definition.Policy).ToArray();
+        Assert.Contains(VendorPayInvoicesViewPolicy, childPolicies);
 
-        Assert.Equal(new[]
-        {
-            "btcpay.plugin.aplugin.canmanage",
-            "btcpay.plugin.mplugin.canmanage",
-            "btcpay.plugin.zplugin.canmanage"
-        }, orderedPolicies);
+        // invoicesView should enumerate invoicesManage as a parent
+        var invoicesViewNode = permissionService.PermissionNodesByPolicy[VendorPayInvoicesViewPolicy];
+        var parentPolicies = invoicesViewNode.EnumerateParents(includeSelf: false).Select(p => p.Definition.Policy).ToArray();
+        Assert.Contains(VendorPayInvoicesManagePolicy, parentPolicies);
     }
 
     [Fact]
-    public void VendorPayPolicyNames_AreRegisteredForHierarchyRollout()
+    public void VendorPayAdmin_IsIncludedByStoreOwner()
     {
-        var registry = ServerTester.PayTester.GetService<PluginPermissionRegistry>();
-        Assert.NotNull(registry);
+        // Store owners (CanModifyStoreSettings) should automatically have VendorPay Admin access
+        var permissionService = ServerTester.PayTester.GetService<PermissionService>();
+        Assert.NotNull(permissionService);
 
-        Assert.NotNull(registry.GetPermission(VendorPayInvoicesManagePolicy));
-        Assert.NotNull(registry.GetPermission(VendorPayInvoicesViewPolicy));
+        var adminNode = permissionService.PermissionNodesByPolicy[VendorPayAdminPolicy];
+        var parentPolicies = adminNode.EnumerateParents(includeSelf: false).Select(p => p.Definition.Policy).ToArray();
+        Assert.Contains(Policies.CanModifyStoreSettings, parentPolicies);
+
+        TestLogs.LogInformation("Verified: VendorPay Admin is included by CanModifyStoreSettings");
     }
 
     [Fact]
@@ -363,8 +336,8 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     {
         /*
          * TEST ASSUMPTIONS:
-         * 1. VendorPay plugin is installed and registers permission "btcpay.plugin.vendorpay.admin"
-         * 2. Plugin permissions should appear in "Plugin Permissions" section on role edit page
+         * 1. VendorPay plugin is installed and registers permission via PolicyDefinition
+         * 2. Plugin permissions appear in the Permissions section on role edit page
          * 3. Plugin permissions should be saved to database when role is created/updated
          * 4. Plugin permissions should persist across page reloads
          * 5. Display name should be "Vendor Pay: Admin" (from plugin registration)
@@ -384,7 +357,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
 
         await Page.FillAsync("#Role", customRoleName);
 
-        // Wait for the page to fully load and render plugin permissions
+        // Wait for the page to fully load and render permissions
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
         // Check VendorPay permission
@@ -405,7 +378,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(isCheckedNow, "Checkbox should be checked after CheckAsync");
 
         // Verify the select element was updated
-        var selectElement = Page.Locator("#Policies");
+        var selectElement = Page.Locator("#Permissions");
         var selectedOptions = await selectElement.EvaluateAsync<string[]>("el => Array.from(el.selectedOptions).map(o => o.value)");
         Assert.Contains(VendorPayAdminPolicy, selectedOptions);
 
@@ -428,143 +401,14 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         Assert.True(isChecked, "VendorPay permission should be checked after reload");
 
         // Look for the permission label
-        var permissionLabel = Page.Locator("label[for='Policy-btcpay_plugin_vendorpay_admin']");
+        var permissionLabel = Page.Locator($"label[for='Policy-{VendorPayAdminPolicy.Replace(".", "_")}']");
         Assert.True(await permissionLabel.CountAsync() > 0, "Permission label should exist");
 
         var labelText = await permissionLabel.TextContentAsync() ?? string.Empty;
         TestLogs.LogInformation($"Permission label text: {labelText}");
 
-        // Should show "Vendor Pay: Admin" (not orphaned since plugin is installed)
+        // Should show "Vendor Pay: Admin"
         Assert.Contains("Vendor Pay", labelText);
-        Assert.DoesNotContain("Uninstalled Plugin", labelText);
-        Assert.DoesNotContain("⚠", labelText);
-    }
-
-    [Fact]
-    public async Task OrphanedPermission_DisplaysWithWarning()
-    {
-        /*
-         * TEST ASSUMPTIONS FOR ORPHANED PERMISSIONS:
-         * 1. When a plugin is uninstalled, its permissions remain in the database (graceful degradation)
-         * 2. Orphaned permissions should be detected by checking if permission exists in registry
-         * 3. Orphaned permissions should display with warning icon: ⚠️
-         * 4. Orphaned permissions should show "[Uninstalled Plugin]" prefix in label
-         * 5. Orphaned permissions should appear in a separate "Orphaned Plugin Permissions" warning section
-         * 6. Orphaned permissions should still be editable (can be unchecked/removed)
-         * 7. Warning section should have alert styling (yellow/warning color)
-         * 8. Warning section should explain that permissions are from uninstalled plugins
-         * 9. Orphaned permissions should be preserved when form is submitted if they remain checked
-         * 10. Orphaned permissions should be removed when unchecked and form is submitted
-         *
-         * IMPLEMENTATION APPROACH:
-         * - Since we can't actually uninstall VendorPay plugin in test, we'll:
-         *   1. Create a role with a fake orphaned permission directly in database
-         *   2. Verify the UI displays it with warning indicators
-         *   3. Test that it persists when form is submitted with it checked
-         *   4. Test that it can be removed from the role when unchecked
-         */
-        await InitializePlaywright(ServerTester);
-        var user = ServerTester.NewAccount();
-        await user.GrantAccessAsync();
-        await user.MakeAdmin();
-
-        await GoToUrl("/login");
-        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-
-        // Create a role with a fake orphaned permission
-        var customRoleName = $"TestRole_{Guid.NewGuid():N}"[..15];
-        var orphanedPermission = "btcpay.plugin.fakeuninstalled.manage";
-
-        // Create role via repository with orphaned permission
-        var storeId = user.StoreId;
-        var storeRepository = ServerTester.PayTester.GetService<StoreRepository>();
-        Assert.NotNull(storeRepository);
-        var roleId = new StoreRoleId(storeId, customRoleName);
-
-        // Add role with orphaned permission directly
-        await storeRepository.AddOrUpdateStoreRole(roleId, new List<string> { orphanedPermission });
-
-        TestLogs.LogInformation($"Created role with orphaned permission: {customRoleName}");
-
-        // Navigate to edit the role
-        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        // EXPECTED BEHAVIOR: Orphaned permission should display with warning
-
-        // 1. Check for orphaned permissions warning section
-        var orphanedSection = Page.Locator(".alert-warning:has-text('Orphaned Plugin Permissions')");
-        var hasSeparateSection = await orphanedSection.CountAsync() > 0;
-        TestLogs.LogInformation($"Orphaned permissions warning section exists: {hasSeparateSection}");
-
-        // 2. Check if orphaned permission is displayed
-        var orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
-        var orphanedExists = await orphanedCheckbox.CountAsync() > 0;
-        TestLogs.LogInformation($"Orphaned permission checkbox exists: {orphanedExists}");
-        Assert.True(orphanedExists, "Orphaned permission should be displayed");
-
-        // 3. Check if it's checked (should be, since it's in the role)
-        var isChecked = await orphanedCheckbox.IsCheckedAsync();
-        TestLogs.LogInformation($"Orphaned permission is checked: {isChecked}");
-        Assert.True(isChecked, "Orphaned permission should be checked");
-
-        // 4. Check for warning indicators in label
-        var orphanedLabel = Page.Locator($"label[for='Policy-{orphanedPermission.Replace(".", "_")}']");
-        if (await orphanedLabel.CountAsync() > 0)
-        {
-            var labelText = await orphanedLabel.TextContentAsync() ?? string.Empty;
-            TestLogs.LogInformation($"Orphaned permission label: {labelText}");
-
-            // Should contain warning indicator
-            Assert.True(labelText.Contains("⚠") || labelText.Contains("Uninstalled Plugin"),
-                "Orphaned permission label should contain warning indicator");
-        }
-
-        // 5. Test that orphaned permission persists when form is submitted with it checked
-        await Page.Locator("button[type='submit']").ClickAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        TestLogs.LogInformation("Submitted form with orphaned permission checked");
-
-        // Reload and verify orphaned permission is still there
-        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
-        var stillExists = await orphanedCheckbox.CountAsync() > 0;
-        Assert.True(stillExists, "Orphaned permission should persist after form submission");
-
-        if (stillExists)
-        {
-            var stillChecked = await orphanedCheckbox.IsCheckedAsync();
-            Assert.True(stillChecked, "Orphaned permission should remain checked after form submission");
-            TestLogs.LogInformation("Verified: Orphaned permission persists when form is submitted with it checked");
-        }
-
-        // 6. Now test that we can uncheck and remove it
-        await orphanedCheckbox.UncheckAsync();
-        await orphanedCheckbox.DispatchEventAsync("change");
-
-        var isUnchecked = !(await orphanedCheckbox.IsCheckedAsync());
-        Assert.True(isUnchecked, "Should be able to uncheck orphaned permission");
-
-        // 7. Save and verify it was removed
-        await Page.Locator("button[type='submit']").ClickAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        // Reload and verify orphaned permission is gone
-        await GoToUrl($"/stores/{storeId}/roles/{customRoleName}");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        orphanedCheckbox = Page.Locator($"input.policy-cb[value='{orphanedPermission}']");
-        var removedSuccessfully = await orphanedCheckbox.CountAsync() == 0;
-        if (!removedSuccessfully && await orphanedCheckbox.CountAsync() > 0)
-        {
-            var stillCheckedAfterRemoval = await orphanedCheckbox.IsCheckedAsync();
-            Assert.False(stillCheckedAfterRemoval, "Orphaned permission should have been removed");
-        }
-
-        TestLogs.LogInformation("Verified: Orphaned permissions display with warnings, persist when checked, and can be removed when unchecked");
     }
 
     [Fact]
@@ -572,11 +416,10 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     {
         /*
          * TEST ASSUMPTIONS:
-         * 1. Store roles page should display plugin permissions (same as Server roles)
-         * 2. Plugin permissions should appear in "Plugin Permissions" section
-         * 3. VendorPay permission should be visible and checkable
-         * 4. Plugin permissions should be saved to store roles
-         * 5. Store-scoped plugin permissions should work the same as server-scoped
+         * 1. Store roles page should display plugin permissions alongside built-in permissions
+         * 2. VendorPay permission should be visible and checkable
+         * 3. Plugin permissions should be saved to store roles
+         * 4. Store-scoped plugin permissions should work the same as server-scoped
          */
         await InitializePlaywright(ServerTester);
         var user = ServerTester.NewAccount();
@@ -595,16 +438,8 @@ public class PluginPermissionUITest : PlaywrightBaseTest
 
         await Page.FillAsync("#Role", customRoleName);
 
-        // Wait for plugin permissions to load
+        // Wait for permissions to load
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-
-        // Check for Plugin Permissions section
-        var pluginPermissionsHeading = Page.Locator("h5:has-text('Plugin Permissions')");
-        var hasPluginSection = await pluginPermissionsHeading.CountAsync() > 0;
-        TestLogs.LogInformation($"Plugin Permissions section exists on Store Roles page: {hasPluginSection}");
-
-        // This should be true after implementation
-        Assert.True(hasPluginSection, "Store Roles page should have Plugin Permissions section");
 
         // Check for VendorPay permission checkbox
         var vendorPayCheckbox = Page.Locator($"input.policy-cb[value='{VendorPayAdminPolicy}']");
@@ -643,7 +478,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     {
         await InitializePlaywright(ServerTester);
 
-        // Store owner has CanModifyStoreSettings via the default Owner role — no plugin permissions assigned
+        // Store owner has CanModifyStoreSettings via the default Owner role - no plugin permissions assigned
         var owner = ServerTester.NewAccount();
         await owner.GrantAccessAsync();
         var storeId = owner.StoreId;
@@ -703,7 +538,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
     {
         var (storeId, _) = await CreateUserWithPluginRole(VendorPayInvoicesViewPolicy);
 
-        // invoices.view is the leaf — should access the invoice list
+        // invoices.view is the leaf - should access the invoice list
         await GoToUrl($"/plugins/{storeId}/vendorpay/list");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         TestLogs.LogInformation($"InvoicesView -> list: {Page.Url}");
@@ -748,7 +583,7 @@ public class PluginPermissionUITest : PlaywrightBaseTest
         }
     }
 
-    // ── Helpers ──
+    // -- Helpers --
 
     private async Task<(string storeId, string email)> CreateUserWithPluginRole(params string[] policies)
     {
