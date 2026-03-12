@@ -2,6 +2,8 @@
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Logic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Strike.Client;
 
@@ -33,6 +35,7 @@ public class RockstarStrikeUtilsPlugin : BaseBTCPayServerPlugin
         {
             var factory = provider.GetRequiredService<RockstarStrikeDbContextFactory>();
             factory.ConfigureBuilder(o);
+            o.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
         serviceCollection.AddHostedService<RockstarStrikeMigrationRunner>();
 
