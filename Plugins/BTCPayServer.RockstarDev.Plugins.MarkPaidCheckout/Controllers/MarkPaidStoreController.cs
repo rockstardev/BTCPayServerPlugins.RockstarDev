@@ -9,6 +9,7 @@ using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.MarkPaidCheckout.PaymentHandlers;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
+using CsvHelper.Configuration.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StoreData = BTCPayServer.Data.StoreData;
@@ -67,6 +68,7 @@ public class MarkPaidStoreController(
     }
 
     [HttpPost("MarkAsPaid")]
+    [IgnoreAntiforgeryToken]
     [AllowAnonymous]
     public async Task<IActionResult> MarkAsPaid(string invoiceId, string storeId, string returnUrl, string method)
     {

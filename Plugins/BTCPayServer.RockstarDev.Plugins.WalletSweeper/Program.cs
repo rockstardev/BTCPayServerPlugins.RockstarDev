@@ -3,6 +3,8 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Data;
 using BTCPayServer.RockstarDev.Plugins.WalletSweeper.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BTCPayServer.RockstarDev.Plugins.WalletSweeper;
@@ -27,6 +29,7 @@ public class WalletSweeperPlugin : BaseBTCPayServerPlugin
         {
             var factory = provider.GetRequiredService<PluginDbContextFactory>();
             factory.ConfigureBuilder(o);
+            //o.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
 

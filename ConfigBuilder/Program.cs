@@ -88,14 +88,15 @@ static string? GetPluginDll(string pluginDir)
     // Find the .csproj, get assembly name + target frameworks
     var csproj = Directory.GetFiles(pluginDir, "*.csproj", SearchOption.TopDirectoryOnly).FirstOrDefault();
     if (csproj is null)
-        return FindAnyNet8Dll(pluginDir);
+        return FindAnyPluginDll(pluginDir);
 
     var (assemblyName, tfms) = ParseCsproj(csproj);
-    if (tfms.Count == 0) tfms.Add("net8.0"); // default if unspecified
+    if (tfms.Count == 0) tfms.Add("net10.0");
 
-    // Prefer net8.0 if present
     tfms = tfms
-        .OrderByDescending(t => string.Equals(t, "net8.0", StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(t => string.Equals(t, "net10.0", StringComparison.OrdinalIgnoreCase))
+        .ThenByDescending(t => string.Equals(t, "net9.0", StringComparison.OrdinalIgnoreCase))
+        .ThenByDescending(t => string.Equals(t, "net8.0", StringComparison.OrdinalIgnoreCase))
         .ThenBy(t => t)
         .ToList();
 
@@ -112,10 +113,13 @@ static string? GetPluginDll(string pluginDir)
 
     // Fallbacks
     var byName = Directory.GetFiles(pluginDir, $"{assemblyName}.dll", SearchOption.AllDirectories)
-        .FirstOrDefault(p => p.Contains($"{Path.DirectorySeparatorChar}net8.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase));
+        .OrderByDescending(p => p.Contains($"{Path.DirectorySeparatorChar}net10.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+        .ThenByDescending(p => p.Contains($"{Path.DirectorySeparatorChar}net9.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+        .ThenByDescending(p => p.Contains($"{Path.DirectorySeparatorChar}net8.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+        .FirstOrDefault();
     if (!string.IsNullOrEmpty(byName)) return byName;
 
-    return FindAnyNet8Dll(pluginDir);
+    return FindAnyPluginDll(pluginDir);
 }
 
 static (string assemblyName, List<string> tfms) ParseCsproj(string csprojPath)
@@ -139,8 +143,11 @@ static (string assemblyName, List<string> tfms) ParseCsproj(string csprojPath)
     return (assemblyName, tfms);
 }
 
-static string? FindAnyNet8Dll(string dir)
+static string? FindAnyPluginDll(string dir)
 {
     return Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories)
-        .FirstOrDefault(p => p.Contains($"{Path.DirectorySeparatorChar}net8.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase));
+        .OrderByDescending(p => p.Contains($"{Path.DirectorySeparatorChar}net10.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+        .ThenByDescending(p => p.Contains($"{Path.DirectorySeparatorChar}net9.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+        .ThenByDescending(p => p.Contains($"{Path.DirectorySeparatorChar}net8.0{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+        .FirstOrDefault();
 }

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
@@ -8,8 +6,6 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
-using BTCPayServer.Security;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -22,27 +18,15 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
-        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.0" }
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.6" }
     ];
 
     public override void Execute(IServiceCollection serviceCollection)
     {
         serviceCollection.AddUIExtension("store-integrations-nav", "VendorPayNav");
 
-        // Register authorization handler and policy for custom permission
-        serviceCollection.AddScoped<IAuthorizationHandler, VendorPayAuthorizationHandler>();
-        serviceCollection.AddAuthorization(options =>
-        {
-            options.AddPolicy(VendorPayPermissions.CanManageVendorPay,
-                policy => policy.AddRequirements(new PolicyRequirement(VendorPayPermissions.CanManageVendorPay)));
-        });
-
-        // Inject plugin permissions directly into DI container
-        // This follows the maintainer's suggestion to avoid interfaces
-        // foreach (var permission in VendorPayPermissions.AllPermissions(Identifier))
-        // {
-        //     serviceCollection.AddSingleton(permission);
-        // }
+        // Register plugin permissions using the new PolicyDefinition system
+        serviceCollection.AddPolicyDefinitions(VendorPayPermissions.GetPolicyDefinitions());
 
 
         serviceCollection.AddSingleton<VendorPayPassHasher>();
