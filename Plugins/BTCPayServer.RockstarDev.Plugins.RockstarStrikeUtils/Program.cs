@@ -35,7 +35,7 @@ public class RockstarStrikeUtilsPlugin : BaseBTCPayServerPlugin
         {
             var factory = provider.GetRequiredService<RockstarStrikeDbContextFactory>();
             factory.ConfigureBuilder(o);
-            o.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+            //o.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
         serviceCollection.AddHostedService<RockstarStrikeMigrationRunner>();
 

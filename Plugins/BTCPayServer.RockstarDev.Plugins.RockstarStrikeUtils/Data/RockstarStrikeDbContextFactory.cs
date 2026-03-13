@@ -16,7 +16,7 @@ public class RockstarStrikeDbContextFactory(IOptions<DatabaseOptions> options)
     {
         var builder = new DbContextOptionsBuilder<RockstarStrikeDbContext>();
         ConfigureBuilder(builder, npgsqlOptionsAction);
-        builder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+        //builder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         return new RockstarStrikeDbContext(builder.Options);
     }
 }

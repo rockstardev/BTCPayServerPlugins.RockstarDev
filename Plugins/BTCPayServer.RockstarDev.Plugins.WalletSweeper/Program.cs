@@ -29,7 +29,7 @@ public class WalletSweeperPlugin : BaseBTCPayServerPlugin
         {
             var factory = provider.GetRequiredService<PluginDbContextFactory>();
             factory.ConfigureBuilder(o);
-            o.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+            //o.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
         serviceCollection.AddHostedService<PluginMigrationRunner>();
 
