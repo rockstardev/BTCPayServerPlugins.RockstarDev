@@ -1,8 +1,12 @@
 #nullable enable
 using System.Net.Http;
+using BTCPayServer.Abstractions.Models;
 using BTCPayServer.RockstarDev.Plugins.LnurlSource;
+using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NBitcoin;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Xunit;
 
 namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Tests;
@@ -15,7 +19,8 @@ public class LnurlSourceConnectionStringTests
     {
         var httpClientFactory = new TestHttpClientFactory();
         var loggerFactory = LoggerFactory.Create(b => { });
-        _handler = new LnurlSourceConnectionStringHandler(httpClientFactory, loggerFactory);
+        var dbContextFactory = new TestDbContextFactory();
+        _handler = new LnurlSourceConnectionStringHandler(httpClientFactory, loggerFactory, dbContextFactory);
     }
 
     [Fact]
@@ -84,6 +89,20 @@ public class LnurlSourceConnectionStringTests
 
         Assert.NotNull(client);
         Assert.Equal("type=lnurlverify;address=bob@agi.cash", client.ToString());
+    }
+
+    private class TestDbContextFactory : LnurlSourceDbContextFactory
+    {
+        public TestDbContextFactory()
+            : base(Options.Create(new DatabaseOptions()))
+        {
+        }
+
+        public override LnurlSourceDbContext CreateContext(
+            Action<NpgsqlDbContextOptionsBuilder>? npgsqlOptionsAction = null)
+        {
+            throw new InvalidOperationException("No database in unit tests");
+        }
     }
 
     private class TestHttpClientFactory : IHttpClientFactory

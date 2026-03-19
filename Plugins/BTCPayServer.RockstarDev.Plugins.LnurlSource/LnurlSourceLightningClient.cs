@@ -3,13 +3,16 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning;
 using BTCPayServer.Payments.Lightning;
+using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
+using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Models;
 using LNURL;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Newtonsoft.Json;
@@ -30,9 +33,11 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     private readonly Network _network;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
+    private readonly LnurlSourceDbContextFactory _dbContextFactory;
 
-    // Cache: paymentHash -> (verifyUrl, bolt11, invoiceId)
+    // In-memory cache, populated from DB on first access
     private readonly ConcurrentDictionary<string, InvoiceRecord> _invoices = new();
+    private bool _cacheLoaded;
 
     private record InvoiceRecord(
         string PaymentHash,
@@ -46,7 +51,8 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         string lightningAddress,
         Network network,
         HttpClient httpClient,
-        ILogger logger)
+        ILogger logger,
+        LnurlSourceDbContextFactory dbContextFactory)
     {
         if (string.IsNullOrWhiteSpace(lightningAddress))
             throw new ArgumentException("Lightning Address cannot be empty", nameof(lightningAddress));
@@ -63,12 +69,74 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         _network = network;
         _httpClient = httpClient;
         _logger = logger;
+        _dbContextFactory = dbContextFactory;
     }
 
     public string? DisplayName => "LNURL Source";
     public Uri? ServerUri => new Uri($"https://{_domain}");
 
     public override string ToString() => $"type=lnurlverify;address={_lightningAddress}";
+
+    /// <summary>
+    /// Loads unexpired invoices from the database into the in-memory cache.
+    /// </summary>
+    private async Task EnsureCacheLoaded()
+    {
+        if (_cacheLoaded) return;
+
+        try
+        {
+            await using var db = _dbContextFactory.CreateContext();
+            var now = DateTimeOffset.UtcNow;
+            var dbInvoices = await db.Invoices
+                .Where(i => i.ExpiresAt > now)
+                .ToListAsync();
+
+            foreach (var inv in dbInvoices)
+            {
+                var record = new InvoiceRecord(
+                    inv.PaymentHash, inv.Bolt11, inv.VerifyUrl, inv.InvoiceId,
+                    inv.ExpiresAt, new LightMoney(inv.AmountMilliSatoshi));
+                _invoices.TryAdd(inv.PaymentHash, record);
+                _invoices.TryAdd(inv.InvoiceId, record);
+            }
+
+            if (dbInvoices.Count > 0)
+                _logger.LogInformation("Loaded {Count} unexpired invoices from database", dbInvoices.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load invoices from database, starting with empty cache");
+        }
+
+        _cacheLoaded = true;
+    }
+
+    /// <summary>
+    /// Persists an invoice record to the database.
+    /// </summary>
+    private async Task PersistInvoice(InvoiceRecord record)
+    {
+        try
+        {
+            await using var db = _dbContextFactory.CreateContext();
+            db.Invoices.Add(new LnurlSourceInvoice
+            {
+                PaymentHash = record.PaymentHash,
+                InvoiceId = record.InvoiceId,
+                VerifyUrl = record.VerifyUrl,
+                Bolt11 = record.Bolt11,
+                ExpiresAt = record.ExpiresAt,
+                AmountMilliSatoshi = record.Amount.MilliSatoshi
+            });
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist invoice {Hash} to database",
+                record.PaymentHash[..12]);
+        }
+    }
 
     /// <summary>
     /// Resolves the Lightning Address and calls the LNURL-pay callback to get a BOLT11 invoice.
@@ -115,7 +183,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
 
         var invoiceId = paymentHash[..20]; // Use first 20 chars of hash as ID
 
-        // Step 4: Cache for later verification
+        // Step 4: Cache and persist for later verification
         var expiry = createInvoiceRequest.Expiry == default
             ? TimeSpan.FromMinutes(10)
             : createInvoiceRequest.Expiry;
@@ -126,6 +194,8 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
             expiresAt, createInvoiceRequest.Amount);
         _invoices[paymentHash] = record;
         _invoices[invoiceId] = record;
+
+        await PersistInvoice(record);
 
         _logger.LogInformation(
             "Created LNURL Source invoice: hash={PaymentHash}, verify={HasVerify}",
@@ -148,6 +218,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     public async Task<LightningInvoice?> GetInvoice(string invoiceId,
         CancellationToken cancellation = default)
     {
+        await EnsureCacheLoaded();
         if (!_invoices.TryGetValue(invoiceId, out var record))
             return null;
         return await CheckInvoiceStatus(record, cancellation);
@@ -156,6 +227,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     public async Task<LightningInvoice?> GetInvoice(uint256 paymentHash,
         CancellationToken cancellation = default)
     {
+        await EnsureCacheLoaded();
         var hashStr = paymentHash.ToString();
         if (!_invoices.TryGetValue(hashStr, out var record))
             return null;
@@ -204,10 +276,10 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     /// <summary>
     /// Polls verify endpoints for settlement notifications.
     /// </summary>
-    public Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
+    public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
     {
-        return Task.FromResult<ILightningInvoiceListener>(
-            new LnurlSourceInvoiceListener(this, cancellation));
+        await EnsureCacheLoaded();
+        return new LnurlSourceInvoiceListener(this, cancellation);
     }
 
     private class LnurlSourceInvoiceListener : ILightningInvoiceListener
