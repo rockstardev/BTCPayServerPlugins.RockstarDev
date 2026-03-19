@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http;
 using System.Threading;
@@ -36,9 +37,9 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     private record InvoiceRecord(
         string PaymentHash,
         string Bolt11,
-        string? VerifyUrl,
+        string VerifyUrl,
         string InvoiceId,
-        DateTimeOffset CreatedAt,
+        DateTimeOffset ExpiresAt,
         LightMoney Amount);
 
     public LnurlSourceLightningClient(
@@ -102,6 +103,10 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
             throw new InvalidOperationException("LNURL-pay callback did not return a payment request");
 
         var verifyUrl = callbackResponse["verify"]?.Value<string>();
+        if (string.IsNullOrWhiteSpace(verifyUrl))
+            throw new InvalidOperationException(
+                "LNURL-pay callback did not return a LUD-21 verify URL. " +
+                "The Lightning Address provider must support LUD-21 for payment verification.");
 
         // Step 3: Parse BOLT11 to extract payment hash
         var parsedBolt11 = BOLT11PaymentRequest.Parse(bolt11, _network);
@@ -111,9 +116,14 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         var invoiceId = paymentHash[..20]; // Use first 20 chars of hash as ID
 
         // Step 4: Cache for later verification
+        var expiry = createInvoiceRequest.Expiry == default
+            ? TimeSpan.FromMinutes(10)
+            : createInvoiceRequest.Expiry;
+        var expiresAt = DateTimeOffset.UtcNow + expiry;
+
         var record = new InvoiceRecord(
             paymentHash, bolt11, verifyUrl, invoiceId,
-            DateTimeOffset.UtcNow, createInvoiceRequest.Amount);
+            expiresAt, createInvoiceRequest.Amount);
         _invoices[paymentHash] = record;
         _invoices[invoiceId] = record;
 
@@ -128,7 +138,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
             BOLT11 = bolt11,
             Amount = createInvoiceRequest.Amount,
             Status = LightningInvoiceStatus.Unpaid,
-            ExpiresAt = DateTimeOffset.UtcNow + (createInvoiceRequest.Expiry == default ? TimeSpan.FromMinutes(10) : createInvoiceRequest.Expiry)
+            ExpiresAt = expiresAt
         };
     }
 
@@ -158,24 +168,25 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         var status = LightningInvoiceStatus.Unpaid;
         string? preimage = null;
 
-        if (record.VerifyUrl != null)
+        try
         {
-            try
+            var json = await _httpClient.GetStringAsync(record.VerifyUrl, cancellation);
+            var verifyResponse = JObject.Parse(json);
+            var settled = verifyResponse["settled"]?.Value<bool>() ?? false;
+            if (settled)
             {
-                var json = await _httpClient.GetStringAsync(record.VerifyUrl, cancellation);
-                var verifyResponse = JObject.Parse(json);
-                var settled = verifyResponse["settled"]?.Value<bool>() ?? false;
-                if (settled)
-                {
-                    status = LightningInvoiceStatus.Paid;
-                    preimage = verifyResponse["preimage"]?.Value<string>();
-                }
+                status = LightningInvoiceStatus.Paid;
+                preimage = verifyResponse["preimage"]?.Value<string>();
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to check verify URL for {Hash}",
-                    record.PaymentHash[..12]);
-            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to check verify URL for {Hash}",
+                record.PaymentHash[..12]);
         }
 
         return new LightningInvoice
@@ -186,7 +197,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
             Amount = record.Amount,
             Status = status,
             Preimage = preimage,
-            ExpiresAt = record.CreatedAt + TimeSpan.FromMinutes(10)
+            ExpiresAt = record.ExpiresAt
         };
     }
 
@@ -227,7 +238,6 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
                     if (linked.Token.IsCancellationRequested) break;
 
                     var record = kvp.Value;
-                    if (record.VerifyUrl == null) continue;
                     if (!seen.Add(record.PaymentHash)) continue;
                     if (_emittedHashes.Contains(record.PaymentHash)) continue;
 
@@ -279,6 +289,10 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
                     payRequest.MinSendable?.MilliSatoshi,
                     payRequest.MaxSendable?.MilliSatoshi);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
