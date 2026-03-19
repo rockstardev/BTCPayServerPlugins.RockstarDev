@@ -1,5 +1,5 @@
 # BTCPayServerPlugins.RockstarDev
-
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/rockstardev/BTCPayServerPlugins.RockstarDev?utm_source=oss&utm_medium=github&utm_campaign=rockstardev%2FBTCPayServerPlugins.RockstarDev&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 A multi-plugin repository for [BTCPay Server](https://github.com/btcpayserver/btcpayserver), built as an evolution of the official [btcpayserver-plugin-template](https://github.com/btcpayserver/btcpayserver-plugin-template).
 
 While the official template provides a starting point for a single plugin, this repository adds the structure needed to develop, test, and maintain multiple plugins in one place:
