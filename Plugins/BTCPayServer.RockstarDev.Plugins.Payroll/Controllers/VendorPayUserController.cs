@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
+using BTCPayServer.Services.Labels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,25 +27,23 @@ public class VendorPayUserController(
     PluginDbContextFactory pluginDbContextFactory,
     VendorPayPassHasher hasher,
     EmailService emailService,
+    StoreLabelRepository storeLabelRepository,
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
 {
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("list")]
-    public async Task<IActionResult> List(string storeId, bool all, bool pending, bool oneTime, string searchTerm = null)
+    public async Task<IActionResult> List(string storeId, bool all, bool pending, bool oneTime, string searchTerm = null, string label = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
 
         var query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
 
-        // Apply search filter if provided
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.Trim().ToLower();
-            query = query.Where(u =>
-                u.Name.ToLower().Contains(search) ||
-                u.Email.ToLower().Contains(search));
+            query = query.Where(u => u.Name.ToLower().Contains(search) || u.Email.ToLower().Contains(search));
         }
 
         var allStoreUsers = query.OrderBy(a => a.Name).ToList();
@@ -56,6 +56,16 @@ public class VendorPayUserController(
         else if (!all)
             vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
 
+        var labelsForUsers = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, vendorPayUsers.Select(u => u.Id).ToArray());
+        var allLabels = await storeLabelRepository.GetStoreLabels(storeId, VendorPayPluginConst.LabelType);
+        if (!string.IsNullOrEmpty(label))
+        {
+            var labelledIds = labelsForUsers.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
+                .Select(kv => kv.Key).ToHashSet();
+
+            vendorPayUsers = vendorPayUsers.Where(u => labelledIds.Contains(u.Id)).ToList();
+        }
+
         var vendorPayUserListViewModel = new VendorPayUserListViewModel
         {
             All = all,
@@ -63,6 +73,9 @@ public class VendorPayUserController(
             OneTime = oneTime,
             SearchTerm = searchTerm,
             DisplayedVendorPayUsers = vendorPayUsers,
+            ActiveLabel = label,
+            AllLabels = allLabels,
+            LabelsPerUser = labelsForUsers,
             Counts = new VendorPayUserListViewModel.CountsData
             {
                 Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
@@ -115,11 +128,13 @@ public class VendorPayUserController(
 
         if (!ModelState.IsValid)
         {
+            model.StoreId = CurrentStore.Id;
             return View(model);
         }
 
         if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
+            model.StoreId = CurrentStore.Id;
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
             return View(model);
         }
@@ -197,6 +212,8 @@ public class VendorPayUserController(
                 Message = "User created successfully", Severity = StatusMessageModel.StatusSeverity.Success
             });
         }
+        if (model.Labels?.Count > 0)
+            await storeLabelRepository.SetStoreObjectLabels(CurrentStore.Id, VendorPayPluginConst.LabelType, dbUser.Id, model.Labels.ToArray());
 
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
@@ -267,12 +284,16 @@ public class VendorPayUserController(
         if (user.State == VendorPayUserState.Pending)
             return NotFound();
 
+        var labelsForUser = await storeLabelRepository.GetStoreLabelsForObjects(CurrentStore.Id, VendorPayPluginConst.LabelType, new[] { userId });
+
         var model = new VendorPayUserCreateViewModel
         {
             Id = user.Id,
             Email = user.Email,
             Name = user.Name,
             EmailReminder = user.EmailReminder,
+            StoreId = CurrentStore.Id,
+            Labels = labelsForUser.TryGetValue(userId, out var ll) ? ll.Select(l => l.Label).ToList() : new List<string>(),
             StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id)
         };
         return View(model);
@@ -286,6 +307,7 @@ public class VendorPayUserController(
 
         if (!ModelState.IsValid)
         {
+            model.StoreId = CurrentStore.Id;
             model.StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
             return View(model);
         }
@@ -305,6 +327,7 @@ public class VendorPayUserController(
 
         ctx.Update(user);
         await ctx.SaveChangesAsync();
+        await storeLabelRepository.SetStoreObjectLabels(CurrentStore.Id, VendorPayPluginConst.LabelType, userId, model.Labels?.ToArray() ?? Array.Empty<string>());
 
         ReturnMessageStatus();
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
@@ -496,6 +519,7 @@ public class VendorPayUserController(
         ctx.RemoveRange(userInvoices);
         ctx.Remove(vendorPayUser);
         await ctx.SaveChangesAsync();
+        await storeLabelRepository.SetStoreObjectLabels(CurrentStore.Id, VendorPayPluginConst.LabelType, userId, Array.Empty<string>());
 
         TempData.SetStatusMessageModel(new StatusMessageModel { Message = "User deleted successfully", Severity = StatusMessageModel.StatusSeverity.Success });
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -15,6 +16,9 @@ public class VendorPayUserListViewModel
     public bool OneTime { get; set; }
     public bool All { get; set; }
     public string SearchTerm { get; set; }
+    public string ActiveLabel { get; set; }
+    public (string Label, string Color)[] AllLabels { get; set; } = Array.Empty<(string, string)>();
+    public Dictionary<string, (string Label, string Color)[]> LabelsPerUser { get; set; } = new();
 
     public class CountsData
     {
@@ -62,6 +66,11 @@ public class VendorPayUserCreateViewModel
     public string StoreId { get; set; }
 
     public bool StoreEmailSettingsConfigured { get; set; }
+
+    [Display(Name = "Categories")]
+    public List<string> Labels { get; set; } = new();
+
+    public (string Label, string Color)[] ExistingLabels { get; set; } = Array.Empty<(string, string)>();
 }
 
 public class VendorPayUserResetPasswordViewModel

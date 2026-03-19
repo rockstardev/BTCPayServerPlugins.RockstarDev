@@ -7,6 +7,7 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
@@ -15,6 +16,7 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
+using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Rates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -35,6 +37,7 @@ public class VendorPayInvoiceController(
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
     EmailService emailService,
+    StoreLabelRepository storeLabelRepository,
     VendorPayInvoiceUploadHelper payrollInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
@@ -76,9 +79,11 @@ public class VendorPayInvoiceController(
         }
 
         var settings = await ctx.GetSettingAsync(storeId);
+        var allLabels = await storeLabelRepository.GetStoreLabels(storeId, VendorPayPluginConst.LabelType);
         var model = new VendorPayInvoiceListViewModel
         {
             All = all,
+            AllLabels = allLabels,
             SearchTerm = searchTerm,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             VendorPayInvoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel
@@ -168,6 +173,74 @@ public class VendorPayInvoiceController(
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
 
+    [HttpGet("pay-by-label")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> PayByLabel(string storeId, string label)
+    {
+        await using var ctx = pluginDbContextFactory.CreateContext();
+
+        var allUserIds = ctx.PayrollUsers.Where(u => u.StoreId == storeId && u.State == VendorPayUserState.Active).Select(u => u.Id).ToArray();
+        var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, allUserIds);
+
+        var targetUserIds = allUserLabels.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
+            .Select(kv => kv.Key).ToHashSet();
+
+        if (targetUserIds.Count == 0)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = $"No active users found with category '{label}'",
+                Severity = StatusMessageModel.StatusSeverity.Warning
+            });
+            return RedirectToAction(nameof(List), new { storeId });
+        }
+
+        var invoices = ctx.PayrollInvoices.Include(i => i.User).Where(i => targetUserIds.Contains(i.UserId) &&
+                    i.State == VendorPayInvoiceState.AwaitingApproval && !i.IsArchived).ToList();
+
+        if (invoices.Count == 0)
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = $"No awaiting invoices found for category '{label}'",
+                Severity = StatusMessageModel.StatusSeverity.Info
+            });
+            return RedirectToAction(nameof(List), new { storeId });
+        }
+
+        var invoiceIds = invoices.Select(i => i.Id).ToArray();
+        TempData["PayByLabel_InvoiceIds"] = System.Text.Json.JsonSerializer.Serialize(invoiceIds);
+
+        var usersWithMultiplePendingInvoices = invoices.GroupBy(i => i.UserId).Where(g => g.Count() > 1).ToList();
+        if (usersWithMultiplePendingInvoices.Any())
+        {
+            var nameList = string.Join(", ", usersWithMultiplePendingInvoices.Select(g => g.First().User.Name));
+            return View("Confirm",
+                new ConfirmModel($"Pay by Category: {label}",
+                    $"The following users have more than one awaiting invoice: {nameList}. This will pay all {invoices.Count} invoices across {targetUserIds.Count} users. Do you want to proceed?",
+                    "Pay All"));
+        }
+        return await PayByLabelPost(storeId, label);
+    }
+
+    [HttpPost("pay-by-label")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> PayByLabelPost(string storeId, string label)
+    {
+        var json = TempData["PayByLabel_InvoiceIds"] as string;
+        if (string.IsNullOrEmpty(json))
+        {
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Message = "Session expired, please try again",
+                Severity = StatusMessageModel.StatusSeverity.Error
+            });
+            return RedirectToAction(nameof(List), new { storeId });
+        }
+        var invoiceIds = System.Text.Json.JsonSerializer.Deserialize<string[]>(json);
+        return await payInvoices(invoiceIds);
+    }
+
     public async Task<IActionResult> DownloadInvoices(string invoiceId)
     {
         if (CurrentStore is null)
@@ -239,7 +312,7 @@ public class VendorPayInvoiceController(
             Message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
         });
 
-        return new RedirectToActionResult("WalletSend", "UIWallets",
+        return new RedirectToActionResult(nameof(UIWalletsController.WalletSend), "UIWallets",
             new { walletId = new WalletId(CurrentStore.Id, VendorPayPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 

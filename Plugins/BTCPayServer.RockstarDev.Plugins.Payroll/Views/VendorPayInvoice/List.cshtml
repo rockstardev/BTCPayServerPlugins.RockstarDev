@@ -18,34 +18,53 @@
     var publicInvoiceUrl = $"{request.Scheme}://{request.Host}{Url.Action("ListInvoices", "Public", new { storeId })}";
 }
 
-<form method="post">
-    <div class="sticky-header-setup"></div>
-    <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
-        <div class="d-flex gap-3 mt-3 mt-sm-0">
-            <a
-                id="view-report"
-                permission="@Policies.CanViewReports"
-                asp-controller="UIReports"
-                asp-action="StoreReports"
-                asp-route-storeId="@storeId"
-                asp-route-viewName="Vendor Pay"
-                class="btn btn-secondary">
-                <vc:icon symbol="nav-reporting" />
-                <span text-translate="true">Reporting</span>
-            </a>
-            <div class="btn-group" role="group">
-                <a href="@publicInvoiceUrl" target="_blank" class="btn btn-secondary text-truncate" style="max-width: 300px;">
-                    Public Invoice Upload
-                </a>
-                <button type="button" class="btn btn-secondary clipboard-button px-3" data-clipboard="@publicInvoiceUrl">
-                    <vc:icon symbol="actions-copy" />
-                </button>
-            </div>
-            <a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary">Admin Upload Invoice</a>
-        </div>
-    </div>
-</form>
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+	<h2 class="mb-0">@ViewData["Title"]</h2>
+	<div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center">
+		<div class="dropdown">
+			<button class="btn btn-secondary px-3 d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown">
+				<vc:icon symbol="caret-down" />
+			</button>
+			<ul class="dropdown-menu dropdown-menu-end">
+				<li>
+					<a class="dropdown-item" permission="@Policies.CanViewReports" asp-controller="UIReports"
+					   asp-action="StoreReports" asp-route-storeId="@storeId" asp-route-viewName="Vendor Pay">
+						Reporting
+					</a>
+				</li>
+				<li>
+					<a class="dropdown-item" href="@publicInvoiceUrl" target="_blank">
+						Public Invoice Upload
+					</a>
+				</li>
+			</ul>
+		</div>
+		@if (Model.AllLabels.Any())
+		{
+			<div class="dropdown">
+				<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+					Pay by Category
+				</button>
+				<ul class="dropdown-menu dropdown-menu-end">
+					@foreach (var (label, _) in Model.AllLabels)
+					{
+						<li>
+							<a class="dropdown-item" asp-action="PayByLabel" asp-controller="VendorPayInvoice"
+							   asp-route-storeId="@storeId" asp-route-label="@label">@label</a>
+						</li>
+					}
+				</ul>
+			</div>
+		}
+		<button type="button" class="btn btn-secondary clipboard-button px-3 d-flex align-items-center justify-content-center" data-clipboard="@publicInvoiceUrl">
+			<vc:icon symbol="actions-copy" />
+		</button>
+		<a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary text-nowrap">
+			Admin Upload Invoice
+		</a>
+	</div>
+</div>
 
 <partial name="_StatusMessage" />
 

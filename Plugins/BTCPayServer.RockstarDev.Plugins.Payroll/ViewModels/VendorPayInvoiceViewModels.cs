@@ -15,6 +15,7 @@ public class VendorPayInvoiceListViewModel
     public string SearchTerm { get; set; }
     public List<VendorPayInvoiceViewModel> VendorPayInvoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
+    public (string Label, string Color)[] AllLabels { get; set; } = Array.Empty<(string, string)>();
 }
 
 public class VendorPayInvoiceViewModel

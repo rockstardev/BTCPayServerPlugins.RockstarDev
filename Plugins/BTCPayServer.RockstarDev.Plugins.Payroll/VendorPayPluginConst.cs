@@ -7,4 +7,5 @@ public static class VendorPayPluginConst
 
     // TODO: Is there a better way here to make it more generic?
     public const string BTC_CRYPTOCODE = "BTC";
+    public const string LabelType = "vendorpay-user";
 }
