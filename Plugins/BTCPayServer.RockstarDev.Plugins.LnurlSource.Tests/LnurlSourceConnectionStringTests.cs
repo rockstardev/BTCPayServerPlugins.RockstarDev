@@ -22,7 +22,7 @@ public class LnurlSourceConnectionStringTests
     public void ValidConnectionString_ReturnsClient()
     {
         var client = _handler.Create(
-            "type=lnurl-source;address=user@domain.com",
+            "type=lnurlverify;address=user@domain.com",
             Network.Main, out var error);
 
         Assert.NotNull(client);
@@ -33,7 +33,7 @@ public class LnurlSourceConnectionStringTests
     public void MissingAddress_ReturnsError()
     {
         var client = _handler.Create(
-            "type=lnurl-source",
+            "type=lnurlverify",
             Network.Main, out var error);
 
         Assert.Null(client);
@@ -45,7 +45,7 @@ public class LnurlSourceConnectionStringTests
     public void EmptyAddress_ReturnsError()
     {
         var client = _handler.Create(
-            "type=lnurl-source;address=",
+            "type=lnurlverify;address=",
             Network.Main, out var error);
 
         Assert.Null(client);
@@ -56,7 +56,7 @@ public class LnurlSourceConnectionStringTests
     public void InvalidAddressFormat_ReturnsError()
     {
         var client = _handler.Create(
-            "type=lnurl-source;address=notanemailformat",
+            "type=lnurlverify;address=notanemailformat",
             Network.Main, out var error);
 
         Assert.Null(client);
@@ -79,11 +79,11 @@ public class LnurlSourceConnectionStringTests
     public void ToString_RoundTrips()
     {
         var client = _handler.Create(
-            "type=lnurl-source;address=bob@agi.cash",
+            "type=lnurlverify;address=bob@agi.cash",
             Network.Main, out _);
 
         Assert.NotNull(client);
-        Assert.Equal("type=lnurl-source;address=bob@agi.cash", client.ToString());
+        Assert.Equal("type=lnurlverify;address=bob@agi.cash", client.ToString());
     }
 
     private class TestHttpClientFactory : IHttpClientFactory

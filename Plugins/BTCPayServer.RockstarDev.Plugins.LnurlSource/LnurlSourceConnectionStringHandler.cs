@@ -24,7 +24,7 @@ public class LnurlSourceConnectionStringHandler : ILightningConnectionStringHand
     public ILightningClient? Create(string connectionString, Network network, out string? error)
     {
         var kv = LightningConnectionStringHelper.ExtractValues(connectionString, out var type);
-        if (type != "lnurl-source")
+        if (type != "lnurlverify")
         {
             error = null;
             return null;
@@ -45,7 +45,7 @@ public class LnurlSourceConnectionStringHandler : ILightningConnectionStringHand
         }
 
         error = null;
-        var client = _httpClientFactory.CreateClient("lnurl-source");
+        var client = _httpClientFactory.CreateClient("lnurlverify");
         var logger = _loggerFactory.CreateLogger<LnurlSourceLightningClient>();
         return new LnurlSourceLightningClient(address, network, client, logger);
     }

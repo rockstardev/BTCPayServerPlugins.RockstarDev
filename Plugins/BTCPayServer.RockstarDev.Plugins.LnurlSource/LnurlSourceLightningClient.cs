@@ -59,7 +59,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     public string? DisplayName => "LNURL Source";
     public Uri? ServerUri => new Uri($"https://{_domain}");
 
-    public override string ToString() => $"type=lnurl-source;address={_lightningAddress}";
+    public override string ToString() => $"type=lnurlverify;address={_lightningAddress}";
 
     /// <summary>
     /// Resolves the Lightning Address and calls the LNURL-pay callback to get a BOLT11 invoice.
