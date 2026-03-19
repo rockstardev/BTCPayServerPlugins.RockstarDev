@@ -36,6 +36,8 @@ public class LnurlSourceConnectionStringHandler : ILightningConnectionStringHand
             return null;
         }
 
+        address = address.Trim();
+
         // Validate Lightning Address format
         var parts = address.Split('@');
         if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))

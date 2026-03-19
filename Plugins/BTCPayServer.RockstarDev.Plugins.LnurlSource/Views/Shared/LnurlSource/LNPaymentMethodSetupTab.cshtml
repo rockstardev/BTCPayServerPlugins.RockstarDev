@@ -10,7 +10,9 @@
     document.addEventListener("DOMContentLoaded", function () {
        const customNodeAccordian = document.getElementById("CustomNodeSupport");
        const template = document.getElementById("lnurl-source");
-       customNodeAccordian.appendChild(template.content.cloneNode(true));
+       if (customNodeAccordian && template?.content) {
+           customNodeAccordian.appendChild(template.content.cloneNode(true));
+       }
     });
 </script>
 

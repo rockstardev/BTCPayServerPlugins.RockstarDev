@@ -47,8 +47,16 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         HttpClient httpClient,
         ILogger logger)
     {
-        _lightningAddress = lightningAddress;
+        if (string.IsNullOrWhiteSpace(lightningAddress))
+            throw new ArgumentException("Lightning Address cannot be empty", nameof(lightningAddress));
+
         var parts = lightningAddress.Split('@');
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+            throw new ArgumentException(
+                $"Invalid Lightning Address format: '{lightningAddress}'. Expected user@domain.com",
+                nameof(lightningAddress));
+
+        _lightningAddress = lightningAddress;
         _username = parts[0];
         _domain = parts[1];
         _network = network;
@@ -195,6 +203,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     {
         private readonly LnurlSourceLightningClient _client;
         private readonly CancellationToken _cancellation;
+        private readonly HashSet<string> _emittedHashes = new();
 
         public LnurlSourceInvoiceListener(LnurlSourceLightningClient client,
             CancellationToken cancellation)
@@ -211,18 +220,23 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
             // Poll all pending invoices every 2 seconds
             while (!linked.Token.IsCancellationRequested)
             {
+                // Deduplicate: iterate unique records by payment hash only
+                var seen = new HashSet<string>();
                 foreach (var kvp in _client._invoices)
                 {
                     if (linked.Token.IsCancellationRequested) break;
 
                     var record = kvp.Value;
                     if (record.VerifyUrl == null) continue;
+                    if (!seen.Add(record.PaymentHash)) continue;
+                    if (_emittedHashes.Contains(record.PaymentHash)) continue;
 
                     try
                     {
                         var invoice = await _client.CheckInvoiceStatus(record, linked.Token);
                         if (invoice.Status == LightningInvoiceStatus.Paid)
                         {
+                            _emittedHashes.Add(record.PaymentHash);
                             return invoice;
                         }
                     }
