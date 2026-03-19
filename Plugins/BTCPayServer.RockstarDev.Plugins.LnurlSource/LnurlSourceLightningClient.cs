@@ -381,7 +381,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         try
         {
             var lnurlpUrl = $"https://{_domain}/.well-known/lnurlp/{_username}";
-            var response = await _httpClient.GetAsync(lnurlpUrl);
+            using var response = await _httpClient.GetAsync(lnurlpUrl);
             if (!response.IsSuccessStatusCode)
             {
                 return new ValidationResult(
