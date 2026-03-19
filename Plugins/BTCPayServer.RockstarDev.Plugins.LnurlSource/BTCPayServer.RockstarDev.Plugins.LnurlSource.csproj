@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
+    <!-- -->
+    <!-- Plugin specific properties -->
+    <PropertyGroup>
+        <Product>LNURL Source</Product>
+        <Description>Use any Lightning Address with LUD-21 verify support as a receive-only Lightning payment method. No node required - just a Lightning Address.</Description>
+        <Version>0.0.1</Version>
+    </PropertyGroup>
+    <!-- Plugin development properties -->
+    <PropertyGroup>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <PreserveCompilationContext>false</PreserveCompilationContext>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    </PropertyGroup>
+
+    <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
+    <ItemDefinitionGroup>
+        <ProjectReference>
+            <Properties>StaticWebAssetsEnabled=false</Properties>
+            <Private>false</Private>
+            <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
+        </ProjectReference>
+    </ItemDefinitionGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="LNURL" Version="0.0.36" />
+    </ItemGroup>
+</Project>
