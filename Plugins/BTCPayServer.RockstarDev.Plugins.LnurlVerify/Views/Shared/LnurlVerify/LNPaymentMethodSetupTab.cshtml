@@ -1,0 +1,42 @@
+@model BTCPayServer.Models.StoreViewModels.LightningNodeViewModel
+@{
+    if (Model.CryptoCode != "BTC")
+    {
+        return;
+    }
+}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+       const customNodeAccordion = document.getElementById("CustomNodeSupport");
+       const template = document.getElementById("lnurl-verify");
+       if (customNodeAccordion && template?.content) {
+           customNodeAccordion.appendChild(template.content.cloneNode(true));
+       }
+    });
+</script>
+
+<template id="lnurl-verify">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="CustomLnurlVerifyHeader">
+            <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#CustomLnurlVerifyContent" aria-controls="CustomLnurlVerifyContent" aria-expanded="false">
+                <span><strong>LNURL Verify</strong> via Lightning Address (LUD-21)</span>
+                <vc:icon symbol="caret-down"/>
+            </button>
+        </h2>
+        <div id="CustomLnurlVerifyContent" class="accordion-collapse collapse" aria-labelledby="CustomLnurlVerifyHeader" data-bs-parent="#CustomNodeSupport">
+            <div class="accordion-body">
+                <ul class="pb-2">
+                    <li>
+                        <code><b>type=</b>lnurlverify;<b>address=</b>user@@domain.com</code>
+                    </li>
+                </ul>
+                <p class="my-2">
+                    Use any Lightning Address as a receive-only payment method. The Lightning Address provider must support
+                    <a href="https://github.com/lnurl/luds/blob/luds/21.md" target="_blank" rel="noreferrer noopener">LUD-21</a>
+                    (LNURL-pay verify) for payment settlement detection. No API keys or node required.
+                </p>
+            </div>
+        </div>
+    </div>
+</template>
