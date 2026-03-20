@@ -359,36 +359,12 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
     }
 
     /// <summary>
-    /// Returns basic info from the LNURL-pay metadata.
+    /// Not supported - LNURL Verify has no lightning node to report info for.
+    /// BTCPay Server handles NotSupportedException gracefully and skips the
+    /// block sync check that would otherwise fail with BlockHeight = 0.
     /// </summary>
-    public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
-    {
-        var info = new LightningNodeInformation();
-        try
-        {
-            var lnurlpUrl = $"https://{_domain}/.well-known/lnurlp/{_username}";
-            var json = await _httpClient.GetStringAsync(lnurlpUrl, cancellation);
-            var payRequest = JsonConvert.DeserializeObject<LNURLPayRequest>(json);
-            // LightningNodeInformation doesn't expose min/max sendable directly,
-            // but we can log it for debugging
-            if (payRequest != null)
-            {
-                _logger.LogInformation(
-                    "LNURL Verify info: min={Min}msat, max={Max}msat",
-                    payRequest.MinSendable?.MilliSatoshi,
-                    payRequest.MaxSendable?.MilliSatoshi);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch LNURL-pay metadata");
-        }
-        return info;
-    }
+    public Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
+        => throw new NotSupportedException();
 
     /// <summary>
     /// Validates the Lightning Address resolves and supports LUD-21.
