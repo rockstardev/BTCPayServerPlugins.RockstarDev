@@ -119,6 +119,7 @@ public class VendorPayUserController(
 
         var email = model.Email.ToLowerInvariant();
         model.StoreEmailSettingsConfigured = await emailService.IsEmailSettingsConfigured(CurrentStore.Id);
+        model.StoreId = CurrentStore.Id;
 
         if (model.SendRegistrationEmailInviteToUser && string.IsNullOrWhiteSpace(model.UserInviteEmailSubject))
         {
@@ -132,13 +133,11 @@ public class VendorPayUserController(
 
         if (!ModelState.IsValid)
         {
-            model.StoreId = CurrentStore.Id;
             return View(model);
         }
 
         if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
-            model.StoreId = CurrentStore.Id;
             ModelState.AddModelError(nameof(model.Email), "User with the same email already exists");
             return View(model);
         }

@@ -341,7 +341,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await CreateVendorPayUser();
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         var popupTask = Page.Context.WaitForPageAsync();
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameRegex = new Regex("Public Invoice Upload", RegexOptions.IgnoreCase) }).ClickAsync();
+        await Page.Locator("button[aria-label='More invoice actions']").ClickAsync();
+        await Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextRegex = new Regex("Public Invoice Upload", RegexOptions.IgnoreCase) }).ClickAsync();
         var popup = await popupTask;
         await popup.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await popup.FillAsync("#Email", VendorPayUserEmail);
@@ -557,7 +558,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await payByCategoryBtn.ClickAsync();
 
         var staffOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Staff" });
-        Assert.True(await staffOption.CountAsync() > 0, "Grantees category not found in Pay by Category dropdown");
+        Assert.True(await staffOption.CountAsync() > 0, "Staff category not found in Pay by Category dropdown");
         await staffOption.ClickAsync();
 
         await Page.WaitForSelectorAsync("button[type='submit']", new PageWaitForSelectorOptions { Timeout = 10000 });

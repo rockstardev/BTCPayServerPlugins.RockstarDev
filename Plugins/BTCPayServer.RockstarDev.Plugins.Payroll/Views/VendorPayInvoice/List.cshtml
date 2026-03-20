@@ -23,7 +23,8 @@
 	<h2 class="mb-0">@ViewData["Title"]</h2>
 	<div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center">
 		<div class="dropdown">
-			<button class="btn btn-secondary px-3 d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown">
+			<button class="btn btn-secondary px-3 d-flex align-items-center justify-content-center"
+					type="button" data-bs-toggle="dropdown" aria-label="More invoice actions">
 				<vc:icon symbol="caret-down" />
 			</button>
 			<ul class="dropdown-menu dropdown-menu-end">
@@ -57,7 +58,8 @@
 				</ul>
 			</div>
 		}
-		<button type="button" class="btn btn-secondary clipboard-button px-3 d-flex align-items-center justify-content-center" data-clipboard="@publicInvoiceUrl">
+		<button type="button" class="btn btn-secondary clipboard-button px-3 d-flex align-items-center justify-content-center"
+				data-clipboard="@publicInvoiceUrl" aria-label="Copy public invoice upload link">
 			<vc:icon symbol="actions-copy" />
 		</button>
 		<a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary text-nowrap">

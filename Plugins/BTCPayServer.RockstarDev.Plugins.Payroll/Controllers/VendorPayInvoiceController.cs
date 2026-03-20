@@ -178,6 +178,44 @@ public class VendorPayInvoiceController(
     public async Task<IActionResult> PayByLabel(string storeId, string label)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
+        var (invoices, targetUserCount, error) = await GetLabelInvoices(ctx, storeId, label);
+        if (error != null)
+        {
+            TempData.SetStatusMessageModel(error);
+            return RedirectToAction(nameof(List), new { storeId });
+        }
+
+        var usersWithMultiplePendingInvoices = invoices.GroupBy(i => i.UserId).Where(g => g.Count() > 1).ToList();
+        if (usersWithMultiplePendingInvoices.Any())
+        {
+            var nameList = string.Join(", ", usersWithMultiplePendingInvoices.Select(g => g.First().User.Name));
+            return View("Confirm",
+                new ConfirmModel($"Pay by Category: {label}",
+                    $"The following users have more than one awaiting invoice: {nameList}. This will pay all {invoices.Count} invoices across {targetUserCount} users. Do you want to proceed?",
+                    "Pay All"));
+        }
+
+        return View("Confirm", new ConfirmModel($"Pay by Category: {label}",
+        $"This will pay {invoices.Count} invoice(s) across {targetUserCount} user(s) in the '{label}' category. Do you want to proceed?",
+        "Pay"));
+    }
+
+    [HttpPost("pay-by-label")]
+    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+    public async Task<IActionResult> PayByLabelPost(string storeId, string label)
+    {
+        await using var ctx = pluginDbContextFactory.CreateContext();
+        var (invoices, _, error) = await GetLabelInvoices(ctx, storeId, label);
+        if (error != null)
+        {
+            TempData.SetStatusMessageModel(error);
+            return RedirectToAction(nameof(List), new { storeId });
+        }
+        return await payInvoices(invoices.Select(i => i.Id).ToArray());
+    }
+
+    private async Task<(List<PayrollInvoice> Invoices, int TargetUserCount, StatusMessageModel? Error)>GetLabelInvoices(PluginDbContext ctx, string storeId, string label)
+    {
 
         var allUserIds = ctx.PayrollUsers.Where(u => u.StoreId == storeId && u.State == VendorPayUserState.Active).Select(u => u.Id).ToArray();
         var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, allUserIds);
@@ -187,12 +225,11 @@ public class VendorPayInvoiceController(
 
         if (targetUserIds.Count == 0)
         {
-            TempData.SetStatusMessageModel(new StatusMessageModel
+            return (null, 0, new StatusMessageModel
             {
                 Message = $"No active users found with category '{label}'",
                 Severity = StatusMessageModel.StatusSeverity.Warning
             });
-            return RedirectToAction(nameof(List), new { storeId });
         }
 
         var invoices = ctx.PayrollInvoices.Include(i => i.User).Where(i => targetUserIds.Contains(i.UserId) &&
@@ -200,46 +237,15 @@ public class VendorPayInvoiceController(
 
         if (invoices.Count == 0)
         {
-            TempData.SetStatusMessageModel(new StatusMessageModel
+            return (null, 0, new StatusMessageModel
             {
                 Message = $"No awaiting invoices found for category '{label}'",
                 Severity = StatusMessageModel.StatusSeverity.Info
             });
-            return RedirectToAction(nameof(List), new { storeId });
         }
-
-        var invoiceIds = invoices.Select(i => i.Id).ToArray();
-        TempData["PayByLabel_InvoiceIds"] = System.Text.Json.JsonSerializer.Serialize(invoiceIds);
-
-        var usersWithMultiplePendingInvoices = invoices.GroupBy(i => i.UserId).Where(g => g.Count() > 1).ToList();
-        if (usersWithMultiplePendingInvoices.Any())
-        {
-            var nameList = string.Join(", ", usersWithMultiplePendingInvoices.Select(g => g.First().User.Name));
-            return View("Confirm",
-                new ConfirmModel($"Pay by Category: {label}",
-                    $"The following users have more than one awaiting invoice: {nameList}. This will pay all {invoices.Count} invoices across {targetUserIds.Count} users. Do you want to proceed?",
-                    "Pay All"));
-        }
-        return await PayByLabelPost(storeId, label);
+        return (invoices, targetUserIds.Count, null);
     }
 
-    [HttpPost("pay-by-label")]
-    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> PayByLabelPost(string storeId, string label)
-    {
-        var json = TempData["PayByLabel_InvoiceIds"] as string;
-        if (string.IsNullOrEmpty(json))
-        {
-            TempData.SetStatusMessageModel(new StatusMessageModel
-            {
-                Message = "Session expired, please try again",
-                Severity = StatusMessageModel.StatusSeverity.Error
-            });
-            return RedirectToAction(nameof(List), new { storeId });
-        }
-        var invoiceIds = System.Text.Json.JsonSerializer.Deserialize<string[]>(json);
-        return await payInvoices(invoiceIds);
-    }
 
     public async Task<IActionResult> DownloadInvoices(string invoiceId)
     {
