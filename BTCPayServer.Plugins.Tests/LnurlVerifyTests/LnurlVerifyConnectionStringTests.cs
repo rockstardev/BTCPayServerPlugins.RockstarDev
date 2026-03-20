@@ -1,26 +1,26 @@
 #nullable enable
 using System.Net.Http;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NBitcoin;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Xunit;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Tests;
+namespace BTCPayServer.Plugins.Tests.LnurlVerifyTests;
 
-public class LnurlSourceConnectionStringTests
+public class LnurlVerifyConnectionStringTests
 {
-    private readonly LnurlSourceConnectionStringHandler _handler;
+    private readonly LnurlVerifyConnectionStringHandler _handler;
 
-    public LnurlSourceConnectionStringTests()
+    public LnurlVerifyConnectionStringTests()
     {
         var httpClientFactory = new TestHttpClientFactory();
         var loggerFactory = LoggerFactory.Create(b => { });
         var dbContextFactory = new TestDbContextFactory();
-        _handler = new LnurlSourceConnectionStringHandler(httpClientFactory, loggerFactory, dbContextFactory);
+        _handler = new LnurlVerifyConnectionStringHandler(httpClientFactory, loggerFactory, dbContextFactory);
     }
 
     [Fact]
@@ -91,14 +91,14 @@ public class LnurlSourceConnectionStringTests
         Assert.Equal("type=lnurlverify;address=bob@agi.cash", client.ToString());
     }
 
-    private class TestDbContextFactory : LnurlSourceDbContextFactory
+    private class TestDbContextFactory : LnurlVerifyDbContextFactory
     {
         public TestDbContextFactory()
             : base(Options.Create(new DatabaseOptions()))
         {
         }
 
-        public override LnurlSourceDbContext CreateContext(
+        public override LnurlVerifyDbContext CreateContext(
             Action<NpgsqlDbContextOptionsBuilder>? npgsqlOptionsAction = null)
         {
             throw new InvalidOperationException("No database in unit tests");

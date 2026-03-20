@@ -2,9 +2,9 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Models;
+namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data.Models;
 
-public class LnurlSourceInvoice
+public class LnurlVerifyInvoice
 {
     [Key]
     [MaxLength(64)]

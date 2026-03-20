@@ -26,6 +26,7 @@
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj">
             <PrivateAssets>all</PrivateAssets>
         </ProjectReference>
+        <ProjectReference Include="..\Plugins\BTCPayServer.RockstarDev.Plugins.LnurlVerify\BTCPayServer.RockstarDev.Plugins.LnurlVerify.csproj" />
     </ItemGroup>
 
 </Project>

@@ -3,32 +3,30 @@ using System.Net;
 using System.Text;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Lightning;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NBitcoin;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Xunit;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Tests;
+namespace BTCPayServer.Plugins.Tests.LnurlVerifyTests;
 
-public class LnurlSourceLightningClientTests
+public class LnurlVerifyLightningClientTests
 {
     private readonly ILogger _logger;
-    private readonly LnurlSourceDbContextFactory _dbContextFactory;
+    private readonly LnurlVerifyDbContextFactory _dbContextFactory;
 
-    public LnurlSourceLightningClientTests()
+    public LnurlVerifyLightningClientTests()
     {
-        _logger = LoggerFactory.Create(b => { }).CreateLogger<LnurlSourceLightningClient>();
+        _logger = LoggerFactory.Create(b => { }).CreateLogger<LnurlVerifyLightningClient>();
         _dbContextFactory = new TestDbContextFactory();
     }
 
     [Fact]
     public async Task CreateInvoice_CallbackWithNoPr_Throws()
     {
-        // Test that CreateInvoice correctly resolves LNURL-pay and calls callback,
-        // and throws when the callback response has no valid payment request
         var payRequestJson = """
         {
             "callback": "https://domain.com/lnurlp/user/callback",
@@ -53,10 +51,9 @@ public class LnurlSourceLightningClientTests
             ["https://domain.com/lnurlp/user/callback?amount=10000"] = callbackJson
         });
         var httpClient = new HttpClient(handler);
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@domain.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
-        // Empty pr field should throw
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.CreateInvoice(
                 new CreateInvoiceParams(LightMoney.FromUnit(10, LightMoneyUnit.Satoshi), "test", TimeSpan.FromMinutes(5))));
@@ -79,7 +76,7 @@ public class LnurlSourceLightningClientTests
             ["https://domain.com/.well-known/lnurlp/user"] = payRequestJson
         });
         var httpClient = new HttpClient(handler);
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@domain.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -91,7 +88,7 @@ public class LnurlSourceLightningClientTests
     public async Task GetInvoice_UnknownId_ReturnsNull()
     {
         var httpClient = new HttpClient(new MockHttpHandler(new Dictionary<string, string>()));
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@domain.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
         var invoice = await client.GetInvoice("unknown-id");
@@ -116,7 +113,7 @@ public class LnurlSourceLightningClientTests
             ["https://domain.com/.well-known/lnurlp/user"] = payRequestJson
         });
         var httpClient = new HttpClient(handler);
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@domain.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
         var result = await client.Validate();
@@ -128,7 +125,7 @@ public class LnurlSourceLightningClientTests
     {
         var handler = new MockHttpHandler(new Dictionary<string, string>(), HttpStatusCode.NotFound);
         var httpClient = new HttpClient(handler);
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@nonexistent.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
         var result = await client.Validate();
@@ -140,7 +137,7 @@ public class LnurlSourceLightningClientTests
     public async Task Pay_ThrowsNotSupported()
     {
         var httpClient = new HttpClient(new MockHttpHandler(new Dictionary<string, string>()));
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@domain.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
         await Assert.ThrowsAsync<NotSupportedException>(async () =>
@@ -151,26 +148,21 @@ public class LnurlSourceLightningClientTests
     public async Task GetBalance_ThrowsNotSupported()
     {
         var httpClient = new HttpClient(new MockHttpHandler(new Dictionary<string, string>()));
-        var client = new LnurlSourceLightningClient(
+        var client = new LnurlVerifyLightningClient(
             "user@domain.com", Network.RegTest, httpClient, _logger, _dbContextFactory);
 
         await Assert.ThrowsAsync<NotSupportedException>(async () =>
             await client.GetBalance());
     }
 
-    /// <summary>
-    /// Test factory that throws on CreateContext - the client's EnsureCacheLoaded
-    /// and PersistInvoice methods gracefully catch exceptions, so this works for
-    /// unit tests that don't need real database access.
-    /// </summary>
-    private class TestDbContextFactory : LnurlSourceDbContextFactory
+    private class TestDbContextFactory : LnurlVerifyDbContextFactory
     {
         public TestDbContextFactory()
             : base(Options.Create(new DatabaseOptions()))
         {
         }
 
-        public override LnurlSourceDbContext CreateContext(
+        public override LnurlVerifyDbContext CreateContext(
             Action<NpgsqlDbContextOptionsBuilder>? npgsqlOptionsAction = null)
         {
             throw new InvalidOperationException("No database in unit tests");

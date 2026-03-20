@@ -3,22 +3,22 @@ using System;
 using System.Net.Http;
 using BTCPayServer.Lightning;
 using BTCPayServer.Payments.Lightning;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data;
 using Microsoft.Extensions.Logging;
 using Network = NBitcoin.Network;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource;
+namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify;
 
-public class LnurlSourceConnectionStringHandler : ILightningConnectionStringHandler
+public class LnurlVerifyConnectionStringHandler : ILightningConnectionStringHandler
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly LnurlSourceDbContextFactory _dbContextFactory;
+    private readonly LnurlVerifyDbContextFactory _dbContextFactory;
 
-    public LnurlSourceConnectionStringHandler(
+    public LnurlVerifyConnectionStringHandler(
         IHttpClientFactory httpClientFactory,
         ILoggerFactory loggerFactory,
-        LnurlSourceDbContextFactory dbContextFactory)
+        LnurlVerifyDbContextFactory dbContextFactory)
     {
         _httpClientFactory = httpClientFactory;
         _loggerFactory = loggerFactory;
@@ -52,7 +52,7 @@ public class LnurlSourceConnectionStringHandler : ILightningConnectionStringHand
 
         error = null;
         var client = _httpClientFactory.CreateClient("lnurlverify");
-        var logger = _loggerFactory.CreateLogger<LnurlSourceLightningClient>();
-        return new LnurlSourceLightningClient(address, network, client, logger, _dbContextFactory);
+        var logger = _loggerFactory.CreateLogger<LnurlVerifyLightningClient>();
+        return new LnurlVerifyLightningClient(address, network, client, logger, _dbContextFactory);
     }
 }

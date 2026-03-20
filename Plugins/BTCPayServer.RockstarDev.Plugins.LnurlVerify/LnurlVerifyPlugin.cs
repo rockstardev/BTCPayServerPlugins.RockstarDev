@@ -3,13 +3,13 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Abstractions.Services;
 using BTCPayServer.Lightning;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource;
+namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify;
 
-public class LnurlSourcePlugin : BaseBTCPayServerPlugin
+public class LnurlVerifyPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     {
@@ -19,18 +19,18 @@ public class LnurlSourcePlugin : BaseBTCPayServerPlugin
     public override void Execute(IServiceCollection applicationBuilder)
     {
         applicationBuilder.AddUIExtension("ln-payment-method-setup-tab",
-            "LnurlSource/LNPaymentMethodSetupTab");
+            "LnurlVerify/LNPaymentMethodSetupTab");
         applicationBuilder.AddSingleton<ILightningConnectionStringHandler>(provider =>
-            provider.GetRequiredService<LnurlSourceConnectionStringHandler>());
-        applicationBuilder.AddSingleton<LnurlSourceConnectionStringHandler>();
+            provider.GetRequiredService<LnurlVerifyConnectionStringHandler>());
+        applicationBuilder.AddSingleton<LnurlVerifyConnectionStringHandler>();
 
-        applicationBuilder.AddSingleton<LnurlSourceDbContextFactory>();
-        applicationBuilder.AddDbContext<LnurlSourceDbContext>((provider, o) =>
+        applicationBuilder.AddSingleton<LnurlVerifyDbContextFactory>();
+        applicationBuilder.AddDbContext<LnurlVerifyDbContext>((provider, o) =>
         {
-            var factory = provider.GetRequiredService<LnurlSourceDbContextFactory>();
+            var factory = provider.GetRequiredService<LnurlVerifyDbContextFactory>();
             factory.ConfigureBuilder(o);
         });
-        applicationBuilder.AddHostedService<LnurlSourceMigrationRunner>();
+        applicationBuilder.AddHostedService<LnurlVerifyMigrationRunner>();
 
         base.Execute(applicationBuilder);
     }

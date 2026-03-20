@@ -56,7 +56,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Pl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.WalletHistoryReload", "Plugins\BTCPayServer.RockstarDev.Plugins.WalletHistoryReload\BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.csproj", "{D1E2F3A4-B5C6-4D7E-8F9A-0B1C2D3E4F5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.LnurlSource", "Plugins\BTCPayServer.RockstarDev.Plugins.LnurlSource\BTCPayServer.RockstarDev.Plugins.LnurlSource.csproj", "{E64D4F3F-7CB0-45EC-8C8D-F6D9CAE03E68}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.LnurlVerify", "Plugins\BTCPayServer.RockstarDev.Plugins.LnurlVerify\BTCPayServer.RockstarDev.Plugins.LnurlVerify.csproj", "{E64D4F3F-7CB0-45EC-8C8D-F6D9CAE03E68}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

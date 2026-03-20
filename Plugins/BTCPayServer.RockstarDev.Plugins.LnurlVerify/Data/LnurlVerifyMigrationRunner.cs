@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
+namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data;
 
-internal class LnurlSourceMigrationRunner(LnurlSourceDbContextFactory dbContextFactory) : IHostedService
+internal class LnurlVerifyMigrationRunner(LnurlVerifyDbContextFactory dbContextFactory) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {

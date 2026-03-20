@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Migrations
+namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -12,11 +12,11 @@ namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "BTCPayServer.RockstarDev.Plugins.LnurlSource");
+                name: "BTCPayServer.RockstarDev.Plugins.LnurlVerify");
 
             migrationBuilder.CreateTable(
                 name: "Invoices",
-                schema: "BTCPayServer.RockstarDev.Plugins.LnurlSource",
+                schema: "BTCPayServer.RockstarDev.Plugins.LnurlVerify",
                 columns: table => new
                 {
                     PaymentHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
@@ -33,7 +33,7 @@ namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Invoices_InvoiceId",
-                schema: "BTCPayServer.RockstarDev.Plugins.LnurlSource",
+                schema: "BTCPayServer.RockstarDev.Plugins.LnurlVerify",
                 table: "Invoices",
                 column: "InvoiceId");
         }
@@ -43,7 +43,7 @@ namespace BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Invoices",
-                schema: "BTCPayServer.RockstarDev.Plugins.LnurlSource");
+                schema: "BTCPayServer.RockstarDev.Plugins.LnurlVerify");
         }
     }
 }

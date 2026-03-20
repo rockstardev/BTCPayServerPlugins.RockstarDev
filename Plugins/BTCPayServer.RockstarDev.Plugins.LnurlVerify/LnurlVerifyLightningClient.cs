@@ -9,8 +9,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning;
 using BTCPayServer.Payments.Lightning;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data;
-using BTCPayServer.RockstarDev.Plugins.LnurlSource.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data;
+using BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data.Models;
 using LNURL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,13 +19,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Network = NBitcoin.Network;
 
-namespace BTCPayServer.RockstarDev.Plugins.LnurlSource;
+namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify;
 
 /// <summary>
 /// Lightning client that uses a Lightning Address with LUD-21 verify as a
 /// receive-only payment source. No node, no API keys - just LNURL.
 /// </summary>
-public class LnurlSourceLightningClient : IExtendedLightningClient
+public class LnurlVerifyLightningClient : IExtendedLightningClient
 {
     private readonly string _lightningAddress;
     private readonly string _username;
@@ -33,7 +33,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     private readonly Network _network;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
-    private readonly LnurlSourceDbContextFactory _dbContextFactory;
+    private readonly LnurlVerifyDbContextFactory _dbContextFactory;
 
     // In-memory cache, populated from DB on first access
     private readonly ConcurrentDictionary<string, InvoiceRecord> _invoices = new();
@@ -47,12 +47,12 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         DateTimeOffset ExpiresAt,
         LightMoney Amount);
 
-    public LnurlSourceLightningClient(
+    public LnurlVerifyLightningClient(
         string lightningAddress,
         Network network,
         HttpClient httpClient,
         ILogger logger,
-        LnurlSourceDbContextFactory dbContextFactory)
+        LnurlVerifyDbContextFactory dbContextFactory)
     {
         if (string.IsNullOrWhiteSpace(lightningAddress))
             throw new ArgumentException("Lightning Address cannot be empty", nameof(lightningAddress));
@@ -72,7 +72,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         _dbContextFactory = dbContextFactory;
     }
 
-    public string? DisplayName => "LNURL Source";
+    public string? DisplayName => "LNURL Verify";
     public Uri? ServerUri => new Uri($"https://{_domain}");
 
     public override string ToString() => $"type=lnurlverify;address={_lightningAddress}";
@@ -120,7 +120,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         try
         {
             await using var db = _dbContextFactory.CreateContext();
-            db.Invoices.Add(new LnurlSourceInvoice
+            db.Invoices.Add(new LnurlVerifyInvoice
             {
                 PaymentHash = record.PaymentHash,
                 InvoiceId = record.InvoiceId,
@@ -198,7 +198,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         await PersistInvoice(record);
 
         _logger.LogInformation(
-            "Created LNURL Source invoice: hash={PaymentHash}",
+            "Created LNURL Verify invoice: hash={PaymentHash}",
             paymentHash[..12]);
 
         return new LightningInvoice
@@ -279,16 +279,16 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
     public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
     {
         await EnsureCacheLoaded();
-        return new LnurlSourceInvoiceListener(this, cancellation);
+        return new LnurlVerifyInvoiceListener(this, cancellation);
     }
 
-    private class LnurlSourceInvoiceListener : ILightningInvoiceListener
+    private class LnurlVerifyInvoiceListener : ILightningInvoiceListener
     {
-        private readonly LnurlSourceLightningClient _client;
+        private readonly LnurlVerifyLightningClient _client;
         private readonly CancellationToken _cancellation;
         private readonly HashSet<string> _emittedHashes = new();
 
-        public LnurlSourceInvoiceListener(LnurlSourceLightningClient client,
+        public LnurlVerifyInvoiceListener(LnurlVerifyLightningClient client,
             CancellationToken cancellation)
         {
             _client = client;
@@ -357,7 +357,7 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
             if (payRequest != null)
             {
                 _logger.LogInformation(
-                    "LNURL Source info: min={Min}msat, max={Max}msat",
+                    "LNURL Verify info: min={Min}msat, max={Max}msat",
                     payRequest.MinSendable?.MilliSatoshi,
                     payRequest.MaxSendable?.MilliSatoshi);
             }
@@ -418,42 +418,42 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
 
     public Task<LightningPayment?> GetPayment(string paymentHash,
         CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source is receive-only");
+        => throw new NotSupportedException("LNURL Verify is receive-only");
 
     public Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source is receive-only");
+        => throw new NotSupportedException("LNURL Verify is receive-only");
 
     public Task<LightningPayment[]> ListPayments(ListPaymentsParams request,
         CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source is receive-only");
+        => throw new NotSupportedException("LNURL Verify is receive-only");
 
     public Task<PayResponse> Pay(PayInvoiceParams payParams,
         CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source is receive-only");
+        => throw new NotSupportedException("LNURL Verify is receive-only");
 
     public Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams,
         CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source is receive-only");
+        => throw new NotSupportedException("LNURL Verify is receive-only");
 
     public Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source is receive-only");
+        => throw new NotSupportedException("LNURL Verify is receive-only");
 
     public Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         => Task.CompletedTask; // No-op: can't cancel external invoices
 
     public Task<LightningNodeBalance> GetBalance(CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source does not expose balance");
+        => throw new NotSupportedException("LNURL Verify does not expose balance");
 
     public Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source does not support on-chain deposits");
+        => throw new NotSupportedException("LNURL Verify does not support on-chain deposits");
 
     public Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
         CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source does not support channel management");
+        => throw new NotSupportedException("LNURL Verify does not support channel management");
 
     public Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo,
         CancellationToken cancellation = default)
-        => throw new NotSupportedException("LNURL Source does not support peer connections");
+        => throw new NotSupportedException("LNURL Verify does not support peer connections");
 
     public Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)
         => Task.FromResult(Array.Empty<LightningChannel>());
