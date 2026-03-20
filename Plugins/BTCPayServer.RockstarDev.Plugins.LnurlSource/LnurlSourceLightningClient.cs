@@ -198,8 +198,8 @@ public class LnurlSourceLightningClient : IExtendedLightningClient
         await PersistInvoice(record);
 
         _logger.LogInformation(
-            "Created LNURL Source invoice: hash={PaymentHash}, verify={HasVerify}",
-            paymentHash[..12], verifyUrl != null);
+            "Created LNURL Source invoice: hash={PaymentHash}",
+            paymentHash[..12]);
 
         return new LightningInvoice
         {
