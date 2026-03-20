@@ -22,9 +22,7 @@ namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data.Migrations
                     PaymentHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     InvoiceId = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     VerifyUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    Bolt11 = table.Column<string>(type: "text", nullable: false),
-                    ExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    AmountMilliSatoshi = table.Column<long>(type: "bigint", nullable: false)
+                    ExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {

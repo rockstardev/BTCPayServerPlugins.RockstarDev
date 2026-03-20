@@ -29,13 +29,6 @@ namespace BTCPayServer.RockstarDev.Plugins.LnurlVerify.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<long>("AmountMilliSatoshi")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Bolt11")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 

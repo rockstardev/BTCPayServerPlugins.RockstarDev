@@ -45,7 +45,10 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
         string VerifyUrl,
         string InvoiceId,
         DateTimeOffset ExpiresAt,
-        LightMoney Amount);
+        LightMoney Amount)
+    {
+        public bool IsExpired => ExpiresAt < DateTimeOffset.UtcNow;
+    }
 
     public LnurlVerifyLightningClient(
         string lightningAddress,
@@ -95,8 +98,8 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
             foreach (var inv in dbInvoices)
             {
                 var record = new InvoiceRecord(
-                    inv.PaymentHash, inv.Bolt11, inv.VerifyUrl, inv.InvoiceId,
-                    inv.ExpiresAt, new LightMoney(inv.AmountMilliSatoshi));
+                    inv.PaymentHash, string.Empty, inv.VerifyUrl, inv.InvoiceId,
+                    inv.ExpiresAt, LightMoney.Zero);
                 _invoices.TryAdd(inv.PaymentHash, record);
                 _invoices.TryAdd(inv.InvoiceId, record);
             }
@@ -125,9 +128,7 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                 PaymentHash = record.PaymentHash,
                 InvoiceId = record.InvoiceId,
                 VerifyUrl = record.VerifyUrl,
-                Bolt11 = record.Bolt11,
-                ExpiresAt = record.ExpiresAt,
-                AmountMilliSatoshi = record.Amount.MilliSatoshi
+                ExpiresAt = record.ExpiresAt
             });
             await db.SaveChangesAsync();
         }
@@ -273,6 +274,12 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
         };
     }
 
+    private void RemoveInvoice(InvoiceRecord record)
+    {
+        _invoices.TryRemove(record.PaymentHash, out _);
+        _invoices.TryRemove(record.InvoiceId, out _);
+    }
+
     /// <summary>
     /// Polls verify endpoints for settlement notifications.
     /// </summary>
@@ -313,12 +320,20 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                     if (!seen.Add(record.PaymentHash)) continue;
                     if (_emittedHashes.Contains(record.PaymentHash)) continue;
 
+                    // Skip expired invoices to avoid unnecessary verify URL requests
+                    if (record.IsExpired)
+                    {
+                        _client.RemoveInvoice(record);
+                        continue;
+                    }
+
                     try
                     {
                         var invoice = await _client.CheckInvoiceStatus(record, linked.Token);
                         if (invoice.Status == LightningInvoiceStatus.Paid)
                         {
                             _emittedHashes.Add(record.PaymentHash);
+                            _client.RemoveInvoice(record);
                             return invoice;
                         }
                     }

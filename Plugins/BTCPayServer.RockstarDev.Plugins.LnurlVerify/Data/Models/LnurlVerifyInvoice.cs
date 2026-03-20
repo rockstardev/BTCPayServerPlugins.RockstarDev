@@ -16,9 +16,5 @@ public class LnurlVerifyInvoice
     [MaxLength(500)]
     public string VerifyUrl { get; set; } = string.Empty;
 
-    public string Bolt11 { get; set; } = string.Empty;
-
     public DateTimeOffset ExpiresAt { get; set; }
-
-    public long AmountMilliSatoshi { get; set; }
 }
