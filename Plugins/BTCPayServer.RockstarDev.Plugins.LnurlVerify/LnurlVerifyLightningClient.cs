@@ -95,6 +95,8 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                 .Where(i => i.ExpiresAt > now)
                 .ToListAsync();
 
+            // Bolt11 and Amount are not persisted - only available for invoices
+            // created in the current process session
             foreach (var inv in dbInvoices)
             {
                 var record = new InvoiceRecord(

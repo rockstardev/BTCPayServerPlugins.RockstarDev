@@ -8,15 +8,15 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-       const customNodeAccordian = document.getElementById("CustomNodeSupport");
-       const template = document.getElementById("lnurl-source");
-       if (customNodeAccordian && template?.content) {
-           customNodeAccordian.appendChild(template.content.cloneNode(true));
+       const customNodeAccordion = document.getElementById("CustomNodeSupport");
+       const template = document.getElementById("lnurl-verify");
+       if (customNodeAccordion && template?.content) {
+           customNodeAccordion.appendChild(template.content.cloneNode(true));
        }
     });
 </script>
 
-<template id="lnurl-source">
+<template id="lnurl-verify">
     <div class="accordion-item">
         <h2 class="accordion-header" id="CustomLnurlVerifyHeader">
             <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#CustomLnurlVerifyContent" aria-controls="CustomLnurlVerifyContent" aria-expanded="false">
