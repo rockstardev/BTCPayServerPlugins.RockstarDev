@@ -69,7 +69,7 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
         var launchOptions = new BrowserTypeLaunchOptions
         {
-            Headless = false, // Set to true for CI and to false for real-time local testing 
+            Headless = true, // Set to true for CI and to false for real-time local testing 
             SlowMo = IsRunningInCI ? 100 : 50 // Delay to improve stability
         };
         if (serverTester.PayTester.InContainer)
