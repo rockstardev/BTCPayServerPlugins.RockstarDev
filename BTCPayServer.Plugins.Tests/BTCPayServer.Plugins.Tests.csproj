@@ -19,6 +19,12 @@
         </PackageReference>
     </ItemGroup>
 
+    <ItemDefinitionGroup>
+        <ProjectReference>
+            <Properties>StaticWebAssetsEnabled=false</Properties>
+        </ProjectReference>
+    </ItemDefinitionGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj">
             <PrivateAssets>all</PrivateAssets>
@@ -26,11 +32,7 @@
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj">
             <PrivateAssets>all</PrivateAssets>
         </ProjectReference>
-        <ProjectReference Include="..\Plugins\BTCPayServer.RockstarDev.Plugins.LnurlVerify\BTCPayServer.RockstarDev.Plugins.LnurlVerify.csproj">
-            <Properties>StaticWebAssetsEnabled=false</Properties>
-            <Private>false</Private>
-            <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
-        </ProjectReference>
+        <ProjectReference Include="..\Plugins\BTCPayServer.RockstarDev.Plugins.LnurlVerify\BTCPayServer.RockstarDev.Plugins.LnurlVerify.csproj" />
     </ItemGroup>
 
 </Project>
