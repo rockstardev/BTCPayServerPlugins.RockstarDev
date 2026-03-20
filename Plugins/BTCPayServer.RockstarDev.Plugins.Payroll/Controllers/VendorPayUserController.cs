@@ -40,24 +40,34 @@ public class VendorPayUserController(
 
         var query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
 
+        var counts = query.GroupBy(_ => 1)
+        .Select(g => new VendorPayUserListViewModel.CountsData
+        {
+            Active = g.Count(a => a.State == VendorPayUserState.Active),
+            Pending = g.Count(a => a.State == VendorPayUserState.Pending),
+            OneTime = g.Count(a => a.State == VendorPayUserState.OneTime),
+            Total = g.Count()
+        })
+        .FirstOrDefault() ?? new VendorPayUserListViewModel.CountsData();
+
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.Trim().ToLower();
             query = query.Where(u => u.Name.ToLower().Contains(search) || u.Email.ToLower().Contains(search));
         }
 
-        var allStoreUsers = query.OrderBy(a => a.Name).ToList();
-
-        var vendorPayUsers = allStoreUsers;
-        if (pending)
-            vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Pending).ToList();
-        else if (oneTime)
-            vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.OneTime).ToList();
-        else if (!all)
-            vendorPayUsers = allStoreUsers.Where(a => a.State == VendorPayUserState.Active).ToList();
+        var filteredQuery = (pending, oneTime, all) switch
+        {
+            (true, _, _) => query.Where(a => a.State == VendorPayUserState.Pending),
+            (_, true, _) => query.Where(a => a.State == VendorPayUserState.OneTime),
+            (_, _, false) => query.Where(a => a.State == VendorPayUserState.Active),
+            _ => query
+        };
+        var vendorPayUsers = filteredQuery.OrderBy(a => a.Name).ToList();
 
         var labelsForUsers = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, vendorPayUsers.Select(u => u.Id).ToArray());
         var allLabels = await storeLabelRepository.GetStoreLabels(storeId, VendorPayPluginConst.LabelType);
+
         if (!string.IsNullOrEmpty(label))
         {
             var labelledIds = labelsForUsers.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
@@ -76,13 +86,7 @@ public class VendorPayUserController(
             ActiveLabel = label,
             AllLabels = allLabels,
             LabelsPerUser = labelsForUsers,
-            Counts = new VendorPayUserListViewModel.CountsData
-            {
-                Active = allStoreUsers.Count(a => a.State == VendorPayUserState.Active),
-                Pending = allStoreUsers.Count(a => a.State == VendorPayUserState.Pending),
-                OneTime = allStoreUsers.Count(a => a.State == VendorPayUserState.OneTime),
-                Total = allStoreUsers.Count
-            }
+            Counts = counts
         };
         return View(vendorPayUserListViewModel);
     }

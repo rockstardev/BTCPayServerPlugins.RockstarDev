@@ -281,10 +281,24 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#Email", "testuser@example.com");
         await Page.FillAsync("#reminderInput", "2");
         await Page.Locator("#addReminder").ClickAsync();
+        await SelectCategory("Employees");
         await Page.Locator("#Edit").ClickAsync();
         var statusText = (await FindAlertMessageAsync(expectedSeverity)).TextContentAsync();
         Assert.Equal("User details updated successfully", (await statusText)?.Trim());
         await Page.WaitForSelectorAsync($"text={newName}");
+        var updatedRow = Page.GetByText(newName).First.Locator("xpath=ancestor::tr");
+        Assert.NotNull(updatedRow);
+        var categoriesCell = updatedRow.Locator("td").Nth(2);
+        var categoriesText = await categoriesCell.TextContentAsync();
+        Assert.Contains("Employees", categoriesText?.Trim());
+        var filterDropdown = Page.Locator(".dropdown-toggle", new PageLocatorOptions { HasTextString = "All" });
+        await filterDropdown.ClickAsync();
+        var employeesOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Employees" });
+        Assert.True(await employeesOption.CountAsync() > 0, "Employees label not found in filter dropdown");
+        await employeesOption.ClickAsync();
+        await Page.WaitForSelectorAsync($"text={newName}");
+        var filteredRowCount = await Page.Locator("tr", new PageLocatorOptions { HasTextString = newName }).CountAsync();
+        Assert.True(filteredRowCount > 0, "User row not visible when filtering by Employees category");
         var newRecordCount = await Page.Locator("tr", new PageLocatorOptions { HasTextString = newName }).CountAsync();
         Assert.True(newRecordCount > 0, "Updated user row not found.");
     }
@@ -510,6 +524,55 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public async Task PayByCategory_PaysAllInvoicesForLabel()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/stores/{user.StoreId}/onchain/BTC");
+        await AddDerivationScheme();
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser("Staff");
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await MakeInvoiceFileUploadOptional();
+
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
+
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw");
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        var awaitingRows = Page.Locator("tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = "AwaitingApproval" });
+        var awaitingCount = await awaitingRows.CountAsync();
+        Assert.True(awaitingCount >= 2, $"Expected at least 2 AwaitingApproval invoices, found {awaitingCount}");
+
+        var payByCategoryBtn = Page.Locator("button.dropdown-toggle", new PageLocatorOptions { HasTextString = "Pay by Category" });
+        await payByCategoryBtn.ClickAsync();
+
+        var staffOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Staff" });
+        Assert.True(await staffOption.CountAsync() > 0, "Grantees category not found in Pay by Category dropdown");
+        await staffOption.ClickAsync();
+
+        await Page.WaitForSelectorAsync("button[type='submit']", new PageWaitForSelectorOptions { Timeout = 10000 });
+
+        var confirmButton = Page.Locator("button[type='submit']", new PageLocatorOptions { HasTextString = "Pay All" });
+        Assert.True(await confirmButton.CountAsync() > 0, "Confirm page with 'Pay All' button not found");
+        await confirmButton.ClickAsync();
+
+        await Page.WaitForURLAsync(new Regex("/wallets/.+/send", RegexOptions.IgnoreCase), new PageWaitForURLOptions { Timeout = 15000 });
+        var alert = await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Info);
+        var alertText = (await alert.TextContentAsync())?.Trim();
+        Assert.Contains("2 invoices", alertText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task AccountlessInvoiceUpload_SecurityScenarios()
     {
         await InitializePlaywright(ServerTester);
@@ -682,7 +745,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await uploadPage.CloseAsync();
     }
 
-    private async Task CreateVendorPayUser()
+    private async Task CreateVendorPayUser(string category = null)
     {
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Create User" }).ClickAsync();
         VendorPayUserName = "TestUser";
@@ -691,7 +754,26 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.FillAsync("#Name", VendorPayUserName);
         await Page.FillAsync("#Password", "123456");
         await Page.FillAsync("#ConfirmPassword", "123456");
+        if (category != null)
+        {
+            await SelectCategory(category);
+        }
         await Page.Locator("#Create").ClickAsync();
+    }
+
+    private async Task SelectCategory(string category)
+    {
+        await Page.Locator(".ts-control input").ClickAsync();
+        await Page.Locator(".ts-control input").FillAsync(category);
+        var option = Page.Locator($".ts-dropdown-content .option", new PageLocatorOptions { HasTextString = category });
+        if (await option.CountAsync() > 0)
+        {
+            await option.First.ClickAsync();
+        }
+        else
+        {
+            await Page.Locator(".ts-control input").PressAsync("Enter");
+        }
     }
 
     private async Task CreateVendorPayInvoice(string destWallet)
