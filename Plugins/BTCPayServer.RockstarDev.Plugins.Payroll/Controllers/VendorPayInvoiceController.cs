@@ -217,7 +217,11 @@ public class VendorPayInvoiceController(
     private async Task<(List<PayrollInvoice> Invoices, int TargetUserCount, StatusMessageModel? Error)>GetLabelInvoices(PluginDbContext ctx, string storeId, string label)
     {
 
-        var allUserIds = ctx.PayrollUsers.Where(u => u.StoreId == storeId && u.State == VendorPayUserState.Active).Select(u => u.Id).ToArray();
+        var allUserIds = await ctx.PayrollUsers
+            .Where(u => u.StoreId == storeId &&
+                        (u.State == VendorPayUserState.Active || u.State == VendorPayUserState.OneTime))
+            .Select(u => u.Id)
+            .ToArrayAsync();
         var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, allUserIds);
 
         var targetUserIds = allUserLabels.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
@@ -232,8 +236,8 @@ public class VendorPayInvoiceController(
             });
         }
 
-        var invoices = ctx.PayrollInvoices.Include(i => i.User).Where(i => targetUserIds.Contains(i.UserId) &&
-                    i.State == VendorPayInvoiceState.AwaitingApproval && !i.IsArchived).ToList();
+        var invoices = await ctx.PayrollInvoices.Include(i => i.User).Where(i => targetUserIds.Contains(i.UserId) &&
+                    i.State == VendorPayInvoiceState.AwaitingApproval && !i.IsArchived).ToListAsync();
 
         if (invoices.Count == 0)
         {
