@@ -9,7 +9,7 @@
     <PropertyGroup>
         <Product>LNURL Verify</Product>
         <Description>Use any Lightning Address with LUD-21 verify support as a receive-only Lightning payment method. No node required - just a Lightning Address.</Description>
-        <Version>0.0.3</Version>
+        <Version>0.0.4</Version>
     </PropertyGroup>
     <!-- Plugin development properties -->
     <PropertyGroup>
