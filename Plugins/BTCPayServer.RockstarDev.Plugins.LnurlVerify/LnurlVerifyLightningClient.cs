@@ -271,16 +271,18 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                 record.PaymentHash[..12], record.VerifyUrl);
         }
 
+        var isPaid = status == LightningInvoiceStatus.Paid;
         return new LightningInvoice
         {
             Id = record.InvoiceId,
             PaymentHash = record.PaymentHash,
             BOLT11 = record.Bolt11,
             Amount = record.Amount,
+            AmountReceived = isPaid ? record.Amount : null,
             Status = status,
             Preimage = preimage,
             ExpiresAt = record.ExpiresAt,
-            PaidAt = status == LightningInvoiceStatus.Paid ? DateTimeOffset.UtcNow : null
+            PaidAt = isPaid ? DateTimeOffset.UtcNow : null
         };
     }
 
