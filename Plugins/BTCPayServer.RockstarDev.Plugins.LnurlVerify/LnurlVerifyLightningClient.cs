@@ -95,13 +95,11 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                 .Where(i => i.ExpiresAt > now)
                 .ToListAsync();
 
-            // Bolt11 and Amount are not persisted - only available for invoices
-            // created in the current process session
             foreach (var inv in dbInvoices)
             {
                 var record = new InvoiceRecord(
-                    inv.PaymentHash, string.Empty, inv.VerifyUrl, inv.InvoiceId,
-                    inv.ExpiresAt, LightMoney.Zero);
+                    inv.PaymentHash, inv.Bolt11 ?? string.Empty, inv.VerifyUrl, inv.InvoiceId,
+                    inv.ExpiresAt, new LightMoney(inv.AmountMilliSatoshi));
                 _invoices.TryAdd(inv.PaymentHash, record);
                 _invoices.TryAdd(inv.InvoiceId, record);
             }
@@ -130,7 +128,9 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                 PaymentHash = record.PaymentHash,
                 InvoiceId = record.InvoiceId,
                 VerifyUrl = record.VerifyUrl,
-                ExpiresAt = record.ExpiresAt
+                ExpiresAt = record.ExpiresAt,
+                Bolt11 = record.Bolt11,
+                AmountMilliSatoshi = record.Amount.MilliSatoshi
             });
             await db.SaveChangesAsync();
         }
@@ -279,7 +279,8 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
             Amount = record.Amount,
             Status = status,
             Preimage = preimage,
-            ExpiresAt = record.ExpiresAt
+            ExpiresAt = record.ExpiresAt,
+            PaidAt = status == LightningInvoiceStatus.Paid ? DateTimeOffset.UtcNow : null
         };
     }
 
