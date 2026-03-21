@@ -17,4 +17,8 @@ public class LnurlVerifyInvoice
     public string VerifyUrl { get; set; } = string.Empty;
 
     public DateTimeOffset ExpiresAt { get; set; }
+
+    public string? Bolt11 { get; set; }
+
+    public long AmountMilliSatoshi { get; set; }
 }
