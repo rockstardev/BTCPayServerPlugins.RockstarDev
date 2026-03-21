@@ -201,8 +201,8 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
         await PersistInvoice(record);
 
         _logger.LogInformation(
-            "Created LNURL Verify invoice: hash={PaymentHash}",
-            paymentHash[..12]);
+            "Created LNURL Verify invoice: hash={PaymentHash}, verifyUrl={VerifyUrl}",
+            paymentHash[..12], verifyUrl);
 
         return new LightningInvoice
         {
@@ -245,13 +245,20 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
 
         try
         {
+            _logger.LogDebug("Checking verify URL for {Hash}: {VerifyUrl}",
+                record.PaymentHash[..12], record.VerifyUrl);
             var json = await _httpClient.GetStringAsync(record.VerifyUrl, cancellation);
+            _logger.LogDebug("Verify response for {Hash}: {Response}",
+                record.PaymentHash[..12], json);
             var verifyResponse = JObject.Parse(json);
             var settled = verifyResponse["settled"]?.Value<bool>() ?? false;
             if (settled)
             {
                 status = LightningInvoiceStatus.Paid;
                 preimage = verifyResponse["preimage"]?.Value<string>();
+                _logger.LogInformation(
+                    "Invoice {Hash} settled! preimage={Preimage}",
+                    record.PaymentHash[..12], preimage?[..12] ?? "null");
             }
         }
         catch (OperationCanceledException)
@@ -260,8 +267,8 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to check verify URL for {Hash}",
-                record.PaymentHash[..12]);
+            _logger.LogWarning(ex, "Failed to check verify URL for {Hash}: {VerifyUrl}",
+                record.PaymentHash[..12], record.VerifyUrl);
         }
 
         return new LightningInvoice
@@ -309,11 +316,17 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                 _cancellation, cancellation);
 
+            var pollCycle = 0;
+
             // Poll all pending invoices every 2 seconds
             while (!linked.Token.IsCancellationRequested)
             {
+                pollCycle++;
                 // Deduplicate: iterate unique records by payment hash only
                 var seen = new HashSet<string>();
+                var checkedCount = 0;
+                var expiredCount = 0;
+
                 foreach (var kvp in _client._invoices)
                 {
                     if (linked.Token.IsCancellationRequested) break;
@@ -325,15 +338,24 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                     // Skip expired invoices to avoid unnecessary verify URL requests
                     if (record.IsExpired)
                     {
+                        expiredCount++;
+                        _client._logger.LogDebug(
+                            "Invoice {Hash} expired, removing from cache",
+                            record.PaymentHash[..12]);
                         _client.RemoveInvoice(record);
                         continue;
                     }
+
+                    checkedCount++;
 
                     try
                     {
                         var invoice = await _client.CheckInvoiceStatus(record, linked.Token);
                         if (invoice.Status == LightningInvoiceStatus.Paid)
                         {
+                            _client._logger.LogInformation(
+                                "WaitInvoice: invoice {Hash} paid on poll cycle {Cycle}",
+                                record.PaymentHash[..12], pollCycle);
                             _emittedHashes.Add(record.PaymentHash);
                             _client.RemoveInvoice(record);
                             return invoice;
@@ -343,10 +365,20 @@ public class LnurlVerifyLightningClient : IExtendedLightningClient
                     {
                         throw;
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Continue polling other invoices
+                        _client._logger.LogDebug(ex,
+                            "WaitInvoice: error checking {Hash} on cycle {Cycle}",
+                            record.PaymentHash[..12], pollCycle);
                     }
+                }
+
+                // Log every 15 cycles (~30 seconds) to avoid spam
+                if (pollCycle % 15 == 0)
+                {
+                    _client._logger.LogInformation(
+                        "WaitInvoice poll cycle {Cycle}: checked={Checked}, expired={Expired}, total_cached={Total}",
+                        pollCycle, checkedCount, expiredCount, _client._invoices.Count);
                 }
 
                 await Task.Delay(2000, linked.Token);
