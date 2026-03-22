@@ -17,7 +17,7 @@ public class VendorPayUserListViewModel
     public bool All { get; set; }
     public string SearchTerm { get; set; }
     public string ActiveLabel { get; set; }
-    public (string Label, string Color)[] AllLabels { get; set; } = Array.Empty<(string, string)>();
+    public (string Label, string Color, int Count)[] AllLabels { get; set; } = Array.Empty<(string, string, int)>();
     public Dictionary<string, (string Label, string Color)[]> LabelsPerUser { get; set; } = new();
 
     public class CountsData

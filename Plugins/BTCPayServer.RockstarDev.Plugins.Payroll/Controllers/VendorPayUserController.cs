@@ -33,6 +33,56 @@ public class VendorPayUserController(
 {
     public StoreData CurrentStore => HttpContext.GetStoreData();
 
+    [HttpGet("labels")]
+    public async Task<IActionResult> ManageLabels(string storeId)
+    {
+        var labels = await storeLabelRepository.GetStoreLabels(storeId, VendorPayPluginConst.LabelType);
+        var vm = new VendorPayLabelsViewModel
+        {
+            StoreId = storeId,
+            Labels = labels.Select(l => new VendorPayLabelViewModel
+            {
+                Label = l.Label,
+                Color = l.Color,
+                TextColor = ColorPalette.Default.TextColor(l.Color)
+            }).ToList()
+        };
+        return View(vm);
+    }
+
+
+    [HttpGet("labels/{id}/delete")]
+    public IActionResult DeleteLabel(string storeId, string id)
+    {
+        return View("Confirm", new ConfirmModel("Delete Label", $"The label ({id}) will be deleted. Are you sure?", "Delete"));
+    }
+
+
+    [HttpPost("labels/{id}/delete")]
+    public async Task<IActionResult> DeleteLabelPost(string storeId, string id)
+    {
+        await storeLabelRepository.RemoveStoreLabels(storeId, VendorPayPluginConst.LabelType, new[] { id });
+        TempData[WellKnownTempData.SuccessMessage] = "Label deleted successfully";
+        return RedirectToAction(nameof(ManageLabels), new { storeId });
+    }
+
+    [HttpPost("labels/{id}/edit")]
+    public async Task<IActionResult> EditLabel(string storeId, string id, string newLabel)
+    {
+        if (string.IsNullOrWhiteSpace(newLabel))
+        {
+            TempData[WellKnownTempData.ErrorMessage] = "Label name cannot be empty";
+            return RedirectToAction(nameof(ManageLabels), new { storeId });
+        }
+        newLabel = newLabel.Trim();
+        if (newLabel == id)
+            return RedirectToAction(nameof(ManageLabels), new { storeId });
+
+        var ok = await storeLabelRepository.RenameStoreLabel(storeId, VendorPayPluginConst.LabelType, id, newLabel);
+        TempData[ok ? WellKnownTempData.SuccessMessage : WellKnownTempData.ErrorMessage] = ok ? "Label renamed successfully." : "Label could not be renamed.";
+        return RedirectToAction(nameof(ManageLabels), new { storeId });
+    }
+
     [HttpGet("list")]
     public async Task<IActionResult> List(string storeId, bool all, bool pending, bool oneTime, string searchTerm = null, string label = null)
     {
@@ -65,17 +115,25 @@ public class VendorPayUserController(
         };
         var vendorPayUsers = filteredQuery.OrderBy(a => a.Name).ToList();
 
-        var labelsForUsers = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, vendorPayUsers.Select(u => u.Id).ToArray());
-        var allLabels = await storeLabelRepository.GetStoreLabels(storeId, VendorPayPluginConst.LabelType);
+        var allStoreUserIds = ctx.PayrollUsers.Where(a => a.StoreId == storeId).Select(u => u.Id).ToArray();
+        var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, allStoreUserIds);
+
+        var allLabels = allUserLabels.SelectMany(kv => kv.Value)
+            .GroupBy(l => l.Label, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (Label: g.Key, Color: g.First().Color, Count: g.Count()))
+            .OrderBy(l => l.Label).ToArray();
+
+        var displayedUserIds = vendorPayUsers.Select(u => u.Id).ToHashSet();
+        var labelsForUsers = allUserLabels.Where(kv => displayedUserIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
         if (!string.IsNullOrEmpty(label))
         {
-            var labelledIds = labelsForUsers.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
+            var labelledIds = allUserLabels.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
                 .Select(kv => kv.Key).ToHashSet();
 
             vendorPayUsers = vendorPayUsers.Where(u => labelledIds.Contains(u.Id)).ToList();
+            labelsForUsers = labelsForUsers.Where(kv => labelledIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
         }
-
         var vendorPayUserListViewModel = new VendorPayUserListViewModel
         {
             All = all,

@@ -50,32 +50,48 @@
 
 @if (Model.AllLabels.Any())
 {
-	<div class="d-flex align-items-center gap-2 mb-3">
-		<span class="text-secondary small">Filter by category:</span>
-		<div class="dropdown">
-			<button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-				@(string.IsNullOrEmpty(Model.ActiveLabel) ? "All" : Model.ActiveLabel)
-			</button>
-			<ul class="dropdown-menu">
-				<li>
-					<a class="dropdown-item @(string.IsNullOrEmpty(Model.ActiveLabel) ? "active" : "")"
-					   asp-action="List"
-					   asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending"
-					   asp-route-oneTime="@Model.OneTime" asp-route-searchTerm="@Model.SearchTerm">All</a>
-				</li>
-				<li><hr class="dropdown-divider" /></li>
-				@foreach (var (label, _) in Model.AllLabels)
-				{
-					<li>
-						<a class="dropdown-item @(Model.ActiveLabel == label ? "active" : "")"
-						   asp-action="List"
-						   asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime"
-						   asp-route-searchTerm="@Model.SearchTerm" asp-route-label="@label">@label</a>
-					</li>
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="text-secondary small">Filter by label:</span>
+        <div class="dropdown">
+            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                @(string.IsNullOrEmpty(Model.ActiveLabel) ? "All" : Model.ActiveLabel)
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item @(string.IsNullOrEmpty(Model.ActiveLabel) ? "active" : "")"
+                       asp-action="List"
+                       asp-route-storeId="@storeId" asp-route-all="@Model.All"
+                       asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        All
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                @foreach (var (label, _, count) in Model.AllLabels)
+                {
+                    <li>
+                        <a class="dropdown-item d-flex justify-content-between align-items-center @(Model.ActiveLabel == label ? "active" : "")"
+                           asp-action="List"
+                           asp-route-storeId="@storeId" asp-route-all="@Model.All"
+                           asp-route-pending="@Model.Pending" asp-route-oneTime="@Model.OneTime"
+                           asp-route-searchTerm="@Model.SearchTerm" asp-route-label="@label">
+                            <span>@label</span>
+                            <span class="badge bg-secondary ms-2">@count</span>
+                        </a>
+                    </li>
 				}
-			</ul>
-		</div>
-	</div>
+				<li><hr class="dropdown-divider" /></li>
+				<li>
+					<a class="dropdown-item"
+					   asp-controller="VendorPayUser"
+					   asp-action="ManageLabels"
+					   asp-route-storeId="@storeId">
+						Manage Labels
+					</a>
+				</li>
+            </ul>
+        </div>
+    </div>
 }
 
 <nav id="SectionNav" class="mb-3">
@@ -117,7 +133,7 @@
             <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Email</th>
-				<th scope="col">Categories</th>
+				<th scope="col">Labels</th>
                 <th scope="col">Email Reminder Days</th>
                 <th scope="col">State</th>
                 <th scope="col" class="text-end"></th>
