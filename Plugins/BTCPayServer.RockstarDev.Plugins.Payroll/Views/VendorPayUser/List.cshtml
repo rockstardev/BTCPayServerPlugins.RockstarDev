@@ -25,7 +25,7 @@
 <div class="row mb-2">
     <div class="col-lg-6 ms-auto">
         <form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending"
-              asp-route-oneTime="@Model.OneTime">
+              asp-route-oneTime="@Model.OneTime" asp-route-label="@Model.ActiveLabel">
             <div class="input-group">
                 <input type="text"
                        class="form-control"
@@ -39,7 +39,7 @@
                 @if (!string.IsNullOrEmpty(Model.SearchTerm))
                 {
                     <a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All" asp-route-pending="@Model.Pending"
-                       asp-route-oneTime="@Model.OneTime" class="btn btn-secondary">
+                       asp-route-oneTime="@Model.OneTime" asp-route-label="@Model.ActiveLabel" class="btn btn-secondary">
                         <i class="fa fa-times"></i> Clear
                     </a>
                 }
@@ -48,7 +48,7 @@
     </div>
 </div>
 
-@if (Model.AllLabels.Any())
+@if (Model.AllLabels.Any() || !string.IsNullOrEmpty(Model.ActiveLabel))
 {
     <div class="d-flex align-items-center gap-2 mb-3">
         <span class="text-secondary small">Filter by label:</span>
@@ -99,6 +99,8 @@
         <a id="Active-view"
            asp-action="List"
            asp-route-storeId="@storeId"
+           asp-route-searchTerm="@Model.SearchTerm"
+           asp-route-label="@Model.ActiveLabel"
            class="nav-link @(!Model.Pending && !Model.OneTime && !Model.All ? "active" : "")"
            role="tab">Active (@Model.Counts.Active)</a>
 
@@ -106,6 +108,8 @@
            asp-action="List"
            asp-route-storeId="@storeId"
            asp-route-pending="true"
+           asp-route-searchTerm="@Model.SearchTerm"
+           asp-route-label="@Model.ActiveLabel"
            class="nav-link @(Model.Pending ? "active" : "")"
            role="tab">Pending (@Model.Counts.Pending)</a>
 
@@ -113,6 +117,8 @@
            asp-action="List"
            asp-route-storeId="@storeId"
            asp-route-oneTime="true"
+           asp-route-searchTerm="@Model.SearchTerm"
+           asp-route-label="@Model.ActiveLabel"
            class="nav-link @(Model.OneTime ? "active" : "")"
            role="tab">One-Time (@Model.Counts.OneTime)</a>
 
@@ -120,6 +126,8 @@
            asp-action="List"
            asp-route-storeId="@storeId"
            asp-route-all="true"
+           asp-route-searchTerm="@Model.SearchTerm"
+           asp-route-label="@Model.ActiveLabel"
            class="nav-link @(Model.All ? "active" : "")"
            role="tab">All (@Model.Counts.Total)</a>
     </div>
