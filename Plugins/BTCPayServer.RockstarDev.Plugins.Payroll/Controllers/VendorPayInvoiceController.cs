@@ -7,6 +7,7 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
@@ -15,6 +16,7 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
+using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Rates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -35,6 +37,7 @@ public class VendorPayInvoiceController(
     UserManager<ApplicationUser> userManager,
     ISettingsRepository settingsRepository,
     EmailService emailService,
+    StoreLabelRepository storeLabelRepository,
     VendorPayInvoiceUploadHelper payrollInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper)
     : Controller
@@ -76,15 +79,40 @@ public class VendorPayInvoiceController(
         }
 
         var settings = await ctx.GetSettingAsync(storeId);
+
+        var invoiceUserIds = payrollInvoices.Select(i => i.UserId).Distinct().ToArray();
+        var userLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, invoiceUserIds);
+
+        var labelToUserIds = userLabels.SelectMany(kv => kv.Value.Select(l => (Label: l.Label, Color: l.Color, UserId: kv.Key)))
+        .GroupBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(
+            g => g.Key,
+            g => g.Select(x => x.UserId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
+
+        var awaitingByUser = payrollInvoices.Where(i => i.State == VendorPayInvoiceState.AwaitingApproval)
+            .GroupBy(i => i.UserId).ToDictionary(g => g.Key, g => g.Count());
+
+        var allLabels = labelToUserIds.Select(kv => (
+            Label: kv.Key,
+            Color: userLabels.Where(u => kv.Value.Contains(u.Key))
+                .SelectMany(u => u.Value)
+                .FirstOrDefault(l => l.Label.Equals(kv.Key, StringComparison.OrdinalIgnoreCase)).Color,
+            Count: kv.Value.Sum(uid => awaitingByUser.TryGetValue(uid, out var c) ? c : 0)
+        ))
+        .Where(l => l.Count > 0).OrderBy(l => l.Label).ToArray();
+
         var model = new VendorPayInvoiceListViewModel
         {
             All = all,
+            LabelUserIds = labelToUserIds,
+            AllLabels = allLabels,
             SearchTerm = searchTerm,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             VendorPayInvoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
+                UserId = tuple.UserId,
                 Name = tuple.User.Name,
                 Email = tuple.User.Email,
                 Destination = tuple.Destination,
@@ -239,7 +267,7 @@ public class VendorPayInvoiceController(
             Message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
         });
 
-        return new RedirectToActionResult("WalletSend", "UIWallets",
+        return new RedirectToActionResult(nameof(UIWalletsController.WalletSend), "UIWallets",
             new { walletId = new WalletId(CurrentStore.Id, VendorPayPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 

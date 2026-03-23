@@ -2,6 +2,7 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPayUserCreateViewModel
 @{
@@ -48,6 +49,23 @@
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
             <div class="form-group">
+                <label class="form-label">Categories</label>
+                <div class="input-group">
+                    <select asp-for="Labels" class="d-none">
+                        @foreach (var l in Model.Labels)
+                        {
+                            <option value="@l" selected></option>
+                        }
+                    </select>
+                    <vc:label-manager selected-labels="Model.Labels.ToArray()"
+                                      exclude-types="true"
+                                      select-element="Labels"
+                                      auto-update="false"
+                                      linked-type="@VendorPayPluginConst.LabelType"
+                                      store-id="@Model.StoreId" />
+                </div>
+            </div>
+            <div class="form-group">
                 <label asp-for="Password" class="form-label">Password</label>
                 <div class="input-group">
                     <input asp-for="Password" class="form-control" placeholder="***********" readonly />
@@ -88,6 +106,8 @@
 </form>
 
 @section PageFootContent {
+    <link href="~/vendor/tom-select/tom-select.bootstrap5.min.css" rel="stylesheet" asp-append-version="true" />
+    <script src="~/vendor/tom-select/tom-select.complete.min.js" asp-append-version="true"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const reminderInput = document.getElementById("reminderInput");
