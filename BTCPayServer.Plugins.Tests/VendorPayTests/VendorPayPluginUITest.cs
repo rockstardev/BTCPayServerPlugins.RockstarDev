@@ -341,8 +341,7 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await CreateVendorPayUser();
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         var popupTask = Page.Context.WaitForPageAsync();
-        await Page.Locator("button[aria-label='More invoice actions']").ClickAsync();
-        await Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextRegex = new Regex("Public Invoice Upload", RegexOptions.IgnoreCase) }).ClickAsync();
+        await Page.Locator("a", new PageLocatorOptions { HasTextRegex = new Regex("Public Invoice Upload", RegexOptions.IgnoreCase) }).ClickAsync();
         var popup = await popupTask;
         await popup.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await popup.FillAsync("#Email", VendorPayUserEmail);
