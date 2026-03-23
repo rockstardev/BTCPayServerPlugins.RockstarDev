@@ -74,6 +74,7 @@ public class VendorPayUserController(
             TempData[WellKnownTempData.ErrorMessage] = "Label name cannot be empty";
             return RedirectToAction(nameof(ManageLabels), new { storeId });
         }
+
         newLabel = newLabel.Trim();
         if (newLabel == id)
             return RedirectToAction(nameof(ManageLabels), new { storeId });
@@ -91,14 +92,14 @@ public class VendorPayUserController(
         var query = ctx.PayrollUsers.Where(a => a.StoreId == storeId);
 
         var counts = query.GroupBy(_ => 1)
-        .Select(g => new VendorPayUserListViewModel.CountsData
-        {
-            Active = g.Count(a => a.State == VendorPayUserState.Active),
-            Pending = g.Count(a => a.State == VendorPayUserState.Pending),
-            OneTime = g.Count(a => a.State == VendorPayUserState.OneTime),
-            Total = g.Count()
-        })
-        .FirstOrDefault() ?? new VendorPayUserListViewModel.CountsData();
+            .Select(g => new VendorPayUserListViewModel.CountsData
+            {
+                Active = g.Count(a => a.State == VendorPayUserState.Active),
+                Pending = g.Count(a => a.State == VendorPayUserState.Pending),
+                OneTime = g.Count(a => a.State == VendorPayUserState.OneTime),
+                Total = g.Count()
+            })
+            .FirstOrDefault() ?? new VendorPayUserListViewModel.CountsData();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -134,6 +135,7 @@ public class VendorPayUserController(
             vendorPayUsers = vendorPayUsers.Where(u => labelledIds.Contains(u.Id)).ToList();
             labelsForUsers = labelsForUsers.Where(kv => labelledIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
         }
+
         var vendorPayUserListViewModel = new VendorPayUserListViewModel
         {
             All = all,
@@ -180,19 +182,13 @@ public class VendorPayUserController(
         model.StoreId = CurrentStore.Id;
 
         if (model.SendRegistrationEmailInviteToUser && string.IsNullOrWhiteSpace(model.UserInviteEmailSubject))
-        {
             ModelState.AddModelError(nameof(model.UserInviteEmailSubject), "Invite email subject cannot be empty");
-        }
 
         if (model.SendRegistrationEmailInviteToUser && string.IsNullOrWhiteSpace(model.UserInviteEmailBody))
-        {
             ModelState.AddModelError(nameof(model.UserInviteEmailBody), "Invite email body cannot be empty");
-        }
 
         if (!ModelState.IsValid)
-        {
             return View(model);
-        }
 
         if (await dbPlugins.PayrollUsers.AnyAsync(a => a.StoreId == CurrentStore.Id && a.Email == email))
         {
@@ -273,6 +269,7 @@ public class VendorPayUserController(
                 Message = "User created successfully", Severity = StatusMessageModel.StatusSeverity.Success
             });
         }
+
         if (model.Labels?.Count > 0)
             await storeLabelRepository.SetStoreObjectLabels(CurrentStore.Id, VendorPayPluginConst.LabelType, dbUser.Id, model.Labels.ToArray());
 
@@ -388,7 +385,8 @@ public class VendorPayUserController(
 
         ctx.Update(user);
         await ctx.SaveChangesAsync();
-        await storeLabelRepository.SetStoreObjectLabels(CurrentStore.Id, VendorPayPluginConst.LabelType, userId, model.Labels?.ToArray() ?? Array.Empty<string>());
+        await storeLabelRepository.SetStoreObjectLabels(CurrentStore.Id, VendorPayPluginConst.LabelType, userId,
+            model.Labels?.ToArray() ?? Array.Empty<string>());
 
         ReturnMessageStatus();
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });

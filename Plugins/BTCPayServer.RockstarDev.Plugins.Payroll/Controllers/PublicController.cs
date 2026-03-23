@@ -603,7 +603,7 @@ public class PublicController(
         if (createdInvoice != null)
         {
             await emailService.SendAdminNotificationOnInvoiceUpload(storeId, createdInvoice);
-            
+
             // Send confirmation email to uploader
             if (settings.EmailUploaderOnInvoiceUploaded)
                 await emailService.SendUploaderConfirmationOnInvoiceUpload(storeId, createdInvoice);

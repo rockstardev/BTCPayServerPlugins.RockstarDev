@@ -43,15 +43,15 @@ This plugin enables administrators to manage payroll users, inspect invoices, an
 Vendor Pay now uses granular plugin permissions so stores can assign least privilege roles:
 
 - `btcpay.plugin.vendorpay.admin`
-  - Full Vendor Pay administration (users, invoices, settings)
+    - Full Vendor Pay administration (users, invoices, settings)
 - `btcpay.plugin.vendorpay.users.manage`
-  - Manage Vendor Pay users (create/edit/reset/toggle/delete)
+    - Manage Vendor Pay users (create/edit/reset/toggle/delete)
 - `btcpay.plugin.vendorpay.invoices.manage`
-  - Action invoices (upload, pay, mark paid, delete, admin notes)
+    - Action invoices (upload, pay, mark paid, delete, admin notes)
 - `btcpay.plugin.vendorpay.invoices.view`
-  - View/download invoices
+    - View/download invoices
 - `btcpay.plugin.vendorpay.settings.manage`
-  - Manage Vendor Pay settings
+    - Manage Vendor Pay settings
 
 Hierarchy behavior:
 
