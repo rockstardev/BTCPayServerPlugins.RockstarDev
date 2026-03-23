@@ -79,16 +79,16 @@
                             <span class="badge bg-secondary ms-2">@count</span>
                         </a>
                     </li>
-				}
-				<li><hr class="dropdown-divider" /></li>
-				<li>
-					<a class="dropdown-item"
-					   asp-controller="VendorPayUser"
-					   asp-action="ManageLabels"
-					   asp-route-storeId="@storeId">
-						Manage Labels
-					</a>
-				</li>
+                }
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                    <a class="dropdown-item"
+                       asp-controller="VendorPayUser"
+                       asp-action="ManageLabels"
+                       asp-route-storeId="@storeId">
+                        Manage Labels
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
@@ -141,7 +141,7 @@
             <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Email</th>
-				<th scope="col">Labels</th>
+                <th scope="col">Labels</th>
                 <th scope="col">Email Reminder Days</th>
                 <th scope="col">State</th>
                 <th scope="col" class="text-end"></th>
@@ -150,20 +150,20 @@
             <tbody>
             @foreach (var pp in Model.DisplayedVendorPayUsers)
             {
-				var userLabels = Model.LabelsPerUser.TryGetValue(pp.Id, out var ll) ? ll : Array.Empty<(string Label, string Color)>();
+                var userLabels = Model.LabelsPerUser.TryGetValue(pp.Id, out var ll) ? ll : Array.Empty<(string Label, string Color)>();
                 <tr class="mass-action-row">
                     <td>@pp.Name</td>
                     <td>@pp.Email</td>
-					<td>
-						@if (userLabels.Any())
-						{
-							@string.Join(", ", userLabels.Select(l => l.Label))
-						}
-						else
-						{
-							<span class="text-secondary">-</span>
-						}
-					</td>
+                    <td>
+                        @if (userLabels.Any())
+                        {
+                            @string.Join(", ", userLabels.Select(l => l.Label))
+                        }
+                        else
+                        {
+                            <span class="text-secondary">-</span>
+                        }
+                    </td>
                     <td>@(!string.IsNullOrEmpty(pp.EmailReminder) ? pp.EmailReminder : "-")</td>
                     <td>@pp.State</td>
                     <td class="align-middle">

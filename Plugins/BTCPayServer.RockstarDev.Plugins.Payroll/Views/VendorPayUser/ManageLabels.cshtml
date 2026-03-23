@@ -5,100 +5,100 @@
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @model VendorPayLabelsViewModel
 @{
-	Layout = "_Layout";
-	ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayUsers), "Manage User Labels"){ ActiveCategory = nameof(VendorPayNavPages) });
-	var storeId = ScopeProvider.GetCurrentStoreId();
+    Layout = "_Layout";
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayUsers), "Manage User Labels"){ ActiveCategory = nameof(VendorPayNavPages) });
+    var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-	<nav aria-label="breadcrumb">
-		<ol class="breadcrumb">
-			<li class="breadcrumb-item">
-				<a asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId">Vendor Pay Users</a>
-			</li>
-			<li class="breadcrumb-item active" aria-current="page">Labels</li>
-		</ol>
-		<h2 class="mb-0">@ViewData["Title"]</h2>
-	</nav>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId">Vendor Pay Users</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Labels</li>
+        </ol>
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+    </nav>
 </div>
 
 <partial name="_StatusMessage" />
 
 @if (Model.Labels.Any())
 {
-	<div class="table-responsive-md">
-		<table class="table table-hover">
-			<thead>
-				<tr>
-					<th>Label</th>
-					<th class="text-end">Actions</th>
-				</tr>
-			</thead>
-			<tbody>
-				@foreach (var label in Model.Labels)
-				{
-					<tr>
-						<td>
-							<div class="transaction-label" style="--label-bg:@label.Color;--label-fg:@label.TextColor">
-								<span>@label.Label</span>
-							</div>
-						</td>
-						<td class="text-end">
-							<button class="btn btn-link btn-edit p-0 me-3" type="button" data-label="@label.Label">Edit</button>
-							<a asp-controller="VendorPayUser" asp-action="DeleteLabel" asp-route-storeId="@storeId" asp-route-id="@label.Label" class="d-inline">Delete</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	</div>
-	<div class="modal fade" id="EditLabelModal" tabindex="-1" aria-hidden="true">
-		<div class="modal-dialog">
-			<form method="post">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title">Edit Label</h5>
-						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-					</div>
-					<div class="modal-body">
-						<input type="hidden" id="OldLabel" name="id" />
-						<div class="form-group">
-							<label for="EditLabelInput" class="form-label">Label Name</label>
-							<input type="text" class="form-control" id="EditLabelInput"
-								   name="newLabel" required maxlength="50" />
-						</div>
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-						<button type="submit" class="btn btn-primary">Save</button>
-					</div>
-				</div>
-			</form>
-		</div>
-	</div>
+    <div class="table-responsive-md">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Label</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var label in Model.Labels)
+                {
+                    <tr>
+                        <td>
+                            <div class="transaction-label" style="--label-bg:@label.Color;--label-fg:@label.TextColor">
+                                <span>@label.Label</span>
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-link btn-edit p-0 me-3" type="button" data-label="@label.Label">Edit</button>
+                            <a asp-controller="VendorPayUser" asp-action="DeleteLabel" asp-route-storeId="@storeId" asp-route-id="@label.Label" class="d-inline">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="modal fade" id="EditLabelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Label</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="OldLabel" name="id" />
+                        <div class="form-group">
+                            <label for="EditLabelInput" class="form-label">Label Name</label>
+                            <input type="text" class="form-control" id="EditLabelInput"
+                                   name="newLabel" required maxlength="50" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 }
 else
 {
-	<p class="text-secondary mt-3">
-		There are no labels yet. You can create labels by assigning them to
-		<a asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId">users</a>.
-	</p>
+    <p class="text-secondary mt-3">
+        There are no labels yet. You can create labels by assigning them to
+        <a asp-controller="VendorPayUser" asp-action="List" asp-route-storeId="@storeId">users</a>.
+    </p>
 }
 
 @section PageFootContent {
-	<script>
-		delegate('click', '.btn-edit', event => {
-			const button = event.target.closest('.btn-edit');
-			const label = button.dataset.label;
-			const modal = document.getElementById('EditLabelModal');
-			const input = modal.querySelector('#EditLabelInput');
-			const oldInput = modal.querySelector('#OldLabel');
-			const form = modal.querySelector('form');
-			input.value = label;
-			oldInput.value = label;
-			form.action = `/plugins/${@Json.Serialize(storeId)}/vendorpay/users/labels/${encodeURIComponent(label)}/edit`;
-			new bootstrap.Modal(modal).show();
-		});
-	</script>
+    <script>
+        delegate('click', '.btn-edit', event => {
+            const button = event.target.closest('.btn-edit');
+            const label = button.dataset.label;
+            const modal = document.getElementById('EditLabelModal');
+            const input = modal.querySelector('#EditLabelInput');
+            const oldInput = modal.querySelector('#OldLabel');
+            const form = modal.querySelector('form');
+            input.value = label;
+            oldInput.value = label;
+            form.action = `/plugins/${@Json.Serialize(storeId)}/vendorpay/users/labels/${encodeURIComponent(label)}/edit`;
+            new bootstrap.Modal(modal).show();
+        });
+    </script>
 }

@@ -69,8 +69,6 @@ public class VendorPayUserCreateViewModel
 
     [Display(Name = "Categories")]
     public List<string> Labels { get; set; } = new();
-
-    public (string Label, string Color)[] ExistingLabels { get; set; } = Array.Empty<(string, string)>();
 }
 
 public class VendorPayUserResetPasswordViewModel

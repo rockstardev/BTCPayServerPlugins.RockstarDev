@@ -115,15 +115,15 @@ public class VendorPayUserController(
         };
         var vendorPayUsers = filteredQuery.OrderBy(a => a.Name).ToList();
 
-        var allStoreUserIds = ctx.PayrollUsers.Where(a => a.StoreId == storeId).Select(u => u.Id).ToArray();
-        var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, allStoreUserIds);
+        var filteredUserIds = vendorPayUsers.Select(u => u.Id).ToArray();
+        var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, filteredUserIds);
 
         var allLabels = allUserLabels.SelectMany(kv => kv.Value)
             .GroupBy(l => l.Label, StringComparer.OrdinalIgnoreCase)
             .Select(g => (Label: g.Key, Color: g.First().Color, Count: g.Count()))
             .OrderBy(l => l.Label).ToArray();
 
-        var displayedUserIds = vendorPayUsers.Select(u => u.Id).ToHashSet();
+        var displayedUserIds = filteredUserIds.ToHashSet();
         var labelsForUsers = allUserLabels.Where(kv => displayedUserIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
         if (!string.IsNullOrEmpty(label))

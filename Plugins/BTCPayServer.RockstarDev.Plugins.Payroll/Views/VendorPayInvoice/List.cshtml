@@ -20,59 +20,59 @@
 
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
-	<h2 class="mb-0">@ViewData["Title"]</h2>
-	<div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center">
-		<div class="dropdown">
-			<button class="btn btn-secondary px-3 d-flex align-items-center justify-content-center"
-					type="button" data-bs-toggle="dropdown" aria-label="More invoice actions">
-				<vc:icon symbol="caret-down" />
-			</button>
-			<ul class="dropdown-menu dropdown-menu-end">
-				<li>
-					<a class="dropdown-item" permission="@Policies.CanViewReports" asp-controller="UIReports"
-					   asp-action="StoreReports" asp-route-storeId="@storeId" asp-route-viewName="Vendor Pay">
-						Reporting
-					</a>
-				</li>
-				<li>
-					<a class="dropdown-item" href="@publicInvoiceUrl" target="_blank">
-						Public Invoice Upload
-					</a>
-				</li>
-			</ul>
-		</div>
-		@if (Model.AllLabels.Any())
-		{
-			<div class="dropdown">
-				<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" id="labelFilterBtn">
-					Filter by Label
-				</button>
-				<ul class="dropdown-menu dropdown-menu-end">
-					<li>
-						<a class="dropdown-item" href="#" id="clearLabelFilter">All</a>
-					</li>
-					<li><hr class="dropdown-divider" /></li>
-					@foreach (var (label, _, count) in Model.AllLabels)
-					{
-						<li>
-							<a class="dropdown-item d-flex justify-content-between label-filter-item"
-							   href="#" data-label="@label">
-								<span>@label</span>
-								<span class="badge bg-secondary ms-2">@count</span>
-							</a>
-						</li>
-					}
-				</ul>
-			</div>
-		}
-		<button type="button" class="btn btn-secondary clipboard-button px-3 d-flex align-items-center justify-content-center"
-				data-clipboard="@publicInvoiceUrl" aria-label="Copy public invoice upload link">
-			<vc:icon symbol="actions-copy" />
-		</button>
-		<a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary text-nowrap">
-			Admin Upload Invoice
-		</a>
-	</div>
+    <h2 class="mb-0">@ViewData["Title"]</h2>
+    <div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center">
+        <div class="dropdown">
+            <button class="btn btn-secondary px-3 d-flex align-items-center justify-content-center"
+                    type="button" data-bs-toggle="dropdown" aria-label="More invoice actions">
+                <vc:icon symbol="caret-down" />
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" permission="@Policies.CanViewReports" asp-controller="UIReports"
+                       asp-action="StoreReports" asp-route-storeId="@storeId" asp-route-viewName="Vendor Pay">
+                        Reporting
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="@publicInvoiceUrl" target="_blank">
+                        Public Invoice Upload
+                    </a>
+                </li>
+            </ul>
+        </div>
+        @if (Model.AllLabels.Any())
+        {
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" id="labelFilterBtn">
+                    Select by Label
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="#" id="clearLabelFilter">All</a>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+                    @foreach (var (label, _, count) in Model.AllLabels)
+                    {
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between label-filter-item"
+                               href="#" data-label="@label">
+                                <span>@label</span>
+                                <span class="badge bg-secondary ms-2">@count</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        <button type="button" class="btn btn-secondary clipboard-button px-3 d-flex align-items-center justify-content-center"
+                data-clipboard="@publicInvoiceUrl" aria-label="Copy public invoice upload link">
+            <vc:icon symbol="actions-copy" />
+        </button>
+        <a asp-controller="VendorPayInvoice" asp-action="Upload" asp-route-storeId="@storeId" class="btn btn-primary text-nowrap">
+            Admin Upload Invoice
+        </a>
+    </div>
 </div>
 
 <partial name="_StatusMessage" />
@@ -187,7 +187,7 @@
                 <tbody>
                 @foreach (var pp in Model.VendorPayInvoices)
                 {
-					<tr id="invoice_@pp.Id" class="mass-action-row" data-user-id="@pp.UserId">
+                    <tr id="invoice_@pp.Id" class="mass-action-row" data-user-id="@pp.UserId">
                         <td class="only-for-js align-middle">
                             <input name="selectedItems" type="checkbox" class="form-check-input mass-action-select" value="@pp.Id" />
                         </td>
@@ -350,50 +350,50 @@
                     }
                 }
 
-				const labelUserIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LabelUserIds));
+                const labelUserIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LabelUserIds));
 
-				function applyLabelFilter(label) {
-					const allRows = document.querySelectorAll('tr.mass-action-row');
+                function applyLabelFilter(label) {
+                    const allRows = document.querySelectorAll('tr.mass-action-row');
 
-					allRows.forEach(row => {
-						const cb = row.querySelector('input.mass-action-select');
-						if (cb) {
-							cb.checked = false;
-							cb.dispatchEvent(new Event('change', { bubbles: true }));
-						}
-					});
+                    allRows.forEach(row => {
+                        const cb = row.querySelector('input.mass-action-select');
+                        if (cb) {
+                            cb.checked = false;
+                            cb.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    });
 
-					const btn = document.getElementById('labelFilterBtn');
-					if (!label) {
-						if (btn) btn.textContent = 'Filter by Label';
-						return;
-					}
+                    const btn = document.getElementById('labelFilterBtn');
+                    if (!label) {
+                        if (btn) btn.textContent = 'Select by Label';
+                        return;
+                    }
 
-					const userIds = new Set(labelUserIds[label] || []);
-					allRows.forEach(row => {
-						if (userIds.has(row.dataset.userId)) {
-							const cb = row.querySelector('input.mass-action-select');
-							if (cb) {
-								cb.checked = true;
-								cb.dispatchEvent(new Event('change', { bubbles: true }));
-							}
-						}
-					});
+                    const userIds = new Set(labelUserIds[label] || []);
+                    allRows.forEach(row => {
+                        if (userIds.has(row.dataset.userId)) {
+                            const cb = row.querySelector('input.mass-action-select');
+                            if (cb) {
+                                cb.checked = true;
+                                cb.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    });
 
-					if (btn) btn.textContent = label;
-				}
+                    if (btn) btn.textContent = label;
+                }
 
-				document.querySelectorAll('.label-filter-item').forEach(item => {
-					item.addEventListener('click', e => {
-						e.preventDefault();
-						applyLabelFilter(item.dataset.label);
-					});
-				});
+                document.querySelectorAll('.label-filter-item').forEach(item => {
+                    item.addEventListener('click', e => {
+                        e.preventDefault();
+                        applyLabelFilter(item.dataset.label);
+                    });
+                });
 
-				document.getElementById('clearLabelFilter')?.addEventListener('click', e => {
-					e.preventDefault();
-					applyLabelFilter(null);
-				});
+                document.getElementById('clearLabelFilter')?.addEventListener('click', e => {
+                    e.preventDefault();
+                    applyLabelFilter(null);
+                });
 
                 document.addEventListener('change', function () {
                     toggleButtons()
