@@ -106,10 +106,8 @@ public class EmailService(
 
         var btcNetwork = nbxplorerNetworkProvider.GetFromCryptoCode("BTC")?.NBitcoinNetwork;
         if (btcNetwork?.ChainName == ChainName.Regtest)
-        {
             // Intentionally obvious non-working public URL for regtest environments.
             return $"https://mempool.space/regtest/address/{destinationAddress}";
-        }
 
         var txTemplate = transactionLinkProviders.GetBlockExplorerLink(PaymentTypes.CHAIN.GetPaymentMethodId("BTC"));
         var addressTemplate = txTemplate switch
@@ -119,18 +117,12 @@ public class EmailService(
         };
 
         if (addressTemplate.Contains("/tx/{0}", StringComparison.OrdinalIgnoreCase))
-        {
             addressTemplate = addressTemplate.Replace("/tx/{0}", "/address/{0}", StringComparison.OrdinalIgnoreCase);
-        }
         else if (addressTemplate.Contains("/tx/", StringComparison.OrdinalIgnoreCase))
-        {
             addressTemplate = addressTemplate.Replace("/tx/", "/address/", StringComparison.OrdinalIgnoreCase);
-        }
 
         if (!addressTemplate.Contains("{0}"))
-        {
             return string.Concat(addressTemplate.TrimEnd('/'), "/", destinationAddress);
-        }
 
         return string.Format(CultureInfo.InvariantCulture, addressTemplate, destinationAddress);
     }

@@ -1,5 +1,6 @@
 @inject IScopeProvider ScopeProvider
 @inject IHttpContextAccessor HttpContextAccessor
+@using System.Text.Json
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
@@ -62,7 +63,9 @@
                     <li>
                         <a class="dropdown-item" href="#" id="clearLabelFilter">None</a>
                     </li>
-                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                        <hr class="dropdown-divider" />
+                    </li>
                     @foreach (var (label, _, count) in Model.AllLabels)
                     {
                         <li>
@@ -349,7 +352,7 @@
                     }
                 }
 
-                const labelUserIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LabelUserIds));
+                const labelUserIds = @Html.Raw(JsonSerializer.Serialize(Model.LabelUserIds));
 
                 function applyLabelFilter(label) {
                     const allRows = document.querySelectorAll('tr.mass-action-row');
@@ -358,7 +361,7 @@
                         const cb = row.querySelector('input.mass-action-select');
                         if (cb) {
                             cb.checked = false;
-                            cb.dispatchEvent(new Event('change', { bubbles: true }));
+                            cb.dispatchEvent(new Event('change', {bubbles: true}));
                         }
                     });
 
@@ -374,7 +377,7 @@
                             const cb = row.querySelector('input.mass-action-select');
                             if (cb) {
                                 cb.checked = true;
-                                cb.dispatchEvent(new Event('change', { bubbles: true }));
+                                cb.dispatchEvent(new Event('change', {bubbles: true}));
                             }
                         }
                     });

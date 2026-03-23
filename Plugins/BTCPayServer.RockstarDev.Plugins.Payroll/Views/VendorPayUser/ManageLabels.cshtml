@@ -6,7 +6,7 @@
 @model VendorPayLabelsViewModel
 @{
     Layout = "_Layout";
-    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayUsers), "Manage User Labels"){ ActiveCategory = nameof(VendorPayNavPages) });
+    ViewData.SetLayoutModel(new LayoutModel(nameof(VendorPayNavPages.VendorPayUsers), "Manage User Labels") { ActiveCategory = nameof(VendorPayNavPages) });
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
@@ -30,26 +30,26 @@
     <div class="table-responsive-md">
         <table class="table table-hover">
             <thead>
-                <tr>
-                    <th>Label</th>
-                    <th class="text-end">Actions</th>
-                </tr>
+            <tr>
+                <th>Label</th>
+                <th class="text-end">Actions</th>
+            </tr>
             </thead>
             <tbody>
-                @foreach (var label in Model.Labels)
-                {
-                    <tr>
-                        <td>
-                            <div class="transaction-label" style="--label-bg:@label.Color;--label-fg:@label.TextColor">
-                                <span>@label.Label</span>
-                            </div>
-                        </td>
-                        <td class="text-end">
-                            <button class="btn btn-link btn-edit p-0 me-3" type="button" data-label="@label.Label">Edit</button>
-                            <a asp-controller="VendorPayUser" asp-action="DeleteLabel" asp-route-storeId="@storeId" asp-route-id="@label.Label" class="d-inline">Delete</a>
-                        </td>
-                    </tr>
-                }
+            @foreach (var label in Model.Labels)
+            {
+                <tr>
+                    <td>
+                        <div class="transaction-label" style="--label-bg:@label.Color;--label-fg:@label.TextColor">
+                            <span>@label.Label</span>
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-link btn-edit p-0 me-3" type="button" data-label="@label.Label">Edit</button>
+                        <a asp-controller="VendorPayUser" asp-action="DeleteLabel" asp-route-storeId="@storeId" asp-route-id="@label.Label" class="d-inline">Delete</a>
+                    </td>
+                </tr>
+            }
             </tbody>
         </table>
     </div>

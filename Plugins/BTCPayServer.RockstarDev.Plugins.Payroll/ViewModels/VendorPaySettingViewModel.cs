@@ -69,7 +69,6 @@ public class VendorPaySettingViewModel
     public string DescriptionTitle { get; set; }
 
 
-
     [Display(Name = "User Invite Email Subject")]
     public string UserInviteEmailSubject { get; set; }
 

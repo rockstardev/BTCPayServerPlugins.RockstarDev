@@ -84,22 +84,22 @@ public class VendorPayInvoiceController(
         var userLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, invoiceUserIds);
 
         var labelToUserIds = userLabels.SelectMany(kv => kv.Value.Select(l => (Label: l.Label, Color: l.Color, UserId: kv.Key)))
-        .GroupBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
-        .ToDictionary(
-            g => g.Key,
-            g => g.Select(x => x.UserId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
+            .GroupBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => x.UserId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
 
         var awaitingByUser = payrollInvoices.Where(i => i.State == VendorPayInvoiceState.AwaitingApproval)
             .GroupBy(i => i.UserId).ToDictionary(g => g.Key, g => g.Count());
 
         var allLabels = labelToUserIds.Select(kv => (
-            Label: kv.Key,
-            Color: userLabels.Where(u => kv.Value.Contains(u.Key))
-                .SelectMany(u => u.Value)
-                .FirstOrDefault(l => l.Label.Equals(kv.Key, StringComparison.OrdinalIgnoreCase)).Color,
-            Count: kv.Value.Sum(uid => awaitingByUser.TryGetValue(uid, out var c) ? c : 0)
-        ))
-        .Where(l => l.Count > 0).OrderBy(l => l.Label).ToArray();
+                Label: kv.Key,
+                Color: userLabels.Where(u => kv.Value.Contains(u.Key))
+                    .SelectMany(u => u.Value)
+                    .FirstOrDefault(l => l.Label.Equals(kv.Key, StringComparison.OrdinalIgnoreCase)).Color,
+                Count: kv.Value.Sum(uid => awaitingByUser.TryGetValue(uid, out var c) ? c : 0)
+            ))
+            .Where(l => l.Count > 0).OrderBy(l => l.Label).ToArray();
 
         var model = new VendorPayInvoiceListViewModel
         {
