@@ -79,10 +79,32 @@ public class VendorPayInvoiceController(
         }
 
         var settings = await ctx.GetSettingAsync(storeId);
-        var allLabels = await storeLabelRepository.GetStoreLabels(storeId, VendorPayPluginConst.LabelType);
+
+        var invoiceUserIds = payrollInvoices.Select(i => i.UserId).Distinct().ToArray();
+        var userLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, invoiceUserIds);
+
+        var labelToUserIds = userLabels.SelectMany(kv => kv.Value.Select(l => (Label: l.Label, Color: l.Color, UserId: kv.Key)))
+        .GroupBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(
+            g => g.Key,
+            g => g.Select(x => x.UserId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
+
+        var awaitingByUser = payrollInvoices.Where(i => i.State == VendorPayInvoiceState.AwaitingApproval)
+            .GroupBy(i => i.UserId).ToDictionary(g => g.Key, g => g.Count());
+
+        var allLabels = labelToUserIds.Select(kv => (
+            Label: kv.Key,
+            Color: userLabels.Where(u => kv.Value.Contains(u.Key))
+                .SelectMany(u => u.Value)
+                .FirstOrDefault(l => l.Label.Equals(kv.Key, StringComparison.OrdinalIgnoreCase)).Color,
+            Count: kv.Value.Sum(uid => awaitingByUser.TryGetValue(uid, out var c) ? c : 0)
+        ))
+        .Where(l => l.Count > 0).OrderBy(l => l.Label).ToArray();
+
         var model = new VendorPayInvoiceListViewModel
         {
             All = all,
+            LabelUserIds = labelToUserIds,
             AllLabels = allLabels,
             SearchTerm = searchTerm,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
@@ -90,6 +112,7 @@ public class VendorPayInvoiceController(
             {
                 CreatedAt = tuple.CreatedAt,
                 Id = tuple.Id,
+                UserId = tuple.UserId,
                 Name = tuple.User.Name,
                 Email = tuple.User.Email,
                 Destination = tuple.Destination,
@@ -172,84 +195,6 @@ public class VendorPayInvoiceController(
 
         return RedirectToAction(nameof(List), new { storeId = CurrentStore.Id });
     }
-
-    [HttpGet("pay-by-label")]
-    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> PayByLabel(string storeId, string label)
-    {
-        await using var ctx = pluginDbContextFactory.CreateContext();
-        var (invoices, targetUserCount, error) = await GetLabelInvoices(ctx, storeId, label);
-        if (error != null)
-        {
-            TempData.SetStatusMessageModel(error);
-            return RedirectToAction(nameof(List), new { storeId });
-        }
-
-        var usersWithMultiplePendingInvoices = invoices.GroupBy(i => i.UserId).Where(g => g.Count() > 1).ToList();
-        if (usersWithMultiplePendingInvoices.Any())
-        {
-            var nameList = string.Join(", ", usersWithMultiplePendingInvoices.Select(g => g.First().User.Name));
-            return View("Confirm",
-                new ConfirmModel($"Pay by Category: {label}",
-                    $"The following users have more than one awaiting invoice: {nameList}. This will pay all {invoices.Count} invoices across {targetUserCount} users. Do you want to proceed?",
-                    "Pay All"));
-        }
-
-        return View("Confirm", new ConfirmModel($"Pay by Category: {label}",
-        $"This will pay {invoices.Count} invoice(s) across {targetUserCount} user(s) in the '{label}' category. Do you want to proceed?",
-        "Pay"));
-    }
-
-    [HttpPost("pay-by-label")]
-    [Authorize(Policy = VendorPayPermissions.InvoicesManage, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public async Task<IActionResult> PayByLabelPost(string storeId, string label)
-    {
-        await using var ctx = pluginDbContextFactory.CreateContext();
-        var (invoices, _, error) = await GetLabelInvoices(ctx, storeId, label);
-        if (error != null)
-        {
-            TempData.SetStatusMessageModel(error);
-            return RedirectToAction(nameof(List), new { storeId });
-        }
-        return await payInvoices(invoices.Select(i => i.Id).ToArray());
-    }
-
-    private async Task<(List<PayrollInvoice> Invoices, int TargetUserCount, StatusMessageModel? Error)>GetLabelInvoices(PluginDbContext ctx, string storeId, string label)
-    {
-
-        var allUserIds = await ctx.PayrollUsers
-            .Where(u => u.StoreId == storeId &&
-                        (u.State == VendorPayUserState.Active || u.State == VendorPayUserState.OneTime))
-            .Select(u => u.Id)
-            .ToArrayAsync();
-        var allUserLabels = await storeLabelRepository.GetStoreLabelsForObjects(storeId, VendorPayPluginConst.LabelType, allUserIds);
-
-        var targetUserIds = allUserLabels.Where(kv => kv.Value.Any(l => l.Label.Equals(label, StringComparison.OrdinalIgnoreCase)))
-            .Select(kv => kv.Key).ToHashSet();
-
-        if (targetUserIds.Count == 0)
-        {
-            return (null, 0, new StatusMessageModel
-            {
-                Message = $"No active users found with category '{label}'",
-                Severity = StatusMessageModel.StatusSeverity.Warning
-            });
-        }
-
-        var invoices = await ctx.PayrollInvoices.Include(i => i.User).Where(i => targetUserIds.Contains(i.UserId) &&
-                    i.State == VendorPayInvoiceState.AwaitingApproval && !i.IsArchived).ToListAsync();
-
-        if (invoices.Count == 0)
-        {
-            return (null, 0, new StatusMessageModel
-            {
-                Message = $"No awaiting invoices found for category '{label}'",
-                Severity = StatusMessageModel.StatusSeverity.Info
-            });
-        }
-        return (invoices, targetUserIds.Count, null);
-    }
-
 
     public async Task<IActionResult> DownloadInvoices(string invoiceId)
     {

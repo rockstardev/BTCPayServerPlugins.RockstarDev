@@ -525,6 +525,141 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public async Task UserLabels_FilterByLabel()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+
+        await CreateVendorPayUser("Employees");
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+        var employeeUserName = VendorPayUserName;
+
+        await CreateVendorPayUser("Grantees");
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+        var granteeUserName = VendorPayUserName;
+
+        var filterDropdown = Page.Locator("button.btn-sm.dropdown-toggle");
+        Assert.True(await filterDropdown.CountAsync() > 0, "Filter dropdown not found");
+        await filterDropdown.ClickAsync();
+        await Page.Locator(".dropdown-menu .dropdown-item span", new PageLocatorOptions { HasTextString = "Employees" }).ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        Assert.True(await Page.Locator("tbody tr", new PageLocatorOptions { HasTextString = employeeUserName }).CountAsync() > 0,
+            "Employee user not visible when filtering by Employees");
+
+        await Page.Locator("button.btn-sm.dropdown-toggle").ClickAsync();
+        await Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "All" }).First.ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        Assert.True(await Page.Locator("tbody tr", new PageLocatorOptions { HasTextString = employeeUserName }).CountAsync() > 0);
+        Assert.True(await Page.Locator("tbody tr", new PageLocatorOptions { HasTextString = granteeUserName }).CountAsync() > 0);
+    }
+
+    [Fact]
+    public async Task UserLabels_EditLabel_UpdatesOnUsersPage()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+
+        await CreateVendorPayUser("OldLabel");
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        var filterDropdown = Page.Locator("button.dropdown-toggle", new PageLocatorOptions { HasTextString = "All" });
+        await filterDropdown.ClickAsync();
+        await Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Manage Labels" }).ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        Assert.True(await Page.Locator("h2", new PageLocatorOptions { HasTextString = "Manage User Labels" }).IsVisibleAsync());
+        Assert.True(await Page.Locator("td", new PageLocatorOptions { HasTextString = "OldLabel" }).IsVisibleAsync());
+        await Page.Locator(".btn-edit", new PageLocatorOptions { HasText = "Edit" }).First.ClickAsync();
+        await Page.WaitForSelectorAsync("#EditLabelModal.show", new PageWaitForSelectorOptions { Timeout = 5000 });
+        await Page.FillAsync("#EditLabelInput", "NewLabel");
+        await Page.Locator("#EditLabelModal button[type='submit']").ClickAsync();
+        var statusText = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+        Assert.Contains("renamed", statusText, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Equal(0, await Page.Locator("td", new PageLocatorOptions { HasTextString = "OldLabel" }).CountAsync());
+        Assert.True(await Page.Locator("td", new PageLocatorOptions { HasTextString = "NewLabel" }).IsVisibleAsync());
+
+        await Page.Locator("a", new PageLocatorOptions { HasTextString = "Vendor Pay Users" }).ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var userRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
+        var labelsCell = userRow.Locator("td").Nth(2);
+        var labelsText = await labelsCell.TextContentAsync();
+        Assert.Contains("NewLabel", labelsText?.Trim());
+        Assert.DoesNotContain("OldLabel", labelsText?.Trim());
+    }
+
+    [Fact]
+    public async Task UserLabels_DeleteLabel_RemovedFromUsersPage()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+
+        await CreateVendorPayUser("ToDelete");
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        var filterDropdown = Page.Locator("button.dropdown-toggle", new PageLocatorOptions { HasTextString = "All" });
+        await filterDropdown.ClickAsync();
+        await Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Manage Labels" }).ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.Locator("a.text-danger, a", new PageLocatorOptions { HasTextString = "Delete" }).First.ClickAsync();
+
+        await Page.Locator("button[type='submit']").ClickAsync();
+
+        var statusText = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+        Assert.Contains("deleted", statusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, await Page.Locator("td", new PageLocatorOptions { HasTextString = "ToDelete" }).CountAsync());
+
+        await Page.Locator("a", new PageLocatorOptions { HasTextString = "Vendor Pay Users" }).ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var userRow = Page.GetByText(VendorPayUserName).First.Locator("xpath=ancestor::tr");
+        var labelsCell = userRow.Locator("td").Nth(2);
+        var labelsText = await labelsCell.TextContentAsync();
+        Assert.DoesNotContain("ToDelete", labelsText?.Trim());
+        Assert.Equal(0, await Page.Locator("button.dropdown-toggle", new PageLocatorOptions { HasTextString = "All" }).CountAsync());
+    }
+
+    [Fact]
+    public async Task PayByCategory_DropdownNotShownWhenNoLabelsAssigned()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+
+        await CreateVendorPayUser();
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await MakeInvoiceFileUploadOptional();
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        var filterBtn = Page.Locator("button#labelFilterBtn");
+        Assert.Equal(0, await filterBtn.CountAsync());
+    }
+
+
+    [Fact]
     public async Task PayByCategory_PaysAllInvoicesForLabel()
     {
         await InitializePlaywright(ServerTester);
@@ -545,7 +680,6 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
 
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
         await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
-
         await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
         await CreateVendorPayInvoice("bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw");
 
@@ -554,19 +688,26 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var awaitingCount = await awaitingRows.CountAsync();
         Assert.True(awaitingCount >= 2, $"Expected at least 2 AwaitingApproval invoices, found {awaitingCount}");
 
-        var payByCategoryBtn = Page.Locator("button.dropdown-toggle", new PageLocatorOptions { HasTextString = "Pay by Category" });
-        await payByCategoryBtn.ClickAsync();
-
-        var staffOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Staff" });
-        Assert.True(await staffOption.CountAsync() > 0, "Staff category not found in Pay by Category dropdown");
+        var filterBtn = Page.Locator("button#labelFilterBtn");
+        Assert.True(await filterBtn.CountAsync() > 0, "Filter by Label button not found");
+        await filterBtn.ClickAsync();
+        var staffOption = Page.Locator(".dropdown-menu .dropdown-item.label-filter-item", new PageLocatorOptions { HasTextString = "Staff" });
+        Assert.True(await staffOption.CountAsync() > 0, "Staff label not found in Filter by Label dropdown");
         await staffOption.ClickAsync();
 
-        await Page.WaitForSelectorAsync("button[type='submit']", new PageWaitForSelectorOptions { Timeout = 10000 });
+        var checkedBoxes = Page.Locator("input.mass-action-select:checked");
+        var checkedCount = await checkedBoxes.CountAsync();
+        Assert.True(checkedCount >= 2, $"Expected at least 2 checked invoices after label filter, found {checkedCount}");
 
-        var confirmButton = Page.Locator("button[type='submit']", new PageLocatorOptions { HasTextString = "Pay All" });
-        Assert.True(await confirmButton.CountAsync() > 0, "Confirm page with 'Pay All' button not found");
-        await confirmButton.ClickAsync();
+        var payInvoicesBtn = Page.Locator("#payinvoices");
+        await payInvoicesBtn.WaitForAsync(new LocatorWaitForOptions
+        {
+            State = WaitForSelectorState.Visible,
+            Timeout = 5000
+        });
+        Assert.True(await payInvoicesBtn.IsVisibleAsync(), "Pay Invoices button not visible after label filter");
 
+        await payInvoicesBtn.ClickAsync();
         await Page.WaitForURLAsync(new Regex("/wallets/.+/send", RegexOptions.IgnoreCase), new PageWaitForURLOptions { Timeout = 15000 });
         var alert = await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Info);
         var alertText = (await alert.TextContentAsync())?.Trim();

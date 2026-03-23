@@ -15,13 +15,15 @@ public class VendorPayInvoiceListViewModel
     public string SearchTerm { get; set; }
     public List<VendorPayInvoiceViewModel> VendorPayInvoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
-    public (string Label, string Color)[] AllLabels { get; set; } = Array.Empty<(string, string)>();
+    public (string Label, string Color, int Count)[] AllLabels { get; set; } = Array.Empty<(string, string, int)>();
+    public Dictionary<string, string[]> LabelUserIds { get; set; } = new();
 }
 
 public class VendorPayInvoiceViewModel
 {
     public DateTimeOffset CreatedAt { get; set; }
     public string Id { get; set; }
+    public string UserId { get; set; }
     public string Name { get; set; }
     public string Email { get; set; }
     public string Destination { get; set; }
