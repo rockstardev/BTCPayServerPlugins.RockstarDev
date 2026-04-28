@@ -725,6 +725,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await user.MakeAdmin();
         await GoToUrl("/login");
         await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await GoToUrl($"/stores/{user.StoreId}/onchain/BTC");
+        await AddDerivationScheme();
 
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
         await MakeInvoiceFileUploadOptional();
