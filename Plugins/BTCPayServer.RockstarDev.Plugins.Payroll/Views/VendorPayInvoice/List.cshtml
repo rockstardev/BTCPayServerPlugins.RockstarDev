@@ -63,7 +63,8 @@
 						{ "AwaitingApproval", "Awaiting Approval" },
 						{ "AwaitingPayment", "Awaiting Payment" },
 						{ "InProgress", "In Progress" },
-						{ "Completed", "Completed" }
+						{ "Completed", "Completed" },
+						{ "Cancelled", "Cancelled" }
 					};
 
 					var parts = new List<string>();
@@ -102,13 +103,7 @@
 
 				<li><hr class="dropdown-divider" /></li>
 				<li><span class="dropdown-header">By Status</span></li>
-				@foreach (var status in new Dictionary<string, string>
-				{
-					{ "AwaitingApproval", "Awaiting Approval" },
-					{ "AwaitingPayment", "Awaiting Payment" },
-					{ "InProgress", "In Progress" },
-					{ "Completed", "Completed" }
-				})
+				@foreach (var status in statusLabels)
 				{
 					<li>
 						<a class="dropdown-item @(Model.StatusFilter == status.Key ? "active" : "")"
@@ -348,15 +343,13 @@
                             }
                         });
                     });
-                });
 
-                const ppProgresses = document.getElementsByClassName("ppProgress");
-                for (var i = 0; i < ppProgresses.length; i++) {
-                    var pp = ppProgresses[i];
-                    var ppId = pp.getAttribute("data-pp");
-                    var template = document.getElementById("tooptip_template_" + ppId);
-                    pp.setAttribute("title", template.innerHTML);
-                }
+					const activeLabelFilter = "@Model.LabelFilter";
+					if (activeLabelFilter) {
+						applyLabelFilter(activeLabelFilter);
+					}
+					toggleButtons();
+                });
 
                 function allSelectedInState(state) {
                     var allCheckedItems = document.querySelectorAll('input[type="checkbox"].mass-action-select:checked');
@@ -365,15 +358,6 @@
                         var row = checkbox.closest('tr');
                         var stateCell = row.querySelector('td:nth-child(7)');
                         return stateCell.textContent.trim() === state;
-                    });
-                }
-
-                function selectedItemInState(states) {
-                    var allCheckedItems = document.querySelectorAll('input[type="checkbox"]:checked');
-                    return Array.from(allCheckedItems).every(function (checkbox) {
-                        var row = checkbox.closest('tr');
-                        var stateCell = row.querySelector('td:nth-child(7)');
-                        return states.includes(stateCell.textContent.trim());
                     });
                 }
 
@@ -410,11 +394,7 @@
                         }
                     });
 
-                    const btn = document.getElementById('labelFilterBtn');
-                    if (!label) {
-                        if (btn) btn.textContent = 'All';
-                        return;
-                    }
+					if (!label) return;
 
                     const userIds = new Set(labelUserIds[label] || []);
                     allRows.forEach(row => {
@@ -426,26 +406,11 @@
                             }
                         }
                     });
-
-                    if (btn) btn.textContent = label;
                 }
-
-                document.querySelectorAll('.label-filter-item').forEach(item => {
-                    item.addEventListener('click', e => {
-                        e.preventDefault();
-                        applyLabelFilter(item.dataset.label);
-                    });
-                });
-
-                document.getElementById('clearLabelFilter')?.addEventListener('click', e => {
-                    e.preventDefault();
-                    applyLabelFilter(null);
-                });
 
                 document.addEventListener('change', function () {
                     toggleButtons()
                 });
-                toggleButtons();
             </script>
         }
 

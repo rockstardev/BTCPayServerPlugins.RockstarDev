@@ -687,12 +687,15 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var awaitingCount = await awaitingRows.CountAsync();
         Assert.True(awaitingCount >= 2, $"Expected at least 2 AwaitingApproval invoices, found {awaitingCount}");
 
-        var filterBtn = Page.Locator("button#labelFilterBtn");
-        Assert.True(await filterBtn.CountAsync() > 0, "Filter by Label button not found");
+        var filterBtn = Page.Locator("button#combinedFilterBtn");
+        Assert.True(await filterBtn.CountAsync() > 0, "Combined filter button not found");
         await filterBtn.ClickAsync();
-        var staffOption = Page.Locator(".dropdown-menu .dropdown-item.label-filter-item", new PageLocatorOptions { HasTextString = "Staff" });
-        Assert.True(await staffOption.CountAsync() > 0, "Staff label not found in Filter by Label dropdown");
+
+        var staffOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Staff" });
+        Assert.True(await staffOption.CountAsync() > 0, "Staff label not found in filter dropdown");
         await staffOption.ClickAsync();
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         var checkedBoxes = Page.Locator("input.mass-action-select:checked");
         var checkedCount = await checkedBoxes.CountAsync();
@@ -711,6 +714,57 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var alert = await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Info);
         var alertText = (await alert.TextContentAsync())?.Trim();
         Assert.Contains("2 invoices", alertText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PayByStatus_FiltersInvoicesCorrectly()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await MakeInvoiceFileUploadOptional();
+
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+
+        var filterBtn = Page.Locator("button#combinedFilterBtn");
+        Assert.True(await filterBtn.CountAsync() > 0, "Combined filter button not found");
+        await filterBtn.ClickAsync();
+
+        var awaitingApprovalOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Awaiting Approval" });
+        Assert.True(await awaitingApprovalOption.CountAsync() > 0, "Awaiting Approval status option not found");
+        await awaitingApprovalOption.ClickAsync();
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        Assert.Contains("statusFilter=AwaitingApproval", Page.Url);
+
+        var filterBtnText = await filterBtn.TextContentAsync();
+        Assert.Contains("Awaiting Approval", filterBtnText?.Trim());
+
+        var allRows = Page.Locator("tbody tr.mass-action-row");
+        var rowCount = await allRows.CountAsync();
+        Assert.True(rowCount >= 1, "Expected at least 1 row after status filter");
+
+        for (int i = 0; i < rowCount; i++)
+        {
+            var stateCell = allRows.Nth(i).Locator("td:nth-child(6)");
+            var stateText = await stateCell.TextContentAsync();
+            Assert.Contains("AwaitingApproval", stateText?.Trim());
+        }
+
+        await filterBtn.ClickAsync();
+        var noneOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "None" });
+        await noneOption.ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        Assert.DoesNotContain("statusFilter=", Page.Url);
     }
 
     [Fact]
