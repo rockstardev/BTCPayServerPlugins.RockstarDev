@@ -687,12 +687,15 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         var awaitingCount = await awaitingRows.CountAsync();
         Assert.True(awaitingCount >= 2, $"Expected at least 2 AwaitingApproval invoices, found {awaitingCount}");
 
-        var filterBtn = Page.Locator("button#labelFilterBtn");
-        Assert.True(await filterBtn.CountAsync() > 0, "Filter by Label button not found");
+        var filterBtn = Page.Locator("button#combinedFilterBtn");
+        Assert.True(await filterBtn.CountAsync() > 0, "Combined filter button not found");
         await filterBtn.ClickAsync();
-        var staffOption = Page.Locator(".dropdown-menu .dropdown-item.label-filter-item", new PageLocatorOptions { HasTextString = "Staff" });
-        Assert.True(await staffOption.CountAsync() > 0, "Staff label not found in Filter by Label dropdown");
+
+        var staffOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Staff" });
+        Assert.True(await staffOption.CountAsync() > 0, "Staff label not found in filter dropdown");
         await staffOption.ClickAsync();
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         var checkedBoxes = Page.Locator("input.mass-action-select:checked");
         var checkedCount = await checkedBoxes.CountAsync();
