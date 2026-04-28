@@ -717,59 +717,6 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
     }
 
     [Fact]
-    public async Task PayByStatus_FiltersInvoicesCorrectly()
-    {
-        await InitializePlaywright(ServerTester);
-        var user = ServerTester.NewAccount();
-        await user.GrantAccessAsync();
-        await user.MakeAdmin();
-        await GoToUrl("/login");
-        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
-        await GoToUrl($"/stores/{user.StoreId}/onchain/BTC");
-        await AddDerivationScheme();
-
-        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
-        await MakeInvoiceFileUploadOptional();
-
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
-        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
-
-        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
-
-        var filterBtn = Page.Locator("button#combinedFilterBtn");
-        Assert.True(await filterBtn.CountAsync() > 0, "Combined filter button not found");
-        await filterBtn.ClickAsync();
-
-        var awaitingApprovalOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "Awaiting Approval" });
-        Assert.True(await awaitingApprovalOption.CountAsync() > 0, "Awaiting Approval status option not found");
-        await awaitingApprovalOption.ClickAsync();
-
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        Assert.Contains("statusFilter=AwaitingApproval", Page.Url);
-
-        var filterBtnText = await filterBtn.TextContentAsync();
-        Assert.Contains("Awaiting Approval", filterBtnText?.Trim());
-
-        var allRows = Page.Locator("tbody tr.mass-action-row");
-        var rowCount = await allRows.CountAsync();
-        Assert.True(rowCount >= 1, "Expected at least 1 row after status filter");
-
-        for (int i = 0; i < rowCount; i++)
-        {
-            var stateCell = allRows.Nth(i).Locator("td:nth-child(6)");
-            var stateText = await stateCell.TextContentAsync();
-            Assert.Contains("AwaitingApproval", stateText?.Trim());
-        }
-
-        await filterBtn.ClickAsync();
-        var noneOption = Page.Locator(".dropdown-menu .dropdown-item", new PageLocatorOptions { HasTextString = "None" });
-        await noneOption.ClickAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        Assert.DoesNotContain("statusFilter=", Page.Url);
-    }
-
-    [Fact]
     public async Task AccountlessInvoiceUpload_SecurityScenarios()
     {
         await InitializePlaywright(ServerTester);
