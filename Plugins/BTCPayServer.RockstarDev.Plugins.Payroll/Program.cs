@@ -36,7 +36,7 @@ public class VendorPayPlugin : BaseBTCPayServerPlugin
         serviceCollection.AddSingleton<IHostedService, VendorPayPaidHostedService>();
         serviceCollection.AddSingleton<IHostedService>(provider =>
             provider.GetService<VendorPayEmailReminderService>());
-        serviceCollection.AddScheduledTask<VendorPayEmailReminderService>(TimeSpan.FromHours(12));
+        serviceCollection.AddScheduledTask<VendorPayEmailReminderService>(TimeSpan.FromHours(12.0));
 
         // helpers
         serviceCollection.AddTransient<VendorPayInvoiceUploadHelper>();
