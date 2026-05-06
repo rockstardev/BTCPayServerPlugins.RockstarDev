@@ -13,6 +13,8 @@ public class VendorPayInvoiceListViewModel
 {
     public bool All { get; set; }
     public string SearchTerm { get; set; }
+    public string StatusFilter { get; set; }
+    public string LabelFilter { get; set; }
     public List<VendorPayInvoiceViewModel> VendorPayInvoices { get; set; }
     public bool PurchaseOrdersRequired { get; set; }
     public (string Label, string Color, int Count)[] AllLabels { get; set; } = Array.Empty<(string, string, int)>();

@@ -45,14 +45,13 @@ public class VendorPayInvoiceController(
     private StoreData CurrentStore => HttpContext.GetStoreData();
 
     [HttpGet("list")]
-    public async Task<IActionResult> List(string storeId, bool all, string searchTerm = null)
+    public async Task<IActionResult> List(string storeId, bool all, string searchTerm = null, string statusFilter = null, string labelFilter = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         var query = ctx.PayrollInvoices
             .Include(data => data.User)
             .Where(p => p.User.StoreId == storeId && !p.IsArchived);
 
-        // Apply search filter if provided
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var search = searchTerm.Trim().ToLower();
@@ -62,6 +61,15 @@ public class VendorPayInvoiceController(
                 (p.Description != null && p.Description.ToLower().Contains(search)) ||
                 p.User.Name.ToLower().Contains(search) ||
                 p.User.Email.ToLower().Contains(search));
+        }
+
+        string normalizedStatusFilter = null;
+        if (!string.IsNullOrWhiteSpace(statusFilter)
+            && Enum.TryParse<VendorPayInvoiceState>(statusFilter, ignoreCase: true, out var parsedStatus)
+            && Enum.IsDefined(typeof(VendorPayInvoiceState), parsedStatus))
+        {
+            query = query.Where(p => p.State == parsedStatus);
+            normalizedStatusFilter = parsedStatus.ToString();
         }
 
         var payrollInvoices = await query.OrderByDescending(data => data.CreatedAt).ToListAsync();
@@ -101,12 +109,20 @@ public class VendorPayInvoiceController(
             ))
             .Where(l => l.Count > 0).OrderBy(l => l.Label).ToArray();
 
+        if (!string.IsNullOrWhiteSpace(labelFilter) && labelToUserIds.ContainsKey(labelFilter))
+        {
+            var allowedUserIds = new HashSet<string>(labelToUserIds[labelFilter]);
+            payrollInvoices = payrollInvoices.Where(i => allowedUserIds.Contains(i.UserId)).ToList();
+        }
+
         var model = new VendorPayInvoiceListViewModel
         {
             All = all,
             LabelUserIds = labelToUserIds,
             AllLabels = allLabels,
             SearchTerm = searchTerm,
+            StatusFilter = normalizedStatusFilter,
+            LabelFilter = labelFilter,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             VendorPayInvoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel
             {
