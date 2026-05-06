@@ -6,6 +6,7 @@
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models
+@using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers
 @using BTCPayServer.RockstarDev.Plugins.VendorPay.Views
 @using Microsoft.AspNetCore.Http
 @model VendorPayInvoiceListViewModel
@@ -58,21 +59,16 @@
 			<button class="btn btn-secondary btn-sm dropdown-toggle @(!string.IsNullOrEmpty(Model.StatusFilter) || !string.IsNullOrEmpty(Model.LabelFilter) ? "active" : "")"
 					type="button" data-bs-toggle="dropdown" id="combinedFilterBtn">
 				@{
-					var statusLabels = new Dictionary<string, string>
-					{
-						{ "AwaitingApproval", "Awaiting Approval" },
-						{ "AwaitingPayment", "Awaiting Payment" },
-						{ "InProgress", "In Progress" },
-						{ "Completed", "Completed" },
-						{ "Cancelled", "Cancelled" }
-					};
+					var allStatuses = Enum.GetValues<VendorPayInvoiceState>();
 
 					var parts = new List<string>();
 					if (!string.IsNullOrEmpty(Model.LabelFilter))
 						parts.Add(Model.LabelFilter);
 
-					if (!string.IsNullOrEmpty(Model.StatusFilter) && statusLabels.TryGetValue(Model.StatusFilter, out var friendlyName))
-						parts.Add(friendlyName);
+					if (!string.IsNullOrEmpty(Model.StatusFilter)
+						&& Enum.TryParse<VendorPayInvoiceState>(Model.StatusFilter, ignoreCase: true, out var activeStatus)
+						&& Enum.IsDefined(typeof(VendorPayInvoiceState), activeStatus))
+						parts.Add(activeStatus.GetDisplayName());
 
 					@(parts.Any() ? string.Join(" · ", parts) : "None")
 				}
@@ -103,12 +99,13 @@
 
 				<li><hr class="dropdown-divider" /></li>
 				<li><span class="dropdown-header">By Status</span></li>
-				@foreach (var status in statusLabels)
+				@foreach (var status in allStatuses)
 				{
+					var statusKey = status.ToString();
 					<li>
-						<a class="dropdown-item @(Model.StatusFilter == status.Key ? "active" : "")"
-							   href="@Url.Action("List", new { storeId, all = Model.All, searchTerm = Model.SearchTerm, statusFilter = status.Key, labelFilter = Model.LabelFilter })">
-							@status.Value
+						<a class="dropdown-item @(string.Equals(Model.StatusFilter, statusKey, StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+							   href="@Url.Action("List", new { storeId, all = Model.All, searchTerm = Model.SearchTerm, statusFilter = statusKey, labelFilter = Model.LabelFilter })">
+							@status.GetDisplayName()
 						</a>
 					</li>
 				}

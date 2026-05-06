@@ -65,9 +65,14 @@ public class PayrollInvoice
 
 public enum VendorPayInvoiceState
 {
+    [Display(Name = "Awaiting Approval")]
     AwaitingApproval,
+    [Display(Name = "Awaiting Payment")]
     AwaitingPayment,
+    [Display(Name = "In Progress")]
     InProgress, // waiting for confirmation on blockchain (or for lightning it can be stuck HTLC)
+    [Display(Name = "Completed")]
     Completed,
+    [Display(Name = "Cancelled")]
     Cancelled
 }
