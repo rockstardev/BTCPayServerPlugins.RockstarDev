@@ -63,9 +63,13 @@ public class VendorPayInvoiceController(
                 p.User.Email.ToLower().Contains(search));
         }
 
-        if (!string.IsNullOrWhiteSpace(statusFilter) && Enum.TryParse<VendorPayInvoiceState>(statusFilter, out var parsedStatus))
+        string normalizedStatusFilter = null;
+        if (!string.IsNullOrWhiteSpace(statusFilter)
+            && Enum.TryParse<VendorPayInvoiceState>(statusFilter, ignoreCase: true, out var parsedStatus)
+            && Enum.IsDefined(typeof(VendorPayInvoiceState), parsedStatus))
         {
             query = query.Where(p => p.State == parsedStatus);
+            normalizedStatusFilter = parsedStatus.ToString();
         }
 
         var payrollInvoices = await query.OrderByDescending(data => data.CreatedAt).ToListAsync();
@@ -117,7 +121,7 @@ public class VendorPayInvoiceController(
             LabelUserIds = labelToUserIds,
             AllLabels = allLabels,
             SearchTerm = searchTerm,
-            StatusFilter = statusFilter,
+            StatusFilter = normalizedStatusFilter,
             LabelFilter = labelFilter,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
             VendorPayInvoices = payrollInvoices.Select(tuple => new VendorPayInvoiceViewModel

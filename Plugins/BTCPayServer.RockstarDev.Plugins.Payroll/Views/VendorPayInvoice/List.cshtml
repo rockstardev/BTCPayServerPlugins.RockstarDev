@@ -149,6 +149,8 @@
            asp-action="List"
            asp-route-storeId="@storeId"
            asp-route-searchTerm="@Model.SearchTerm"
+           asp-route-statusFilter="@Model.StatusFilter"
+           asp-route-labelFilter="@Model.LabelFilter"
            class="nav-link @(!Model.All ? "active" : "")"
            role="tab">Active</a>
 
@@ -157,6 +159,8 @@
            asp-route-storeId="@storeId"
            asp-route-all="true"
            asp-route-searchTerm="@Model.SearchTerm"
+           asp-route-statusFilter="@Model.StatusFilter"
+           asp-route-labelFilter="@Model.LabelFilter"
            class="nav-link @(Model.All ? "active" : "")"
            role="tab">All</a>
     </div>
