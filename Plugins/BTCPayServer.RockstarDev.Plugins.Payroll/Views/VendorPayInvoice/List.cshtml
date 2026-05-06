@@ -76,7 +76,7 @@
 			<ul class="dropdown-menu">
 				<li>
 					<a class="dropdown-item @(string.IsNullOrEmpty(Model.StatusFilter) && string.IsNullOrEmpty(Model.LabelFilter) ? "active" : "")"
-						   href="@Url.Action("List", new { storeId, all = Model.All, searchTerm = Model.SearchTerm })">
+						   href="@Url.Action("List", new { storeId, all = Model.All ? "true" : "false", searchTerm = Model.SearchTerm })">
 						None
 					</a>
 				</li>
@@ -89,7 +89,7 @@
 					{
 						<li>
 							<a class="dropdown-item d-flex justify-content-between align-items-center @(Model.LabelFilter == label ? "active" : "")"
-								   href="@Url.Action("List", new { storeId, all = Model.All, searchTerm = Model.SearchTerm, labelFilter = label, statusFilter = Model.StatusFilter })">
+								   href="@Url.Action("List", new { storeId, all = Model.All ? "true" : "false", searchTerm = Model.SearchTerm, labelFilter = label, statusFilter = Model.StatusFilter })">
 								<span>@label</span>
 								<span class="badge bg-secondary ms-2">@count</span>
 							</a>
@@ -104,7 +104,7 @@
 					var statusKey = status.ToString();
 					<li>
 						<a class="dropdown-item @(string.Equals(Model.StatusFilter, statusKey, StringComparison.OrdinalIgnoreCase) ? "active" : "")"
-							   href="@Url.Action("List", new { storeId, all = Model.All, searchTerm = Model.SearchTerm, statusFilter = statusKey, labelFilter = Model.LabelFilter })">
+							   href="@Url.Action("List", new { storeId, all = Model.All ? "true" : "false", searchTerm = Model.SearchTerm, statusFilter = statusKey, labelFilter = Model.LabelFilter })">
 							@status.GetDisplayName()
 						</a>
 					</li>
@@ -115,7 +115,7 @@
 	</div>
 
 	<div class="col-lg-6 ms-auto">
-		<form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All">
+		<form method="get" asp-action="List" asp-route-storeId="@storeId" asp-route-all="@(Model.All ? "true" : "false")">
 			<input type="hidden" name="statusFilter" value="@Model.StatusFilter" />
 			<input type="hidden" name="labelFilter" value="@Model.LabelFilter" />
 			<div class="input-group">
@@ -130,7 +130,7 @@
 				</button>
 				@if (!string.IsNullOrEmpty(Model.SearchTerm))
 				{
-					<a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@Model.All"
+					<a asp-action="List" asp-route-storeId="@storeId" asp-route-all="@(Model.All ? "true" : "false")"
 						   asp-route-statusFilter="@Model.StatusFilter" asp-route-labelFilter="@Model.LabelFilter" class="btn btn-secondary">
 						<i class="fa fa-times"></i> Clear
 					</a>

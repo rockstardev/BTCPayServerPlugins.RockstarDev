@@ -717,6 +717,99 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
     }
 
     [Fact]
+    public async Task FilterByStatus_ShowsOnlyMatchingInvoices()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser();
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await MakeInvoiceFileUploadOptional();
+
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw");
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        var awaitingRowsBefore = Page.Locator("tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = "AwaitingApproval" });
+        Assert.True(await awaitingRowsBefore.CountAsync() >= 2,
+            "Expected at least 2 AwaitingApproval invoices to seed the filter test");
+
+        var filterBtn = Page.Locator("button#combinedFilterBtn");
+        Assert.True(await filterBtn.CountAsync() > 0, "Combined filter button not found");
+        await filterBtn.ClickAsync();
+
+        var awaitingApprovalOption = Page.Locator(".dropdown-menu .dropdown-item",
+            new PageLocatorOptions { HasTextString = "Awaiting Approval" });
+        Assert.True(await awaitingApprovalOption.CountAsync() > 0,
+            "'Awaiting Approval' status option not found in filter dropdown");
+        await awaitingApprovalOption.First.ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var url = Page.Url;
+        Assert.Contains("statusFilter=AwaitingApproval", url, StringComparison.OrdinalIgnoreCase);
+
+        var awaitingRowsAfter = Page.Locator("tbody tr.mass-action-row", new PageLocatorOptions { HasTextString = "AwaitingApproval" });
+        Assert.True(await awaitingRowsAfter.CountAsync() >= 2,
+            "Expected awaiting-approval invoices to remain visible after filter applied");
+
+        var filterBtnText = await Page.Locator("button#combinedFilterBtn").TextContentAsync();
+        Assert.Contains("Awaiting Approval", filterBtnText ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task FilterByStatus_PreservedAcrossActiveAllTabs()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser();
+        await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        await MakeInvoiceFileUploadOptional();
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { NameString = "Admin Upload Invoice" }).ClickAsync();
+        await CreateVendorPayInvoice("bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d");
+
+        // Apply the status filter on the Active tab via direct URL (avoids dropdown UI flake).
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list?statusFilter=AwaitingApproval");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var allTab = Page.Locator("a#all-view");
+        Assert.True(await allTab.CountAsync() > 0, "All-view tab not found");
+        await allTab.ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var afterUrl = Page.Url;
+        Assert.Contains("all=true", afterUrl, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("statusFilter=AwaitingApproval", afterUrl, StringComparison.OrdinalIgnoreCase);
+
+        var filterBtnText = await Page.Locator("button#combinedFilterBtn").TextContentAsync();
+        Assert.Contains("Awaiting Approval", filterBtnText ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+        // And back to Active - filter must still survive.
+        var activeTab = Page.Locator("a#active-view");
+        await activeTab.ClickAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var backUrl = Page.Url;
+        Assert.Contains("statusFilter=AwaitingApproval", backUrl, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task AccountlessInvoiceUpload_SecurityScenarios()
     {
         await InitializePlaywright(ServerTester);
