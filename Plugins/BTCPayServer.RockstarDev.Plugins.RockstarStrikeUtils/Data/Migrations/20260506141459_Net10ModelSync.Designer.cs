@@ -3,6 +3,7 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.RockstarStrikeUtils.Data.Migrations
 {
     [DbContext(typeof(RockstarStrikeDbContext))]
-    partial class RockstarStrikeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506141459_Net10ModelSync")]
+    partial class Net10ModelSync
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
