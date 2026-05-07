@@ -97,15 +97,12 @@ public class VendorPayInvoiceController(
                 g => g.Key,
                 g => g.Select(x => x.UserId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
 
-        var awaitingByUser = payrollInvoices.Where(i => i.State == VendorPayInvoiceState.AwaitingApproval)
-            .GroupBy(i => i.UserId).ToDictionary(g => g.Key, g => g.Count());
-
         var allLabels = labelToUserIds.Select(kv => (
                 Label: kv.Key,
                 Color: userLabels.Where(u => kv.Value.Contains(u.Key))
                     .SelectMany(u => u.Value)
                     .FirstOrDefault(l => l.Label.Equals(kv.Key, StringComparison.OrdinalIgnoreCase)).Color,
-                Count: kv.Value.Sum(uid => awaitingByUser.TryGetValue(uid, out var c) ? c : 0)
+                Count: kv.Value.Sum(uid => payrollInvoices.Count(i => i.UserId == uid))
             ))
             .Where(l => l.Count > 0).OrderBy(l => l.Label).ToArray();
 
