@@ -1,7 +1,6 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.5.11723.231 stable
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer", "submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj", "{B19C9F52-DC47-466D-8B5C-2D202B7B003F}"
 EndProject
@@ -55,14 +54,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.WalletHistoryReload", "Plugins\BTCPayServer.RockstarDev.Plugins.WalletHistoryReload\BTCPayServer.RockstarDev.Plugins.WalletHistoryReload.csproj", "{D1E2F3A4-B5C6-4D7E-8F9A-0B1C2D3E4F5A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.LnurlVerify", "Plugins\BTCPayServer.RockstarDev.Plugins.LnurlVerify\BTCPayServer.RockstarDev.Plugins.LnurlVerify.csproj", "{E64D4F3F-7CB0-45EC-8C8D-F6D9CAE03E68}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{07D57EEB-2F50-60C4-C011-FE4FA775C9A8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "submodules", "submodules", "{B3415621-5EBA-1A55-0B57-0078FEC59DC7}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "btcpayserver", "btcpayserver", "{62D3B876-442A-4F32-9377-95C9C063FEAF}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.RockstarDev.Plugins.OfflinePayments", "Plugins\BTCPayServer.RockstarDev.Plugins.OfflinePayments\BTCPayServer.RockstarDev.Plugins.OfflinePayments.csproj", "{A74F6447-AD63-7519-5B3E-E55E4F71F185}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -632,30 +623,6 @@ Global
 		{E64D4F3F-7CB0-45EC-8C8D-F6D9CAE03E68}.Release|x64.Build.0 = Release|Any CPU
 		{E64D4F3F-7CB0-45EC-8C8D-F6D9CAE03E68}.Release|x86.ActiveCfg = Release|Any CPU
 		{E64D4F3F-7CB0-45EC-8C8D-F6D9CAE03E68}.Release|x86.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Debug|Any CPU.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Debug|Any CPU.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Debug|x64.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Debug|x64.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Debug|x86.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Debug|x86.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Release|Any CPU.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Release|x64.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Release|x64.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Release|x86.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Altcoins-Release|x86.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Debug|x64.Build.0 = Debug|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Debug|x86.Build.0 = Debug|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Release|x64.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Release|x64.Build.0 = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Release|x86.ActiveCfg = Release|Any CPU
-		{A74F6447-AD63-7519-5B3E-E55E4F71F185}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -669,7 +636,6 @@ Global
 		{3F2E0BA0-9EA7-490F-894D-F9703F35B174} = {9E04ECE9-E304-4FF2-9CBC-83256E6C6962}
 		{4146B6DF-7BEE-4BD0-B6B1-77E7630A1B81} = {9E04ECE9-E304-4FF2-9CBC-83256E6C6962}
 		{FB15B2FB-7661-4463-B83C-4D535482ECEB} = {9F5EDA28-9FD3-40D0-872A-E7F93C644371}
-		{62D3B876-442A-4F32-9377-95C9C063FEAF} = {B3415621-5EBA-1A55-0B57-0078FEC59DC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {45AEBD16-6568-4956-9D05-B33C33712DE3}
