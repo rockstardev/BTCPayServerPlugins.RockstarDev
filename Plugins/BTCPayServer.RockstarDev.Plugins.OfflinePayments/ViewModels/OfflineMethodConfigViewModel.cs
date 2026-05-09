@@ -9,6 +9,7 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels;
 public class OfflineMethodConfigViewModel
 {
     public string? Id { get; set; }
+    public string StoreId { get; set; }
 
     [Required]
     [MaxLength(50)]
@@ -57,6 +58,7 @@ public class OfflineMethodConfigViewModel
     public bool IsEnabled { get; set; } = true;
 
     public int SortOrder { get; set; } = 0;
+    public List<string> AvailableMethodTypes { get; set; } = new();
 
     public static OfflineMethodConfigViewModel FromModel(OfflineMethodConfig m) => new()
     {

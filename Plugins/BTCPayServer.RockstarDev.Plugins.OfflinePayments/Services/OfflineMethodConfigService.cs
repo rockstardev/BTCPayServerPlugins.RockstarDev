@@ -8,7 +8,12 @@ using Microsoft.EntityFrameworkCore;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services;
 public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory pluginDbContextFactory)
 {
-    public async Task<bool> ExistsAsync(string storeId, string methodId)
+    public List<string> GetMethodTypes()
+    {
+        return ["ACH", "WIRE", "CHECK", "CASH"];
+    }
+
+    public async Task<bool> Exists(string storeId, string methodId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         return await ctx.OfflineMethodConfigs.AnyAsync(x => x.StoreId == storeId && x.MethodId == methodId.ToUpperInvariant());

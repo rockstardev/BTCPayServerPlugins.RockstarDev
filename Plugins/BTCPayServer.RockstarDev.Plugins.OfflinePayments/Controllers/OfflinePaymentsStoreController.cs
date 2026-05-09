@@ -27,7 +27,11 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
     [HttpGet("create")]
     public IActionResult Create(string storeId)
     {
-        return View("EditMethod", new OfflineMethodConfigViewModel());
+        return View("EditMethod", new OfflineMethodConfigViewModel
+        {
+            StoreId = storeId,
+            AvailableMethodTypes = configService.GetMethodTypes()
+        });
     }
 
     [HttpPost("create")]
