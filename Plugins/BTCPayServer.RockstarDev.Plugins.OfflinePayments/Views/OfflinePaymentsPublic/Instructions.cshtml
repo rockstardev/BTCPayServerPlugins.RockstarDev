@@ -1,0 +1,175 @@
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
+@using Microsoft.AspNetCore.Html
+@model OfflineCheckoutViewModel
+@{
+    ViewData["Title"] = Model.Method.DisplayName + " Payment Instructions";
+    Layout = null; // Embedded in BTCPay checkout flow
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/vendor/bootstrap/bootstrap.css" />
+    <style>
+        .copy-field { cursor: pointer; }
+        .copy-field:hover { background: #f0f4ff; }
+        .copy-btn { white-space: nowrap; }
+        body { background: #f8f9fa; }
+        .instruction-card { max-width: 640px; margin: 2rem auto; }
+        .sent-banner { background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 8px; padding: 1rem 1.25rem; }
+    </style>
+</head>
+<body>
+<div class="instruction-card">
+
+    <div class="card shadow-sm">
+        <div class="card-header d-flex align-items-center gap-2">
+            <span class="fs-5">🏦</span>
+            <strong>@Model.Method.DisplayName</strong>
+            @if (!string.IsNullOrEmpty(Model.Method.EstimatedSettlementTime))
+            {
+                <span class="ms-auto text-secondary small">
+                    Settlement: @Model.Method.EstimatedSettlementTime
+                </span>
+            }
+        </div>
+
+        <div class="card-body">
+
+            @* Acknowledgment banner *@
+            @if (Model.AlreadyMarkedSent)
+            {
+                <div class="sent-banner mb-4">
+                    <strong>✓ Payment marked as sent.</strong>
+                    We will confirm receipt and update your invoice status shortly.
+                </div>
+            }
+
+            @* Custom instructions (markdown rendered) *@
+            @if (!string.IsNullOrEmpty(Model.Method.Instructions))
+            {
+                @* <div class="mb-4 text-secondary" id="instructions">
+                    @Html.Raw(Markdig.Markdown.ToHtml(Model.Method.Instructions ?? ""))
+                </div> *@
+            }
+
+            @* Bank details *@
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    @if (!string.IsNullOrEmpty(Model.Method.BankName))
+                    {
+                        <tr>
+                            <th scope="row" class="w-40">Bank Name</th>
+                            <td>@await CopyField(Model.Method.BankName)</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Method.BankAddress))
+                    {
+                        <tr>
+                            <th scope="row">Bank Address</th>
+                            <td>@Model.Method.BankAddress</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Method.AccountName))
+                    {
+                        <tr>
+                            <th scope="row">Account Name</th>
+                            <td>@await CopyField(Model.Method.AccountName)</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Method.RoutingNumber))
+                    {
+                        <tr>
+                            <th scope="row">Routing Number</th>
+                            <td>@await CopyField(Model.Method.RoutingNumber)</td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Method.AccountNumber))
+                    {
+                        <tr>
+                            <th scope="row">Account Number</th>
+                            <td>@await CopyField(Model.Method.AccountNumber)</td>
+                        </tr>
+                    }
+                    <tr class="table-warning">
+                        <th scope="row">Reference / Memo</th>
+                        <td><strong>@await CopyField(Model.ResolvedReference)</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="alert alert-warning small">
+                ⚠️ <strong>Include the reference/memo exactly as shown.</strong>
+                This is how we match your payment to your invoice.
+            </div>
+
+            @* Support contact *@
+            @if (!string.IsNullOrEmpty(Model.Method.SupportContact))
+            {
+                <p class="small text-secondary">
+                    Questions? Contact us at
+                    <a href="mailto:@Model.Method.SupportContact">@Model.Method.SupportContact</a>
+                </p>
+            }
+
+            @* Mark sent form *@
+            @if (!Model.AlreadyMarkedSent && Model.Method.RequiresManualConfirmation)
+            {
+                <hr />
+                <form asp-controller="OfflinePaymentsPublic"
+                      asp-action="MarkSent"
+                      asp-route-storeId="@Model.StoreId"
+                      asp-route-invoiceId="@Model.InvoiceId"
+                      method="post">
+                    <input type="hidden" name="methodId" value="@Model.Method.MethodId" />
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">Optional note to merchant</label>
+                        <textarea name="customerNote" class="form-control" rows="2"
+                                  placeholder="e.g. Transfer confirmation number, date sent, etc."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        ✓ I've sent the payment
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = "Copied!";
+            btn.classList.add("btn-success");
+            btn.classList.remove("btn-outline-secondary");
+            setTimeout(() => {
+                btn.textContent = orig;
+                btn.classList.remove("btn-success");
+                btn.classList.add("btn-outline-secondary");
+            }, 1500);
+        });
+    }
+</script>
+</body>
+</html>
+
+@functions {
+    async Task<IHtmlContent> CopyField(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return new HtmlString("—");
+
+        var html = $@"<span class='d-flex align-items-center gap-2'>
+            <span>{value}</span>
+            <button type='button' class='btn btn-sm btn-outline-secondary copy-btn'
+                    onclick=""copyToClipboard('{value.Replace("'", "\\'")}', this)"">Copy</button>
+        </span>";
+        return new HtmlString(html);
+    }
+}

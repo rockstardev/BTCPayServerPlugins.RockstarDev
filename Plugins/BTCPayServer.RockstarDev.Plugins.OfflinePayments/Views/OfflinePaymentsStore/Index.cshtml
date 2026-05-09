@@ -1,0 +1,106 @@
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
+@model OfflineSettingsViewModel
+@{
+    ViewData["Title"] = "Offline Payments";
+    Layout = "../Shared/_Layout.cshtml";
+}
+
+<div class="container-xl">
+    <div class="row">
+        <div class="col-xxl-constrain">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0">@ViewData["Title"]</h2>
+                <a asp-action="Create" asp-route-storeId="@Model.StoreId"
+                   class="btn btn-primary">
+                    <span class="fa fa-plus"></span> Add Payment Method
+                </a>
+            </div>
+
+            @if (TempData["SuccessMessage"] is string success)
+            {
+                <div class="alert alert-success">@success</div>
+            }
+            @if (TempData["ErrorMessage"] is string error)
+            {
+                <div class="alert alert-danger">@error</div>
+            }
+
+            <p class="text-secondary">
+                Configure offline / manual payment methods (ACH, Wire, Check, Cash) for your store.
+                Customers will see payment instructions at checkout and can mark payments as sent.
+                You confirm receipt in the <a asp-action="PendingQueue" asp-route-storeId="@Model.StoreId">Pending Queue</a>.
+            </p>
+
+            @if (!Model.Methods.Any())
+            {
+                <div class="alert alert-info">
+                    No payment methods configured yet.
+                    <a asp-action="Create" asp-route-storeId="@Model.StoreId">Add one now.</a>
+                </div>
+            }
+            else
+            {
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Method ID</th>
+                            <th>Display Name</th>
+                            <th>Manual Confirm</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Model.Methods)
+                        {
+                            <tr>
+                                <td><code>@m.MethodId</code></td>
+                                <td>@m.DisplayName</td>
+                                <td>
+                                    @if (m.RequiresManualConfirmation)
+                                    {
+                                        <span class="badge bg-warning text-dark">Manual</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Auto-settle</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (m.IsEnabled)
+                                    {
+                                        <span class="badge bg-success">Enabled</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Disabled</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Edit"
+                                       asp-route-storeId="@Model.StoreId"
+                                       asp-route-id="@m.Id"
+                                       class="btn btn-sm btn-secondary me-1">Edit</a>
+
+                                    <form asp-action="Delete"
+                                          asp-route-storeId="@Model.StoreId"
+                                          asp-route-id="@m.Id"
+                                          method="post" class="d-inline"
+                                          onsubmit="return confirm('Delete @m.DisplayName?')">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <a asp-action="PendingQueue" asp-route-storeId="@Model.StoreId"
+                   class="btn btn-outline-primary">
+                    View Pending Queue
+                </a>
+            }
+        </div>
+    </div>
+</div>
