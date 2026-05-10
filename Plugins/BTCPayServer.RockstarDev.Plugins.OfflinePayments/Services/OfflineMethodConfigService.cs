@@ -10,10 +10,10 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
 {
     public List<string> GetMethodTypes()
     {
-        return ["ACH", "WIRE", "CHECK", "CASH"];
+        return ["ACH", "WIRE", "CHECK"];
     }
 
-    public async Task<bool> Exists(string storeId, string methodId)
+    public async Task<bool> PaymentMethodExists(string storeId, string methodId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         return await ctx.OfflineMethodConfigs.AnyAsync(x => x.StoreId == storeId && x.MethodId == methodId.ToUpperInvariant());

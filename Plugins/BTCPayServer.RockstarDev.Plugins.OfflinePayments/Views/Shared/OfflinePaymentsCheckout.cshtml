@@ -1,0 +1,106 @@
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services
+@using BTCPayServer.Abstractions.Services
+@model BTCPayServer.Models.InvoicingModels.CheckoutModel
+@inject OfflineMethodConfigService ConfigService
+@inject Safe Safe
+
+@{
+	var methods = await ConfigService.GetEnabledMethodOptions(Model.StoreId);
+}
+
+@foreach (var m in methods)
+{
+	var componentName = $"OfflinePayment_{m.MethodId}_Checkout";
+	var resolvedReference = m.ReferenceTemplate
+		.Replace("{InvoiceId}", Model.InvoiceId)
+		.Replace("{StoreId}", Model.StoreId);
+
+	<text>
+		<template id="@componentName">
+			<div class="mt-2">
+				<table style="width:100%; font-size:0.85rem; border-collapse:collapse;" class="mb-2">
+					@if (!string.IsNullOrEmpty(m.BankName))
+					{
+						<tr>
+							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Bank</td>
+							<td style="font-weight:600;">@m.BankName</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.AccountName))
+					{
+						<tr>
+							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Account Name</td>
+							<td style="font-weight:600;">@m.AccountName</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.RoutingNumber))
+					{
+						<tr>
+							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Routing</td>
+							<td style="font-weight:600;">@m.RoutingNumber</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.AccountNumber))
+					{
+						<tr>
+							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Account</td>
+							<td style="font-weight:600;">@m.AccountNumber</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.EstimatedSettlementTime))
+					{
+						<tr>
+							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Settlement</td>
+							<td style="color:#888;">@m.EstimatedSettlementTime</td>
+						</tr>
+					}
+				</table>
+
+				<div style="background:#f5f5f5; border-radius:6px; padding:8px 12px; font-size:0.85rem; margin-bottom:10px;">
+					<span style="color:#888;">Reference / Memo</span><br />
+					<strong>@resolvedReference</strong>
+				</div>
+
+				@if (!string.IsNullOrEmpty(m.Instructions))
+				{
+					<p style="font-size:0.78rem; color:#666; margin-bottom:10px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+						@m.Instructions
+					</p>
+				}
+
+				<div v-if="!sent">
+					<button class="btn btn-primary rounded-pill w-100 mt-1"
+							v-on:click.prevent="markSent">I've sent the payment
+					</button>
+				</div>
+				<div v-if="sent" style="background:#d4edda; border-radius:6px; padding:8px 12px; font-size:0.85rem; margin-top:8px;">
+					Payment marked as sent. We will confirm receipt shortly.
+				</div>
+			</div>
+		</template>
+
+		<script>
+			Vue.component(@Safe.Json(componentName), {
+			props: ['model'],
+			template: @Safe.Json("#" + componentName),
+			data() {
+			return {
+			sent: localStorage.getItem('marksent_' + this.model?.invoiceId) === 'true'
+			};
+			},
+			methods: {
+			async markSent() {
+			const res = await fetch(this.model.invoiceBitcoinUrl, {
+			method: 'POST',
+			headers: { 'X-Requested-With': 'RockstarHttpRequester' }
+			});
+			if (res.ok) {
+			this.sent = true;
+			localStorage.setItem('marksent_' + this.model.invoiceId, 'true');
+			}
+			}
+			}
+			});
+		</script>
+	</text>
+}

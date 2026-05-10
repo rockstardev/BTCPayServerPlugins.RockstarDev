@@ -1,6 +1,8 @@
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
+using BTCPayServer.Payments;
 using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data;
+using BTCPayServer.RockstarDev.Plugins.OfflinePayments.PaymentHandlers;
 using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +18,7 @@ public class OfflinePaymentsPlugin : BaseBTCPayServerPlugin
     public override void Execute(IServiceCollection services)
     {
         services.AddUIExtension("store-integrations-nav", "OfflinePaymentNav");
+        services.AddUIExtension("checkout-payment", "OfflinePaymentsCheckout");
         services.AddSingleton<OfflinePaymentsService>();
         services.AddSingleton<OfflineMethodConfigService>();
 
@@ -25,8 +28,17 @@ public class OfflinePaymentsPlugin : BaseBTCPayServerPlugin
             var factory = provider.GetRequiredService<OfflinePaymentPluginDbContextFactory>();
             factory.ConfigureBuilder(o);
         });
-
         services.AddHostedService<PluginMigrationRunner>();
+
+        var knownMethods = new[] { "ACH", "WIRE", "CHECK" };
+        foreach (var method in knownMethods)
+        {
+            var pmid = new PaymentMethodId(method);
+            services.AddSingleton<IPaymentMethodHandler>(provider => ActivatorUtilities.CreateInstance<OfflinePaymentMethodHandler>(provider, pmid));
+            services.AddSingleton<ICheckoutModelExtension>(provider => ActivatorUtilities.CreateInstance<OfflineCheckoutModelExtension>(provider, pmid));
+            services.AddDefaultPrettyName(pmid, method);
+        }
+
         base.Execute(services);
     }
 }

@@ -13,11 +13,12 @@
 <div class="sticky-header-setup"></div>
 <div class="sticky-header d-sm-flex align-items-center justify-content-between">
 	<h2 class="mb-0">@(isNew ? "Add Payment Method" : "Edit Payment Method")</h2>
+	<button type="submit" form="methodForm" class="btn btn-primary mt-3 mt-sm-0">Save</button>
 </div>
 
 <partial name="_StatusMessage" />
 
-<form method="post">
+<form method="post" id="methodForm">
 	<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
 	@if (isNew)
@@ -60,7 +61,6 @@
 	</div>
 
 	<h5 class="mb-3">Bank / Account Details</h5>
-	<p class="text-secondary small">Shown to the customer at checkout with copy-to-clipboard. Leave blank anything that does not apply.</p>
 
 	<div class="form-group mb-3">
 		<label asp-for="BankName" class="form-label"></label>
@@ -98,13 +98,13 @@
 		<div class="form-text">Use <code>{InvoiceId}</code> and <code>{StoreId}</code> as placeholders.</div>
 	</div>
 
-	<h5 class="mb-3">Customer Instructions</h5>
+	<h5 class="mb-3">Customer Payment Instructions</h5>
 
 	<div class="form-group mb-4">
 		<label asp-for="Instructions" class="form-label"></label>
 		<div class="row">
 			<div class="col-md-6">
-				<textarea asp-for="Instructions" class="form-control" rows="6" placeholder="Describe what the customer should do. Markdown supported."></textarea>
+				<textarea asp-for="Instructions" class="form-control" rows="6" maxlength="500" placeholder="Describe what the customer should do. Markdown supported."></textarea>
 			</div>
 		</div>
 		<div class="form-text">Rendered as markdown on the checkout page.</div>
@@ -115,21 +115,8 @@
 		<label asp-for="IsEnabled" class="form-check-label">Enabled</label>
 	</div>
 
-	<div class="d-flex align-items-start mb-4">
+	<div class="d-flex align-items-start mb-2">
 		<input asp-for="RequiresManualConfirmation" class="btcpay-toggle me-3 mt-1" type="checkbox" />
-		<div>
-			<label asp-for="RequiresManualConfirmation" class="form-check-label">
-				Require manual confirmation before settling invoice
-			</label>
-			<div class="form-text">
-				When enabled, invoices stay pending until you confirm receipt in the queue.
-				Disable only if you fully trust your customer base.
-			</div>
-		</div>
-	</div>
-
-	<div class="d-flex gap-2">
-		<button type="submit" class="btn btn-primary">Save</button>
-		<a asp-action="Index" asp-route-storeId="@Model.StoreId" class="btn btn-secondary">Cancel</a>
+		<label asp-for="RequiresManualConfirmation" class="form-check-label">Require manual confirmation before settling invoice</label>
 	</div>
 </form>

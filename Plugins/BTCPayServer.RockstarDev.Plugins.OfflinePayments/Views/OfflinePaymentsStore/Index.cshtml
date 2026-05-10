@@ -24,7 +24,7 @@
 <partial name="_StatusMessage" />
 
 <p class="text-secondary mt-3">
-	Configure offline / manual payment methods (ACH, Wire, Check, Cash) for your store.
+	Configure offline payment methods (ACH, Wire, Check, Cash) for your store.
 	Customers will see payment instructions at checkout and can mark payments as sent.
 	You confirm receipt in the <a asp-action="PendingQueue" asp-route-storeId="@storeId">Pending Queue</a>.
 </p>
@@ -76,17 +76,9 @@ else
 							}
 						</td>
 						<td class="text-end">
-							<a asp-action="Edit"
-							   asp-route-storeId="@storeId"
-							   asp-route-id="@m.Id"
-							   class="btn btn-sm btn-secondary me-1">Edit</a>
-
-							<form asp-action="Delete"
-								  asp-route-storeId="@storeId"
-								  asp-route-id="@m.Id"
-								  method="post" class="d-inline"
-								  onsubmit="return confirm('Delete @m.DisplayName?')">
-								<button type="submit" class="btn btn-sm btn-danger">Delete</button>
+							<a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@m.Id">Edit</a>
+							<form asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@m.Id" method="post" class="d-inline" onsubmit="return confirm('Delete @m.DisplayName?')">
+								<button type="submit" class="btn btn-link p-0 ms-3 text-danger">Delete</button>
 							</form>
 						</td>
 					</tr>
@@ -94,8 +86,4 @@ else
 			</tbody>
 		</table>
 	</div>
-
-	<a asp-action="PendingQueue" asp-route-storeId="@storeId" class="btn btn-outline-primary">
-		View Pending Queue
-	</a>
 }

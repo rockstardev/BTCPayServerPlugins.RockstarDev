@@ -2,8 +2,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Client;
+using BTCPayServer.Data;
+using BTCPayServer.Payments;
+using BTCPayServer.RockstarDev.Plugins.OfflinePayments.PaymentHandlers;
 using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services;
 using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels;
+using BTCPayServer.Services.Invoices;
+using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,8 +16,13 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Controllers;
 
 [Route("~/plugins/{storeId}/offline-payments/")]
 [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie, Policy = Policies.CanModifyStoreSettings)]
-public class OfflinePaymentsStoreController(OfflineMethodConfigService configService, OfflinePaymentsService paymentsService) : Controller
+public class OfflinePaymentsStoreController(OfflineMethodConfigService configService,
+    OfflinePaymentsService paymentsService,
+    StoreRepository storeRepository,
+    PaymentMethodHandlerDictionary handlers) : Controller
 {
+    private StoreData StoreData => HttpContext.GetStoreData();
+
     [HttpGet]
     public async Task<IActionResult> Index(string storeId)
     {
@@ -41,7 +51,15 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
         if (!ModelState.IsValid)
             return View("EditMethod", vm);
 
+        if (await configService.PaymentMethodExists(storeId, vm.MethodId))
+        {
+            ModelState.AddModelError(nameof(vm.MethodId), $"A payment method with ID '{vm.MethodId}' already exists for this store.");
+            vm.AvailableMethodTypes = configService.GetMethodTypes();
+            return View("EditMethod", vm);
+        }
         await configService.Create(vm.ToModel(storeId));
+        var pmid = new PaymentMethodId(vm.MethodId);
+        await EnableMethodInStore(StoreData, pmid);
         TempData["SuccessMessage"] = $"Payment method '{vm.DisplayName}' created.";
         return RedirectToAction(nameof(Index), new { storeId });
     }
@@ -67,6 +85,12 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
         var updated = await configService.Update(vm.ToModel(storeId));
         if (updated is null)
             return NotFound();
+
+        var pmid = new PaymentMethodId(vm.MethodId);
+        if (vm.IsEnabled)
+            await EnableMethodInStore(StoreData, pmid);
+        else
+            await DisableMethodInStore(StoreData, pmid);
 
         TempData["SuccessMessage"] = $"Payment method '{vm.DisplayName}' updated.";
         return RedirectToAction(nameof(Index), new { storeId });
@@ -120,5 +144,29 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
             result is null ? "Payment record not found." : "Payment invalidated.";
 
         return RedirectToAction(nameof(PendingQueue), new { storeId });
+    }
+
+    private void EnsureConfigEntry(StoreData store, PaymentMethodId pmid)
+    {
+        var existing = store.GetPaymentMethodConfig(pmid, handlers);
+        if (existing is null)
+            store.SetPaymentMethodConfig(handlers[pmid], new OfflinePaymentMethodConfig());
+    }
+
+    private async Task EnableMethodInStore(StoreData store, PaymentMethodId pmid)
+    {
+        var blob = store.GetStoreBlob();
+        blob.SetExcluded(pmid, false);
+        EnsureConfigEntry(store, pmid);
+        store.SetStoreBlob(blob);
+        await storeRepository.UpdateStore(store);
+    }
+
+    private async Task DisableMethodInStore(StoreData store, PaymentMethodId pmid)
+    {
+        var blob = store.GetStoreBlob();
+        blob.SetExcluded(pmid, true);
+        store.SetStoreBlob(blob);
+        await storeRepository.UpdateStore(store);
     }
 }

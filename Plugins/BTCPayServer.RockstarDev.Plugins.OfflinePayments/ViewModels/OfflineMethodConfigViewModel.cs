@@ -21,7 +21,8 @@ public class OfflineMethodConfigViewModel
     [Display(Name = "Display Name")]
     public string DisplayName { get; set; } = string.Empty;
 
-    [Display(Name = "Payment Instructions (Markdown)")]
+    [Display(Name = "Payment Instructions")]
+    [MaxLength(50)]
     public string? Instructions { get; set; }
 
     [Display(Name = "Bank Name")]

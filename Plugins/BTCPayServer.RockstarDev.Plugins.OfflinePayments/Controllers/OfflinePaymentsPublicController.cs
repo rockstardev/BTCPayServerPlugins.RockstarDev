@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Controllers;
 
 [Route("~/plugins/{storeId}/offline-payments/")]
-[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie, Policy = Policies.CanModifyStoreSettings)]
 public class OfflinePaymentsPublicController(OfflineMethodConfigService configService, OfflinePaymentsService paymentsService) : Controller
 {
     [HttpGet("{invoiceId}/{methodId}")]
@@ -41,13 +40,22 @@ public class OfflinePaymentsPublicController(OfflineMethodConfigService configSe
     }
 
     [HttpPost("{invoiceId}/mark-sent")]
-    [ValidateAntiForgeryToken]
+    [IgnoreAntiforgeryToken]
+    [AllowAnonymous]
     public async Task<IActionResult> MarkSent(string storeId, string invoiceId, string? customerNote, string? methodId)
     {
-        var result = await paymentsService.CustomerMarkSent(storeId, invoiceId, customerNote, null);
-        if (result is null)
-            return BadRequest("Payment record not found.");
+        if (Request.Headers["X-Requested-With"] != "RockstarHttpRequester")
+            return BadRequest();
 
-        return RedirectToAction(nameof(Instructions), new { storeId, invoiceId, methodId });
+        var method = await configService.GetEnabledMethodOptions(storeId).ContinueWith(t => t.Result.FirstOrDefault(m => m.MethodId == methodId));
+        if (method is null)
+            return BadRequest("Method not found.");
+
+        var existing = await paymentsService.GetByInvoiceId(storeId, invoiceId);
+        if (existing is null)
+            existing = await paymentsService.RecordMethodSelected(storeId, invoiceId, method);
+
+        await paymentsService.CustomerMarkSent(storeId, invoiceId, null, null);
+        return Json(new { success = true });
     }
 }

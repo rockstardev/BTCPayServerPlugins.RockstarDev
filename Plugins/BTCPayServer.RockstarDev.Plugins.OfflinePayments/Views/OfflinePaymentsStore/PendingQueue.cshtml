@@ -1,119 +1,70 @@
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments
 @using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data
 @using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
 @model OfflinePendingQueueViewModel
 @{
-    ViewData["Title"] = "Pending Payments Queue";
-    Layout = "../Shared/_Layout.cshtml";
+	Layout = "_Layout";
+	ViewData.SetLayoutModel(new LayoutModel(nameof(OfflinePaymentsNavPages.PendingQueue), "Pending Payments Queue")
+	{ ActiveCategory = nameof(OfflinePaymentsNavPages) });
 }
 
-<div class="container-xl">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
-        <a asp-action="Index" asp-route-storeId="@Model.StoreId" class="btn btn-outline-secondary">
-            ← Settings
-        </a>
-    </div>
-
-    @if (TempData["SuccessMessage"] is string success)
-    {
-        <div class="alert alert-success">@success</div>
-    }
-    @if (TempData["ErrorMessage"] is string error)
-    {
-        <div class="alert alert-danger">@error</div>
-    }
-
-    @* Filter by method *@
-    <div class="d-flex gap-2 mb-3">
-        <a asp-action="PendingQueue" asp-route-storeId="@Model.StoreId"
-           class="btn btn-sm @(Model.MethodIdFilter == null ? "btn-primary" : "btn-outline-secondary")">
-            All
-        </a>
-        @foreach (var mid in Model.AvailableMethodIds)
-        {
-            <a asp-action="PendingQueue" asp-route-storeId="@Model.StoreId"
-               asp-route-method="@mid"
-               class="btn btn-sm @(Model.MethodIdFilter == mid ? "btn-primary" : "btn-outline-secondary")">
-                @mid
-            </a>
-        }
-    </div>
-
-    @if (!Model.Items.Any())
-    {
-        <div class="alert alert-info">No pending payments to review.</div>
-    }
-    else
-    {
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>Invoice</th>
-                    <th>Method</th>
-                    <th>Reference</th>
-                    <th>Status</th>
-                    <th>Received</th>
-                    <th>Customer Note</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td>
-                            <a href="/invoices/@item.InvoiceId" target="_blank" class="link-primary">
-                                @item.InvoiceId.Substring(0, 8)…
-                            </a>
-                        </td>
-                        <td><span class="badge bg-secondary">@item.MethodId</span></td>
-                        <td><code>@item.ResolvedReference</code></td>
-                        <td>
-                            @switch (item.Status)
-                            {
-                                case OfflinePaymentStatus.MethodSelected:
-                                    <span class="badge bg-light text-dark">Selected</span>
-                                    break;
-                                case OfflinePaymentStatus.InstructionsViewed:
-                                    <span class="badge bg-info text-dark">Instructions Viewed</span>
-                                    break;
-                                case OfflinePaymentStatus.CustomerMarkedSent:
-                                    <span class="badge bg-warning text-dark">Marked Sent ✓</span>
-                                    break;
-                            }
-                        </td>
-                        <td class="text-secondary small">
-                            @item.CreatedAt.ToString("MMM d, HH:mm")
-                        </td>
-                        <td class="small">@(item.CustomerNote ?? "—")</td>
-                        <td class="text-end">
-                            @* Confirm *@
-                            <form asp-action="Confirm"
-                                  asp-route-storeId="@Model.StoreId"
-                                  asp-route-pendingId="@item.Id"
-                                  method="post" class="d-inline">
-                                <input type="hidden" name="adminNote" value="" />
-                                <button type="submit" class="btn btn-sm btn-success me-1"
-                                        onclick="return confirm('Settle invoice @item.InvoiceId.Substring(0, 8)…?')">
-                                    Settle
-                                </button>
-                            </form>
-
-                            @* Invalidate *@
-                            <form asp-action="Invalidate"
-                                  asp-route-storeId="@Model.StoreId"
-                                  asp-route-pendingId="@item.Id"
-                                  method="post" class="d-inline">
-                                <input type="hidden" name="adminNote" value="" />
-                                <button type="submit" class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Invalidate this payment?')">
-                                    Void
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+	<h2 class="mb-0">Pending Payments Queue</h2>
 </div>
+
+<partial name="_StatusMessage" />
+
+@if (!Model.Items.Any())
+{
+	<p class="text-secondary mt-4">No pending payments to review.</p>
+}
+else
+{
+	<div class="table-responsive">
+		<table class="table table-hover align-middle">
+			<thead>
+				<tr>
+					<th>Invoice</th>
+					<th>Method</th>
+					<th>Reference</th>
+					<th>Date</th>
+					<th class="text-end">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var item in Model.Items)
+				{
+					<tr>
+						<td><a href="/invoices/@item.InvoiceId" target="_blank" class="link-primary">@item.InvoiceId</a></td>
+						<td><span class="badge bg-secondary">@item.MethodId</span></td>
+						<td><code>@item.ResolvedReference</code></td>
+						<td class="text-secondary small">@item.CustomerMarkedSentAt?.ToString("MMM d, HH:mm")</td>
+						<td class="text-end">
+							<form asp-action="Confirm"
+								  asp-route-storeId="@Model.StoreId"
+								  asp-route-pendingId="@item.Id"
+								  method="post" class="d-inline">
+								<button type="submit" class="btn btn-link p-0 me-3 text-success"
+										onclick="return confirm('Settle invoice?')">
+									Settle
+								</button>
+							</form>
+							<form asp-action="Invalidate"
+								  asp-route-storeId="@Model.StoreId"
+								  asp-route-pendingId="@item.Id"
+								  method="post" class="d-inline">
+								<button type="submit" class="btn btn-link p-0 text-danger"
+										onclick="return confirm('Void this payment?')">
+									Void
+								</button>
+							</form>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
