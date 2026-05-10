@@ -48,6 +48,7 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(string storeId, OfflineMethodConfigViewModel vm)
     {
+        vm.AvailableMethodTypes = configService.GetMethodTypes();
         if (!ModelState.IsValid)
             return View("EditMethod", vm);
 

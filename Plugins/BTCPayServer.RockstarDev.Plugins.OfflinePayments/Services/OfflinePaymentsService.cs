@@ -11,38 +11,25 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services;
 
 public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginDbContextFactory, InvoiceRepository invoiceRepository)
 {
-    public async Task<OfflinePendingPayment> RecordMethodSelected(string storeId, string invoiceId, OfflineMethodConfig config)
+    public async Task<OfflinePendingPayment> RecordPayment(string storeId, string invoiceId, OfflineMethodConfig config, string customerNote = null, string remittanceUrl = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         var reference = config.ReferenceTemplate.Replace("{InvoiceId}", invoiceId).Replace("{StoreId}", storeId);
-        var pending = new OfflinePendingPayment
+        var payment = new OfflinePendingPayment
         {
             StoreId = storeId,
             InvoiceId = invoiceId,
             MethodConfigId = config.Id,
             MethodId = config.MethodId,
+            CustomerNote = customerNote,
+            RemittanceFileUrl = remittanceUrl,
             ResolvedReference = reference,
+            CustomerMarkedSentAt = DateTimeOffset.UtcNow,
             Status = OfflinePaymentStatus.CustomerMarkedSent
         };
-        ctx.OfflinePendingPayments.Add(pending);
+        ctx.OfflinePendingPayments.Add(payment);
         await ctx.SaveChangesAsync();
-        return pending;
-    }
-
-    public async Task<OfflinePendingPayment> CustomerMarkSent(string storeId, string invoiceId, string customerNote = null, string remittanceUrl = null)
-    {
-        await using var ctx = pluginDbContextFactory.CreateContext();
-        var pendingPayment = await ctx.OfflinePendingPayments.FirstOrDefaultAsync(x => x.StoreId == storeId && x.InvoiceId == invoiceId);
-        if (pendingPayment is null)
-            return null;
-
-        pendingPayment.Status = OfflinePaymentStatus.CustomerMarkedSent;
-        pendingPayment.CustomerMarkedSentAt = DateTimeOffset.UtcNow;
-        pendingPayment.CustomerNote = customerNote;
-        pendingPayment.RemittanceFileUrl = remittanceUrl;
-        pendingPayment.UpdatedAt = DateTimeOffset.UtcNow;
-        await ctx.SaveChangesAsync();
-        return pendingPayment;
+        return payment;
     }
 
     public async Task<List<OfflinePendingPayment>> GetPendingPaymentQueue(string storeId, string methodIdFilter = null)
@@ -89,7 +76,7 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
         var invoice = await invoiceRepository.GetInvoice(pendingPayment.InvoiceId);
         if (invoice != null)
         {
-            await invoiceRepository.MarkInvoiceStatus(pendingPayment.InvoiceId, InvoiceStatus.Settled);
+            await invoiceRepository.MarkInvoiceStatus(pendingPayment.InvoiceId, InvoiceStatus.Invalid);
         }
         await ctx.SaveChangesAsync();
         return pendingPayment;
@@ -99,5 +86,11 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         return await ctx.OfflinePendingPayments.FirstOrDefaultAsync(x => x.StoreId == storeId && x.InvoiceId == invoiceId);
+    }
+
+    public async Task<bool> HasPendingPayments(string storeId)
+    {
+        await using var ctx = pluginDbContextFactory.CreateContext();
+        return await ctx.OfflinePendingPayments.AnyAsync(x => x.StoreId == storeId && x.Status == OfflinePaymentStatus.CustomerMarkedSent);
     }
 }

@@ -18,62 +18,76 @@
 	<text>
 		<template id="@componentName">
 			<div class="mt-2">
-				<table style="width:100%; font-size:0.85rem; border-collapse:collapse;" class="mb-2">
+
+				<table class="table table-sm mb-2" style="font-size:0.85rem;">
 					@if (!string.IsNullOrEmpty(m.BankName))
 					{
 						<tr>
-							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Bank</td>
-							<td style="font-weight:600;">@m.BankName</td>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Bank</td>
+							<td class="fw-semibold border-0">@m.BankName</td>
 						</tr>
 					}
 					@if (!string.IsNullOrEmpty(m.AccountName))
 					{
 						<tr>
-							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Account Name</td>
-							<td style="font-weight:600;">@m.AccountName</td>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Account Name</td>
+							<td class="fw-semibold border-0">@m.AccountName</td>
 						</tr>
 					}
 					@if (!string.IsNullOrEmpty(m.RoutingNumber))
 					{
 						<tr>
-							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Routing</td>
-							<td style="font-weight:600;">@m.RoutingNumber</td>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Routing</td>
+							<td class="fw-semibold border-0">@m.RoutingNumber</td>
 						</tr>
 					}
 					@if (!string.IsNullOrEmpty(m.AccountNumber))
 					{
 						<tr>
-							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Account</td>
-							<td style="font-weight:600;">@m.AccountNumber</td>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Account</td>
+							<td class="fw-semibold border-0">@m.AccountNumber</td>
 						</tr>
 					}
 					@if (!string.IsNullOrEmpty(m.EstimatedSettlementTime))
 					{
 						<tr>
-							<td style="color:#888; padding:3px 8px 3px 0; white-space:nowrap;">Settlement</td>
-							<td style="color:#888;">@m.EstimatedSettlementTime</td>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Est. Settlement</td>
+							<td class="text-muted border-0">@m.EstimatedSettlementTime</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.SupportContact))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Contact</td>
+							<td class="text-muted border-0" style="font-size:0.8rem;">@m.SupportContact</td>
 						</tr>
 					}
 				</table>
 
-				<div style="background:#f5f5f5; border-radius:6px; padding:8px 12px; font-size:0.85rem; margin-bottom:10px;">
-					<span style="color:#888;">Reference / Memo</span><br />
-					<strong>@resolvedReference</strong>
+				<div class="mb-3" style="font-size:0.85rem;">
+					<span class="text-muted">Reference / Memo</span><br /><strong>@resolvedReference</strong>
 				</div>
 
 				@if (!string.IsNullOrEmpty(m.Instructions))
 				{
-					<p style="font-size:0.78rem; color:#666; margin-bottom:10px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+					<p class="text-muted mb-2" style="font-size:0.78rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
 						@m.Instructions
 					</p>
 				}
 
 				<div v-if="!sent">
-					<button class="btn btn-primary rounded-pill w-100 mt-1"
-							v-on:click.prevent="markSent">I've sent the payment
+					<textarea v-model="customerNote"
+							  placeholder="Optional note (e.g. transfer confirmation number)"
+							  class="form-control form-control-sm mb-3"
+							  rows="2"></textarea>
+
+					<button class="btn btn-primary rounded-pill w-100"
+							v-on:click.prevent="markSent">
+						I've made the payment
 					</button>
 				</div>
-				<div v-if="sent" style="background:#d4edda; border-radius:6px; padding:8px 12px; font-size:0.85rem; margin-top:8px;">
+
+				<div v-if="sent" class="alert alert-success mt-2" style="font-size:0.85rem;">
 					Payment marked as sent. We will confirm receipt shortly.
 				</div>
 			</div>
@@ -85,15 +99,22 @@
 			template: @Safe.Json("#" + componentName),
 			data() {
 			return {
-			sent: localStorage.getItem('marksent_' + this.model?.invoiceId) === 'true'
+			sent: localStorage.getItem('marksent_' + this.model?.invoiceId) === 'true',
+			customerNote: ''
 			};
 			},
 			methods: {
 			async markSent() {
+			const formData = new FormData();
+			formData.append('customerNote', this.customerNote || '');
+			formData.append('methodId', this.model.paymentMethodId);
+
 			const res = await fetch(this.model.invoiceBitcoinUrl, {
 			method: 'POST',
-			headers: { 'X-Requested-With': 'RockstarHttpRequester' }
+			headers: { 'X-Requested-With': 'RockstarHttpRequester' },
+			body: formData
 			});
+
 			if (res.ok) {
 			this.sent = true;
 			localStorage.setItem('marksent_' + this.model.invoiceId, 'true');

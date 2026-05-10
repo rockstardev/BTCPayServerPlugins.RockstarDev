@@ -43,28 +43,29 @@ else
 						<td><code>@item.ResolvedReference</code></td>
 						<td class="text-secondary small">@item.CustomerMarkedSentAt?.ToString("MMM d, HH:mm")</td>
 						<td class="text-end">
-							<form asp-action="Confirm"
-								  asp-route-storeId="@Model.StoreId"
-								  asp-route-pendingId="@item.Id"
-								  method="post" class="d-inline">
-								<button type="submit" class="btn btn-link p-0 me-3 text-success"
-										onclick="return confirm('Settle invoice?')">
-									Settle
-								</button>
-							</form>
-							<form asp-action="Invalidate"
-								  asp-route-storeId="@Model.StoreId"
-								  asp-route-pendingId="@item.Id"
-								  method="post" class="d-inline">
-								<button type="submit" class="btn btn-link p-0 text-danger"
-										onclick="return confirm('Void this payment?')">
-									Void
-								</button>
-							</form>
+							<a href="#"
+							   data-bs-toggle="modal"
+							   data-bs-target="#ConfirmModal"
+							   data-title="Settle Invoice"
+							   data-description="Confirm you have received payment for invoice <strong>@item.InvoiceId</strong>?"
+							   data-confirm="Settle"
+							   data-action="@Url.Action("Confirm", "OfflinePaymentsStore", new { storeId = Model.StoreId, pendingId = item.Id })"
+							   class="btn btn-link p-0 me-3 text-success">Settle</a>
+
+							<a href="#"
+							   data-bs-toggle="modal"
+							   data-bs-target="#ConfirmModal"
+							   data-title="Void Payment"
+							   data-description="Are you sure you want to void payment for invoice <strong>@item.InvoiceId</strong>?"
+							   data-confirm="Void"
+							   data-action="@Url.Action("Invalidate", "OfflinePaymentsStore", new { storeId = Model.StoreId, pendingId = item.Id })"
+							   class="btn btn-link p-0 text-danger">Void</a>
 						</td>
 					</tr>
 				}
 			</tbody>
 		</table>
 	</div>
+
+	<partial name="_Confirm" model="@(new ConfirmModel("Confirm Action", "", "Confirm", "btn-primary"))" />
 }

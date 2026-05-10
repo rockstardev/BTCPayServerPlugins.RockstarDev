@@ -44,6 +44,11 @@
 		</div>
 	}
 
+	<div class="d-flex align-items-center mb-2">
+		<input asp-for="IsEnabled" class="btcpay-toggle me-3" type="checkbox" />
+		<label asp-for="IsEnabled" class="form-check-label">Enabled</label>
+	</div>
+
 	<div class="form-group mb-3">
 		<label asp-for="DisplayName" class="form-label"></label>
 		<input asp-for="DisplayName" class="form-control" placeholder="e.g. ACH Bank Transfer" style="max-width:400px;" />
@@ -108,10 +113,5 @@
 			</div>
 		</div>
 		<div class="form-text">Rendered as markdown on the checkout page.</div>
-	</div>
-
-	<div class="d-flex align-items-center mb-2">
-		<input asp-for="IsEnabled" class="btcpay-toggle me-3" type="checkbox" />
-		<label asp-for="IsEnabled" class="form-check-label">Enabled</label>
 	</div>
 </form>
