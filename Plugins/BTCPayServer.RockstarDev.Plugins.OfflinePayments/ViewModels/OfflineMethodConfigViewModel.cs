@@ -14,12 +14,12 @@ public class OfflineMethodConfigViewModel
     [Required]
     [MaxLength(50)]
     [Display(Name = "Method ID")]
-    public string MethodId { get; set; } = string.Empty; // ACH, WIRE, CHECK, CASH
+    public string MethodId { get; set; }
 
     [Required]
     [MaxLength(100)]
     [Display(Name = "Display Name")]
-    public string DisplayName { get; set; } = string.Empty;
+    public string DisplayName { get; set; }
 
     [Display(Name = "Payment Instructions")]
     [MaxLength(50)]
@@ -52,13 +52,8 @@ public class OfflineMethodConfigViewModel
     [Display(Name = "Support Contact")]
     public string? SupportContact { get; set; }
 
-    [Display(Name = "Require manual confirmation before settling invoice")]
-    public bool RequiresManualConfirmation { get; set; } = true;
-
     [Display(Name = "Enabled")]
     public bool IsEnabled { get; set; } = true;
-
-    public int SortOrder { get; set; } = 0;
     public List<string> AvailableMethodTypes { get; set; } = new();
 
     public static OfflineMethodConfigViewModel FromModel(OfflineMethodConfig m) => new()
@@ -76,9 +71,7 @@ public class OfflineMethodConfigViewModel
         ReferenceTemplate = m.ReferenceTemplate,
         EstimatedSettlementTime = m.EstimatedSettlementTime,
         SupportContact = m.SupportContact,
-        RequiresManualConfirmation = m.RequiresManualConfirmation,
-        IsEnabled = m.IsEnabled,
-        SortOrder = m.SortOrder
+        IsEnabled = m.IsEnabled
     };
 
     public OfflineMethodConfig ToModel(string storeId) => new()
@@ -94,14 +87,10 @@ public class OfflineMethodConfigViewModel
         AccountAddress = AccountAddress,
         RoutingNumber = RoutingNumber,
         AccountNumber = AccountNumber,
-        ReferenceTemplate = string.IsNullOrWhiteSpace(ReferenceTemplate)
-            ? "Invoice {InvoiceId}"
-            : ReferenceTemplate,
+        ReferenceTemplate = string.IsNullOrWhiteSpace(ReferenceTemplate) ? "Invoice {InvoiceId}" : ReferenceTemplate,
         EstimatedSettlementTime = EstimatedSettlementTime,
         SupportContact = SupportContact,
-        RequiresManualConfirmation = RequiresManualConfirmation,
-        IsEnabled = IsEnabled,
-        SortOrder = SortOrder
+        IsEnabled = IsEnabled
     };
 }
 
@@ -113,8 +102,6 @@ public class OfflineSettingsViewModel
     public string? ErrorMessage { get; set; }
 }
 
-// ── Pending queue ─────────────────────────────────────────────────────────────
-
 public class OfflinePendingQueueViewModel
 {
     public string StoreId { get; set; } = string.Empty;
@@ -123,16 +110,4 @@ public class OfflinePendingQueueViewModel
     public string? MethodIdFilter { get; set; }
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
-}
-
-// ── Customer checkout ─────────────────────────────────────────────────────────
-
-public class OfflineCheckoutViewModel
-{
-    public string InvoiceId { get; set; } = string.Empty;
-    public string StoreId { get; set; } = string.Empty;
-    public OfflineMethodConfig Method { get; set; } = null!;
-    public string ResolvedReference { get; set; } = string.Empty;
-    public string PendingPaymentId { get; set; } = string.Empty;
-    public bool AlreadyMarkedSent { get; set; }
 }

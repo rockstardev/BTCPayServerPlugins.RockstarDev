@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,9 +22,7 @@ public class OfflineMethodConfig
     public string ReferenceTemplate { get; set; } = "Invoice {InvoiceId}";
     public string EstimatedSettlementTime { get; set; }
     public string SupportContact { get; set; }
-    public bool RequiresManualConfirmation { get; set; } = true;
     public bool IsEnabled { get; set; } = true;
-    public int SortOrder { get; set; } = 0;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public ICollection<OfflinePendingPayment> PendingPayments { get; set; } = new List<OfflinePendingPayment>();

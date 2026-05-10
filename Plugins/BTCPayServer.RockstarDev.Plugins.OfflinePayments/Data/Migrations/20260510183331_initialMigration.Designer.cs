@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 {
     [DbContext(typeof(OfflinePaymentPluginDbContext))]
-    [Migration("20260509160117_initialMigration")]
+    [Migration("20260510183331_initialMigration")]
     partial class initialMigration
     {
         /// <inheritdoc />
@@ -21,7 +21,7 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("BTCPayServer.RockstarDev.Plugins.OfflinePayment")
-                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("ProductVersion", "10.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -68,14 +68,8 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                     b.Property<string>("ReferenceTemplate")
                         .HasColumnType("text");
 
-                    b.Property<bool>("RequiresManualConfirmation")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("RoutingNumber")
                         .HasColumnType("text");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<string>("StoreId")
                         .HasColumnType("text");
@@ -106,23 +100,14 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                     b.Property<DateTimeOffset?>("AdminInvalidatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("AdminNote")
-                        .HasColumnType("text");
-
                     b.Property<string>("AdminUserId")
                         .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("CustomerMarkedSentAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CustomerNote")
                         .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("InstructionsViewedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("InvoiceId")
                         .HasColumnType("text");

@@ -22,34 +22,17 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
             MethodConfigId = config.Id,
             MethodId = config.MethodId,
             ResolvedReference = reference,
-            Status = OfflinePaymentStatus.MethodSelected
+            Status = OfflinePaymentStatus.CustomerMarkedSent
         };
         ctx.OfflinePendingPayments.Add(pending);
         await ctx.SaveChangesAsync();
         return pending;
     }
 
-    public async Task MarkInstructionsAsViewed(string pendingPaymentId)
-    {
-        await using var ctx = pluginDbContextFactory.CreateContext();
-        var pendingPayment = await ctx.OfflinePendingPayments.FindAsync(pendingPaymentId);
-        if (pendingPayment is null)
-            return;
-
-        if (pendingPayment.Status == OfflinePaymentStatus.MethodSelected)
-            pendingPayment.Status = OfflinePaymentStatus.InstructionsViewed;
-
-        pendingPayment.InstructionsViewedAt ??= DateTimeOffset.UtcNow;
-        pendingPayment.UpdatedAt = DateTimeOffset.UtcNow;
-        await ctx.SaveChangesAsync();
-    }
-
     public async Task<OfflinePendingPayment> CustomerMarkSent(string storeId, string invoiceId, string customerNote = null, string remittanceUrl = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        var pendingPayment = await ctx.OfflinePendingPayments.Include(x => x.MethodConfig).Where(x => x.StoreId == storeId && x.InvoiceId == invoiceId)
-            .OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync();
-
+        var pendingPayment = await ctx.OfflinePendingPayments.FirstOrDefaultAsync(x => x.StoreId == storeId && x.InvoiceId == invoiceId);
         if (pendingPayment is null)
             return null;
 
@@ -65,16 +48,14 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
     public async Task<List<OfflinePendingPayment>> GetPendingPaymentQueue(string storeId, string methodIdFilter = null)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        var query = ctx.OfflinePendingPayments.Include(x => x.MethodConfig).Where(x => x.StoreId == storeId
-            && (x.Status == OfflinePaymentStatus.CustomerMarkedSent || x.Status == OfflinePaymentStatus.InstructionsViewed || x.Status == OfflinePaymentStatus.MethodSelected));
-
+        var query = ctx.OfflinePendingPayments.Include(x => x.MethodConfig).Where(x => x.StoreId == storeId && x.Status == OfflinePaymentStatus.CustomerMarkedSent);
         if (!string.IsNullOrEmpty(methodIdFilter))
             query = query.Where(x => x.MethodId == methodIdFilter);
 
-        return await query.OrderBy(x => x.CreatedAt).ToListAsync();
+        return await query.OrderBy(x => x.CustomerMarkedSentAt).ToListAsync();
     }
 
-    public async Task<OfflinePendingPayment> AdminConfirmPayment(string pendingPaymentId, string storeId, string adminUserId, string adminNote = null)
+    public async Task<OfflinePendingPayment> AdminConfirmPayment(string pendingPaymentId, string storeId, string adminUserId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         var pendingPayment = await ctx.OfflinePendingPayments.FirstOrDefaultAsync(x => x.Id == pendingPaymentId && x.StoreId == storeId);
@@ -84,7 +65,6 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
         pendingPayment.Status = OfflinePaymentStatus.AdminConfirmed;
         pendingPayment.AdminConfirmedAt = DateTimeOffset.UtcNow;
         pendingPayment.AdminUserId = adminUserId;
-        pendingPayment.AdminNote = adminNote;
         pendingPayment.UpdatedAt = DateTimeOffset.UtcNow;
         var invoice = await invoiceRepository.GetInvoice(pendingPayment.InvoiceId);
         if (invoice != null)
@@ -95,7 +75,7 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
         return pendingPayment;
     }
 
-    public async Task<OfflinePendingPayment> AdminInvalidatePayment(string pendingPaymentId, string storeId, string adminUserId, string adminNote = null)
+    public async Task<OfflinePendingPayment> AdminInvalidatePayment(string pendingPaymentId, string storeId, string adminUserId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         var pendingPayment = await ctx.OfflinePendingPayments.FirstOrDefaultAsync(x => x.Id == pendingPaymentId && x.StoreId == storeId);
@@ -105,7 +85,6 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
         pendingPayment.Status = OfflinePaymentStatus.AdminInvalidated;
         pendingPayment.AdminInvalidatedAt = DateTimeOffset.UtcNow;
         pendingPayment.AdminUserId = adminUserId;
-        pendingPayment.AdminNote = adminNote;
         pendingPayment.UpdatedAt = DateTimeOffset.UtcNow;
         var invoice = await invoiceRepository.GetInvoice(pendingPayment.InvoiceId);
         if (invoice != null)
@@ -119,7 +98,6 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
     public async Task<OfflinePendingPayment> GetByInvoiceId(string storeId, string invoiceId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        return await ctx.OfflinePendingPayments.Include(x => x.MethodConfig).Where(x => x.StoreId == storeId && x.InvoiceId == invoiceId)
-            .OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync();
+        return await ctx.OfflinePendingPayments.FirstOrDefaultAsync(x => x.StoreId == storeId && x.InvoiceId == invoiceId);
     }
 }

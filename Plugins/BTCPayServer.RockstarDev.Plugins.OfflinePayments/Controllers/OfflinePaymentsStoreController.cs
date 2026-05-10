@@ -122,10 +122,10 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
 
     [HttpPost("pending/{pendingId}/confirm")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Confirm(string storeId, string pendingId, string adminNote)
+    public async Task<IActionResult> Confirm(string storeId, string pendingId)
     {
         var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? "unknown";
-        var result = await paymentsService.AdminConfirmPayment(pendingId, storeId, userId, adminNote);
+        var result = await paymentsService.AdminConfirmPayment(pendingId, storeId, userId);
 
         TempData[result is null ? "ErrorMessage" : "SuccessMessage"] =
             result is null ? "Payment record not found." : "Invoice settled successfully.";
@@ -135,10 +135,10 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
 
     [HttpPost("pending/{pendingId}/invalidate")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Invalidate(string storeId, string pendingId, string adminNote)
+    public async Task<IActionResult> Invalidate(string storeId, string pendingId)
     {
         var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? "unknown";
-        var result = await paymentsService.AdminInvalidatePayment(pendingId, storeId, userId, adminNote);
+        var result = await paymentsService.AdminInvalidatePayment(pendingId, storeId, userId);
 
         TempData[result is null ? "ErrorMessage" : "SuccessMessage"] =
             result is null ? "Payment record not found." : "Payment invalidated.";

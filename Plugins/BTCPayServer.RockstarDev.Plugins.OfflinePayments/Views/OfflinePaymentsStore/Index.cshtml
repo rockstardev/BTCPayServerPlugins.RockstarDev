@@ -44,7 +44,6 @@ else
 				<tr>
 					<th>Method ID</th>
 					<th>Display Name</th>
-					<th>Manual Confirm</th>
 					<th>Status</th>
 					<th class="text-end">Actions</th>
 				</tr>
@@ -55,16 +54,6 @@ else
 					<tr>
 						<td><code>@m.MethodId</code></td>
 						<td>@m.DisplayName</td>
-						<td>
-							@if (m.RequiresManualConfirmation)
-							{
-								<span class="badge bg-warning text-dark">Manual</span>
-							}
-							else
-							{
-								<span class="badge bg-success">Auto-settle</span>
-							}
-						</td>
 						<td>
 							@if (m.IsEnabled)
 							{

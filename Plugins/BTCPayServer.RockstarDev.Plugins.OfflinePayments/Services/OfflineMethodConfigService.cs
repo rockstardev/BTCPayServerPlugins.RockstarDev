@@ -22,15 +22,13 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
     public async Task<List<OfflineMethodConfig>> GetAllMethods(string storeId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        return await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId)
-            .OrderBy(x => x.SortOrder).ThenBy(x => x.DisplayName).ToListAsync();
+        return await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId).ToListAsync();
     }
 
     public async Task<List<OfflineMethodConfig>> GetEnabledMethodOptions(string storeId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        return await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId && x.IsEnabled)
-            .OrderBy(x => x.SortOrder).ThenBy(x => x.DisplayName).ToListAsync();
+        return await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId && x.IsEnabled).ToListAsync();
     }
 
     public async Task<OfflineMethodConfig> GetMethodOptionById(string id, string storeId)
@@ -67,9 +65,7 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         existingOption.ReferenceTemplate = config.ReferenceTemplate;
         existingOption.EstimatedSettlementTime = config.EstimatedSettlementTime;
         existingOption.SupportContact = config.SupportContact;
-        existingOption.RequiresManualConfirmation = config.RequiresManualConfirmation;
         existingOption.IsEnabled = config.IsEnabled;
-        existingOption.SortOrder = config.SortOrder;
         existingOption.UpdatedAt = DateTimeOffset.UtcNow;
         await ctx.SaveChangesAsync();
         return existingOption;
