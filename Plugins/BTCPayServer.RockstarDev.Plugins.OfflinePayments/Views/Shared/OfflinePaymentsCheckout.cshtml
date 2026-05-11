@@ -84,6 +84,10 @@
 						<input type="file" ref="fileInput" accept="image/*,.pdf" class="form-control form-control-sm" />
 					</div>
 
+					<div v-if="errorMessage" class="alert alert-danger mt-2" style="font-size:0.85rem;">
+						{{ errorMessage }}
+					</div>
+
 					<button class="btn btn-primary rounded-pill w-100" v-on:click.prevent="markSent">
 						I've made the payment
 					</button>
@@ -102,7 +106,8 @@
 			data() {
 			return {
 			sent: localStorage.getItem('marksent_' + this.model?.invoiceId) === 'true',
-			customerNote: ''
+			customerNote: '',
+			errorMessage: ''
 			};
 			},
 			methods: {
@@ -123,6 +128,8 @@
 			if (res.ok) {
 			this.sent = true;
 			localStorage.setItem('marksent_' + this.model.invoiceId, 'true');
+			}else {
+			this.errorMessage = await res.text();
 			}
 			}
 			}
