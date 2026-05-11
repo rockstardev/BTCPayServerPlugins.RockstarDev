@@ -24,18 +24,20 @@
 		</a>
 		@if (ViewData.IsCategory(nameof(OfflinePaymentsNavPages)))
 		{
-			<li class="nav-item nav-item-sub">
-				<a layout-menu-item="@nameof(OfflinePaymentsNavPages.Methods)" asp-controller="OfflinePaymentsStore" asp-action="Index"
-				   asp-route-storeId="@storeId" text-translate="true">Payment Methods</a>
-			</li>
-			<li class="nav-item nav-item-sub">
-				<a layout-menu-item="@nameof(OfflinePaymentsNavPages.PendingQueue)" asp-controller="OfflinePaymentsStore" asp-action="PendingQueue"
-				   asp-route-storeId="@storeId" text-translate="true">Pending Queue</a>
-				@if (hasPending)
-				{
-					<span class="ms-2 btcpay-status btcpay-status--enabled"></span>
-				}
-			</li>
+			<ul class="nav flex-column">
+				<li class="nav-item nav-item-sub">
+					<a layout-menu-item="@nameof(OfflinePaymentsNavPages.Methods)" asp-controller="OfflinePaymentsStore" asp-action="Index"
+					   asp-route-storeId="@storeId" text-translate="true">Payment Methods</a>
+				</li>
+				<li class="nav-item nav-item-sub">
+					<a layout-menu-item="@nameof(OfflinePaymentsNavPages.PendingQueue)" asp-controller="OfflinePaymentsStore" asp-action="PendingQueue"
+					   asp-route-storeId="@storeId" text-translate="true">Pending Queue</a>
+					@if (hasPending)
+					{
+						<span class="ms-2 btcpay-status btcpay-status--enabled"></span>
+					}
+				</li>
+			</ul>
 		}
 	</li>
 }

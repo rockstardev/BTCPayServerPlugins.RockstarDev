@@ -128,8 +128,10 @@
 			if (res.ok) {
 			this.sent = true;
 			localStorage.setItem('marksent_' + this.model.invoiceId, 'true');
-			}else {
+			} else if (res.status === 400) {
 			this.errorMessage = await res.text();
+			} else {
+			this.errorMessage = 'Unable to record payment. Please try again or contact the store.';
 			}
 			}
 			}

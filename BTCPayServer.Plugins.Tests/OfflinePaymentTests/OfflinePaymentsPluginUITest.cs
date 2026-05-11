@@ -117,8 +117,8 @@ public class OfflinePaymentsPluginUITest : PlaywrightBaseTest
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         var frame = await GetCheckoutFrame();
         var achMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "ACH" });
-        if (await achMethod.IsVisibleAsync())
-            await achMethod.ClickAsync();
+        await achMethod.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        await achMethod.ClickAsync();
 
         await Task.Delay(500);
         await frame.Locator("textarea").FillAsync("Transfer sent from Chase");
@@ -146,8 +146,8 @@ public class OfflinePaymentsPluginUITest : PlaywrightBaseTest
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         var frame = await GetCheckoutFrame();
         var achMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "ACH" });
-        if (await achMethod.IsVisibleAsync())
-            await achMethod.ClickAsync();
+        await achMethod.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        await achMethod.ClickAsync();
 
         await Task.Delay(500);
         await frame.Locator("button.btn-primary").ClickAsync();
@@ -177,8 +177,8 @@ public class OfflinePaymentsPluginUITest : PlaywrightBaseTest
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         var frame = await GetCheckoutFrame();
         var achMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "ACH" });
-        if (await achMethod.IsVisibleAsync())
-            await achMethod.ClickAsync();
+        await achMethod.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        await achMethod.ClickAsync();
 
         await Task.Delay(500);
         await frame.Locator("button.btn-primary").ClickAsync();
@@ -208,8 +208,8 @@ public class OfflinePaymentsPluginUITest : PlaywrightBaseTest
         await GoToUrl($"tests/index.html?invoice={invoiceId}");
         var frame = await GetCheckoutFrame();
         var achMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "ACH" });
-        if (await achMethod.IsVisibleAsync())
-            await achMethod.ClickAsync();
+        await achMethod.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10000 });
+        await achMethod.ClickAsync();
 
         await Task.Delay(500);
         await frame.Locator("button.btn-primary").ClickAsync();

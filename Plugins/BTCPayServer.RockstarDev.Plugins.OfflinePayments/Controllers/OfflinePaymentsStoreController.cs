@@ -67,8 +67,8 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
             ModelState.AddModelError(nameof(vm.MethodId), $"A payment method with ID '{vm.MethodId}' already exists for this store.");
             return View("EditMethod", vm);
         }
-        await configService.Create(vm.ToModel(storeId), GetUserId());
-        var pmid = new PaymentMethodId(vm.MethodId);
+        var created = await configService.Create(vm.ToModel(storeId), GetUserId());
+        var pmid = new PaymentMethodId(created.MethodId);
         await EnableMethodInStore(StoreData, pmid);
         TempData["SuccessMessage"] = $"Payment method '{vm.DisplayName}' created.";
         return RedirectToAction(nameof(Index), new { storeId });
@@ -96,13 +96,13 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
         if (updated is null)
             return NotFound();
 
-        var pmid = new PaymentMethodId(vm.MethodId);
-        if (vm.IsEnabled)
+        var pmid = new PaymentMethodId(updated.MethodId);
+        if (updated.IsEnabled)
             await EnableMethodInStore(StoreData, pmid);
         else
             await DisableMethodInStore(StoreData, pmid);
 
-        TempData["SuccessMessage"] = $"Payment method '{vm.DisplayName}' updated.";
+        TempData["SuccessMessage"] = $"Payment method '{updated.DisplayName}' updated.";
         return RedirectToAction(nameof(Index), new { storeId });
     }
 
@@ -110,11 +110,18 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string storeId, string id)
     {
-        var deleted = await configService.Delete(id, storeId);
-        if (!deleted)
-            TempData["ErrorMessage"] = "Cannot delete as it has an existing payment records.";
-        else
-            TempData["SuccessMessage"] = "Payment method deleted.";
+        var result = await configService.Delete(id, storeId);
+        switch (result)
+        {
+            case DeleteMethodResult.NotFound:
+                return NotFound();
+            case DeleteMethodResult.HasPayments:
+                TempData["ErrorMessage"] = "Cannot delete: this method has payment records. Disable it instead to hide it from checkout.";
+                break;
+            case DeleteMethodResult.Success:
+                TempData["SuccessMessage"] = "Payment method deleted.";
+                break;
+        }
 
         return RedirectToAction(nameof(Index), new { storeId });
     }

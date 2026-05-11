@@ -38,8 +38,9 @@ public class OfflinePaymentsPublicController(OfflineMethodConfigService configSe
         string? remittanceFileId = null;
         if (remittanceFile is { Length: > 0 })
         {
-            if (remittanceFile.Length > 5 * 1024 * 1024)
-                return BadRequest("Receipt file must be under 5MB.");
+            const long maxFileSize = 1_000_000;
+            if (remittanceFile.Length > maxFileSize)
+                return BadRequest($"Receipt file must be under {maxFileSize / 1_000_000}MB.");
 
             var uploaded = await fileService.AddFile(remittanceFile, method.UserId);
             remittanceFileId = uploaded?.Id;

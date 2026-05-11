@@ -21,7 +21,8 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
     public async Task<bool> PaymentMethodExists(string storeId, string methodId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
-        return await ctx.OfflineMethodConfigs.AnyAsync(x => x.StoreId == storeId && x.MethodId == methodId.ToUpperInvariant());
+        var normalized = methodId?.Trim().ToUpperInvariant();
+        return await ctx.OfflineMethodConfigs.AnyAsync(x => x.StoreId == storeId && x.MethodId == normalized);
     }
 
     public async Task<List<OfflineMethodConfig>> GetAllMethods(string storeId)
@@ -86,21 +87,27 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         return existingOption;
     }
 
-    public async Task<bool> Delete(string id, string storeId)
+    public async Task<DeleteMethodResult> Delete(string id, string storeId)
     {
         await using var ctx = pluginDbContextFactory.CreateContext();
         var existingOption = await ctx.OfflineMethodConfigs.FirstOrDefaultAsync(x => x.Id == id && x.StoreId == storeId);
         if (existingOption is null)
-            return false;
+            return DeleteMethodResult.NotFound;
 
-        var allRecords = await ctx.OfflinePendingPayments.Where(x => x.MethodConfigId == id).ToListAsync();
-        var hasPending = allRecords.Any(x => x.Status != OfflinePaymentStatus.AdminConfirmed && x.Status != OfflinePaymentStatus.AdminInvalidated);
-        if (hasPending)
-            return false;
+        var hasAnyPayments = await ctx.OfflinePendingPayments.AnyAsync(x => x.MethodConfigId == id);
+        if (hasAnyPayments)
+            return DeleteMethodResult.HasPayments;
 
         ctx.OfflineMethodConfigs.Remove(existingOption);
         await ctx.SaveChangesAsync();
         InvalidateCache(storeId);
-        return true;
+        return DeleteMethodResult.Success;
     }
+}
+
+public enum DeleteMethodResult
+{
+    Success,
+    NotFound,
+    HasPayments
 }
