@@ -43,6 +43,31 @@ else
 						<td><code>@item.ResolvedReference</code></td>
 						<td class="text-secondary small">@item.CustomerMarkedSentAt?.ToString("MMM d, HH:mm")</td>
 						<td class="text-end">
+							@if (!string.IsNullOrEmpty(item.CustomerNote))
+							{
+								<button type="button" class="btn btn-link p-0 me-3 text-secondary" data-bs-toggle="modal" data-bs-target="#NoteModal-@item.Id">
+									Customer Note
+								</button>
+
+								<div class="modal fade" id="NoteModal-@item.Id" tabindex="-1">
+									<div class="modal-dialog modal-dialog-centered">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title">Customer Note</h5>
+												<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+											</div>
+											<div class="modal-body">
+												<p class="text-secondary small mb-1">Invoice: @item.InvoiceId</p>
+												<p class="mb-0">@item.CustomerNote</p>
+											</div>
+											<div class="modal-footer">
+												<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							}
+
 							<a href="#"
 							   data-bs-toggle="modal"
 							   data-bs-target="#ConfirmModal"

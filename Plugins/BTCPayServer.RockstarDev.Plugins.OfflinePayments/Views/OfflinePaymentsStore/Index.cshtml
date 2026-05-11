@@ -9,7 +9,6 @@
 	Layout = "_Layout";
 	ViewData.SetLayoutModel(new LayoutModel(nameof(OfflinePaymentsNavPages.Methods), "Offline Payments")
 	{ ActiveCategory = nameof(OfflinePaymentsNavPages) });
-
 	var storeId = ScopeProvider.GetCurrentStoreId();
 }
 
@@ -26,14 +25,13 @@
 <p class="text-secondary mt-3">
 	Configure offline payment methods (ACH, Wire, Check, Cash) for your store.
 	Customers will see payment instructions at checkout and can mark payments as sent.
-	You confirm receipt in the <a asp-action="PendingQueue" asp-route-storeId="@storeId">Pending Queue</a>.
+	You confirm receipt in the <a asp-action="PendingQueue" asp-route-storeId="@storeId">Pending Queue</a>
 </p>
 
 @if (!Model.Methods.Any())
 {
 	<p class="text-secondary mt-4">
-		No payment methods configured yet.
-		<a asp-action="Create" asp-route-storeId="@storeId">Add one now.</a>
+		No payment methods configured yet. <a asp-action="Create" asp-route-storeId="@storeId">Add one now.</a>
 	</p>
 }
 else
@@ -66,13 +64,22 @@ else
 						</td>
 						<td class="text-end">
 							<a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@m.Id">Edit</a>
-							<form asp-action="Delete" asp-route-storeId="@storeId" asp-route-id="@m.Id" method="post" class="d-inline" onsubmit="return confirm('Delete @m.DisplayName?')">
-								<button type="submit" class="btn btn-link p-0 ms-3 text-danger">Delete</button>
-							</form>
+							<a href="#"
+								   class="ms-3 text-danger"
+								   data-bs-toggle="modal"
+								   data-bs-target="#ConfirmModal"
+								   data-title="Delete Payment Method"
+								   data-description="Are you sure you want to delete <strong>@m.DisplayName</strong>?"
+								   data-confirm="Delete"
+								   data-action="@Url.Action("Delete", "OfflinePaymentsStore", new { storeId, id = m.Id })">
+								Delete
+							</a>
 						</td>
 					</tr>
 				}
 			</tbody>
 		</table>
 	</div>
+
+	<partial name="_Confirm" model="@(new ConfirmModel("Delete Payment Method", "", "Delete", "btn-danger"))" />
 }

@@ -92,7 +92,8 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         if (existingOption is null)
             return false;
 
-        var hasPending = await ctx.OfflinePendingPayments.AnyAsync(x => x.MethodConfigId == id);
+        var allRecords = await ctx.OfflinePendingPayments.Where(x => x.MethodConfigId == id).ToListAsync();
+        var hasPending = allRecords.Any(x => x.Status != OfflinePaymentStatus.AdminConfirmed && x.Status != OfflinePaymentStatus.AdminInvalidated);
         if (hasPending)
             return false;
 
