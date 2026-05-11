@@ -22,7 +22,7 @@ public class OfflineMethodConfigViewModel
     public string DisplayName { get; set; }
 
     [Display(Name = "Payment Instructions")]
-    [MaxLength(50)]
+    [MaxLength(500)]
     public string? Instructions { get; set; }
 
     [Display(Name = "Bank Name")]

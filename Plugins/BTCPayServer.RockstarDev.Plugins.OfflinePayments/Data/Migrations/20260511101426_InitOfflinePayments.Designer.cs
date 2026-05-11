@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 {
     [DbContext(typeof(OfflinePaymentPluginDbContext))]
-    [Migration("20260510183331_initialMigration")]
-    partial class initialMigration
+    [Migration("20260511101426_InitOfflinePayments")]
+    partial class InitOfflinePayments
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -136,6 +136,9 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MethodConfigId");
+
+                    b.HasIndex("StoreId", "InvoiceId")
+                        .IsUnique();
 
                     b.ToTable("OfflinePendingPayments", "BTCPayServer.RockstarDev.Plugins.OfflinePayment");
                 });

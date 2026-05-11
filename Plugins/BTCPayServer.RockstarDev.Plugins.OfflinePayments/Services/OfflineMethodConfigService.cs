@@ -4,10 +4,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services;
-public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory pluginDbContextFactory)
+public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory pluginDbContextFactory, IMemoryCache cache)
 {
+    private static string CacheKey(string storeId) => $"offline_methods_{storeId}";
+
+    public void InvalidateCache(string storeId) => cache.Remove(CacheKey(storeId));
+
     public List<string> GetMethodTypes()
     {
         return ["ACH", "WIRE", "CHECK"];
@@ -27,8 +32,15 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
 
     public async Task<List<OfflineMethodConfig>> GetEnabledMethodOptions(string storeId)
     {
+
+        if (cache.TryGetValue(CacheKey(storeId), out List<OfflineMethodConfig> cached))
+            return cached;
+
         await using var ctx = pluginDbContextFactory.CreateContext();
-        return await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId && x.IsEnabled).ToListAsync();
+        var result = await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId && x.IsEnabled).ToListAsync();
+
+        cache.Set(CacheKey(storeId), result, TimeSpan.FromSeconds(30));
+        return result;
     }
 
     public async Task<OfflineMethodConfig> GetMethodOptionById(string id, string storeId)
@@ -44,6 +56,7 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         await using var ctx = pluginDbContextFactory.CreateContext();
         ctx.OfflineMethodConfigs.Add(config);
         await ctx.SaveChangesAsync();
+        InvalidateCache(config.StoreId);
         return config;
     }
 
@@ -68,6 +81,7 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         existingOption.IsEnabled = config.IsEnabled;
         existingOption.UpdatedAt = DateTimeOffset.UtcNow;
         await ctx.SaveChangesAsync();
+        InvalidateCache(config.StoreId);
         return existingOption;
     }
 
@@ -78,8 +92,13 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         if (existingOption is null)
             return false;
 
+        var hasPending = await ctx.OfflinePendingPayments.AnyAsync(x => x.MethodConfigId == id);
+        if (hasPending)
+            return false;
+
         ctx.OfflineMethodConfigs.Remove(existingOption);
         await ctx.SaveChangesAsync();
+        InvalidateCache(storeId);
         return true;
     }
 }

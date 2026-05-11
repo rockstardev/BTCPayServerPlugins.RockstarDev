@@ -21,6 +21,7 @@ public class OfflinePaymentsPlugin : BaseBTCPayServerPlugin
         services.AddUIExtension("checkout-payment", "OfflinePaymentsCheckout");
         services.AddSingleton<OfflinePaymentsService>();
         services.AddSingleton<OfflineMethodConfigService>();
+        services.AddMemoryCache();
 
         services.AddSingleton<OfflinePaymentPluginDbContextFactory>();
         services.AddDbContext<OfflinePaymentPluginDbContext>((provider, o) =>

@@ -21,7 +21,7 @@ public class OfflinePendingPayment
     public string RemittanceFileUrl { get; set; }
     public string AdminUserId { get; set; }
     public string MethodConfigId { get; set; }
-    // Navigation
+
     [ForeignKey(nameof(MethodConfigId))]
     public OfflineMethodConfig? MethodConfig { get; set; }
 
@@ -33,6 +33,11 @@ public class OfflinePendingPayment
             .WithMany(w => w.PendingPayments)
             .HasForeignKey(f => f.MethodConfigId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder
+            .Entity<OfflinePendingPayment>()
+            .HasIndex(x => new { x.StoreId, x.InvoiceId })
+            .IsUnique();
     }
 }
 

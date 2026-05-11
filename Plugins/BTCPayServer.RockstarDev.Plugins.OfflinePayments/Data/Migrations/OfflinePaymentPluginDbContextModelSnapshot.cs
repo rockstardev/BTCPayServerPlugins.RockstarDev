@@ -134,6 +134,9 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 
                     b.HasIndex("MethodConfigId");
 
+                    b.HasIndex("StoreId", "InvoiceId")
+                        .IsUnique();
+
                     b.ToTable("OfflinePendingPayments", "BTCPayServer.RockstarDev.Plugins.OfflinePayment");
                 });
 

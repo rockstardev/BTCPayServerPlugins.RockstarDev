@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class initialMigration : Migration
+    public partial class InitOfflinePayments : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -86,6 +86,13 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                 schema: "BTCPayServer.RockstarDev.Plugins.OfflinePayment",
                 table: "OfflinePendingPayments",
                 column: "MethodConfigId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OfflinePendingPayments_StoreId_InvoiceId",
+                schema: "BTCPayServer.RockstarDev.Plugins.OfflinePayment",
+                table: "OfflinePendingPayments",
+                columns: new[] { "StoreId", "InvoiceId" },
+                unique: true);
         }
 
         /// <inheritdoc />

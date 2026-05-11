@@ -25,7 +25,6 @@ public class OfflineCheckoutModelExtension(OfflineMethodConfigService configServ
                 entry.Displayed = false;
             return;
         }
-
         context.Model.CheckoutBodyComponentName = $"OfflinePayment_{methodId}_Checkout";
         context.Model.InvoiceBitcoinUrlQR = null;
         context.Model.ExpirationSeconds = int.MaxValue;

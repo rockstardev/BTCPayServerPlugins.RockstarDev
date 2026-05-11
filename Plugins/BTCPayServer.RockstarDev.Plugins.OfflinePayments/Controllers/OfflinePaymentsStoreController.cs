@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Constants;
@@ -52,10 +53,15 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
         if (!ModelState.IsValid)
             return View("EditMethod", vm);
 
+        if (!configService.GetMethodTypes().Contains(vm.MethodId, StringComparer.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(nameof(vm.MethodId), $"'{vm.MethodId}' is not a supported payment method.");
+            return View("EditMethod", vm);
+        }
+
         if (await configService.PaymentMethodExists(storeId, vm.MethodId))
         {
             ModelState.AddModelError(nameof(vm.MethodId), $"A payment method with ID '{vm.MethodId}' already exists for this store.");
-            vm.AvailableMethodTypes = configService.GetMethodTypes();
             return View("EditMethod", vm);
         }
         await configService.Create(vm.ToModel(storeId));
@@ -101,8 +107,12 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string storeId, string id)
     {
-        await configService.Delete(id, storeId);
-        TempData["SuccessMessage"] = "Payment method deleted.";
+        var deleted = await configService.Delete(id, storeId);
+        if (!deleted)
+            TempData["ErrorMessage"] = "Cannot delete as it has an existing payment records.";
+        else
+            TempData["SuccessMessage"] = "Payment method deleted.";
+
         return RedirectToAction(nameof(Index), new { storeId });
     }
 
