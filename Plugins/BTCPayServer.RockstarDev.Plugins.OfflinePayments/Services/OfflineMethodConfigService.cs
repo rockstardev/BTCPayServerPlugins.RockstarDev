@@ -49,10 +49,11 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         return await ctx.OfflineMethodConfigs.FirstOrDefaultAsync(x => x.Id == id && x.StoreId == storeId);
     }
 
-    public async Task<OfflineMethodConfig> Create(OfflineMethodConfig config)
+    public async Task<OfflineMethodConfig> Create(OfflineMethodConfig config, string userId)
     {
         config.CreatedAt = DateTimeOffset.UtcNow;
         config.UpdatedAt = DateTimeOffset.UtcNow;
+        config.UserId = userId;
         await using var ctx = pluginDbContextFactory.CreateContext();
         ctx.OfflineMethodConfigs.Add(config);
         await ctx.SaveChangesAsync();

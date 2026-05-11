@@ -1,0 +1,95 @@
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
+@model OfflineMethodConfigViewModel
+@{
+	var storeId = ViewContext.RouteData.Values["storeId"]?.ToString();
+	ViewData.SetActivePage(OfflinePaymentsPlugin.PluginNavKey, Model.DisplayName, "MethodSettings");
+}
+
+<form method="post">
+	<div class="sticky-header d-flex align-items-center justify-content-between">
+		<h2>@Model.DisplayName</h2>
+		<button type="submit" class="btn btn-primary">Save</button>
+	</div>
+
+	@Html.AntiForgeryToken()
+
+	<partial name="_StatusMessage" />
+
+	<div class="form-group my-4">
+		<div class="d-flex align-items-center">
+			<input asp-for="IsEnabled" type="checkbox" id="IsEnabled" class="btcpay-toggle me-3" />
+			<label class="form-check-label" for="IsEnabled">Enabled</label>
+		</div>
+		<div class="form-text">
+			When enabled, @Model.DisplayName appears as a payment option at checkout.
+		</div>
+	</div>
+
+	<h5 class="mb-3">Bank / Account Details</h5>
+	<table class="table table-sm mb-4" style="max-width:500px;">
+		@if (!string.IsNullOrEmpty(Model.BankName))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Bank</td>
+				<td class="fw-semibold border-0">@Model.BankName</td>
+			</tr>
+		}
+		@if (!string.IsNullOrEmpty(Model.AccountName))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Account Name</td>
+				<td class="fw-semibold border-0">@Model.AccountName</td>
+			</tr>
+		}
+		@if (!string.IsNullOrEmpty(Model.RoutingNumber))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Routing</td>
+				<td class="fw-semibold border-0">@Model.RoutingNumber</td>
+			</tr>
+		}
+		@if (!string.IsNullOrEmpty(Model.AccountNumber))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Account</td>
+				<td class="fw-semibold border-0">@Model.AccountNumber</td>
+			</tr>
+		}
+		@if (!string.IsNullOrEmpty(Model.EstimatedSettlementTime))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Est. Settlement</td>
+				<td class="border-0">@Model.EstimatedSettlementTime</td>
+			</tr>
+		}
+		@if (!string.IsNullOrEmpty(Model.SupportContact))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Contact</td>
+				<td class="border-0">@Model.SupportContact</td>
+			</tr>
+		}
+		@if (!string.IsNullOrEmpty(Model.ReferenceTemplate))
+		{
+			<tr>
+				<td class="text-muted border-0 ps-0">Reference Template</td>
+				<td class="border-0"><code>@Model.ReferenceTemplate</code></td>
+			</tr>
+		}
+	</table>
+
+	@if (!string.IsNullOrEmpty(Model.Instructions))
+	{
+		<h5 class="mb-2">Customer Instructions</h5>
+		<p class="text-muted mb-4">@Model.Instructions</p>
+	}
+	@{
+		var storeId = ViewContext.RouteData.Values["storeId"]?.ToString();
+	}
+
+	<a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@Model.Id" class="btn btn-secondary">
+		Edit Full Configuration
+	</a>
+</form>

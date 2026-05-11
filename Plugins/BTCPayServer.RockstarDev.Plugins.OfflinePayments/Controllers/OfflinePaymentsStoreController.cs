@@ -11,6 +11,7 @@ using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Controllers;
@@ -20,9 +21,11 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Controllers;
 public class OfflinePaymentsStoreController(OfflineMethodConfigService configService,
     OfflinePaymentsService paymentsService,
     StoreRepository storeRepository,
+    UserManager<ApplicationUser> userManager,
     PaymentMethodHandlerDictionary handlers) : Controller
 {
     private StoreData StoreData => HttpContext.GetStoreData();
+    private string GetUserId() => userManager.GetUserId(User);
 
     [HttpGet]
     public async Task<IActionResult> Index(string storeId)
@@ -64,7 +67,7 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
             ModelState.AddModelError(nameof(vm.MethodId), $"A payment method with ID '{vm.MethodId}' already exists for this store.");
             return View("EditMethod", vm);
         }
-        await configService.Create(vm.ToModel(storeId));
+        await configService.Create(vm.ToModel(storeId), GetUserId());
         var pmid = new PaymentMethodId(vm.MethodId);
         await EnableMethodInStore(StoreData, pmid);
         TempData["SuccessMessage"] = $"Payment method '{vm.DisplayName}' created.";
@@ -114,6 +117,41 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
             TempData["SuccessMessage"] = "Payment method deleted.";
 
         return RedirectToAction(nameof(Index), new { storeId });
+    }
+
+
+    [HttpGet("method/{methodId}")]
+    public async Task<IActionResult> MethodSettings(string storeId, string methodId)
+    {
+        var methods = await configService.GetAllMethods(storeId);
+        var method = methods.FirstOrDefault(m => string.Equals(m.MethodId, methodId, StringComparison.OrdinalIgnoreCase));
+        if (method is null)
+            return NotFound();
+
+        var vm = OfflineMethodConfigViewModel.FromModel(method);
+        return View(vm);
+    }
+
+    [HttpPost("method/{methodId}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MethodSettings(string storeId, string methodId, OfflineMethodConfigViewModel vm)
+    {
+        var methods = await configService.GetAllMethods(storeId);
+        var method = methods.FirstOrDefault(m => string.Equals(m.MethodId, methodId, StringComparison.OrdinalIgnoreCase));
+        if (method is null)
+            return NotFound();
+
+        method.IsEnabled = vm.IsEnabled;
+        await configService.Update(method);
+
+        var pmid = new PaymentMethodId(methodId);
+        if (vm.IsEnabled)
+            await EnableMethodInStore(StoreData, pmid);
+        else
+            await DisableMethodInStore(StoreData, pmid);
+
+        TempData["SuccessMessage"] = $"{method.DisplayName} updated.";
+        return RedirectToAction(nameof(MethodSettings), new { storeId, methodId });
     }
 
     [HttpGet("pending")]

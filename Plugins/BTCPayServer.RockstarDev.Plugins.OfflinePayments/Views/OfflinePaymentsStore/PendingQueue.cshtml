@@ -67,7 +67,12 @@ else
 									</div>
 								</div>
 							}
-
+							@if (!string.IsNullOrEmpty(item.RemittanceFileUrl))
+							{
+								<a href="/Storage/@item.RemittanceFileUrl" target="_blank" class="btn btn-link p-0 me-3 text-secondary">
+									Receipt
+								</a>
+							}
 							<a href="#"
 							   data-bs-toggle="modal"
 							   data-bs-target="#ConfirmModal"

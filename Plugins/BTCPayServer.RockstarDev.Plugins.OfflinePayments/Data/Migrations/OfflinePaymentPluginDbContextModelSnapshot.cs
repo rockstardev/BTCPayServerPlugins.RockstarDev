@@ -77,6 +77,9 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("StoreId", "MethodId")

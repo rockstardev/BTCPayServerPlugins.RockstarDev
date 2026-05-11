@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 {
     [DbContext(typeof(OfflinePaymentPluginDbContext))]
-    [Migration("20260511101426_InitOfflinePayments")]
+    [Migration("20260511131242_InitOfflinePayments")]
     partial class InitOfflinePayments
     {
         /// <inheritdoc />
@@ -79,6 +79,9 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

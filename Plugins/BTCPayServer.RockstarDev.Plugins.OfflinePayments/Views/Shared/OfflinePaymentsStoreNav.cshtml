@@ -1,0 +1,31 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Data
+@using BTCPayServer.Payments
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IScopeProvider ScopeProvider
+@inject OfflineMethodConfigService ConfigService
+@{
+	var storeId = ScopeProvider.GetCurrentStoreId();
+}
+@if (SignInManager.IsSignedIn(User) && !string.IsNullOrEmpty(storeId))
+{
+	var methods = await ConfigService.GetAllMethods(storeId);
+	var path = Context.Request.Path.Value ?? string.Empty;
+
+	foreach (var method in methods)
+	{
+		var isActive = path.TrimEnd('/').EndsWith(
+			$"/offline-payments/method/{method.MethodId}",
+			StringComparison.OrdinalIgnoreCase);
+
+		<li class="nav-item">
+			<a class="nav-link @(isActive ? "active" : "")"
+				   asp-route-storeId="@storeId" asp-route-methodId="@method.MethodId" asp-action="MethodSettings" asp-controller="OfflinePaymentsStore">
+				<span class="me-2 btcpay-status btcpay-status--@(method.IsEnabled ? "enabled" : "pending")"></span>
+				<span>@method.DisplayName</span>
+			</a>
+		</li>
+	}
+}

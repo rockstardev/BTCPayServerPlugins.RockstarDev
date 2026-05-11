@@ -22,6 +22,7 @@ public class OfflineMethodConfig
     public string ReferenceTemplate { get; set; } = "Invoice {InvoiceId}";
     public string EstimatedSettlementTime { get; set; }
     public string SupportContact { get; set; }
+    public string UserId { get; set; }
     public bool IsEnabled { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

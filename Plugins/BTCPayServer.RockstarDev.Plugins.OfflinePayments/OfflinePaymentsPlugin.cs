@@ -10,6 +10,7 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments;
 
 public class OfflinePaymentsPlugin : BaseBTCPayServerPlugin
 {
+    public const string PluginNavKey = nameof(OfflinePaymentsPlugin) + "Nav";
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
         new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.6" }
@@ -17,6 +18,7 @@ public class OfflinePaymentsPlugin : BaseBTCPayServerPlugin
 
     public override void Execute(IServiceCollection services)
     {
+        services.AddUIExtension("store-wallets-nav", "OfflinePaymentsStoreNav");
         services.AddUIExtension("store-integrations-nav", "OfflinePaymentNav");
         services.AddUIExtension("checkout-payment", "OfflinePaymentsCheckout");
         services.AddSingleton<OfflinePaymentsService>();

@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
@@ -12,13 +11,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Controllers;
 
 [Route("~/plugins/{storeId}/offline-payments/")]
-public class OfflinePaymentsPublicController(OfflineMethodConfigService configService, OfflinePaymentsService paymentsService, InvoiceRepository invoiceRepository) : Controller
+public class OfflinePaymentsPublicController(OfflineMethodConfigService configService, OfflinePaymentsService paymentsService,
+    InvoiceRepository invoiceRepository, IFileService fileService) : Controller
 {
 
     [HttpPost("{invoiceId}/mark-sent")]
     [IgnoreAntiforgeryToken]
     [AllowAnonymous]
-    public async Task<IActionResult> MarkSent(string storeId, string invoiceId, string? customerNote, string? methodId)
+    public async Task<IActionResult> MarkSent(string storeId, string invoiceId, string? customerNote, string? methodId, IFormFile? remittanceFile)
     {
         if (Request.Headers["X-Requested-With"] != "RockstarHttpRequester")
             return BadRequest();
@@ -30,14 +30,21 @@ public class OfflinePaymentsPublicController(OfflineMethodConfigService configSe
         if (invoice.Status != InvoiceStatus.New && invoice.Status != InvoiceStatus.Processing)
             return BadRequest("Invoice is not in a payable state.");
 
-        var method = await configService.GetEnabledMethodOptions(storeId).ContinueWith(t => t.Result.FirstOrDefault(m => m.MethodId == methodId));
+        var methods = await configService.GetEnabledMethodOptions(storeId);
+        var method = methods.FirstOrDefault(m => m.MethodId == methodId);
         if (method is null)
             return BadRequest("Method not found.");
 
+        string? remittanceFileId = null;
+        if (remittanceFile is { Length: > 0 })
+        {
+            var uploaded = await fileService.AddFile(remittanceFile, method.UserId);
+            remittanceFileId = uploaded?.Id;
+        }
         var existing = await paymentsService.GetByInvoiceId(storeId, invoiceId);
         if (existing is null)
         {
-            await paymentsService.RecordPayment(storeId, invoiceId, method, customerNote);
+            await paymentsService.RecordPayment(storeId, invoiceId, method, customerNote, remittanceFileId);
         }
         return Json(new { success = true });
     }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -33,9 +33,10 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                     ReferenceTemplate = table.Column<string>(type: "text", nullable: true),
                     EstimatedSettlementTime = table.Column<string>(type: "text", nullable: true),
                     SupportContact = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<string>(type: "text", nullable: true),
                     IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -53,7 +54,7 @@ namespace BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data.Migrations
                     MethodId = table.Column<string>(type: "text", nullable: true),
                     ResolvedReference = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CustomerNote = table.Column<string>(type: "text", nullable: true),
                     CustomerMarkedSentAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     AdminConfirmedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),

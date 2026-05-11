@@ -76,13 +76,15 @@
 				}
 
 				<div v-if="!sent">
-					<textarea v-model="customerNote"
-							  placeholder="Optional note (e.g. transfer confirmation number)"
-							  class="form-control form-control-sm mb-3"
-							  rows="2"></textarea>
+					<textarea v-model="customerNote" placeholder="Optional note (e.g. transfer confirmation number)"
+							  class="form-control form-control-sm mb-3" rows="2"></textarea>
 
-					<button class="btn btn-primary rounded-pill w-100"
-							v-on:click.prevent="markSent">
+					<div class="mb-3">
+						<label class="form-label text-muted" style="font-size:0.78rem;">Attach receipt (optional)</label>
+						<input type="file" ref="fileInput" accept="image/*,.pdf" class="form-control form-control-sm" />
+					</div>
+
+					<button class="btn btn-primary rounded-pill w-100" v-on:click.prevent="markSent">
 						I've made the payment
 					</button>
 				</div>
@@ -108,6 +110,9 @@
 			const formData = new FormData();
 			formData.append('customerNote', this.customerNote || '');
 			formData.append('methodId', this.model.paymentMethodId);
+
+			const file = this.$refs.fileInput?.files?.[0];
+			if (file) formData.append('remittanceFile', file);
 
 			const res = await fetch(this.model.invoiceBitcoinUrl, {
 			method: 'POST',

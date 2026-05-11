@@ -68,8 +68,8 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
         pendingPayment.AdminConfirmedAt = DateTimeOffset.UtcNow;
         pendingPayment.AdminUserId = adminUserId;
         pendingPayment.UpdatedAt = DateTimeOffset.UtcNow;
-        await invoiceRepository.MarkInvoiceStatus(pendingPayment.InvoiceId, InvoiceStatus.Settled);
         await ctx.SaveChangesAsync();
+        await invoiceRepository.MarkInvoiceStatus(pendingPayment.InvoiceId, InvoiceStatus.Settled);
         return pendingPayment;
     }
 
@@ -88,8 +88,8 @@ public class OfflinePaymentsService(OfflinePaymentPluginDbContextFactory pluginD
         pendingPayment.AdminInvalidatedAt = DateTimeOffset.UtcNow;
         pendingPayment.AdminUserId = adminUserId;
         pendingPayment.UpdatedAt = DateTimeOffset.UtcNow;
-        await invoiceRepository.MarkInvoiceStatus(pendingPayment.InvoiceId, InvoiceStatus.Invalid);
         await ctx.SaveChangesAsync();
+        await invoiceRepository.MarkInvoiceStatus(pendingPayment.InvoiceId, InvoiceStatus.Invalid);
         return pendingPayment;
     }
 

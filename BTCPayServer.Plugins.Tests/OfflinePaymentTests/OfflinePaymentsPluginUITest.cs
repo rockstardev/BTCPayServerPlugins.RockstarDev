@@ -222,4 +222,111 @@ public class OfflinePaymentsPluginUITest : PlaywrightBaseTest
         var methodRow = Page.Locator("table tbody tr").Filter(new LocatorFilterOptions { HasText = "ACH" });
         Assert.True(await methodRow.CountAsync() > 0);
     }
+
+    [Fact]
+    public async Task MethodSettingsPageShowsDetails()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await CreateACHMethod(user.StoreId);
+        await GoToUrl($"/plugins/{user.StoreId}/offline-payments/method/ACH");
+        var heading = Page.Locator("h2");
+        Assert.Contains("ACH", await heading.TextContentAsync());
+        var bankDetails = Page.Locator("table");
+        Assert.True(await bankDetails.IsVisibleAsync());
+        Assert.Contains("Chase Bank", await bankDetails.TextContentAsync());
+        Assert.Contains("021000021", await bankDetails.TextContentAsync());
+    }
+
+    [Fact]
+    public async Task CanEnableAndDisableMethodFromMethodSettings()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await CreateACHMethod(user.StoreId);
+        await GoToUrl($"/plugins/{user.StoreId}/offline-payments/method/ACH");
+        var toggle = Page.Locator("#IsEnabled");
+        var isChecked = await toggle.IsCheckedAsync();
+        if (isChecked)
+            await toggle.UncheckAsync();
+
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await FindAlertMessageAsync();
+        toggle = Page.Locator("#IsEnabled");
+        Assert.False(await toggle.IsCheckedAsync());
+        await toggle.CheckAsync();
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await FindAlertMessageAsync();
+        toggle = Page.Locator("#IsEnabled");
+        Assert.True(await toggle.IsCheckedAsync());
+    }
+
+    [Fact]
+    public async Task MethodSettingsAppearsInWalletsNav()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await ServerTester.ExplorerNode.GenerateAsync(1);
+        await user.RegisterDerivationSchemeAsync("BTC", importKeysToNBX: true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await CreateACHMethod(user.StoreId);
+        await GoToUrl($"/stores/{user.StoreId}/");
+        var navItem = Page.Locator(".nav-item").Filter(new LocatorFilterOptions { HasText = "ACH Bank Transfer" });
+        Assert.True(await navItem.CountAsync() > 0);
+    }
+
+    [Fact]
+    public async Task DisabledMethodHiddenFromCheckout()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await ServerTester.ExplorerNode.GenerateAsync(1);
+        await user.RegisterDerivationSchemeAsync("BTC", importKeysToNBX: true);
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await CreateACHMethod(user.StoreId);
+        await GoToUrl($"/plugins/{user.StoreId}/offline-payments/method/ACH");
+        var toggle = Page.Locator("#IsEnabled");
+        if (await toggle.IsCheckedAsync())
+            await toggle.UncheckAsync();
+
+        await Page.Locator("button[type='submit']").ClickAsync();
+        await FindAlertMessageAsync();
+        var invoiceId = await CreateInvoice(user.StoreId, 10m, "USD");
+        await GoToUrl($"tests/index.html?invoice={invoiceId}");
+        var frame = await GetCheckoutFrame();
+        var achMethod = frame.Locator(".payment-method").Filter(new LocatorFilterOptions { HasText = "ACH" });
+        Assert.Equal(0, await achMethod.CountAsync());
+    }
+
+    [Fact]
+    public async Task EditConfigurationLinkNavigatesToEditPage()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+        await CreateACHMethod(user.StoreId);
+        await GoToUrl($"/plugins/{user.StoreId}/offline-payments/method/ACH");
+        await Page.Locator("a.btn-secondary").Filter(new LocatorFilterOptions { HasText = "Edit" }).ClickAsync();
+        Assert.Contains("/edit", Page.Url);
+        var displayName = Page.Locator("#DisplayName");
+        Assert.True(await displayName.IsVisibleAsync());
+        Assert.Equal("ACH Bank Transfer", await displayName.InputValueAsync());
+    }
 }
