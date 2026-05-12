@@ -199,8 +199,7 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Invalidate(string storeId, string pendingId)
     {
-        var userId = User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? "unknown";
-        var result = await paymentsService.AdminInvalidatePayment(pendingId, storeId, userId);
+        var result = await paymentsService.AdminInvalidatePayment(pendingId, storeId, GetUserId());
 
         TempData[result is null ? "ErrorMessage" : "SuccessMessage"] =
             result is null ? "Payment record not found." : "Payment invalidated.";
