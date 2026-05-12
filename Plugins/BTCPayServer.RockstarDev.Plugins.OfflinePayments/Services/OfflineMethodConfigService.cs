@@ -40,7 +40,7 @@ public class OfflineMethodConfigService(OfflinePaymentPluginDbContextFactory plu
         await using var ctx = pluginDbContextFactory.CreateContext();
         var result = await ctx.OfflineMethodConfigs.Where(x => x.StoreId == storeId && x.IsEnabled).ToListAsync();
 
-        cache.Set(CacheKey(storeId), result, TimeSpan.FromSeconds(30));
+        cache.Set(CacheKey(storeId), result, TimeSpan.FromSeconds(30d));
         return result;
     }
 
