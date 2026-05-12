@@ -1,0 +1,101 @@
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Data
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
+@model OfflinePendingQueueViewModel
+@{
+	Layout = "_Layout";
+	ViewData.SetLayoutModel(new LayoutModel(nameof(OfflinePaymentsNavPages.PendingQueue), "Pending Payments Queue")
+	{ ActiveCategory = nameof(OfflinePaymentsNavPages) });
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+	<h2 class="mb-0">Pending Payments Queue</h2>
+</div>
+
+<partial name="_StatusMessage" />
+
+@if (!Model.Items.Any())
+{
+	<p class="text-secondary mt-4">No pending payments to review.</p>
+}
+else
+{
+	<div class="table-responsive">
+		<table class="table table-hover align-middle">
+			<thead>
+				<tr>
+					<th>Invoice</th>
+					<th>Method</th>
+					<th>Reference</th>
+					<th>Date</th>
+					<th class="text-end">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var item in Model.Items)
+				{
+					<tr>
+						<td><a href="/invoices/@item.InvoiceId" target="_blank" class="link-primary">@item.InvoiceId</a></td>
+						<td><span class="badge bg-secondary">@item.MethodId</span></td>
+						<td><code>@item.ResolvedReference</code></td>
+						<td class="text-secondary small">@item.CustomerMarkedSentAt?.ToString("MMM d, HH:mm")</td>
+						<td class="text-end">
+							@if (!string.IsNullOrEmpty(item.CustomerNote))
+							{
+								<button type="button" class="btn btn-link p-0 me-3 text-secondary" data-bs-toggle="modal" data-bs-target="#NoteModal-@item.Id">
+									Customer Note
+								</button>
+
+								<div class="modal fade" id="NoteModal-@item.Id" tabindex="-1">
+									<div class="modal-dialog modal-dialog-centered">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title">Customer Note</h5>
+												<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+											</div>
+											<div class="modal-body">
+												<p class="text-secondary small mb-1">Invoice: @item.InvoiceId</p>
+												<p class="mb-0">@item.CustomerNote</p>
+											</div>
+											<div class="modal-footer">
+												<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							}
+							@if (!string.IsNullOrEmpty(item.RemittanceFileUrl))
+							{
+								<a href="/Storage/@item.RemittanceFileUrl" target="_blank" class="btn btn-link p-0 me-3 text-secondary">
+									Receipt
+								</a>
+							}
+							<a href="#"
+							   data-bs-toggle="modal"
+							   data-bs-target="#ConfirmModal"
+							   data-title="Settle Invoice"
+							   data-description="Confirm you have received payment for invoice <strong>@item.InvoiceId</strong>?"
+							   data-confirm="Settle"
+							   data-action="@Url.Action("Confirm", "OfflinePaymentsStore", new { storeId = Model.StoreId, pendingId = item.Id })"
+							   class="btn btn-link p-0 me-3 text-success">Settle</a>
+
+							<a href="#"
+							   data-bs-toggle="modal"
+							   data-bs-target="#ConfirmModal"
+							   data-title="Void Payment"
+							   data-description="Are you sure you want to void payment for invoice <strong>@item.InvoiceId</strong>?"
+							   data-confirm="Void"
+							   data-action="@Url.Action("Invalidate", "OfflinePaymentsStore", new { storeId = Model.StoreId, pendingId = item.Id })"
+							   class="btn btn-link p-0 text-danger">Void</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+
+	<partial name="_Confirm" model="@(new ConfirmModel("Confirm Action", "", "Confirm", "btn-primary"))" />
+}

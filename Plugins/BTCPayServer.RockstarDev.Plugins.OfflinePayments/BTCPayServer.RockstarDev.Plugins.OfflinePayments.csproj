@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>12</LangVersion>
+        <Nullable>disable</Nullable>
+    </PropertyGroup>
+    <!-- -->
+    <!-- Plugin specific properties -->
+    <PropertyGroup>
+        <Product>Offline Payments</Product>
+        <Description>Accept ACH, wire transfer, check, and cash payments with a full merchant confirmation workflow</Description>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+    <!-- Plugin development properties -->
+    <PropertyGroup>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <PreserveCompilationContext>false</PreserveCompilationContext>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    </PropertyGroup>
+
+    <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
+    <ItemDefinitionGroup>
+        <ProjectReference>
+            <Properties>StaticWebAssetsEnabled=false</Properties>
+            <Private>false</Private>
+            <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
+        </ProjectReference>
+    </ItemDefinitionGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\submodules\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
+    </ItemGroup>
+
+
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.3.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+  </ItemGroup>
+</Project>

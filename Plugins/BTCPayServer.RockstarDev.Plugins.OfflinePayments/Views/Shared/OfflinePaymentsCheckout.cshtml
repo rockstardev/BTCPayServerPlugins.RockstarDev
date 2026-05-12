@@ -1,0 +1,141 @@
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.Services
+@using BTCPayServer.Abstractions.Services
+@model BTCPayServer.Models.InvoicingModels.CheckoutModel
+@inject OfflineMethodConfigService ConfigService
+@inject Safe Safe
+
+@{
+	var methods = await ConfigService.GetEnabledMethodOptions(Model.StoreId);
+}
+
+@foreach (var m in methods)
+{
+	var componentName = $"OfflinePayment_{m.MethodId}_Checkout";
+	var resolvedReference = m.ReferenceTemplate
+		.Replace("{InvoiceId}", Model.InvoiceId)
+		.Replace("{StoreId}", Model.StoreId);
+
+	<text>
+		<template id="@componentName">
+			<div class="mt-2">
+
+				<table class="table table-sm mb-2" style="font-size:0.85rem;">
+					@if (!string.IsNullOrEmpty(m.BankName))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Bank</td>
+							<td class="fw-semibold border-0">@m.BankName</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.AccountName))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Account Name</td>
+							<td class="fw-semibold border-0">@m.AccountName</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.RoutingNumber))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Routing</td>
+							<td class="fw-semibold border-0">@m.RoutingNumber</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.AccountNumber))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Account</td>
+							<td class="fw-semibold border-0">@m.AccountNumber</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.EstimatedSettlementTime))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Est. Settlement</td>
+							<td class="text-muted border-0">@m.EstimatedSettlementTime</td>
+						</tr>
+					}
+					@if (!string.IsNullOrEmpty(m.SupportContact))
+					{
+						<tr>
+							<td class="text-muted border-0 ps-0" style="white-space:nowrap;">Contact</td>
+							<td class="text-muted border-0" style="font-size:0.8rem;">@m.SupportContact</td>
+						</tr>
+					}
+				</table>
+
+				<div class="mb-3" style="font-size:0.85rem;">
+					<span class="text-muted">Reference / Memo</span><br /><strong>@resolvedReference</strong>
+				</div>
+
+				@if (!string.IsNullOrEmpty(m.Instructions))
+				{
+					<p class="text-muted mb-2" style="font-size:0.78rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+						@m.Instructions
+					</p>
+				}
+
+				<div v-if="!sent">
+					<textarea v-model="customerNote" placeholder="Optional note (e.g. transfer confirmation number)"
+							  class="form-control form-control-sm mb-3" rows="2"></textarea>
+
+					<div class="mb-3">
+						<label class="form-label text-muted" style="font-size:0.78rem;">Attach receipt (optional)</label>
+						<input type="file" ref="fileInput" accept="image/*,.pdf" class="form-control form-control-sm" />
+					</div>
+
+					<div v-if="errorMessage" class="alert alert-danger mt-2" style="font-size:0.85rem;">
+						{{ errorMessage }}
+					</div>
+
+					<button class="btn btn-primary rounded-pill w-100" v-on:click.prevent="markSent">
+						I've made the payment
+					</button>
+				</div>
+
+				<div v-if="sent" class="alert alert-success mt-2" style="font-size:0.85rem;">
+					Payment marked as sent. We will confirm receipt shortly.
+				</div>
+			</div>
+		</template>
+
+		<script>
+			Vue.component(@Safe.Json(componentName), {
+			props: ['model'],
+			template: @Safe.Json("#" + componentName),
+			data() {
+			return {
+			sent: localStorage.getItem('marksent_' + this.model?.invoiceId) === 'true',
+			customerNote: '',
+			errorMessage: ''
+			};
+			},
+			methods: {
+			async markSent() {
+			const formData = new FormData();
+			formData.append('customerNote', this.customerNote || '');
+			formData.append('methodId', this.model.paymentMethodId);
+
+			const file = this.$refs.fileInput?.files?.[0];
+			if (file) formData.append('remittanceFile', file);
+
+			const res = await fetch(this.model.invoiceBitcoinUrl, {
+			method: 'POST',
+			headers: { 'X-Requested-With': 'RockstarHttpRequester' },
+			body: formData
+			});
+
+			if (res.ok) {
+			this.sent = true;
+			localStorage.setItem('marksent_' + this.model.invoiceId, 'true');
+			} else if (res.status === 400) {
+			this.errorMessage = await res.text();
+			} else {
+			this.errorMessage = 'Unable to record payment. Please try again or contact the store.';
+			}
+			}
+			}
+			});
+		</script>
+	</text>
+}

@@ -1,0 +1,85 @@
+@using BTCPayServer.Abstractions.Contracts
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
+@inject IScopeProvider ScopeProvider
+@model OfflineSettingsViewModel
+@{
+	Layout = "_Layout";
+	ViewData.SetLayoutModel(new LayoutModel(nameof(OfflinePaymentsNavPages.Methods), "Offline Payments")
+	{ ActiveCategory = nameof(OfflinePaymentsNavPages) });
+	var storeId = ScopeProvider.GetCurrentStoreId();
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+	<h2 class="mb-0">Offline Payments</h2>
+	<a asp-action="Create" asp-route-storeId="@storeId" class="btn btn-primary mt-3 mt-sm-0">
+		<span class="fa fa-plus"></span> Add Payment Method
+	</a>
+</div>
+
+<partial name="_StatusMessage" />
+
+<p class="text-secondary mt-3">
+	Configure offline payment methods (ACH, Wire, Check, Cash) for your store.
+	Customers will see payment instructions at checkout and can mark payments as sent.
+	You confirm receipt in the <a asp-action="PendingQueue" asp-route-storeId="@storeId">Pending Queue</a>
+</p>
+
+@if (!Model.Methods.Any())
+{
+	<p class="text-secondary mt-4">
+		No payment methods configured yet. <a asp-action="Create" asp-route-storeId="@storeId">Add one now.</a>
+	</p>
+}
+else
+{
+	<div class="table-responsive">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th>Method ID</th>
+					<th>Display Name</th>
+					<th>Status</th>
+					<th class="text-end">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var m in Model.Methods)
+				{
+					<tr>
+						<td><code>@m.MethodId</code></td>
+						<td>@m.DisplayName</td>
+						<td>
+							@if (m.IsEnabled)
+							{
+								<span class="badge bg-success">Enabled</span>
+							}
+							else
+							{
+								<span class="badge bg-secondary">Disabled</span>
+							}
+						</td>
+						<td class="text-end">
+							<a asp-action="Edit" asp-route-storeId="@storeId" asp-route-id="@m.Id">Edit</a>
+							<a href="#"
+								   class="ms-3 text-danger"
+								   data-bs-toggle="modal"
+								   data-bs-target="#ConfirmModal"
+								   data-title="Delete Payment Method"
+								   data-description="Are you sure you want to delete <strong>@m.DisplayName</strong>?"
+								   data-confirm="Delete"
+								   data-action="@Url.Action("Delete", "OfflinePaymentsStore", new { storeId, id = m.Id })">
+								Delete
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+
+	<partial name="_Confirm" model="@(new ConfirmModel("Delete Payment Method", "", "Delete", "btn-danger"))" />
+}

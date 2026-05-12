@@ -1,0 +1,118 @@
+@using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments
+@using BTCPayServer.RockstarDev.Plugins.OfflinePayments.ViewModels
+@model OfflineMethodConfigViewModel
+@{
+	var isNew = string.IsNullOrEmpty(Model.Id);
+	Layout = "_Layout";
+	ViewData.SetLayoutModel(new LayoutModel(nameof(OfflinePaymentsNavPages.Methods), isNew ? "Add Payment Method" : "Edit Payment Method")
+	{ ActiveCategory = nameof(OfflinePaymentsNavPages) });
+}
+
+<div class="sticky-header-setup"></div>
+<div class="sticky-header d-sm-flex align-items-center justify-content-between">
+	<h2 class="mb-0">@(isNew ? "Add Payment Method" : "Edit Payment Method")</h2>
+	<button type="submit" form="methodForm" class="btn btn-primary mt-3 mt-sm-0">Save</button>
+</div>
+
+<partial name="_StatusMessage" />
+
+<form method="post" id="methodForm">
+	<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+	@if (isNew)
+	{
+		<div class="form-group mb-3">
+			<label asp-for="MethodId" class="form-label">Method Type</label>
+			<select asp-for="MethodId" class="form-select" style="max-width:400px;">
+				<option value="">-- Select --</option>
+				@foreach (var type in Model.AvailableMethodTypes)
+				{
+					<option value="@type">@type</option>
+				}
+			</select>
+			<span asp-validation-for="MethodId" class="text-danger small"></span>
+		</div>
+	}
+	else
+	{
+		<div class="mb-3">
+			<label class="form-label">Method Type</label>
+			<div><code class="fs-6">@Model.MethodId</code></div>
+			<input type="hidden" asp-for="MethodId" />
+		</div>
+	}
+
+	<div class="d-flex align-items-center mb-2">
+		<input asp-for="IsEnabled" class="btcpay-toggle me-3" type="checkbox" />
+		<label asp-for="IsEnabled" class="form-check-label">Enabled</label>
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="DisplayName" class="form-label"></label>
+		<input asp-for="DisplayName" class="form-control" placeholder="e.g. ACH Bank Transfer" style="max-width:400px;" />
+		<span asp-validation-for="DisplayName" class="text-danger small"></span>
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="EstimatedSettlementTime" class="form-label"></label>
+		<input asp-for="EstimatedSettlementTime" class="form-control" placeholder="1-3 business days" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="SupportContact" class="form-label"></label>
+		<input asp-for="SupportContact" class="form-control" placeholder="payments@yourcompany.com" style="max-width:400px;" />
+	</div>
+
+	<h5 class="mb-3">Bank / Account Details</h5>
+
+	<div class="form-group mb-3">
+		<label asp-for="BankName" class="form-label"></label>
+		<input asp-for="BankName" class="form-control" placeholder="First National Bank" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="BankAddress" class="form-label"></label>
+		<input asp-for="BankAddress" class="form-control" placeholder="123 Main St, City, ST 00000" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="AccountName" class="form-label"></label>
+		<input asp-for="AccountName" class="form-control" placeholder="ACME Corp" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="AccountAddress" class="form-label"></label>
+		<input asp-for="AccountAddress" class="form-control" placeholder="456 Business Ave" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="RoutingNumber" class="form-label"></label>
+		<input asp-for="RoutingNumber" class="form-control" placeholder="021000021" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="AccountNumber" class="form-label"></label>
+		<input asp-for="AccountNumber" class="form-control" placeholder="123456789" style="max-width:400px;" />
+	</div>
+
+	<div class="form-group mb-3">
+		<label asp-for="ReferenceTemplate" class="form-label"></label>
+		<input asp-for="ReferenceTemplate" class="form-control" placeholder="Invoice {InvoiceId}" style="max-width:400px;" />
+		<div class="form-text">Use <code>{InvoiceId}</code> and <code>{StoreId}</code> as placeholders.</div>
+	</div>
+
+	<h5 class="mb-3">Customer Payment Instructions</h5>
+
+	<div class="form-group mb-4">
+		<label asp-for="Instructions" class="form-label"></label>
+		<div class="row">
+			<div class="col-md-6">
+				<textarea asp-for="Instructions" class="form-control" rows="6" maxlength="500" placeholder="Describe what the customer should do."></textarea>
+				<div class="form-text">Shown to the customer at checkout. Plain text only, 500 characters max.</div>
+			</div>
+		</div>
+		<div class="form-text">Shown to the customer at checkout.</div>
+	</div>
+</form>
