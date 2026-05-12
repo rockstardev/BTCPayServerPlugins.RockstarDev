@@ -158,14 +158,15 @@ public class OfflinePaymentsStoreController(OfflineMethodConfigService configSer
         method.IsEnabled = vm.IsEnabled;
         await configService.Update(method);
 
-        var pmid = new PaymentMethodId(methodId);
+        var canonicalMethodId = method.MethodId;
+        var pmid = new PaymentMethodId(canonicalMethodId);
         if (vm.IsEnabled)
             await EnableMethodInStore(StoreData, pmid);
         else
             await DisableMethodInStore(StoreData, pmid);
 
         TempData["SuccessMessage"] = $"{method.DisplayName} updated.";
-        return RedirectToAction(nameof(MethodSettings), new { storeId, methodId });
+        return RedirectToAction(nameof(MethodSettings), new { storeId, methodId = canonicalMethodId });
     }
 
     [HttpGet("pending")]
