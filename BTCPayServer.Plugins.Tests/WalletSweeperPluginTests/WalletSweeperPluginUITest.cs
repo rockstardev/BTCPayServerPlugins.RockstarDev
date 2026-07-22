@@ -1,6 +1,5 @@
 using BTCPayServer.Tests;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.Tests;
 

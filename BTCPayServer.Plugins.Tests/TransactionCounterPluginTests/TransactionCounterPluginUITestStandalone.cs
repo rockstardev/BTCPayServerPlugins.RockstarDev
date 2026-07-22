@@ -2,7 +2,6 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Tests;
 using Newtonsoft.Json;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.Tests;
 
