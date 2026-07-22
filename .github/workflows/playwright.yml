@@ -85,4 +85,5 @@ jobs:
                 run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest"
 
             -   name: Cleanup Docker
+                if: ${{ always() }}
                 run: docker compose -f submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml down --volumes
