@@ -74,8 +74,8 @@ jobs:
                 run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev --build
 
             -   name: Run tests
-                timeout-minutes: 15
-                run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal --filter "Category=PlaywrightUITest&FullyQualifiedName~VendorPayPluginUITest"
+                timeout-minutes: 12
+                run: dotnet test BTCPayServer.Plugins.Tests --logger "console;verbosity=detailed" --filter "Category=PlaywrightUITest&FullyQualifiedName~VendorPayPluginUITest"
 
             -   name: Cleanup Docker
                 run: docker compose -f submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml down --volumes
