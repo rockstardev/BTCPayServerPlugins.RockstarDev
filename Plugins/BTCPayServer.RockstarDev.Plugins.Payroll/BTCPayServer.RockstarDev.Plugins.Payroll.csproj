@@ -12,7 +12,7 @@
     <Description>
       Accept invoices from various sources and easily pay them out from Bitcoin wallet. Pay all your vendors using Bitcoin.
     </Description>
-    <Version>0.8.4</Version>
+    <Version>0.8.5</Version>
   </PropertyGroup>
   <!-- Plugin development properties -->
   <PropertyGroup>
@@ -24,6 +24,7 @@
   <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
   <ItemDefinitionGroup>
     <ProjectReference>
+      <Properties>StaticWebAssetsEnabled=false</Properties>
       <Private>false</Private>
       <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
     </ProjectReference>

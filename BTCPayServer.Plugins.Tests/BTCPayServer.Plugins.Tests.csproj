@@ -15,6 +15,7 @@
 
     <ItemDefinitionGroup>
         <ProjectReference>
+            <Properties>StaticWebAssetsEnabled=false</Properties>
         </ProjectReference>
     </ItemDefinitionGroup>
 
