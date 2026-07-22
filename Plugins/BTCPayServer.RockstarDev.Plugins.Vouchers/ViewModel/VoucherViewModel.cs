@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using BTCPayServer.Data;
 using BTCPayServer.Models;
-using BTCPayServer.Models.WalletViewModels;
+using BTCPayServer.Plugins.Wallets.Views.ViewModels;
 using BTCPayServer.Payouts;
 using BTCPayServer.Services;
 using Microsoft.AspNetCore.Http;

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using BTCPayServer.Plugins.Wallets;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
@@ -283,7 +284,7 @@ public class VendorPayInvoiceController(
         });
 
         return new RedirectToActionResult(nameof(UIWalletsController.WalletSend), "UIWallets",
-            new { walletId = new WalletId(CurrentStore.Id, VendorPayPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
+            new { area = WalletsPlugin.Area, walletId = new WalletId(CurrentStore.Id, VendorPayPluginConst.BTC_CRYPTOCODE).ToString(), bip21 });
     }
 
     private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent)

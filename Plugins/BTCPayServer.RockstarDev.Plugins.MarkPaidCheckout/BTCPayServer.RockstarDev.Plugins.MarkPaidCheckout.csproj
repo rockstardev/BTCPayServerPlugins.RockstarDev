@@ -16,7 +16,6 @@
     </PropertyGroup>
     <ItemDefinitionGroup>
         <ProjectReference>
-            <Properties>StaticWebAssetsEnabled=false</Properties>
             <Private>false</Private>
             <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
         </ProjectReference>
