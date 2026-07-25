@@ -82,7 +82,7 @@ jobs:
                 # Filter scoped to VendorPay class - MarkPaid / OfflinePayments /
                 # WalletHistoryReload / WalletSweeper / LnurlVerify contain bit-rotted
                 # tests that hang indefinitely; needs per-test isolation as a follow-up.
-                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletHistoryReloadPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletSweeperPluginUITest" -class "BTCPayServer.Plugins.Tests.MarkPaidPluginUITest" -class "BTCPayServer.Plugins.Tests.LnurlVerifyTests.LnurlVerifyLightningClientTests" -class "BTCPayServer.Plugins.Tests.LnurlVerifyTests.LnurlVerifyConnectionStringTests"
+                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletHistoryReloadPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletSweeperPluginUITest" -class "BTCPayServer.Plugins.Tests.MarkPaidPluginUITest" -class "BTCPayServer.Plugins.Tests.OfflinePaymentTests.OfflinePaymentsPluginUITest"
 
             -   name: Cleanup Docker
                 if: ${{ always() }}
