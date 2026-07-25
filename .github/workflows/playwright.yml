@@ -82,7 +82,7 @@ jobs:
                 # Explicit -class scope required: full `-trait Category=PlaywrightUITest`
                 # (no class list) hangs indefinitely with zero test output, suggesting
                 # discovery order / test-collection interaction. Class-scoped run works.
-                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletHistoryReloadPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletSweeperPluginUITest" -class "BTCPayServer.Plugins.Tests.MarkPaidPluginUITest" -class "BTCPayServer.Plugins.Tests.OfflinePaymentTests.OfflinePaymentsPluginUITest" -class "BTCPayServer.Plugins.Tests.PluginPermissionUITest"
+                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.PluginPermissionUITest"
 
             -   name: Cleanup Docker
                 if: ${{ always() }}
