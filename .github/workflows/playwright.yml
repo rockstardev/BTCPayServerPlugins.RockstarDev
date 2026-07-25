@@ -79,10 +79,15 @@ jobs:
                 # BTCPayServer.Plugins.Tests.csproj); `dotnet test` cannot discover the
                 # tests because Microsoft.NET.Test.Sdk + xunit.v3 packages come only
                 # transitively via BTCPayServer.Tests project reference (per PR #135 review).
-                # Filter scoped to VendorPay class - MarkPaid / OfflinePayments /
-                # WalletHistoryReload / WalletSweeper / LnurlVerify contain bit-rotted
-                # tests that hang indefinitely; needs per-test isolation as a follow-up.
-                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest"
+                # Filter scoped to 5 explicit plugin test classes covering 40 tests.
+                # PluginPermissionUITest + TransactionCounterPluginUITestStandalone hang
+                # indefinitely with zero test output under `dotnet run -- -class`
+                # (verified: even isolated PluginPermissionUITest solo run hangs at 20min
+                # step-timeout without printing a single Passed line). Bit-rot in those
+                # 2 classes needs its own dedicated follow-up (SharedPluginTestFixture
+                # init deadlock or similar). Also: `-trait Category=PlaywrightUITest`
+                # alone (no -class) hangs the same way, likely for the same reason.
+                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletHistoryReloadPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletSweeperPluginUITest" -class "BTCPayServer.Plugins.Tests.MarkPaidPluginUITest" -class "BTCPayServer.Plugins.Tests.OfflinePaymentTests.OfflinePaymentsPluginUITest"
 
             -   name: Cleanup Docker
                 if: ${{ always() }}
