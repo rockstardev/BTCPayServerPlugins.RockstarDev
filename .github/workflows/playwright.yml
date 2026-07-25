@@ -79,7 +79,10 @@ jobs:
                 # BTCPayServer.Plugins.Tests.csproj); `dotnet test` cannot discover the
                 # tests because Microsoft.NET.Test.Sdk + xunit.v3 packages come only
                 # transitively via BTCPayServer.Tests project reference (per PR #135 review).
-                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest"
+                # Explicit -class scope required: full `-trait Category=PlaywrightUITest`
+                # (no class list) hangs indefinitely with zero test output, suggesting
+                # discovery order / test-collection interaction. Class-scoped run works.
+                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest" -class "BTCPayServer.Plugins.Tests.VendorPayPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletHistoryReloadPluginUITest" -class "BTCPayServer.Plugins.Tests.WalletSweeperPluginUITest" -class "BTCPayServer.Plugins.Tests.MarkPaidPluginUITest" -class "BTCPayServer.Plugins.Tests.OfflinePaymentTests.OfflinePaymentsPluginUITest" -class "BTCPayServer.Plugins.Tests.PluginPermissionUITest" -class "BTCPayServer.Plugins.Tests.TransactionCounterPluginUITestStandalone"
 
             -   name: Cleanup Docker
                 if: ${{ always() }}
