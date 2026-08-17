@@ -75,12 +75,24 @@ public class MarkPaidStoreController(
         if (Request.Headers["X-Requested-With"] != "RockstarHttpRequester")
             return BadRequest();
 
-        var invoice = await invoiceRepository.GetInvoice(invoiceId, true);
-        if (invoice.StoreId != storeId || invoice.Status != InvoiceStatus.New)
-            return Json(new { success = false, error = "Invoice not found or already paid" });
+        if (string.IsNullOrWhiteSpace(method) || !registry.Methods.Contains(method, StringComparer.OrdinalIgnoreCase))
+            return BadRequest(new { success = false, error = "Unknown payment method" });
 
+        var invoice = await invoiceRepository.GetInvoice(invoiceId, true);
+        if (invoice is null || invoice.StoreId != storeId || invoice.Status != InvoiceStatus.New)
+            return BadRequest(new { success = false, error = "Invoice not found or already paid" });
+
+        var store = await storeRepository.FindStore(invoice.StoreId);
         var pmid = new PaymentMethodId(method);
-        var handler = handlers[pmid];
+        if (store is null || store.GetPaymentMethodConfig(pmid, handlers, onlyEnabled: true) is null)
+            return BadRequest(new { success = false, error = "Payment method not enabled for this store" });
+
+        if (invoice.GetPaymentPrompt(pmid) is null)
+            return BadRequest(new { success = false, error = "Payment method not available on this invoice" });
+
+        if (!handlers.TryGetValue(pmid, out var handler) || handler is not MarkPaidPaymentMethodHandler)
+            return BadRequest(new { success = false, error = "Unknown payment method" });
+
         var paymentData = new PaymentData
         {
             Id = Guid.NewGuid().ToString(),
