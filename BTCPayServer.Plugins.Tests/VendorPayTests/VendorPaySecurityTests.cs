@@ -126,7 +126,10 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         var form = Page.APIRequest.CreateFormData()
             .Set("command", "markpaid")
             .Set("selectedItems", aliceInvoiceId);
-        await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form });
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
+        Assert.Equal(302, resp.Status);
+        var location = resp.Headers.TryGetValue("location", out var loc) ? loc : string.Empty;
+        Assert.DoesNotContain("/login", location);
 
         await ReLogin(alice);
         var state = await InvoiceStateText(alice.StoreId, aliceInvoiceId);
@@ -147,7 +150,10 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         var form = Page.APIRequest.CreateFormData()
             .Set("command", "payinvoices")
             .Set("selectedItems", aliceInvoiceId);
-        await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form });
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
+        Assert.InRange(resp.Status, 300, 399);
+        var location = resp.Headers.TryGetValue("location", out var loc) ? loc : string.Empty;
+        Assert.DoesNotContain("/login", location);
 
         await ReLogin(alice);
         var state = await InvoiceStateText(alice.StoreId, aliceInvoiceId);
@@ -165,7 +171,8 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         await ReLogin(bob);
 
         var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay/delete/{aliceInvoiceId}");
-        await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = Page.APIRequest.CreateFormData() });
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = Page.APIRequest.CreateFormData(), MaxRedirects = 0 });
+        Assert.Equal(404, resp.Status);
 
         await ReLogin(alice);
         var state = await InvoiceStateText(alice.StoreId, aliceInvoiceId);
@@ -198,7 +205,8 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         // Vendor B logs in via public portal + attempts delete on vendor A's invoice.
         await PublicLogin(admin.StoreId, vendorBEmail);
         var postUrl = Link($"/plugins/{admin.StoreId}/vendorpay/public/delete/{vendorAInvoiceId}");
-        await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = Page.APIRequest.CreateFormData() });
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = Page.APIRequest.CreateFormData(), MaxRedirects = 0 });
+        Assert.Equal(404, resp.Status);
 
         // Admin verifies vendor A's invoice still exists.
         await ReLogin(admin);
@@ -221,7 +229,8 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         var form = Page.APIRequest.CreateFormData()
             .Set("Id", aliceInvoiceId)
             .Set("AdminNote", injected);
-        await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form });
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
+        Assert.Equal(404, resp.Status);
 
         await ReLogin(alice);
         await GoToUrl($"/plugins/{alice.StoreId}/vendorpay/adminnote/{aliceInvoiceId}");
