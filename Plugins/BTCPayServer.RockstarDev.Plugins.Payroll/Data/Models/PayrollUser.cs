@@ -22,6 +22,9 @@ public class PayrollUser
     [MaxLength(50)]
     public string StoreId { get; set; }
 
+    [MaxLength(1000)]
+    public string StonewallDecoyAddresses { get; set; }
+
     public ICollection<PayrollInvoice> PayrollInvoices { get; set; } = new List<PayrollInvoice>();
 
     // TODO: Adding State property

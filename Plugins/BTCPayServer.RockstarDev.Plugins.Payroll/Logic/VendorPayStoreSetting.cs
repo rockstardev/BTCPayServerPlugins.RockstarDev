@@ -44,4 +44,9 @@ public class VendorPayStoreSetting
     // Default User Invite email
     public string UserInviteEmailSubject { get; set; }
     public string UserInviteEmailBody { get; set; }
+
+    // Enable paired-output payout shape on the mass payment flow. Off by
+    // default. When on, each invoice contributes an additional matching-amount
+    // BIP21 URI from the vendor's configured decoy addresses.
+    public bool StonewallEnabled { get; set; }
 }
