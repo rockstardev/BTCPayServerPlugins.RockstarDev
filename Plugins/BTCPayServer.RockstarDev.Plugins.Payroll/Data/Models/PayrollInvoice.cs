@@ -48,6 +48,8 @@ public class PayrollInvoice
     [MaxLength(20)]
     public string BtcPaid { get; set; }
 
+    public long? AmountSats { get; set; }
+
     public DateTimeOffset? PaidAt { get; set; }
 
     [MaxLength(500)]

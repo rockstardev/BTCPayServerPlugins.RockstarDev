@@ -48,6 +48,7 @@ public class VendorPayPaidHostedService(
                 var matchedObjects = new List<string>();
 
                 var amountPaid = new Dictionary<string, string>();
+                var amountSats = new Dictionary<string, long>();
                 // Check if outputs match some UTXOs
                 var walletOutputsByIndex = transactionEvent.NewTransactionEvent.Outputs.ToDictionary(o => (uint)o.Index);
                 foreach (var txOut in transactionEvent.NewTransactionEvent.TransactionData.Transaction.Outputs.AsIndexedOutputs())
@@ -63,6 +64,7 @@ public class VendorPayPaidHostedService(
 
                     matchedObjects.Add(address.ToString());
                     amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
+                    amountSats[address.ToString()] = txOut.TxOut.Value.Satoshi;
                 }
 
                 await using var dbPlugin = pluginDbContextFactory.CreateContext();
@@ -73,7 +75,8 @@ public class VendorPayPaidHostedService(
                     .Include(c => c.User)
                     .ToList();
 
-                foreach (var invoice in invoicesToBePaid)
+                var completing = SelectInvoicesToComplete(invoicesToBePaid, amountSats);
+                foreach (var invoice in completing)
                 {
                     invoice.TxnId = txHash;
                     invoice.State = VendorPayInvoiceState.Completed;
@@ -86,5 +89,35 @@ public class VendorPayPaidHostedService(
                 break;
             }
         }
+    }
+
+    // Decide which pending invoices are covered by the observed on-chain output
+    // amounts. Iterates oldest-first and consumes a per-destination budget so a
+    // single output cannot satisfy multiple invoices sharing the same address.
+    // Skips any invoice with a null expected amount so legacy in-flight rows do
+    // not complete on address-match alone (fail-closed on missing expected).
+    public static List<PayrollInvoice> SelectInvoicesToComplete(
+        IReadOnlyCollection<PayrollInvoice> pending,
+        IReadOnlyDictionary<string, long> observedSatsByDestination)
+    {
+        var completing = new List<PayrollInvoice>();
+        if (pending == null || pending.Count == 0)
+            return completing;
+        var budget = observedSatsByDestination == null
+            ? new Dictionary<string, long>()
+            : new Dictionary<string, long>(observedSatsByDestination);
+        foreach (var invoice in pending.OrderBy(i => i.CreatedAt))
+        {
+            if (!invoice.AmountSats.HasValue)
+                continue;
+            if (!budget.TryGetValue(invoice.Destination, out var available)
+                || available < invoice.AmountSats.Value)
+            {
+                continue;
+            }
+            budget[invoice.Destination] = available - invoice.AmountSats.Value;
+            completing.Add(invoice);
+        }
+        return completing;
     }
 }
