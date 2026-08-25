@@ -75,12 +75,17 @@ public class VendorPayPaidHostedService(
                     .Include(c => c.User)
                     .ToList();
 
-                foreach (var invoice in invoicesToBePaid)
+                var destinationBudget = new Dictionary<string, long>(amountSats);
+                foreach (var invoice in invoicesToBePaid.OrderBy(i => i.CreatedAt))
                 {
-                    if (invoice.AmountSats.HasValue &&
-                        (!amountSats.TryGetValue(invoice.Destination, out var observed) || observed < invoice.AmountSats.Value))
+                    if (invoice.AmountSats.HasValue)
                     {
-                        continue;
+                        if (!destinationBudget.TryGetValue(invoice.Destination, out var available)
+                            || available < invoice.AmountSats.Value)
+                        {
+                            continue;
+                        }
+                        destinationBudget[invoice.Destination] = available - invoice.AmountSats.Value;
                     }
                     invoice.TxnId = txHash;
                     invoice.State = VendorPayInvoiceState.Completed;
