@@ -294,6 +294,16 @@ public class VendorPayInvoiceController(
         return originalAmount * (1 + (decimal)adjustmentPercent / 100m);
     }
 
+    // Reserved for a future paired-output payout revision. This helper is
+    // exercised only by StonewallDecoyRotationTests and is not invoked from
+    // any production code path today. The paired-output flow that consumed
+    // this helper was removed in the 0.10.1 hotfix because it added the
+    // contractor-supplied decoy addresses as extra external recipients,
+    // sending additional funds to the vendor. When the shape is reworked
+    // to draw the matching-amount output from a sender-controlled change
+    // address, this helper can be re-adopted for validation + rotation of
+    // the pre-existing per-vendor decoy list.
+    //
     // Picks the next unused, validated decoy address for a vendor within a
     // single payout batch. Returns null when the vendor has no decoys
     // configured, when every unique usable decoy has already been consumed

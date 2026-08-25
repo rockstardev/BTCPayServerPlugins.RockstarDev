@@ -45,8 +45,15 @@ public class VendorPayStoreSetting
     public string UserInviteEmailSubject { get; set; }
     public string UserInviteEmailBody { get; set; }
 
-    // Enable paired-output payout shape on the mass payment flow. Off by
-    // default. When on, each invoice contributes an additional matching-amount
-    // BIP21 URI from the vendor's configured decoy addresses.
+    // Reserved for a future paired-output payout revision. NOT wired at
+    // runtime: no controller, hosted service, or view reads this flag today.
+    // The prior implementation added contractor-supplied decoy addresses as
+    // extra external recipients on the payout tx, which sent additional funds
+    // to the vendor. Do not re-wire this setting to that shape - the correct
+    // paired output must go to a sender-controlled change address, generated
+    // fresh from the paying wallet at tx-build time. Restoring the feature
+    // will land alongside batch shape preflight, a hardware-sign hint,
+    // regtest coverage of the on-chain output shape, and a defeats /
+    // does-not-defeat info box on the admin dashboard.
     public bool StonewallEnabled { get; set; }
 }
