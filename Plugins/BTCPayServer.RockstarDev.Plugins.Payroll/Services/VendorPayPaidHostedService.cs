@@ -48,6 +48,7 @@ public class VendorPayPaidHostedService(
                 var matchedObjects = new List<string>();
 
                 var amountPaid = new Dictionary<string, string>();
+                var amountSats = new Dictionary<string, long>();
                 // Check if outputs match some UTXOs
                 var walletOutputsByIndex = transactionEvent.NewTransactionEvent.Outputs.ToDictionary(o => (uint)o.Index);
                 foreach (var txOut in transactionEvent.NewTransactionEvent.TransactionData.Transaction.Outputs.AsIndexedOutputs())
@@ -63,6 +64,7 @@ public class VendorPayPaidHostedService(
 
                     matchedObjects.Add(address.ToString());
                     amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
+                    amountSats[address.ToString()] = txOut.TxOut.Value.Satoshi;
                 }
 
                 await using var dbPlugin = pluginDbContextFactory.CreateContext();
@@ -75,6 +77,11 @@ public class VendorPayPaidHostedService(
 
                 foreach (var invoice in invoicesToBePaid)
                 {
+                    if (invoice.AmountSats.HasValue &&
+                        (!amountSats.TryGetValue(invoice.Destination, out var observed) || observed < invoice.AmountSats.Value))
+                    {
+                        continue;
+                    }
                     invoice.TxnId = txHash;
                     invoice.State = VendorPayInvoiceState.Completed;
                     invoice.BtcPaid = amountPaid[invoice.Destination];
