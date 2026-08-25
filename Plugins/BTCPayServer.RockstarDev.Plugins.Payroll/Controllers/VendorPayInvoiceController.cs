@@ -258,10 +258,6 @@ public class VendorPayInvoiceController(
 
         var network = networkProvider.GetNetwork<BTCPayNetwork>(VendorPayPluginConst.BTC_CRYPTOCODE);
         var bip21 = new List<string>();
-        // Track decoy address rotation across a single batch so we don't hit
-        // the same decoy address twice when a vendor has multiple invoices
-        // in the same payout.
-        var vendorDecoyCursor = new Dictionary<string, int>();
         foreach (var invoice in invoices)
         {
             var rate = rates[invoice.Currency];
@@ -276,17 +272,6 @@ public class VendorPayInvoiceController(
             bip21.Add(bip21New.ToString());
 
             invoice.AmountSats = (long)satsAmount;
-
-            if (settings?.StonewallEnabled == true)
-            {
-                var decoy = SelectDecoyAddress(invoice.User, vendorDecoyCursor, invoice.Destination, network.NBitcoinNetwork);
-                if (decoy != null)
-                {
-                    var decoyBip21 = network.GenerateBIP21(decoy, amountInBtc);
-                    decoyBip21.QueryParams.Add("label", invoice.User.Name);
-                    bip21.Add(decoyBip21.ToString());
-                }
-            }
 
             invoice.State = VendorPayInvoiceState.AwaitingPayment;
         }
@@ -309,34 +294,45 @@ public class VendorPayInvoiceController(
         return originalAmount * (1 + (decimal)adjustmentPercent / 100m);
     }
 
-    // Picks the next decoy address for a vendor within a single payout batch.
-    // Returns null when the vendor has no decoys configured, all decoys are
-    // already used up in this batch, or when parsing yields no usable entry.
-    // The decoy is validated against the wallet network + rejected if it
-    // matches the invoice destination (would defeat the paired-output shape).
+    // Picks the next unused, validated decoy address for a vendor within a
+    // single payout batch. Returns null when the vendor has no decoys
+    // configured, when every unique usable decoy has already been consumed
+    // for this vendor in the current batch, or when no candidate survives
+    // network + destination-collision validation. Fails closed on
+    // exhaustion (no modulo wrap-around) so a single decoy is never reused
+    // within a batch even if the vendor has more invoices than decoys.
     public static string SelectDecoyAddress(
         PayrollUser vendor,
-        Dictionary<string, int> cursor,
+        Dictionary<string, HashSet<string>> usedByVendor,
         string destination,
         NBitcoin.Network network)
     {
         if (vendor == null || string.IsNullOrWhiteSpace(vendor.StonewallDecoyAddresses))
             return null;
-        var candidates = vendor.StonewallDecoyAddresses
-            .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 0 && !string.Equals(s, destination, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var seenInList = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var candidates = new List<string>();
+        foreach (var raw in vendor.StonewallDecoyAddresses.Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = raw.Trim();
+            if (trimmed.Length == 0) continue;
+            if (string.Equals(trimmed, destination, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!seenInList.Add(trimmed)) continue;
+            candidates.Add(trimmed);
+        }
         if (candidates.Count == 0)
             return null;
-        var idx = cursor.TryGetValue(vendor.Id, out var existing) ? existing : 0;
-        for (var i = 0; i < candidates.Count; i++)
+        if (!usedByVendor.TryGetValue(vendor.Id, out var used))
         {
-            var candidate = candidates[(idx + i) % candidates.Count];
+            used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            usedByVendor[vendor.Id] = used;
+        }
+        foreach (var candidate in candidates)
+        {
+            if (used.Contains(candidate)) continue;
             try
             {
                 _ = NBitcoin.BitcoinAddress.Create(candidate, network);
-                cursor[vendor.Id] = (idx + i + 1) % candidates.Count;
+                used.Add(candidate);
                 return candidate;
             }
             catch
