@@ -163,7 +163,7 @@ public class VendorPayInvoiceController(
         var ctx = pluginDbContextFactory.CreateContext();
         var invoices = await ctx.PayrollInvoices
             .Include(a => a.User)
-            .Where(a => selectedItems.Contains(a.Id))
+            .Where(a => selectedItems.Contains(a.Id) && a.User.StoreId == CurrentStore.Id)
             .ToListAsync();
 
         switch (command)
@@ -230,7 +230,7 @@ public class VendorPayInvoiceController(
         await using var ctx = pluginDbContextFactory.CreateContext();
         var invoices = ctx.PayrollInvoices
             .Include(a => a.User)
-            .Where(a => selectedItems.Contains(a.Id))
+            .Where(a => selectedItems.Contains(a.Id) && a.User.StoreId == CurrentStore.Id)
             .ToList();
 
         // initialize exchange rates
@@ -271,6 +271,7 @@ public class VendorPayInvoiceController(
             // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
             bip21.Add(bip21New.ToString());
 
+            invoice.AmountSats = (long)satsAmount;
             invoice.State = VendorPayInvoiceState.AwaitingPayment;
         }
 
@@ -356,7 +357,7 @@ public class VendorPayInvoiceController(
         await using var ctx = pluginDbContextFactory.CreateContext();
 
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
-            .SingleOrDefault(a => a.Id == id);
+            .SingleOrDefault(a => a.Id == id && a.User.StoreId == CurrentStore.Id);
 
         if (invoice == null)
             return NotFound();
@@ -388,7 +389,10 @@ public class VendorPayInvoiceController(
 
         var invoice = ctx.PayrollInvoices
             .Include(i => i.User)
-            .Single(a => a.Id == id);
+            .SingleOrDefault(a => a.Id == id && a.User.StoreId == CurrentStore.Id);
+
+        if (invoice == null)
+            return NotFound();
 
         // TODO: Change logic so await payment is only set once user construct transaction
         var allowedStates = invoice.State is VendorPayInvoiceState.AwaitingApproval or VendorPayInvoiceState.AwaitingPayment;
@@ -430,7 +434,7 @@ public class VendorPayInvoiceController(
 
         await using var ctx = pluginDbContextFactory.CreateContext();
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
-            .SingleOrDefault(a => a.Id == id);
+            .SingleOrDefault(a => a.Id == id && a.User.StoreId == CurrentStore.Id);
 
         if (invoice == null)
             return NotFound();
@@ -449,7 +453,10 @@ public class VendorPayInvoiceController(
 
         await using var ctx = pluginDbContextFactory.CreateContext();
 
-        var invoice = ctx.PayrollInvoices.Single(a => a.Id == model.Id);
+        var invoice = ctx.PayrollInvoices.Include(c => c.User)
+            .SingleOrDefault(a => a.Id == model.Id && a.User.StoreId == CurrentStore.Id);
+        if (invoice == null)
+            return NotFound();
         invoice.AdminNote = model.AdminNote;
 
         await ctx.SaveChangesAsync();

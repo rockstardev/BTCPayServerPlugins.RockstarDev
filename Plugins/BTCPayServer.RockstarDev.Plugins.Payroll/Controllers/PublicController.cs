@@ -278,7 +278,9 @@ public class PublicController(
         await using var ctx = pluginDbContextFactory.CreateContext();
         var invoice = ctx.PayrollInvoices
             .Include(a => a.User)
-            .Single(a => a.Id == invoiceId && a.User.StoreId == storeId);
+            .SingleOrDefault(a => a.Id == invoiceId && a.User.StoreId == storeId && a.UserId == vali.UserId);
+        if (invoice == null)
+            return NotFound();
         return await invoicesDownloadHelper.Process([invoice], HttpContext.Request.GetAbsoluteRootUri());
     }
 
@@ -412,7 +414,7 @@ public class PublicController(
         await using var ctx = pluginDbContextFactory.CreateContext();
 
         var invoice = ctx.PayrollInvoices.Include(c => c.User)
-            .SingleOrDefault(a => a.Id == id);
+            .SingleOrDefault(a => a.Id == id && a.User.StoreId == storeId && a.UserId == vali.UserId);
 
         if (invoice == null)
             return NotFound();
@@ -442,7 +444,10 @@ public class PublicController(
 
         var invoice = ctx.PayrollInvoices
             .Include(i => i.User)
-            .Single(a => a.Id == id);
+            .SingleOrDefault(a => a.Id == id && a.User.StoreId == storeId && a.UserId == vali.UserId);
+
+        if (invoice == null)
+            return NotFound();
 
         if (invoice.State != VendorPayInvoiceState.AwaitingApproval)
         {
