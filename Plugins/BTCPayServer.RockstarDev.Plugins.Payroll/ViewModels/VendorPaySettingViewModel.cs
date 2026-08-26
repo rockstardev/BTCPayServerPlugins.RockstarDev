@@ -20,6 +20,12 @@ public class VendorPaySettingViewModel
     [Display(Name = "Enable Stonewall (vendors can split payments across multiple addresses)")]
     public bool StonewallEnabled { get; set; }
 
+    [Display(Name = "Minimum vendor outputs in a batch before decoy outputs are added")]
+    public int StonewallDecoyMinOutputs { get; set; }
+
+    [Display(Name = "Maximum decoy outputs back to your own wallet per batch (0 disables decoys)")]
+    public int StonewallDecoyMaxOutputs { get; set; }
+
     //
     [Display(Name = "Email vendor once invoice is paid")]
     public bool EmailOnInvoicePaid { get; set; }

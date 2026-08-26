@@ -135,4 +135,20 @@ public static class StonewallSplitter
 
         return new StonewallBatchPlan(outputs, chunk, decoys);
     }
+
+    public const int DefaultDecoyMinOutputs = 1;
+    public const int DefaultDecoyMaxOutputs = 5;
+
+    // How many sender-controlled decoy outputs to add for a batch. Decoys are
+    // only worth their fees once the batch produces enough vendor outputs, and
+    // past a handful of decoys the marginal ambiguity per output drops off, so
+    // the count is capped.
+    public static int ComputeDecoyCount(StonewallBatchPlan plan, int minVendorOutputs, int maxDecoys)
+    {
+        if (plan == null || plan.DecoyCount == 0)
+            return 0;
+        if (plan.Outputs.Count < Math.Max(minVendorOutputs, 0))
+            return 0;
+        return Math.Min(plan.DecoyCount, Math.Max(maxDecoys, 0));
+    }
 }

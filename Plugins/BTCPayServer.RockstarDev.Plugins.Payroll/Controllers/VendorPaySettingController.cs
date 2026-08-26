@@ -40,6 +40,8 @@ public class VendorPaySettingController(
             InvoiceFiatConversionAdjustment = settings.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = settings.InvoiceFiatConversionAdjustmentPercentage,
             StonewallEnabled = settings.StonewallEnabled,
+            StonewallDecoyMinOutputs = settings.StonewallDecoyMinOutputs ?? StonewallSplitter.DefaultDecoyMinOutputs,
+            StonewallDecoyMaxOutputs = settings.StonewallDecoyMaxOutputs ?? StonewallSplitter.DefaultDecoyMaxOutputs,
             UserInviteEmailSubject = settings.UserInviteEmailSubject ?? VendorPaySettingViewModel.Defaults.UserInviteEmailSubject,
             UserInviteEmailBody = settings.UserInviteEmailBody ?? VendorPaySettingViewModel.Defaults.UserInviteEmailBody,
             EmailOnInvoicePaidSubject = settings.EmailOnInvoicePaidSubject ?? VendorPaySettingViewModel.Defaults.EmailOnInvoicePaidSubject,
@@ -102,6 +104,12 @@ public class VendorPaySettingController(
         if (model.AccountlessUploadEnabled && string.IsNullOrEmpty(model.UploadCode))
             ModelState.AddModelError(nameof(model.UploadCode), "Upload Code is required");
 
+        if (model.StonewallDecoyMinOutputs < 0)
+            ModelState.AddModelError(nameof(model.StonewallDecoyMinOutputs), "Value cannot be negative");
+
+        if (model.StonewallDecoyMaxOutputs < 0)
+            ModelState.AddModelError(nameof(model.StonewallDecoyMaxOutputs), "Value cannot be negative");
+
         if (string.IsNullOrWhiteSpace(model.UserInviteEmailSubject))
             ModelState.AddModelError(nameof(model.UserInviteEmailSubject), "Invite email subject cannot be empty");
 
@@ -135,6 +143,8 @@ public class VendorPaySettingController(
             InvoiceFiatConversionAdjustment = model.InvoiceFiatConversionAdjustment,
             InvoiceFiatConversionAdjustmentPercentage = model.InvoiceFiatConversionAdjustmentPercentage,
             StonewallEnabled = model.StonewallEnabled,
+            StonewallDecoyMinOutputs = model.StonewallDecoyMinOutputs,
+            StonewallDecoyMaxOutputs = model.StonewallDecoyMaxOutputs,
             VendorPayPublicLink = link,
             EmailAdminOnInvoiceUploaded = model.EmailAdminOnInvoiceUploaded,
             EmailAdminOnInvoiceUploadedAddress = model.EmailAdminOnInvoiceUploadedAddress,

@@ -55,4 +55,12 @@ public class VendorPayStoreSetting
     // summed outputs across all its addresses reach the expected amount
     // (VendorPayPaidHostedService).
     public bool StonewallEnabled { get; set; }
+
+    // Sender-controlled decoy outputs back to the store's own wallet, added at
+    // the batch chunk size so payment chunks blend with the sender's own coins.
+    // Null means the defaults apply (min 1 vendor output, max 5 decoys).
+    // Min: batches with fewer vendor outputs than this get no decoys.
+    // Max: cap on decoy outputs per batch; 0 disables decoys entirely.
+    public int? StonewallDecoyMinOutputs { get; set; }
+    public int? StonewallDecoyMaxOutputs { get; set; }
 }

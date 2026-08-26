@@ -295,9 +295,12 @@ public class VendorPayInvoiceController(
         var decoysAdded = 0;
         if (stonewallEnabled && plan.DecoyCount > 0)
         {
-            var decoyAddresses = await TryReserveDecoyAddresses(plan.DecoyCount, network);
+            var decoysWanted = StonewallSplitter.ComputeDecoyCount(plan,
+                settings.StonewallDecoyMinOutputs ?? StonewallSplitter.DefaultDecoyMinOutputs,
+                settings.StonewallDecoyMaxOutputs ?? StonewallSplitter.DefaultDecoyMaxOutputs);
+            var decoyAddresses = await TryReserveDecoyAddresses(decoysWanted, network);
             decoysAdded = decoyAddresses.Count;
-            if (decoysAdded < plan.DecoyCount)
+            if (decoysAdded < decoysWanted)
                 decoyWarning = true;
             outputs.AddRange(decoyAddresses.Select(a => new StonewallSplitOutput(null, a, plan.ChunkSats)));
         }

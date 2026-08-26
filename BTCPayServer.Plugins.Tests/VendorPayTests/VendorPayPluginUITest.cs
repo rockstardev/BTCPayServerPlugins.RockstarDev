@@ -1180,6 +1180,8 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await GoToUrl($"/plugins/{user.StoreId}/vendorpay/settings");
         await Page.Locator("#MakeInvoiceFileOptional").CheckAsync();
         await Page.Locator("#StonewallEnabled").CheckAsync();
+        await Page.FillAsync("#StonewallDecoyMinOutputs", "2");
+        await Page.FillAsync("#StonewallDecoyMaxOutputs", "1");
         await Page.Locator("#Edit").ClickAsync();
         var settingsStatus = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
         Assert.Equal("Vendor pay settings updated successfully", settingsStatus?.Trim());

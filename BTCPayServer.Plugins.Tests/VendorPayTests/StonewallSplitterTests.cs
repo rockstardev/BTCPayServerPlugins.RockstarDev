@@ -290,6 +290,48 @@ public class StonewallSplitterTests
         Assert.All(plan.Outputs, o => Assert.True(o.Sats >= StonewallSplitter.MinChunkSats || plan.Outputs.Count == 1));
     }
 
+    // ----- ComputeDecoyCount -----
+
+    private static StonewallBatchPlan PlanWithSplitInvoices(int splitInvoices)
+        => StonewallSplitter.PlanBatch(Enumerable.Range(0, splitInvoices)
+            .Select(i => Input($"i{i}", 100_000_000, NewAddress(), NewAddress()))
+            .ToList());
+
+    [Fact]
+    public void Decoys_BelowMinVendorOutputs_None()
+    {
+        var plan = PlanWithSplitInvoices(1); // 2 vendor outputs
+        Assert.Equal(0, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 3, maxDecoys: 5));
+    }
+
+    [Fact]
+    public void Decoys_AtMinVendorOutputs_OnePerSplitInvoice()
+    {
+        var plan = PlanWithSplitInvoices(2);
+        Assert.Equal(2, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 2, maxDecoys: 5));
+    }
+
+    [Fact]
+    public void Decoys_CappedAtMax()
+    {
+        var plan = PlanWithSplitInvoices(4);
+        Assert.Equal(3, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 1, maxDecoys: 3));
+    }
+
+    [Fact]
+    public void Decoys_MaxZero_Disabled()
+    {
+        var plan = PlanWithSplitInvoices(2);
+        Assert.Equal(0, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 1, maxDecoys: 0));
+    }
+
+    [Fact]
+    public void Decoys_NoSplitInvoices_None()
+    {
+        var plan = StonewallSplitter.PlanBatch(new[] { Input("i1", 100_000_000, Dest) });
+        Assert.Equal(0, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 0, maxDecoys: 5));
+    }
+
     // ----- SplitStoredExtras -----
 
     [Fact]

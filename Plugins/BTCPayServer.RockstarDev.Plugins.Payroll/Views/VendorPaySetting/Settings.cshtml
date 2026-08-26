@@ -58,12 +58,26 @@
 
             <h4 class="mt-5 mb-3">Privacy</h4>
             <div class="form-group d-flex align-items-center">
-                <input asp-for="StonewallEnabled" type="checkbox" class="btcpay-toggle me-3" />
+                <input asp-for="StonewallEnabled" type="checkbox" class="btcpay-toggle me-3" data-bs-toggle="collapse"
+                       data-bs-target="#stonewallSettings">
                 <label asp-for="StonewallEnabled" class="form-label mb-0 me-1"></label>
                 <span asp-validation-for="StonewallEnabled" class="text-danger"></span>
             </div>
-            @if (Model.StonewallEnabled)
-            {
+
+            <div class="collapse @(Model.StonewallEnabled ? "show" : "")" id="stonewallSettings">
+                <div class="form-group">
+                    <label asp-for="StonewallDecoyMinOutputs" class="form-label"></label>
+                    <input inputmode="numeric" asp-for="StonewallDecoyMinOutputs" class="form-control" style="max-width: 12rem;" />
+                    <span asp-validation-for="StonewallDecoyMinOutputs" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="StonewallDecoyMaxOutputs" class="form-label"></label>
+                    <input inputmode="numeric" asp-for="StonewallDecoyMaxOutputs" class="form-control" style="max-width: 12rem;" />
+                    <span asp-validation-for="StonewallDecoyMaxOutputs" class="text-danger"></span>
+                    <div class="text-secondary">
+                        <span text-translate="true">Decoys are outputs of the same size as the payment chunks, sent back to your own wallet. The funds stay yours; they just make payment outputs indistinguishable from your own coins.</span>
+                    </div>
+                </div>
                 <div class="alert alert-info">
                     <p class="mb-2">When Stonewall is enabled, vendors can supply extra addresses on their invoices and each
                         payment is split into equal-sized outputs across those addresses. An outside observer cannot tell
@@ -79,7 +93,7 @@
                         <li>It does not remove taint from tainted inputs.</li>
                     </ul>
                 </div>
-            }
+            </div>
 
             <h4 class="mt-5 mb-3">Accountless Upload</h4>
             <div class="form-group d-flex align-items-center">
