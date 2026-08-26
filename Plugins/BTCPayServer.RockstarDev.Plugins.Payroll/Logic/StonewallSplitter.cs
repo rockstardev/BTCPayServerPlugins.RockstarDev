@@ -27,9 +27,12 @@ public class StonewallBatchPlan(List<StonewallSplitOutput> outputs, long chunkSa
 // size across its addresses (destination first, one chunk per address), with
 // any remainder emitted as one final smaller output. Invoices without extras
 // are always paid whole. Every invoice's outputs sum exactly to its expected
-// total. DecoyCount tells the caller how many sender-controlled outputs of
-// ChunkSats to add (one per split invoice) so an observer cannot distinguish
-// payment chunks from the sender's own coins returning to the wallet.
+// total. Once at least one invoice splits, DecoyCount is the number of
+// chunk-sized outputs in the batch - how many sender-controlled outputs of
+// ChunkSats the caller may add so every payment chunk has a same-amount twin
+// returning to the sender's own wallet (the classical Stonewall 1:1 shape).
+// The caller caps this via ComputeDecoyCount; past a handful of decoys the
+// marginal ambiguity per output no longer pays for the extra fees.
 public static class StonewallSplitter
 {
     public const int MaxExtraAddresses = 5;
@@ -99,7 +102,7 @@ public static class StonewallSplitter
             chunk = plainAmounts.Max();
         chunk = Math.Max(chunk, MinChunkSats);
 
-        var decoys = 0;
+        var anySplit = false;
         foreach (var invoice in invoices)
         {
             var addresses = new List<string> { invoice.Destination };
@@ -130,9 +133,10 @@ public static class StonewallSplitter
             }
 
             if (outputs.Count - before >= 2)
-                decoys++;
+                anySplit = true;
         }
 
+        var decoys = anySplit ? outputs.Count(o => o.Sats == chunk) : 0;
         return new StonewallBatchPlan(outputs, chunk, decoys);
     }
 

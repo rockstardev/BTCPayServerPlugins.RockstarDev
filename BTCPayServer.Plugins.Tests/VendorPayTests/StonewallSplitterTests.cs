@@ -14,9 +14,10 @@ namespace BTCPayServer.Plugins.Tests;
 // addresses is paid in chunks of exactly that size, one chunk per address
 // (destination first), with any remainder as one final smaller output.
 // Invoices without extras always pay whole. Output sums per invoice must
-// always equal the invoice total. Each split invoice adds one to DecoyCount,
-// telling the caller how many sender-controlled outputs of the chunk size to
-// add so payment chunks blend with the sender's own coins.
+// always equal the invoice total. Once at least one invoice splits, DecoyCount
+// is the number of chunk-sized outputs - the caller may add that many
+// sender-controlled outputs of the chunk size so every payment chunk has a
+// same-amount twin returning to the sender's own wallet (capped via settings).
 public class StonewallSplitterTests
 {
     private const string Dest = "bcrt1q6r39p8y4ye8j0xkqzhh6r6xh8mvrxnq3lygsdz";
@@ -135,7 +136,7 @@ public class StonewallSplitterTests
         Assert.Equal(Dest, plan.Outputs[0].Address);
         Assert.Equal(extras, plan.Outputs.Skip(1).Select(o => o.Address).ToList());
         Assert.Equal(20_000_000, plan.ChunkSats);
-        Assert.Equal(1, plan.DecoyCount);
+        Assert.Equal(5, plan.DecoyCount);
     }
 
     [Fact]
@@ -154,7 +155,7 @@ public class StonewallSplitterTests
         Assert.All(plan.Outputs, o => Assert.Equal(50_000_000, o.Sats));
         Assert.Equal(2, plan.Outputs.Count(o => o.InvoiceId == "i1"));
         Assert.Single(plan.Outputs.Where(o => o.InvoiceId == "i2"));
-        Assert.Equal(1, plan.DecoyCount);
+        Assert.Equal(3, plan.DecoyCount);
     }
 
     [Fact]
@@ -178,7 +179,8 @@ public class StonewallSplitterTests
         var small = plan.Outputs.Where(o => o.InvoiceId == "small").ToList();
         Assert.Single(small);
         Assert.Equal((AddrC, 2_000_000L), (small[0].Address, small[0].Sats));
-        Assert.Equal(1, plan.DecoyCount);
+        // 4 chunk-sized outputs: big's 3 chunks + small's whole payment
+        Assert.Equal(4, plan.DecoyCount);
     }
 
     [Fact]
@@ -211,7 +213,7 @@ public class StonewallSplitterTests
         Assert.Equal(4, plan.Outputs.Count);
         Assert.Equal(3, plan.Outputs.Count(o => o.Sats == 10_000_000));
         Assert.Single(plan.Outputs.Where(o => o.InvoiceId == "a" && o.Sats == 80_000_000));
-        Assert.Equal(1, plan.DecoyCount);
+        Assert.Equal(3, plan.DecoyCount);
     }
 
     [Fact]
@@ -305,10 +307,10 @@ public class StonewallSplitterTests
     }
 
     [Fact]
-    public void Decoys_AtMinVendorOutputs_OnePerSplitInvoice()
+    public void Decoys_AtMinVendorOutputs_MatchesChunkOutputs()
     {
-        var plan = PlanWithSplitInvoices(2);
-        Assert.Equal(2, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 2, maxDecoys: 5));
+        var plan = PlanWithSplitInvoices(2); // 4 chunk-sized vendor outputs
+        Assert.Equal(4, StonewallSplitter.ComputeDecoyCount(plan, minVendorOutputs: 2, maxDecoys: 5));
     }
 
     [Fact]
