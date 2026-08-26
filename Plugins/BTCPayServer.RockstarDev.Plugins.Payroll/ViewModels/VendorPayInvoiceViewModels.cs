@@ -53,6 +53,11 @@ public class VendorPayInvoiceUploadViewModel
     [DisplayName("Destination Address")]
     public string Destination { get; set; }
 
+    [DisplayName("Optional addresses to split the payment across (comma-separated, max 5)")]
+    public string ExtraAddresses { get; set; }
+
+    public bool StonewallEnabled { get; set; }
+
     [Required]
     public decimal Amount { get; set; }
 

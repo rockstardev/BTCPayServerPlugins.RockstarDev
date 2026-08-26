@@ -8,6 +8,7 @@ using BTCPayServer.HostedServices;
 using BTCPayServer.Logging;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using BTCPayServer.Services.Invoices;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
@@ -47,8 +48,7 @@ public class VendorPayPaidHostedService(
 
                 var matchedObjects = new List<string>();
 
-                var amountPaid = new Dictionary<string, string>();
-                var amountSats = new Dictionary<string, long>();
+                var amountSats = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
                 // Check if outputs match some UTXOs
                 var walletOutputsByIndex = transactionEvent.NewTransactionEvent.Outputs.ToDictionary(o => (uint)o.Index);
                 foreach (var txOut in transactionEvent.NewTransactionEvent.TransactionData.Transaction.Outputs.AsIndexedOutputs())
@@ -63,16 +63,28 @@ public class VendorPayPaidHostedService(
                         continue;
 
                     matchedObjects.Add(address.ToString());
-                    amountPaid.Add(address.ToString(), txOut.TxOut.Value.ToString());
                     amountSats[address.ToString()] = txOut.TxOut.Value.Satoshi;
                 }
 
                 await using var dbPlugin = pluginDbContextFactory.CreateContext();
 
-                var invoicesToBePaid = dbPlugin.PayrollInvoices
-                    .Where(a => (a.State == VendorPayInvoiceState.AwaitingPayment || a.State == VendorPayInvoiceState.InProgress)
-                                && matchedObjects.Contains(a.Destination))
+                var pendingStates = new[] { VendorPayInvoiceState.AwaitingPayment, VendorPayInvoiceState.InProgress };
+                var directMatches = dbPlugin.PayrollInvoices
+                    .Where(a => pendingStates.Contains(a.State) && matchedObjects.Contains(a.Destination))
                     .Include(c => c.User)
+                    .ToList();
+
+                // Stonewall split invoices can be paid entirely through their extra
+                // addresses, so also scan pending split invoices for an intersection
+                // with the observed outputs.
+                var splitCandidates = dbPlugin.PayrollInvoices
+                    .Where(a => pendingStates.Contains(a.State) && a.ExtraAddresses != null && a.ExtraAddresses != "")
+                    .Include(c => c.User)
+                    .ToList();
+                var matched = new HashSet<string>(matchedObjects, StringComparer.OrdinalIgnoreCase);
+                var invoicesToBePaid = directMatches
+                    .Concat(splitCandidates.Where(a => directMatches.All(d => d.Id != a.Id)
+                                                       && InvoiceAddresses(a).Any(matched.Contains)))
                     .ToList();
 
                 var completing = SelectInvoicesToComplete(invoicesToBePaid, amountSats);
@@ -80,7 +92,8 @@ public class VendorPayPaidHostedService(
                 {
                     invoice.TxnId = txHash;
                     invoice.State = VendorPayInvoiceState.Completed;
-                    invoice.BtcPaid = amountPaid[invoice.Destination];
+                    var paidSats = InvoiceAddresses(invoice).Sum(a => amountSats.GetValueOrDefault(a));
+                    invoice.BtcPaid = new Money(paidSats, MoneyUnit.Satoshi).ToString();
                     invoice.PaidAt = DateTimeOffset.UtcNow;
                 }
 
@@ -92,10 +105,13 @@ public class VendorPayPaidHostedService(
     }
 
     // Decide which pending invoices are covered by the observed on-chain output
-    // amounts. Iterates oldest-first and consumes a per-destination budget so a
+    // amounts. Iterates oldest-first and consumes a per-address budget so a
     // single output cannot satisfy multiple invoices sharing the same address.
-    // Skips any invoice with a null expected amount so legacy in-flight rows do
-    // not complete on address-match alone (fail-closed on missing expected).
+    // A Stonewall split invoice completes when the SUM of observed amounts
+    // across its destination plus extra addresses reaches the expected total;
+    // the consumed budget is drawn from all of those addresses. Skips any
+    // invoice with a null expected amount so legacy in-flight rows do not
+    // complete on address-match alone (fail-closed on missing expected).
     public static List<PayrollInvoice> SelectInvoicesToComplete(
         IReadOnlyCollection<PayrollInvoice> pending,
         IReadOnlyDictionary<string, long> observedSatsByDestination)
@@ -104,20 +120,37 @@ public class VendorPayPaidHostedService(
         if (pending == null || pending.Count == 0)
             return completing;
         var budget = observedSatsByDestination == null
-            ? new Dictionary<string, long>()
-            : new Dictionary<string, long>(observedSatsByDestination);
+            ? new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, long>(observedSatsByDestination, StringComparer.OrdinalIgnoreCase);
         foreach (var invoice in pending.OrderBy(i => i.CreatedAt))
         {
             if (!invoice.AmountSats.HasValue)
                 continue;
-            if (!budget.TryGetValue(invoice.Destination, out var available)
-                || available < invoice.AmountSats.Value)
-            {
+            var addresses = InvoiceAddresses(invoice);
+            if (addresses.Sum(a => budget.GetValueOrDefault(a)) < invoice.AmountSats.Value)
                 continue;
+            var remaining = invoice.AmountSats.Value;
+            foreach (var address in addresses)
+            {
+                if (remaining <= 0)
+                    break;
+                if (!budget.TryGetValue(address, out var availableAt) || availableAt <= 0)
+                    continue;
+                var take = Math.Min(availableAt, remaining);
+                budget[address] = availableAt - take;
+                remaining -= take;
             }
-            budget[invoice.Destination] = available - invoice.AmountSats.Value;
             completing.Add(invoice);
         }
         return completing;
+    }
+
+    public static string[] InvoiceAddresses(PayrollInvoice invoice)
+    {
+        if (string.IsNullOrWhiteSpace(invoice.ExtraAddresses))
+            return new[] { invoice.Destination };
+        return new[] { invoice.Destination }
+            .Concat(StonewallSplitter.SplitStoredExtras(invoice.ExtraAddresses))
+            .ToArray();
     }
 }

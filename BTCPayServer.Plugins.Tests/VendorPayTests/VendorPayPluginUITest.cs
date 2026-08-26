@@ -1149,6 +1149,86 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         }
     }
 
+    // End-to-end Stonewall split payout: enabling the setting exposes the extra-addresses
+    // field on the upload form, and paying a batch splits each invoice into equal chunk
+    // outputs across the vendor's addresses. Here a 1 BTC invoice with one extra address
+    // batched with a plain 0.5 BTC invoice produces three uniform 0.5 BTC BIP21 outputs.
+    [Fact]
+    public async Task VendorPay_Stonewall_SplitPayout_EmitsUniformChunkOutputs()
+    {
+        await InitializePlaywright(ServerTester);
+        var user = ServerTester.NewAccount();
+        await user.GrantAccessAsync();
+        await user.MakeAdmin();
+        await GoToUrl("/login");
+        await LogIn(user.RegisterDetails.Email, user.RegisterDetails.Password);
+
+        // Wallet must be provisioned so the WalletSend target renders.
+        await GoToUrl($"/stores/{user.StoreId}/onchain/BTC");
+        await AddDerivationScheme();
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/users/list");
+        await CreateVendorPayUser();
+
+        // The extra-addresses field is hidden while Stonewall is off.
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/upload");
+        Assert.False(await Page.Locator("#ExtraAddresses").IsVisibleAsync());
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/settings");
+        await Page.Locator("#MakeInvoiceFileOptional").CheckAsync();
+        await Page.Locator("#StonewallEnabled").CheckAsync();
+        await Page.Locator("#Edit").ClickAsync();
+        var settingsStatus = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+        Assert.Equal("Vendor pay settings updated successfully", settingsStatus?.Trim());
+
+        string NewAddress() => new Key().PubKey.WitHash.GetAddress(Network.RegTest).ToString();
+        var destA = NewAddress();
+        var extraA = NewAddress();
+        var destB = NewAddress();
+
+        async Task UploadInvoice(string destination, string amount, string extraAddresses)
+        {
+            await GoToUrl($"/plugins/{user.StoreId}/vendorpay/upload");
+            Assert.True(await Page.Locator("#ExtraAddresses").IsVisibleAsync());
+            await Page.FillAsync("#Destination", destination);
+            if (extraAddresses != null)
+                await Page.FillAsync("#ExtraAddresses", extraAddresses);
+            await Page.FillAsync("#Amount", amount);
+            await Page.FillAsync("#Currency", "BTC");
+            await Page.Locator("#Upload").ClickAsync();
+            var uploadStatus = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Success)).TextContentAsync();
+            Assert.Equal("Invoice uploaded successfully", uploadStatus?.Trim());
+        }
+
+        await UploadInvoice(destA, "1", extraA);
+        await UploadInvoice(destB, "0.5", null);
+
+        await GoToUrl($"/plugins/{user.StoreId}/vendorpay/list");
+        var checkboxes = Page.Locator("tbody input.mass-action-select");
+        Assert.Equal(2, await checkboxes.CountAsync());
+        for (var i = 0; i < 2; i++)
+            await checkboxes.Nth(i).CheckAsync();
+
+        await Page.ClickAsync("#payinvoices");
+        await Page.WaitForURLAsync(new Regex("/wallets/.+/send", RegexOptions.IgnoreCase), new PageWaitForURLOptions { Timeout = 15000 });
+
+        // The redirect carries one bip21 query param per output.
+        var bip21s = Regex.Matches(Page.Url, "bip21=([^&]+)")
+            .Select(m => Uri.UnescapeDataString(m.Groups[1].Value)).ToList();
+        Assert.Equal(3, bip21s.Count);
+        foreach (var bip21 in bip21s)
+        {
+            var amount = Regex.Match(bip21, "amount=([0-9.]+)").Groups[1].Value;
+            Assert.Equal("0.5", amount);
+        }
+        var paidAddresses = bip21s.Select(b => Regex.Match(b, "bitcoin:([^?]+)").Groups[1].Value).ToHashSet();
+        Assert.Equal(new HashSet<string> { destA, extraA, destB }, paidAddresses);
+
+        // The operator sees the split hint on the wallet send page.
+        var alert = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Info)).TextContentAsync();
+        Assert.Contains("Stonewall is on", alert);
+    }
+
     // Regression for the Error 404 on pay-invoices flow. UIWalletsController on the
     // BTCPay side lives inside [Area(WalletsPlugin.Area)] since the wallet UI was
     // moved into a plugin/area; if the RedirectToActionResult on the pay-invoices

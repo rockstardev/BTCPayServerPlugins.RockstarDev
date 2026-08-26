@@ -301,7 +301,8 @@ public class PublicController(
             StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob()),
             Amount = 0,
             Currency = vali.Store.GetStoreBlob().DefaultCurrency,
-            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
+            StonewallEnabled = settings.StonewallEnabled
         };
 
         return View(model);
@@ -314,9 +315,11 @@ public class PublicController(
         if (vali.ErrorActionResult != null)
             return vali.ErrorActionResult;
 
+        var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
         model.StoreId = vali.Store.Id;
         model.StoreName = vali.Store.StoreName;
         model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
+        model.StonewallEnabled = settings.StonewallEnabled;
 
         var validation = await vendorPayInvoiceUploadHelper.Process(storeId, vali.UserId, model);
         if (!validation.IsValid)
@@ -504,6 +507,7 @@ public class PublicController(
             Amount = 0,
             Currency = store.GetStoreBlob().DefaultCurrency,
             PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
+            StonewallEnabled = settings.StonewallEnabled,
             DescriptionTitle = settings.DescriptionTitle
         };
 
@@ -539,6 +543,7 @@ public class PublicController(
         model.StoreName = store.StoreName;
         model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, store.GetStoreBlob());
         model.DescriptionTitle = settings.DescriptionTitle;
+        model.StonewallEnabled = settings.StonewallEnabled;
 
         if (model.UploadCode != settings.UploadCode)
             ModelState.AddModelError(nameof(model.UploadCode), "Invalid Upload Code");
@@ -587,6 +592,7 @@ public class PublicController(
             Amount = model.Amount,
             Currency = model.Currency,
             Destination = model.Destination,
+            ExtraAddresses = model.ExtraAddresses,
             Description = model.Description,
             Invoice = model.Invoice,
             PurchaseOrder = model.PurchaseOrder,

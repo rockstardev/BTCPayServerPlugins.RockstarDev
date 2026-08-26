@@ -56,6 +56,31 @@
                 </div>
             </div>
 
+            <h4 class="mt-5 mb-3">Privacy</h4>
+            <div class="form-group d-flex align-items-center">
+                <input asp-for="StonewallEnabled" type="checkbox" class="btcpay-toggle me-3" />
+                <label asp-for="StonewallEnabled" class="form-label mb-0 me-1"></label>
+                <span asp-validation-for="StonewallEnabled" class="text-danger"></span>
+            </div>
+            @if (Model.StonewallEnabled)
+            {
+                <div class="alert alert-info">
+                    <p class="mb-2">When Stonewall is enabled, vendors can supply extra addresses on their invoices and each
+                        payment is split into equal-sized outputs across those addresses. An outside observer cannot tell
+                        which output is "the" payment.</p>
+                    <p class="mb-1 fw-semibold">What this defeats:</p>
+                    <ul class="mb-2">
+                        <li>Output-recipient identification: equal-amount outputs break the "which output is real" heuristic.</li>
+                    </ul>
+                    <p class="mb-1 fw-semibold">What this does NOT defeat:</p>
+                    <ul class="mb-0">
+                        <li>Common-input-ownership: all inputs still come from your wallet, so the sender cluster is unchanged.</li>
+                        <li>It does not anonymize your wallet cluster.</li>
+                        <li>It does not remove taint from tainted inputs.</li>
+                    </ul>
+                </div>
+            }
+
             <h4 class="mt-5 mb-3">Accountless Upload</h4>
             <div class="form-group d-flex align-items-center">
                 <input asp-for="AccountlessUploadEnabled" type="checkbox" class="btcpay-toggle me-3" id="accountlessUploadToggle" />

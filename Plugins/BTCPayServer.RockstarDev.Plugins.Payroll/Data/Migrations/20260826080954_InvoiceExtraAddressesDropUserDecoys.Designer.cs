@@ -3,17 +3,20 @@ using System;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace BTCPayServer.RockstarDev.Plugins.Payroll.Data.Migrations
+namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Migrations
 {
     [DbContext(typeof(PluginDbContext))]
-    partial class PluginDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826080954_InvoiceExtraAddressesDropUserDecoys")]
+    partial class InvoiceExtraAddressesDropUserDecoys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

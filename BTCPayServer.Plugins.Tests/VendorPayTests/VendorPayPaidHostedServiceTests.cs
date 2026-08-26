@@ -12,16 +12,20 @@ namespace BTCPayServer.Plugins.Tests;
 // output amounts are marked for completion, that a single output cannot
 // satisfy multiple invoices sharing the same destination address, and that
 // legacy rows with no expected amount do not complete on address-match alone.
+// For Stonewall split invoices the observed amounts are summed across the
+// destination plus all extra addresses before comparing to the expected total.
 public class VendorPayPaidHostedServiceTests
 {
     private const string DestA = "bcrt1qzyzvsqjqn9xzzdgcqhp8c2k9fm5x2napw00v9d";
     private const string DestB = "bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw";
+    private const string DestC = "bcrt1qne099wszrhzg4ungad0hnwgjm60euwmzfnxv3h";
 
-    private static PayrollInvoice Invoice(string id, string dest, long? amountSats, DateTimeOffset created)
+    private static PayrollInvoice Invoice(string id, string dest, long? amountSats, DateTimeOffset created, string extras = null)
         => new PayrollInvoice
         {
             Id = id,
             Destination = dest,
+            ExtraAddresses = extras,
             AmountSats = amountSats,
             CreatedAt = created,
             State = VendorPayInvoiceState.AwaitingPayment
@@ -140,5 +144,55 @@ public class VendorPayPaidHostedServiceTests
         var invoices = new[] { Invoice("i1", DestA, 10_000, DateTimeOffset.UtcNow) };
         var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(invoices, null);
         Assert.Empty(completing);
+    }
+
+    [Fact]
+    public void SplitInvoice_SumAcrossDestinationAndExtras_Completes()
+    {
+        var invoice = Invoice("i1", DestA, 10_000, DateTimeOffset.UtcNow, extras: $"{DestB},{DestC}");
+        var observed = new Dictionary<string, long> { [DestA] = 4_000, [DestB] = 3_000, [DestC] = 3_000 };
+        var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(new[] { invoice }, observed);
+        Assert.Single(completing);
+        Assert.Equal("i1", completing[0].Id);
+    }
+
+    [Fact]
+    public void SplitInvoice_AllOnExtraAddress_Completes()
+    {
+        var invoice = Invoice("i1", DestA, 10_000, DateTimeOffset.UtcNow, extras: DestB);
+        var observed = new Dictionary<string, long> { [DestB] = 10_000 };
+        var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(new[] { invoice }, observed);
+        Assert.Single(completing);
+    }
+
+    [Fact]
+    public void SplitInvoice_PartialSum_DoesNotComplete()
+    {
+        var invoice = Invoice("i1", DestA, 10_000, DateTimeOffset.UtcNow, extras: DestB);
+        var observed = new Dictionary<string, long> { [DestA] = 5_000, [DestB] = 4_999 };
+        var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(new[] { invoice }, observed);
+        Assert.Empty(completing);
+    }
+
+    [Fact]
+    public void SplitInvoice_UnrelatedAddress_DoesNotComplete()
+    {
+        var invoice = Invoice("i1", DestA, 10_000, DateTimeOffset.UtcNow, extras: DestB);
+        var observed = new Dictionary<string, long> { [DestC] = 10_000 };
+        var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(new[] { invoice }, observed);
+        Assert.Empty(completing);
+    }
+
+    [Fact]
+    public void SplitInvoice_BudgetConsumedAcrossAllItsAddresses()
+    {
+        // Legacy rows can collide on an extra address; the older invoice consumes
+        // the shared budget first, so the newer one no longer reaches its total.
+        var older = Invoice("older", DestA, 10_000, DateTimeOffset.UtcNow.AddMinutes(-10), extras: DestB);
+        var newer = Invoice("newer", DestC, 10_000, DateTimeOffset.UtcNow, extras: DestB);
+        var observed = new Dictionary<string, long> { [DestA] = 5_000, [DestB] = 9_000, [DestC] = 5_000 };
+        var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(new[] { newer, older }, observed);
+        Assert.Single(completing);
+        Assert.Equal("older", completing[0].Id);
     }
 }

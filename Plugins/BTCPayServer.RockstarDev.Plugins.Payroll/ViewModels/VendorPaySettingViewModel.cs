@@ -17,6 +17,10 @@ public class VendorPaySettingViewModel
     public double InvoiceFiatConversionAdjustmentPercentage { get; set; }
 
     //
+    [Display(Name = "Enable Stonewall (vendors can split payments across multiple addresses)")]
+    public bool StonewallEnabled { get; set; }
+
+    //
     [Display(Name = "Email vendor once invoice is paid")]
     public bool EmailOnInvoicePaid { get; set; }
 

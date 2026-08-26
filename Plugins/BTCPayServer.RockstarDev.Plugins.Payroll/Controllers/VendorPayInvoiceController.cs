@@ -12,6 +12,7 @@ using BTCPayServer.Data;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
@@ -257,32 +258,48 @@ public class VendorPayInvoiceController(
             }
 
         var network = networkProvider.GetNetwork<BTCPayNetwork>(VendorPayPluginConst.BTC_CRYPTOCODE);
-        var bip21 = new List<string>();
+        var stonewallEnabled = settings?.StonewallEnabled == true;
+
+        var splitInputs = new List<StonewallSplitInput>();
         foreach (var invoice in invoices)
         {
             var rate = rates[invoice.Currency];
+            var satsAmount = (long)Math.Ceiling(invoice.Amount * rate * 100_000_000);
 
-            var satsAmount = Math.Ceiling(invoice.Amount * rate * 100_000_000);
-            var amountInBtc = satsAmount / 100_000_000;
-
-            var bip21New = network.GenerateBIP21(invoice.Destination, amountInBtc);
-            bip21New.QueryParams.Add("label", invoice.User.Name);
-            // TODO: Add parameter here on which payroll invoice it is being paid, so that when wallet sends trasaction you can mark it paid
-            // bip21New.QueryParams.Add("payrollInvoiceId", invoice.Id);
-            bip21.Add(bip21New.ToString());
-
-            invoice.AmountSats = (long)satsAmount;
-
+            invoice.AmountSats = satsAmount;
             invoice.State = VendorPayInvoiceState.AwaitingPayment;
+
+            var extras = Array.Empty<string>();
+            if (stonewallEnabled)
+                extras = StonewallSplitter.SplitStoredExtras(invoice.ExtraAddresses)
+                    .Where(e => IsValidAddress(e, network))
+                    .ToArray();
+
+            splitInputs.Add(new StonewallSplitInput(invoice.Id, satsAmount, invoice.Destination, extras));
+        }
+
+        var invoicesById = invoices.ToDictionary(i => i.Id);
+        var outputs = StonewallSplitter.PlanBatch(splitInputs);
+        var bip21 = new List<string>();
+        foreach (var output in outputs)
+        {
+            var amountInBtc = output.Sats / 100_000_000m;
+            var bip21New = network.GenerateBIP21(output.Address, amountInBtc);
+            bip21New.QueryParams.Add("label", invoicesById[output.InvoiceId].User.Name);
+            bip21.Add(bip21New.ToString());
         }
 
         await ctx.SaveChangesAsync();
 
         var strRates = string.Join(", ", rates.Select(a => $"BTC/{a.Key}:{Math.Ceiling(100 / a.Value) / 100}"));
+        var message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}";
+        if (stonewallEnabled && outputs.Count > invoices.Count)
+            message += $" Stonewall is on: payments are split into {outputs.Count} outputs across vendor-supplied " +
+                       "addresses, so you will see more addresses than invoices when signing. This is expected, do not abort.";
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
             Severity = StatusMessageModel.StatusSeverity.Info,
-            Message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}"
+            Message = message
         });
 
         return new RedirectToActionResult(nameof(UIWalletsController.WalletSend), "UIWallets",
@@ -294,63 +311,17 @@ public class VendorPayInvoiceController(
         return originalAmount * (1 + (decimal)adjustmentPercent / 100m);
     }
 
-    // Reserved for a future paired-output payout revision. This helper is
-    // exercised only by StonewallDecoyRotationTests and is not invoked from
-    // any production code path today. The paired-output flow that consumed
-    // this helper was removed in the 0.10.1 hotfix because it added the
-    // contractor-supplied decoy addresses as extra external recipients,
-    // sending additional funds to the vendor. When the shape is reworked
-    // to draw the matching-amount output from a sender-controlled change
-    // address, this helper can be re-adopted for validation + rotation of
-    // the pre-existing per-vendor decoy list.
-    //
-    // Picks the next unused, validated decoy address for a vendor within a
-    // single payout batch. Returns null when the vendor has no decoys
-    // configured, when every unique usable decoy has already been consumed
-    // for this vendor in the current batch, or when no candidate survives
-    // network + destination-collision validation. Fails closed on
-    // exhaustion (no modulo wrap-around) so a single decoy is never reused
-    // within a batch even if the vendor has more invoices than decoys.
-    public static string SelectDecoyAddress(
-        PayrollUser vendor,
-        Dictionary<string, HashSet<string>> usedByVendor,
-        string destination,
-        NBitcoin.Network network)
+    private static bool IsValidAddress(string address, BTCPayNetwork network)
     {
-        if (vendor == null || string.IsNullOrWhiteSpace(vendor.StonewallDecoyAddresses))
-            return null;
-        var seenInList = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var candidates = new List<string>();
-        foreach (var raw in vendor.StonewallDecoyAddresses.Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries))
+        try
         {
-            var trimmed = raw.Trim();
-            if (trimmed.Length == 0) continue;
-            if (string.Equals(trimmed, destination, StringComparison.OrdinalIgnoreCase)) continue;
-            if (!seenInList.Add(trimmed)) continue;
-            candidates.Add(trimmed);
+            _ = NBitcoin.BitcoinAddress.Create(address, network.NBitcoinNetwork);
+            return true;
         }
-        if (candidates.Count == 0)
-            return null;
-        if (!usedByVendor.TryGetValue(vendor.Id, out var used))
+        catch
         {
-            used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            usedByVendor[vendor.Id] = used;
+            return false;
         }
-        foreach (var candidate in candidates)
-        {
-            if (used.Contains(candidate)) continue;
-            try
-            {
-                _ = NBitcoin.BitcoinAddress.Create(candidate, network);
-                used.Add(candidate);
-                return candidate;
-            }
-            catch
-            {
-                // Skip malformed entries; move on to the next candidate.
-            }
-        }
-        return null;
     }
 
     [HttpGet("upload")]
@@ -362,7 +333,8 @@ public class VendorPayInvoiceController(
         {
             Amount = 0,
             Currency = CurrentStore.GetStoreBlob().DefaultCurrency,
-            PurchaseOrdersRequired = settings.PurchaseOrdersRequired
+            PurchaseOrdersRequired = settings.PurchaseOrdersRequired,
+            StonewallEnabled = settings.StonewallEnabled
         };
 
         await using var ctx = pluginDbContextFactory.CreateContext();
@@ -395,6 +367,9 @@ public class VendorPayInvoiceController(
         {
             await using var ctx = pluginDbContextFactory.CreateContext();
             model.VendorPayUsers = getPayrollUsers(ctx, CurrentStore.Id);
+            var settings = await pluginDbContextFactory.GetSettingAsync(storeId);
+            model.PurchaseOrdersRequired = settings.PurchaseOrdersRequired;
+            model.StonewallEnabled = settings.StonewallEnabled;
             validation.ApplyToModelState(ModelState);
             return View(model);
         }

@@ -22,17 +22,6 @@ public class PayrollUser
     [MaxLength(50)]
     public string StoreId { get; set; }
 
-    // Reserved for a future paired-output payout revision. NOT read by any
-    // production code path today (only by StonewallDecoyRotationTests
-    // exercising the SelectDecoyAddress helper in isolation). Column is
-    // preserved so the future revision can populate + read it without a
-    // second schema migration. Do not surface a form field, UI validator,
-    // or payout hook against this column until the paired-output shape is
-    // reworked to use sender-controlled change addresses (see
-    // VendorPayStoreSetting.StonewallEnabled note for the full rationale).
-    [MaxLength(1000)]
-    public string StonewallDecoyAddresses { get; set; }
-
     public ICollection<PayrollInvoice> PayrollInvoices { get; set; } = new List<PayrollInvoice>();
 
     // TODO: Adding State property

@@ -42,6 +42,15 @@
                         <span asp-validation-for="Destination" class="text-danger"></span>
                     </div>
 
+                    @if (Model.StonewallEnabled)
+                    {
+                        <div class="form-group">
+                            <label asp-for="ExtraAddresses" class="form-label"></label>
+                            <input asp-for="ExtraAddresses" class="form-control" placeholder="bc1q..., bc1q..." />
+                            <span asp-validation-for="ExtraAddresses" class="text-danger"></span>
+                        </div>
+                    }
+
                     <div class="row">
                         <div class="form-group col-8">
                             <label asp-for="Amount" class="form-label" data-required></label>

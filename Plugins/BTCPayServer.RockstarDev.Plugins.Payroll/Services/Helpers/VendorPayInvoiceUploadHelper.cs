@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
 using NBitcoin;
 
@@ -24,6 +25,7 @@ public class VendorPayInvoiceUploadHelper(
             Amount = model.Amount,
             Currency = model.Currency,
             Destination = model.Destination,
+            ExtraAddresses = model.ExtraAddresses,
             Description = model.Description,
             Invoice = model.Invoice,
             PurchaseOrder = model.PurchaseOrder,
@@ -39,9 +41,9 @@ public class VendorPayInvoiceUploadHelper(
         if (model.Amount <= 0)
             validation.AddError(nameof(model.Amount), "Amount must be more than 0.");
 
+        var network = networkProvider.GetNetwork<BTCPayNetwork>(VendorPayPluginConst.BTC_CRYPTOCODE);
         try
         {
-            var network = networkProvider.GetNetwork<BTCPayNetwork>(VendorPayPluginConst.BTC_CRYPTOCODE);
             Network.Parse<BitcoinAddress>(model.Destination, network.NBitcoinNetwork);
         }
         catch (Exception)
@@ -58,13 +60,40 @@ public class VendorPayInvoiceUploadHelper(
         if (settings.PurchaseOrdersRequired && string.IsNullOrEmpty(model.PurchaseOrder))
             validation.AddError(nameof(model.PurchaseOrder), "Purchase Order is required.");
 
-        var alreadyInvoiceWithAddress = dbPlugin.PayrollInvoices.Any(a =>
-            a.Destination == model.Destination &&
-            a.User.StoreId == storeId &&
-            a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled);
+        var pendingInvoices = dbPlugin.PayrollInvoices
+            .Where(a => a.User.StoreId == storeId &&
+                        a.State != VendorPayInvoiceState.Completed && a.State != VendorPayInvoiceState.Cancelled)
+            .Select(a => new { a.Destination, a.ExtraAddresses })
+            .ToList();
 
-        if (alreadyInvoiceWithAddress)
+        if (pendingInvoices.Any(a => a.Destination == model.Destination))
             validation.AddError(nameof(model.Destination), "This destination is already specified for another invoice with payment in progress.");
+
+        string extraAddresses = null;
+        if (settings.StonewallEnabled && !string.IsNullOrWhiteSpace(model.ExtraAddresses))
+        {
+            if (!StonewallSplitter.TryParseExtraAddresses(model.ExtraAddresses, model.Destination, network.NBitcoinNetwork,
+                    out var parsed, out var parseError))
+            {
+                validation.AddError(nameof(model.ExtraAddresses), parseError);
+            }
+            else if (parsed.Count > 0)
+            {
+                // Split payments are reconciled by summing outputs across an
+                // invoice's addresses, so none of them may collide with an
+                // address already in flight on another pending invoice.
+                var taken = pendingInvoices
+                    .SelectMany(a => new[] { a.Destination }.Concat(StonewallSplitter.SplitStoredExtras(a.ExtraAddresses)))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var collision = parsed.FirstOrDefault(taken.Contains) ??
+                                (taken.Contains(model.Destination) ? model.Destination : null);
+                if (collision != null)
+                    validation.AddError(nameof(model.ExtraAddresses),
+                        $"Address {collision} is already specified for another invoice with payment in progress.");
+                else
+                    extraAddresses = string.Join(",", parsed);
+            }
+        }
 
         if (!validation.IsValid)
             // triggering early return with validation errors
@@ -77,6 +106,7 @@ public class VendorPayInvoiceUploadHelper(
             CreatedAt = DateTime.UtcNow,
             Currency = model.Currency,
             Destination = model.Destination,
+            ExtraAddresses = extraAddresses,
             PurchaseOrder = model.PurchaseOrder,
             Description = model.Description,
             UserId = userId,

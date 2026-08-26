@@ -22,6 +22,12 @@ public class PayrollInvoice
     [MaxLength(100)]
     public string Destination { get; set; }
 
+    // Stonewall split: optional comma-separated extra addresses (max 5) the
+    // vendor supplied at upload. When the store has Stonewall enabled the
+    // payout is split into equal chunks across Destination + these addresses.
+    [MaxLength(1000)]
+    public string ExtraAddresses { get; set; }
+
     public decimal Amount { get; set; }
 
     [MaxLength(5)]

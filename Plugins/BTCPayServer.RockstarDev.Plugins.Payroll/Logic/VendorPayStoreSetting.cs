@@ -45,15 +45,14 @@ public class VendorPayStoreSetting
     public string UserInviteEmailSubject { get; set; }
     public string UserInviteEmailBody { get; set; }
 
-    // Reserved for a future paired-output payout revision. NOT wired at
-    // runtime: no controller, hosted service, or view reads this flag today.
-    // The prior implementation added contractor-supplied decoy addresses as
-    // extra external recipients on the payout tx, which sent additional funds
-    // to the vendor. Do not re-wire this setting to that shape - the correct
-    // paired output must go to a sender-controlled change address, generated
-    // fresh from the paying wallet at tx-build time. Restoring the feature
-    // will land alongside batch shape preflight, a hardware-sign hint,
-    // regtest coverage of the on-chain output shape, and a defeats /
-    // does-not-defeat info box on the admin dashboard.
+    // Stonewall-style split payouts. When on, vendors can supply extra
+    // addresses on their invoices (PayrollInvoice.ExtraAddresses) and
+    // payInvoices splits each payment into equal-sized outputs across the
+    // destination plus those addresses (see StonewallSplitter). An outside
+    // observer cannot tell which output is "the" payment. The vendor always
+    // receives exactly the invoice amount in total - every output goes to a
+    // vendor-supplied address. Reconciliation completes an invoice when the
+    // summed outputs across all its addresses reach the expected amount
+    // (VendorPayPaidHostedService).
     public bool StonewallEnabled { get; set; }
 }
