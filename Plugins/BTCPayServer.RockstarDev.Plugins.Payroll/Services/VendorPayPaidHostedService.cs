@@ -63,7 +63,10 @@ public class VendorPayPaidHostedService(
                         continue;
 
                     matchedObjects.Add(address.ToString());
-                    amountSats[address.ToString()] = txOut.TxOut.Value.Satoshi;
+                    // Sum rather than assign: a split payout can place more than one
+                    // output on the same invoice address within a single transaction.
+                    amountSats[address.ToString()] =
+                        amountSats.GetValueOrDefault(address.ToString()) + txOut.TxOut.Value.Satoshi;
                 }
 
                 await using var dbPlugin = pluginDbContextFactory.CreateContext();

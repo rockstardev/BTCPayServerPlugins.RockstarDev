@@ -248,6 +248,16 @@
                             <div class="qr-container" style="display: none;">
                                 <vc:qr-code data="bitcoin:@(pp.Destination)" />
                             </div>
+                            @if (!string.IsNullOrEmpty(pp.ExtraAddresses))
+                            {
+                                <div class="text-secondary small mt-1">
+                                    Stonewall split:
+                                    @foreach (var extra in pp.ExtraAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                    {
+                                        <vc:truncate-center text="@extra" link="https://mempool.space/address/@(extra)" classes="truncate-center-id" />
+                                    }
+                                </div>
+                            }
 
                         </td>
                         <td>@pp.Amount @pp.Currency</td>

@@ -7,12 +7,16 @@ using Xunit;
 namespace BTCPayServer.Plugins.Tests;
 
 // Unit coverage for the Stonewall split planner. A payout batch picks a single
-// satoshi chunk size for the whole selection (the largest per-invoice minimum
-// chunk, where an invoice's minimum chunk is ceil(sats / address count)) and
-// pays each invoice in that many chunks across its destination plus any extra
-// addresses the vendor supplied at upload. Invoices that cannot split (no
-// extra addresses, or a chunk would be dust) fall back to a single output for
-// the full amount. Output sums per invoice must always equal the invoice total.
+// satoshi chunk size for the whole selection: the largest per-invoice minimum
+// chunk (sats / address count), unless some invoice's whole amount sits below
+// that - such an invoice pays as one plain output and its amount becomes the
+// denomination the rest of the batch matches. Each invoice with extra
+// addresses is paid in chunks of exactly that size, one chunk per address
+// (destination first), with any remainder as one final smaller output.
+// Invoices without extras always pay whole. Output sums per invoice must
+// always equal the invoice total. Each split invoice adds one to DecoyCount,
+// telling the caller how many sender-controlled outputs of the chunk size to
+// add so payment chunks blend with the sender's own coins.
 public class StonewallSplitterTests
 {
     private const string Dest = "bcrt1q6r39p8y4ye8j0xkqzhh6r6xh8mvrxnq3lygsdz";
@@ -107,115 +111,167 @@ public class StonewallSplitterTests
     [Fact]
     public void Plan_NoExtras_SingleOutputPerInvoice()
     {
-        var outputs = StonewallSplitter.PlanBatch(new[]
+        var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("i1", 100_000_000, Dest),
             Input("i2", 50_000_000, AddrA)
         });
 
-        Assert.Equal(2, outputs.Count);
-        Assert.Equal((100_000_000, Dest), (outputs[0].Sats, outputs[0].Address));
-        Assert.Equal((50_000_000, AddrA), (outputs[1].Sats, outputs[1].Address));
+        Assert.Equal(2, plan.Outputs.Count);
+        Assert.Equal((100_000_000, Dest), (plan.Outputs[0].Sats, plan.Outputs[0].Address));
+        Assert.Equal((50_000_000, AddrA), (plan.Outputs[1].Sats, plan.Outputs[1].Address));
+        Assert.Equal(0, plan.DecoyCount);
     }
 
     [Fact]
     public void Plan_SingleInvoice_FiveAddresses_EqualSplit()
     {
         var extras = Addresses(4);
-        var outputs = StonewallSplitter.PlanBatch(new[] { Input("i1", 100_000_000, Dest, extras.ToArray()) });
+        var plan = StonewallSplitter.PlanBatch(new[] { Input("i1", 100_000_000, Dest, extras.ToArray()) });
 
-        Assert.Equal(5, outputs.Count);
-        Assert.All(outputs, o => Assert.Equal(20_000_000, o.Sats));
-        Assert.Equal(100_000_000, outputs.Sum(o => o.Sats));
-        Assert.Equal(Dest, outputs[0].Address);
-        Assert.Equal(extras, outputs.Skip(1).Select(o => o.Address).ToList());
+        Assert.Equal(5, plan.Outputs.Count);
+        Assert.All(plan.Outputs, o => Assert.Equal(20_000_000, o.Sats));
+        Assert.Equal(100_000_000, plan.Outputs.Sum(o => o.Sats));
+        Assert.Equal(Dest, plan.Outputs[0].Address);
+        Assert.Equal(extras, plan.Outputs.Skip(1).Select(o => o.Address).ToList());
+        Assert.Equal(20_000_000, plan.ChunkSats);
+        Assert.Equal(1, plan.DecoyCount);
     }
 
     [Fact]
     public void Plan_OwnerExample_OneBtcPlusHalfBtc_AllHalfBtcOutputs()
     {
         // 1 BTC invoice with 4 extra addresses + 0.5 BTC plain invoice.
-        // The 0.5 BTC invoice sets the batch denominator, so the first invoice
+        // The 0.5 BTC invoice sets the batch denomination, so the first invoice
         // is paid as 0.5 + 0.5 and the batch is three uniform 0.5 BTC outputs.
-        var outputs = StonewallSplitter.PlanBatch(new[]
+        var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("i1", 100_000_000, Dest, Addresses(4).ToArray()),
             Input("i2", 50_000_000, AddrC)
         });
 
-        Assert.Equal(3, outputs.Count);
-        Assert.All(outputs, o => Assert.Equal(50_000_000, o.Sats));
-        Assert.Equal(2, outputs.Count(o => o.InvoiceId == "i1"));
-        Assert.Single(outputs.Where(o => o.InvoiceId == "i2"));
+        Assert.Equal(3, plan.Outputs.Count);
+        Assert.All(plan.Outputs, o => Assert.Equal(50_000_000, o.Sats));
+        Assert.Equal(2, plan.Outputs.Count(o => o.InvoiceId == "i1"));
+        Assert.Single(plan.Outputs.Where(o => o.InvoiceId == "i2"));
+        Assert.Equal(1, plan.DecoyCount);
+    }
+
+    [Fact]
+    public void Plan_SmallInvoiceStaysWhole_BigInvoiceMatchesItsDenomination()
+    {
+        // 0.1 BTC invoice with 2 extras batched with a 0.02 BTC invoice with 1
+        // extra. The small invoice's whole amount (0.02) becomes the chunk size:
+        // the big invoice pays 3 chunks of 0.02 (one per address) plus the
+        // 0.04 remainder as a final output, the small invoice pays whole.
+        var plan = StonewallSplitter.PlanBatch(new[]
+        {
+            Input("big", 10_000_000, Dest, AddrA, AddrB),
+            Input("small", 2_000_000, AddrC, NewAddress())
+        });
+
+        Assert.Equal(2_000_000, plan.ChunkSats);
+        var big = plan.Outputs.Where(o => o.InvoiceId == "big").ToList();
+        Assert.Equal(4, big.Count);
+        Assert.Equal(new[] { (Dest, 2_000_000L), (AddrA, 2_000_000L), (AddrB, 2_000_000L), (Dest, 4_000_000L) },
+            big.Select(o => (o.Address, o.Sats)).ToArray());
+        var small = plan.Outputs.Where(o => o.InvoiceId == "small").ToList();
+        Assert.Single(small);
+        Assert.Equal((AddrC, 2_000_000L), (small[0].Address, small[0].Sats));
+        Assert.Equal(1, plan.DecoyCount);
     }
 
     [Fact]
     public void Plan_ThreeAddresses_RemainderOnLastChunk()
     {
-        var outputs = StonewallSplitter.PlanBatch(new[] { Input("i1", 100_000_000, Dest, AddrA, AddrB) });
+        var plan = StonewallSplitter.PlanBatch(new[] { Input("i1", 100_000_000, Dest, AddrA, AddrB) });
 
-        Assert.Equal(3, outputs.Count);
-        Assert.Equal(33_333_334, outputs[0].Sats);
-        Assert.Equal(33_333_334, outputs[1].Sats);
-        Assert.Equal(33_333_332, outputs[2].Sats);
-        Assert.Equal(100_000_000, outputs.Sum(o => o.Sats));
+        Assert.Equal(3, plan.Outputs.Count);
+        Assert.Equal(33_333_334, plan.Outputs[0].Sats);
+        Assert.Equal(33_333_334, plan.Outputs[1].Sats);
+        Assert.Equal(33_333_332, plan.Outputs[2].Sats);
+        Assert.Equal(100_000_000, plan.Outputs.Sum(o => o.Sats));
+        // one chunk per address, remainder lands on the next unused address
+        Assert.Equal(new[] { Dest, AddrA, AddrB }, plan.Outputs.Select(o => o.Address).ToArray());
     }
 
     [Fact]
-    public void Plan_ChunkCountClampedByAddressCount()
+    public void Plan_SmallPlainInvoice_SetsBatchDenomination()
     {
-        // Invoice A can only split 2 ways (1 extra), invoice B is plain 0.1 BTC.
-        // Denominator comes from A: 0.5 BTC, so A pays 0.5 + 0.5 and B pays whole.
-        var outputs = StonewallSplitter.PlanBatch(new[]
+        // Invoice A has only 2 addresses, invoice B is a plain 0.1 BTC. B's whole
+        // amount becomes the chunk: A pays 2 chunks of 0.1 plus the 0.8 remainder,
+        // B pays whole - three uniform 0.1 BTC outputs in the batch.
+        var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("a", 100_000_000, Dest, AddrA),
             Input("b", 10_000_000, AddrB)
         });
 
-        Assert.Equal(3, outputs.Count);
-        Assert.Equal(2, outputs.Count(o => o.InvoiceId == "a" && o.Sats == 50_000_000));
-        Assert.Single(outputs.Where(o => o.InvoiceId == "b" && o.Sats == 10_000_000));
+        Assert.Equal(10_000_000, plan.ChunkSats);
+        Assert.Equal(4, plan.Outputs.Count);
+        Assert.Equal(3, plan.Outputs.Count(o => o.Sats == 10_000_000));
+        Assert.Single(plan.Outputs.Where(o => o.InvoiceId == "a" && o.Sats == 80_000_000));
+        Assert.Equal(1, plan.DecoyCount);
+    }
+
+    [Fact]
+    public void Plan_DustRemainder_FoldedIntoLastChunk()
+    {
+        var plan = StonewallSplitter.PlanBatch(new[]
+        {
+            Input("a", 11_100, Dest, AddrA),
+            Input("b", 5_500, AddrB)
+        });
+
+        Assert.Equal(5_500, plan.ChunkSats);
+        var a = plan.Outputs.Where(o => o.InvoiceId == "a").ToList();
+        Assert.Equal(2, a.Count);
+        Assert.Equal(5_500, a[0].Sats);
+        Assert.Equal(5_600, a[1].Sats);
+        Assert.Equal(11_100, a.Sum(o => o.Sats));
     }
 
     [Fact]
     public void Plan_TinyInvoice_NotSplitBelowDust()
     {
-        var outputs = StonewallSplitter.PlanBatch(new[] { Input("i1", 1_000, Dest, Addresses(5).ToArray()) });
+        var plan = StonewallSplitter.PlanBatch(new[] { Input("i1", 1_000, Dest, Addresses(5).ToArray()) });
 
-        Assert.Single(outputs);
-        Assert.Equal(1_000, outputs[0].Sats);
-        Assert.Equal(Dest, outputs[0].Address);
+        Assert.Single(plan.Outputs);
+        Assert.Equal(1_000, plan.Outputs[0].Sats);
+        Assert.Equal(Dest, plan.Outputs[0].Address);
+        Assert.Equal(0, plan.DecoyCount);
     }
 
     [Fact]
     public void Plan_LargePlainInvoice_SplitInvoiceFallsBackToPlain()
     {
-        // A 5 BTC plain invoice forces the denominator above the 1 BTC invoice's
+        // A 5 BTC plain invoice forces the denomination above the 1 BTC invoice's
         // total, so the split cannot be constructed and degrades to plain payout.
-        var outputs = StonewallSplitter.PlanBatch(new[]
+        var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("i1", 100_000_000, Dest, Addresses(4).ToArray()),
             Input("i2", 500_000_000, AddrC)
         });
 
-        Assert.Equal(2, outputs.Count);
-        Assert.Single(outputs.Where(o => o.InvoiceId == "i1" && o.Sats == 100_000_000 && o.Address == Dest));
-        Assert.Single(outputs.Where(o => o.InvoiceId == "i2" && o.Sats == 500_000_000 && o.Address == AddrC));
+        Assert.Equal(2, plan.Outputs.Count);
+        Assert.Single(plan.Outputs.Where(o => o.InvoiceId == "i1" && o.Sats == 100_000_000 && o.Address == Dest));
+        Assert.Single(plan.Outputs.Where(o => o.InvoiceId == "i2" && o.Sats == 500_000_000 && o.Address == AddrC));
+        Assert.Equal(0, plan.DecoyCount);
     }
 
     [Fact]
     public void Plan_SplitUsesOnlyAsManyAddressesAsChunks()
     {
-        // Denominator from a plain 0.5 BTC invoice -> 1 BTC invoice splits in 2,
+        // Denomination from a plain 0.5 BTC invoice -> 1 BTC invoice splits in 2,
         // so only the destination and the first extra address are used.
         var extras = Addresses(4);
-        var outputs = StonewallSplitter.PlanBatch(new[]
+        var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("i1", 100_000_000, Dest, extras.ToArray()),
             Input("i2", 50_000_000, AddrC)
         });
 
-        var i1Addresses = outputs.Where(o => o.InvoiceId == "i1").Select(o => o.Address).ToList();
+        var i1Addresses = plan.Outputs.Where(o => o.InvoiceId == "i1").Select(o => o.Address).ToList();
         Assert.Equal(new[] { Dest, extras[0] }, i1Addresses);
     }
 
@@ -227,11 +283,11 @@ public class StonewallSplitterTests
     [InlineData(5_461, 4)]
     public void Plan_OutputSumAlwaysEqualsInvoiceTotal(long sats, int extraCount)
     {
-        var outputs = StonewallSplitter.PlanBatch(new[] { Input("i1", sats, Dest, Addresses(extraCount).ToArray()) });
+        var plan = StonewallSplitter.PlanBatch(new[] { Input("i1", sats, Dest, Addresses(extraCount).ToArray()) });
 
-        Assert.Equal(sats, outputs.Sum(o => o.Sats));
-        Assert.All(outputs, o => Assert.True(o.Sats > 0));
-        Assert.All(outputs, o => Assert.True(o.Sats >= StonewallSplitter.MinChunkSats || outputs.Count == 1));
+        Assert.Equal(sats, plan.Outputs.Sum(o => o.Sats));
+        Assert.All(plan.Outputs, o => Assert.True(o.Sats > 0));
+        Assert.All(plan.Outputs, o => Assert.True(o.Sats >= StonewallSplitter.MinChunkSats || plan.Outputs.Count == 1));
     }
 
     // ----- SplitStoredExtras -----

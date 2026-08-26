@@ -1151,8 +1151,11 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
 
     // End-to-end Stonewall split payout: enabling the setting exposes the extra-addresses
     // field on the upload form, and paying a batch splits each invoice into equal chunk
-    // outputs across the vendor's addresses. Here a 1 BTC invoice with one extra address
-    // batched with a plain 0.5 BTC invoice produces three uniform 0.5 BTC BIP21 outputs.
+    // outputs across the vendor's addresses, plus one sender-controlled decoy output per
+    // split invoice at the same amount. Here a 1 BTC invoice with one extra address
+    // batched with a plain 0.5 BTC invoice produces four uniform 0.5 BTC BIP21 outputs:
+    // two to the first vendor's addresses, one to the second vendor, one decoy back to
+    // the store's own wallet.
     [Fact]
     public async Task VendorPay_Stonewall_SplitPayout_EmitsUniformChunkOutputs()
     {
@@ -1212,17 +1215,22 @@ public class VendorPayPluginUITest : PlaywrightBaseTest
         await Page.ClickAsync("#payinvoices");
         await Page.WaitForURLAsync(new Regex("/wallets/.+/send", RegexOptions.IgnoreCase), new PageWaitForURLOptions { Timeout = 15000 });
 
-        // The redirect carries one bip21 query param per output.
+        // The redirect carries one bip21 query param per output: 3 vendor chunks
+        // plus 1 sender-controlled decoy at the same amount.
         var bip21s = Regex.Matches(Page.Url, "bip21=([^&]+)")
             .Select(m => Uri.UnescapeDataString(m.Groups[1].Value)).ToList();
-        Assert.Equal(3, bip21s.Count);
+        Assert.Equal(4, bip21s.Count);
         foreach (var bip21 in bip21s)
         {
             var amount = Regex.Match(bip21, "amount=([0-9.]+)").Groups[1].Value;
             Assert.Equal("0.5", amount);
         }
         var paidAddresses = bip21s.Select(b => Regex.Match(b, "bitcoin:([^?]+)").Groups[1].Value).ToHashSet();
-        Assert.Equal(new HashSet<string> { destA, extraA, destB }, paidAddresses);
+        Assert.Equal(4, paidAddresses.Count);
+        Assert.True(paidAddresses.IsSupersetOf(new[] { destA, extraA, destB }));
+        var decoyAddress = paidAddresses.Except(new[] { destA, extraA, destB }).Single();
+        var decoyBip21 = Uri.UnescapeDataString(bip21s.Single(b => b.Contains(decoyAddress)));
+        Assert.Contains("Stonewall decoy", decoyBip21);
 
         // The operator sees the split hint on the wallet send page.
         var alert = await (await FindAlertMessageAsync(StatusMessageModel.StatusSeverity.Info)).TextContentAsync();

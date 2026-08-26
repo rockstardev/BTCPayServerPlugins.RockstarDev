@@ -229,6 +229,7 @@ public class PublicController(
                 Name = tuple.User.Name,
                 Email = tuple.User.Email,
                 Destination = tuple.Destination,
+                ExtraAddresses = tuple.ExtraAddresses,
                 Amount = tuple.Amount,
                 Currency = tuple.Currency,
                 State = tuple.State,

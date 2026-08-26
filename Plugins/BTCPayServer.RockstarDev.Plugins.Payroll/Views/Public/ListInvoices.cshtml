@@ -72,6 +72,17 @@
                                 <td>
                                     <vc:truncate-center text="@pp.Destination" link="https://mempool.space/address/@(pp.Destination)"
                                                         classes="truncate-center-id" />
+                                    @if (!string.IsNullOrEmpty(pp.ExtraAddresses))
+                                    {
+                                        <div class="text-secondary small mt-1">
+                                            Stonewall split:
+                                            @foreach (var extra in pp.ExtraAddresses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                            {
+                                                <vc:truncate-center text="@extra" link="https://mempool.space/address/@(extra)"
+                                                                    classes="truncate-center-id" />
+                                            }
+                                        </div>
+                                    }
                                 </td>
                                 <td>@pp.Amount @pp.Currency</td>
                                 <td>

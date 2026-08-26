@@ -9,6 +9,7 @@ using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
+using BTCPayServer.Payments;
 using BTCPayServer.Rating;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
@@ -17,8 +18,10 @@ using BTCPayServer.RockstarDev.Plugins.VendorPay.Security;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Services.Helpers;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.ViewModels;
+using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Labels;
 using BTCPayServer.Services.Rates;
+using BTCPayServer.Services.Wallets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -41,7 +44,9 @@ public class VendorPayInvoiceController(
     EmailService emailService,
     StoreLabelRepository storeLabelRepository,
     VendorPayInvoiceUploadHelper payrollInvoiceUploadHelper,
-    InvoicesDownloadHelper invoicesDownloadHelper)
+    InvoicesDownloadHelper invoicesDownloadHelper,
+    BTCPayWalletProvider walletProvider,
+    PaymentMethodHandlerDictionary paymentMethodHandlers)
     : Controller
 {
     private StoreData CurrentStore => HttpContext.GetStoreData();
@@ -133,6 +138,7 @@ public class VendorPayInvoiceController(
                 Name = tuple.User.Name,
                 Email = tuple.User.Email,
                 Destination = tuple.Destination,
+                ExtraAddresses = tuple.ExtraAddresses,
                 Amount = tuple.Amount,
                 Currency = tuple.Currency,
                 State = tuple.State,
@@ -279,13 +285,30 @@ public class VendorPayInvoiceController(
         }
 
         var invoicesById = invoices.ToDictionary(i => i.Id);
-        var outputs = StonewallSplitter.PlanBatch(splitInputs);
+        var plan = StonewallSplitter.PlanBatch(splitInputs);
+        var outputs = plan.Outputs;
+
+        // Sender-controlled decoy outputs matching the batch chunk size, so an
+        // observer cannot tell payment chunks from the sender's own coins
+        // returning to the wallet. The funds come straight back as fresh UTXOs.
+        var decoyWarning = false;
+        var decoysAdded = 0;
+        if (stonewallEnabled && plan.DecoyCount > 0)
+        {
+            var decoyAddresses = await TryReserveDecoyAddresses(plan.DecoyCount, network);
+            decoysAdded = decoyAddresses.Count;
+            if (decoysAdded < plan.DecoyCount)
+                decoyWarning = true;
+            outputs.AddRange(decoyAddresses.Select(a => new StonewallSplitOutput(null, a, plan.ChunkSats)));
+        }
+
         var bip21 = new List<string>();
         foreach (var output in outputs)
         {
             var amountInBtc = output.Sats / 100_000_000m;
             var bip21New = network.GenerateBIP21(output.Address, amountInBtc);
-            bip21New.QueryParams.Add("label", invoicesById[output.InvoiceId].User.Name);
+            bip21New.QueryParams.Add("label",
+                output.InvoiceId is null ? "Stonewall decoy (own wallet)" : invoicesById[output.InvoiceId].User.Name);
             bip21.Add(bip21New.ToString());
         }
 
@@ -294,11 +317,17 @@ public class VendorPayInvoiceController(
         var strRates = string.Join(", ", rates.Select(a => $"BTC/{a.Key}:{Math.Ceiling(100 / a.Value) / 100}"));
         var message = $"Vendor Pay on {DateTime.Now:yyyy-MM-dd} for {invoices.Count} invoices. {strRates}";
         if (stonewallEnabled && outputs.Count > invoices.Count)
-            message += $" Stonewall is on: payments are split into {outputs.Count} outputs across vendor-supplied " +
-                       "addresses, so you will see more addresses than invoices when signing. This is expected, do not abort.";
+        {
+            message += $" Stonewall is on: payments are split into {plan.Outputs.Count} outputs across vendor-supplied addresses";
+            if (decoysAdded > 0)
+                message += $", plus {decoysAdded} matching output(s) back to your own wallet as decoys (those funds stay yours)";
+            message += ". You will see more addresses than invoices when signing - this is expected, do not abort.";
+        }
+        if (decoyWarning)
+            message += " Warning: decoy outputs could not be reserved from the wallet, so this batch pays without them (reduced privacy).";
         TempData.SetStatusMessageModel(new StatusMessageModel
         {
-            Severity = StatusMessageModel.StatusSeverity.Info,
+            Severity = decoyWarning ? StatusMessageModel.StatusSeverity.Warning : StatusMessageModel.StatusSeverity.Info,
             Message = message
         });
 
@@ -309,6 +338,31 @@ public class VendorPayInvoiceController(
     private decimal ApplyAdjustment(decimal originalAmount, double adjustmentPercent)
     {
         return originalAmount * (1 + (decimal)adjustmentPercent / 100m);
+    }
+
+    private async Task<List<string>> TryReserveDecoyAddresses(int count, BTCPayNetwork network)
+    {
+        var addresses = new List<string>();
+        try
+        {
+            var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(VendorPayPluginConst.BTC_CRYPTOCODE);
+            var derivation = CurrentStore.GetPaymentMethodConfig<DerivationSchemeSettings>(pmi, paymentMethodHandlers);
+            if (derivation is null)
+                return addresses;
+            var wallet = walletProvider.GetWallet(network.CryptoCode);
+            for (var i = 0; i < count; i++)
+            {
+                var reserved = await wallet.ReserveAddressAsync(CurrentStore.Id, derivation.AccountDerivation, "vendorpay-stonewall");
+                if (reserved?.Address is null)
+                    break;
+                addresses.Add(reserved.Address.ToString());
+            }
+        }
+        catch (Exception)
+        {
+            return new List<string>();
+        }
+        return addresses;
     }
 
     private static bool IsValidAddress(string address, BTCPayNetwork network)
