@@ -112,6 +112,15 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         return (await row.Locator("td").Nth(5).TextContentAsync())?.Trim() ?? string.Empty;
     }
 
+    // Scrape the antiforgery token from a form page in the current session so
+    // APIRequest POSTs pass BTCPay's global antiforgery filter instead of
+    // being rejected with a 400 before reaching the controller.
+    private async Task<string> AntiforgeryToken(string pageUrl)
+    {
+        await GoToUrl(pageUrl);
+        return await Page.Locator("input[name='__RequestVerificationToken']").First.GetAttributeAsync("value");
+    }
+
     // CRITICAL 1a: MassAction command=markpaid must not mutate a different store's invoice.
     [Fact]
     public async Task MassAction_MarkPaid_CrossStore_DoesNotMutate()
@@ -122,8 +131,10 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         var aliceInvoiceId = await SeedInvoice(alice);
         await ReLogin(bob);
 
-        var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay/list");
+        var token = await AntiforgeryToken($"/plugins/{bob.StoreId}/vendorpay/list");
+        var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay");
         var form = Page.APIRequest.CreateFormData()
+            .Set("__RequestVerificationToken", token)
             .Set("command", "markpaid")
             .Set("selectedItems", aliceInvoiceId);
         var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
@@ -146,8 +157,10 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         var aliceInvoiceId = await SeedInvoice(alice);
         await ReLogin(bob);
 
-        var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay/list");
+        var token = await AntiforgeryToken($"/plugins/{bob.StoreId}/vendorpay/list");
+        var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay");
         var form = Page.APIRequest.CreateFormData()
+            .Set("__RequestVerificationToken", token)
             .Set("command", "payinvoices")
             .Set("selectedItems", aliceInvoiceId);
         var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
@@ -170,8 +183,11 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         var aliceInvoiceId = await SeedInvoice(alice);
         await ReLogin(bob);
 
+        var token = await AntiforgeryToken($"/plugins/{bob.StoreId}/vendorpay/list");
         var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay/delete/{aliceInvoiceId}");
-        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = Page.APIRequest.CreateFormData(), MaxRedirects = 0 });
+        var form = Page.APIRequest.CreateFormData()
+            .Set("__RequestVerificationToken", token);
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
         Assert.Equal(404, resp.Status);
 
         await ReLogin(alice);
@@ -204,8 +220,11 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
 
         // Vendor B logs in via public portal + attempts delete on vendor A's invoice.
         await PublicLogin(admin.StoreId, vendorBEmail);
+        var token = await AntiforgeryToken($"/plugins/{admin.StoreId}/vendorpay/public/upload");
         var postUrl = Link($"/plugins/{admin.StoreId}/vendorpay/public/delete/{vendorAInvoiceId}");
-        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = Page.APIRequest.CreateFormData(), MaxRedirects = 0 });
+        var form = Page.APIRequest.CreateFormData()
+            .Set("__RequestVerificationToken", token);
+        var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
         Assert.Equal(404, resp.Status);
 
         // Admin verifies vendor A's invoice still exists.
@@ -225,8 +244,10 @@ public class VendorPaySecurityTests : PlaywrightBaseTest
         await ReLogin(bob);
 
         var injected = "TAMPER-" + RandomUtils.GetUInt256().ToString().Substring(0, 8);
+        var token = await AntiforgeryToken($"/plugins/{bob.StoreId}/vendorpay/list");
         var postUrl = Link($"/plugins/{bob.StoreId}/vendorpay/adminnote/{aliceInvoiceId}");
         var form = Page.APIRequest.CreateFormData()
+            .Set("__RequestVerificationToken", token)
             .Set("Id", aliceInvoiceId)
             .Set("AdminNote", injected);
         var resp = await Page.APIRequest.PostAsync(postUrl, new APIRequestContextOptions { Form = form, MaxRedirects = 0 });
