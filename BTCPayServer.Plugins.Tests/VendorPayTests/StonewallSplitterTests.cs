@@ -166,20 +166,26 @@ public class StonewallSplitterTests
         // the big invoice pays 3 chunks of 0.02 (one per address) plus the
         // 0.04 remainder as a final output, the small invoice pays whole.
         //
-        // That remainder wraps back onto the destination, which makes this the
-        // only planner path that puts two outputs on one address. It is the shape
+        // That remainder wraps back onto the destination, so this is the one way
+        // a single invoice puts two outputs on one address. It is the shape
         // VendorPayPaidHostedService sums rather than assigns for, so the expected
         // array below is what stops a "simplification" of that += from silently
         // undercounting a fully paid invoice.
         //
-        // "Only" also rests on the address list holding no duplicates, which is
-        // enforced at write time by TryParseExtraAddresses - it rejects an extra
-        // equal to the destination and skips repeats case-insensitively. Plan time
-        // re-splits the stored string and filters only for address validity, so
-        // relaxing that parser opens a second route to two outputs on one address.
-        // Storage does not back it up either: the column is a nullable
-        // character varying(1000) with no unique or check constraint, so the
-        // parser is the only enforcement rather than the first of two.
+        // Within one invoice the wrap is the only route, and only when
+        // chunkCount == addresses.Count, because the write-time parser
+        // TryParseExtraAddresses rejects an extra equal to the destination and
+        // skips repeats case-insensitively, so no earlier index can collide. That
+        // is a write-time invariant read at plan time: plan time only re-splits
+        // the stored string and checks address validity. Storage does not back it
+        // up either - the column is a nullable character varying(1000) with no
+        // unique or check constraint - so the parser is the only enforcement
+        // rather than the first of two.
+        //
+        // Across a batch the wrap is neither the only route nor the common one:
+        // two invoices paying the same destination each emit a chunk at index 0,
+        // and nothing dedupes addresses across invoices. So the += is load-bearing
+        // for ordinary multi-invoice batches, not just for this remainder wrap.
         var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("big", 10_000_000, Dest, AddrA, AddrB),
