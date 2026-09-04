@@ -171,6 +171,12 @@ public class StonewallSplitterTests
         // VendorPayPaidHostedService sums rather than assigns for, so the expected
         // array below is what stops a "simplification" of that += from silently
         // undercounting a fully paid invoice.
+        //
+        // "Only" also rests on the address list holding no duplicates, which is
+        // enforced at write time by TryParseExtraAddresses - it rejects an extra
+        // equal to the destination and skips repeats case-insensitively. Plan time
+        // re-splits the stored string and filters only for address validity, so
+        // relaxing that parser opens a second route to two outputs on one address.
         var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("big", 10_000_000, Dest, AddrA, AddrB),
