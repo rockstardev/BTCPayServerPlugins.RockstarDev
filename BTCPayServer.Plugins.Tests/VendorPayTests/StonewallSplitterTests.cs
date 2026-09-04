@@ -277,6 +277,39 @@ public class StonewallSplitterTests
         Assert.Equal(new[] { Dest, extras[0] }, i1Addresses);
     }
 
+    // The leftover output wraps with addresses[chunkCount % addresses.Count], so
+    // an invoice that takes a full chunk on every one of its addresses and still
+    // has a remainder puts a SECOND output on its destination. This is the only
+    // way the planner emits two outputs on one address, and it is why the
+    // event-ingestion path in VendorPayPaidHostedService must accumulate observed
+    // amounts per address rather than assign them.
+    [Fact]
+    public void Plan_LeftoverWrapsOntoDestination_ProducesTwoOutputsOnOneAddress()
+    {
+        // The 1000-sat plain invoice sets the batch denomination, so i1 takes a
+        // 1000-sat chunk on each of its three addresses and its 97000-sat
+        // remainder wraps back around onto the destination.
+        var plan = StonewallSplitter.PlanBatch(new[]
+        {
+            Input("i1", 100_000, Dest, AddrA, AddrB),
+            Input("i2", 1_000, AddrC)
+        });
+
+        var i1 = plan.Outputs.Where(o => o.InvoiceId == "i1").ToList();
+        Assert.Equal(4, i1.Count);
+        Assert.Equal(2, i1.Count(o => o.Address == Dest));
+        Assert.Equal(100_000, i1.Sum(o => o.Sats));
+
+        // Accumulating per address recovers the invoice total. A consumer that
+        // assigned instead would keep only one of the two destination outputs and
+        // undercount, leaving a fully-paid invoice stuck in AwaitingPayment.
+        var byAddress = i1.GroupBy(o => o.Address).ToDictionary(g => g.Key, g => g.Sum(o => o.Sats));
+        Assert.Equal(3, byAddress.Count);
+        Assert.Equal(98_000, byAddress[Dest]);
+        Assert.Equal(1_000, byAddress[AddrA]);
+        Assert.Equal(1_000, byAddress[AddrB]);
+    }
+
     [Theory]
     [InlineData(100_000_000, 5)]
     [InlineData(100_000_000, 1)]
