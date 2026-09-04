@@ -22,8 +22,14 @@ namespace BTCPayServer.Plugins.Tests;
 // the distinction this test protects.
 public class UnitTestFilterTests
 {
+    // Includes inherited methods on purpose. xunit discovers and runs a [Fact]
+    // inherited from a base class, so a concrete class that declares none of its
+    // own is still a test class the CI filter will select. Restricting this to
+    // DeclaredOnly would make such a class invisible here while the runner
+    // executed it - the guard would stay silent on precisely the failure it
+    // exists to catch.
     private static bool HasTestMethods(Type type)
-        => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+        => type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Any(m => m.CustomAttributes.Any(a =>
                 a.AttributeType == typeof(FactAttribute) || a.AttributeType == typeof(TheoryAttribute)
                 || a.AttributeType.IsSubclassOf(typeof(FactAttribute))));
