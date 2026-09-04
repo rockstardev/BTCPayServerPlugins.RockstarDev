@@ -121,6 +121,14 @@ public class UnitTestFilterTests
         // The cheapest of the three and the one that would have caught the real
         // defect on the day the trait was introduced. A Category value with a
         // producer and no consumer is a test class that has quietly left CI.
+        //
+        // Deliberately does NOT honour KnownNotRunAnywhere. A parked class still
+        // has to carry a trait some step selects, because the trait describes
+        // what the class needs to run and KnownNotRunAnywhere separately records
+        // why it is not currently run. Those are orthogonal facts, and letting
+        // the excuse list suppress this check would let a parked class also
+        // accumulate a meaningless trait value nobody notices when it is
+        // unparked.
         var workflow = ReadWorkflow();
         var consumed = ConsumedCategoryValues(workflow);
 
@@ -141,10 +149,15 @@ public class UnitTestFilterTests
             "These Category values are declared on stack-dependent test classes but no CI step selects them, so "
             + "those classes run nowhere: the unit step's `-trait- \"Category=*\"` excludes anything with a "
             + "Category, and the integration step's `-trait` selects only [" + string.Join(", ", consumed.OrderBy(v => v, StringComparer.Ordinal))
-            + "]. Change the trait to a value CI selects, or add a step that selects this one. Note that changing "
-            + "the trait is necessary but not sufficient - the integration step also filters on a `-class` "
-            + "allow-list, so see EveryStackDependentTestClass_IsNamedInTheAllowList. Orphans: "
-            + string.Join("; ", orphaned));
+            + "]. Two edits clear this check and it does not care which you pick: (1) change the trait to a value "
+            + "CI already selects, or (2) add a CI step that selects the current value. Parking the class in "
+            + "KnownNotRunAnywhere is deliberately NOT one of them - that list records why a class is not being "
+            + "run, while the trait records what the class needs in order to run, and a parked class carrying a "
+            + "value nothing selects is still broken on the day somebody unparks it. So if you do not intend to "
+            + "run this class for now, do both: park it there with a reason AND give it a selectable trait here. "
+            + "Separately, changing the trait is not by itself enough to make the class run, because the "
+            + "integration step also filters on a `-class` allow-list - see "
+            + "EveryStackDependentTestClass_IsNamedInTheAllowList. Orphans: " + string.Join("; ", orphaned));
     }
 
     [Fact]
