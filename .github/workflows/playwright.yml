@@ -47,9 +47,14 @@ jobs:
                 id: playwright-version
                 run: |
                     PLAYWRIGHT_VERSION=$(grep -oP 'Microsoft\.Playwright\.NUnit" Version="\K[^"]+' BTCPayServer.Plugins.Tests/BTCPayServer.Plugins.Tests.csproj)
-                    echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
-                    echo "Detected Playwright version: $PLAYWRIGHT_VERSION"
-                    
+                    # The browsers are downloaded for whichever Microsoft.Playwright actually
+                    # wins the graph, and the submodule's test project pins it higher than ours.
+                    # Keying on our pin alone scores an exact hit across a submodule bump and
+                    # restores browsers the new version cannot use.
+                    HOST_VERSION=$(grep -oP 'Microsoft\.Playwright" Version="\K[^"]+' submodules/btcpayserver/BTCPayServer.Tests/BTCPayServer.Tests.csproj)
+                    echo "version=$PLAYWRIGHT_VERSION-host$HOST_VERSION" >> $GITHUB_OUTPUT
+                    echo "Detected Playwright version: $PLAYWRIGHT_VERSION (host $HOST_VERSION)"
+
             -   name: Cache Playwright browsers
                 uses: actions/cache@v4
                 id: playwright-cache
