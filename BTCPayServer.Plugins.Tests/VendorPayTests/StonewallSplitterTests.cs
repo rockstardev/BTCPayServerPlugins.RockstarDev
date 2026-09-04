@@ -165,6 +165,12 @@ public class StonewallSplitterTests
         // extra. The small invoice's whole amount (0.02) becomes the chunk size:
         // the big invoice pays 3 chunks of 0.02 (one per address) plus the
         // 0.04 remainder as a final output, the small invoice pays whole.
+        //
+        // That remainder wraps back onto the destination, which makes this the
+        // only planner path that puts two outputs on one address. It is the shape
+        // VendorPayPaidHostedService sums rather than assigns for, so the expected
+        // array below is what stops a "simplification" of that += from silently
+        // undercounting a fully paid invoice.
         var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("big", 10_000_000, Dest, AddrA, AddrB),
