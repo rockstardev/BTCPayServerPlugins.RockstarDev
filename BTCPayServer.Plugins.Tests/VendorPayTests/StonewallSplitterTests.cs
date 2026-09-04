@@ -177,6 +177,9 @@ public class StonewallSplitterTests
         // equal to the destination and skips repeats case-insensitively. Plan time
         // re-splits the stored string and filters only for address validity, so
         // relaxing that parser opens a second route to two outputs on one address.
+        // Storage does not back it up either: the column is a nullable
+        // character varying(1000) with no unique or check constraint, so the
+        // parser is the only enforcement rather than the first of two.
         var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("big", 10_000_000, Dest, AddrA, AddrB),
