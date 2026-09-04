@@ -295,9 +295,12 @@ public class StonewallSplitterTests
             Input("i2", 1_000, AddrC)
         });
 
+        Assert.Equal(1_000, plan.ChunkSats);
+
         var i1 = plan.Outputs.Where(o => o.InvoiceId == "i1").ToList();
         Assert.Equal(4, i1.Count);
         Assert.Equal(2, i1.Count(o => o.Address == Dest));
+        Assert.Contains(i1, o => o.Address == Dest && o.Sats == 97_000);
         Assert.Equal(100_000, i1.Sum(o => o.Sats));
 
         // Accumulating per address recovers the invoice total. A consumer that
