@@ -35,6 +35,14 @@ jobs:
                 run: |
                     dotnet run --project ConfigBuilder
             
+            -   name: Run unit tests
+                # Everything with a Category trait needs the regtest stack, so the
+                # negative filter selects exactly the tests that do not. Runs before
+                # docker so a unit regression fails in seconds instead of after a
+                # container build and the 15-minute UI run. UnitTestFilterTests keeps
+                # the "Category means needs-the-stack" invariant honest.
+                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait- "Category=*"
+
             -   name: Get Playwright version
                 id: playwright-version
                 run: |
