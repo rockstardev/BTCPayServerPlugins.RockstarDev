@@ -29,11 +29,21 @@ public class UnitTestFilterTests
                 a.AttributeType == typeof(FactAttribute) || a.AttributeType == typeof(TheoryAttribute)
                 || a.AttributeType.IsSubclassOf(typeof(FactAttribute))));
 
+    // Walks the base chain because the runner's own -trait- resolution honours a
+    // Category trait inherited from a base class. Checking declared attributes
+    // only would fail a class whose trait is hoisted onto a shared base, which is
+    // correct code the runner already excludes - this guard would be reporting a
+    // defect that is not there.
     private static bool HasCategoryTrait(Type type)
-        => type.CustomAttributes
-            .Where(a => a.AttributeType == typeof(TraitAttribute))
-            .Any(a => a.ConstructorArguments.Count == 2
-                      && (a.ConstructorArguments[0].Value as string) == "Category");
+    {
+        for (var t = type; t is not null && t != typeof(object); t = t.BaseType)
+            if (t.CustomAttributes
+                .Where(a => a.AttributeType == typeof(TraitAttribute))
+                .Any(a => a.ConstructorArguments.Count == 2
+                          && (a.ConstructorArguments[0].Value as string) == "Category"))
+                return true;
+        return false;
+    }
 
     [Fact]
     public void EveryStackDependentTestClass_CarriesACategoryTrait()
