@@ -11,16 +11,23 @@ namespace BTCPayServer.Plugins.Tests;
 // Guards the CI test-selection invariants, which live in
 // .github/workflows/playwright.yml and are not otherwise checked by anything.
 //
-// Two steps select tests, and they select on different things:
+// Steps select tests, and they select on different things:
 //
-//   unit step:        -trait- "Category=*"          (everything with NO Category)
-//   integration step: -trait "Category=<value>"  AND  a -class allow-list
+//   unit step: -trait- "Category=*"   (everything with NO Category)
+//   any other: -trait "Category=<value>"  AND, optionally, a -class allow-list
 //
 // So a test class reaches CI only by satisfying a two-sided property, and each
 // test below covers one side. Carrying a Category trait removes a class from the
 // unit step; it does not get it run. Those are independent facts and checking
 // only the first is how a class ends up executing nowhere while the build is
 // green.
+//
+// Both halves have to hold on the SAME step, which is why the workflow is parsed
+// one `dotnet run --` invocation at a time rather than as a file-wide set of
+// traits and a file-wide set of classes. The union model is wrong twice over: it
+// passes a class named on one step but traited for another, which nothing runs,
+// and it fails a class selected by a step that carries no `-class` filter, which
+// does run. The number of selecting steps is not fixed at two.
 //
 // This is not hypothetical. MarkPaidSecurityTest derives from PlaywrightBaseTest
 // and carries Category=PluginSecurityTest - a value no CI step selects. It is
@@ -110,10 +117,32 @@ public class UnitTestFilterTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-    private static HashSet<string> AllowListedClasses(string workflow)
-        => Regex.Matches(workflow, @"-class\s+""([^""]+)""")
-            .Select(m => m.Groups[1].Value)
-            .ToHashSet(StringComparer.Ordinal);
+    // One selecting CI step: the trait values and class names on a single runner
+    // invocation. Parsed per command line rather than as file-wide unions, because
+    // selection is per step - a class named on one step and traited for a
+    // different one is run by neither, and a step that filters on trait alone runs
+    // every class carrying that trait. Collapsing the file into one `-class` set
+    // and one `-trait` set gets both of those wrong.
+    private sealed record CiSelector(string Command, HashSet<string> Traits, HashSet<string> Classes);
+
+    private static List<CiSelector> CiSelectors(string workflow)
+        => Regex.Matches(workflow, @"dotnet run --[^\r\n]*")
+            .Select(m => m.Value)
+            .Select(cmd => new CiSelector(
+                cmd,
+                Regex.Matches(cmd, @"-trait\s+""Category=([^""*]+)""")
+                    .Select(x => x.Groups[1].Value).ToHashSet(StringComparer.Ordinal),
+                Regex.Matches(cmd, @"-class\s+""([^""]+)""")
+                    .Select(x => x.Groups[1].Value).ToHashSet(StringComparer.Ordinal)))
+            .ToList();
+
+    // An empty `-class` set is not "selects nothing", it is "no class filter", so
+    // the step runs everything its `-trait` matches. That asymmetry is the whole
+    // reason this is not a set-membership check.
+    private static bool IsRunBySomeStep(string fullName, string category, List<CiSelector> selectors)
+        => category is not null
+           && selectors.Any(s => s.Traits.Contains(category)
+                                 && (s.Classes.Count == 0 || s.Classes.Contains(fullName)));
 
     [Fact]
     public void EveryDeclaredCategoryValue_IsSelectedBySomeCiStep()
@@ -155,9 +184,9 @@ public class UnitTestFilterTests
             + "run, while the trait records what the class needs in order to run, and a parked class carrying a "
             + "value nothing selects is still broken on the day somebody unparks it. So if you do not intend to "
             + "run this class for now, do both: park it there with a reason AND give it a selectable trait here. "
-            + "Separately, changing the trait is not by itself enough to make the class run, because the "
-            + "integration step also filters on a `-class` allow-list - see "
-            + "EveryStackDependentTestClass_IsNamedInTheAllowList. Orphans: " + string.Join("; ", orphaned));
+            + "Separately, a selectable trait is not by itself enough to make the class run, because the step that "
+            + "selects it may also carry a `-class` allow-list - see "
+            + "EveryStackDependentTestClass_IsRunBySomeCiStep. Orphans: " + string.Join("; ", orphaned));
     }
 
     [Fact]
@@ -174,29 +203,32 @@ public class UnitTestFilterTests
         Assert.True(offenders.Count == 0,
             "These test classes derive from PlaywrightBaseTest, so they need the regtest stack, but carry no "
             + "Category trait. Without one they are selected by the CI unit-test step's `-trait- \"Category=*\"` "
-            + "filter and will run before docker starts, failing on socket connect. Fixing this takes TWO edits, "
-            + "and doing only the first leaves the class running nowhere with a green build: (1) add "
-            + "[Trait(\"Category\", \"PlaywrightUITest\")], the value the integration step selects, and (2) add the "
-            + "class to the `-class` allow-list on the \"Run tests\" step in " + WorkflowRelPath + ". Classes: "
+            + "filter and will run before docker starts, failing on socket connect. Adding the trait is only half "
+            + "of it, and doing only that half leaves the class running nowhere with a green build: (1) add "
+            + "[Trait(\"Category\", \"PlaywrightUITest\")], and (2) name the class in the `-class` allow-list on the "
+            + "\"Run tests\" step in " + WorkflowRelPath + ", since that step has one. See "
+            + "EveryStackDependentTestClass_IsRunBySomeCiStep for the general rule. Classes: "
             + string.Join(", ", offenders));
     }
 
     [Fact]
-    public void EveryStackDependentTestClass_IsNamedInTheAllowList()
+    public void EveryStackDependentTestClass_IsRunBySomeCiStep()
     {
-        // Side two. The integration step intersects `-class` with `-trait`, so
-        // membership in the allow-list is necessary and not sufficient either.
-        // Both halves are reported per class, because fixing one and not the
-        // other leaves the class exactly as dead as it started.
+        // Side two, and the only check here that answers the question the file is
+        // actually about: does some single step run this class. A step selects the
+        // INTERSECTION of its own `-class` and `-trait` filters, so a class needs
+        // both halves satisfied on the SAME step - and a step with no `-class`
+        // filter at all imposes no such requirement, it runs whatever its `-trait`
+        // matches.
         var workflow = ReadWorkflow();
-        var listed = AllowListedClasses(workflow);
-        var consumed = ConsumedCategoryValues(workflow);
+        var selectors = CiSelectors(workflow);
         var excused = KnownNotRunAnywhere.Select(e => e.Class).ToHashSet(StringComparer.Ordinal);
 
-        Assert.True(listed.Count > 0,
-            "Parsed no `-class \"...\"` entries out of " + WorkflowRelPath + ". Either the integration step stopped "
-            + "using an allow-list - in which case delete this test, it is now pure false-positive surface - or "
-            + "the parse broke and this test is no longer checking anything.");
+        Assert.True(selectors.Any(s => s.Traits.Count > 0),
+            "Parsed no `dotnet run --` invocation carrying a `-trait \"Category=...\"` selector out of "
+            + WorkflowRelPath + ". Either no CI step selects by Category any more - in which case these tests are "
+            + "stale and should be rewritten against whatever replaced it - or the parse broke and this test is no "
+            + "longer checking anything.");
 
         var dead = new List<string>();
         foreach (var t in StackDependentTestClasses().OrderBy(t => t.FullName, StringComparer.Ordinal))
@@ -205,29 +237,29 @@ public class UnitTestFilterTests
                 continue;
 
             var category = CategoryValue(t);
-            var missingFromList = !listed.Contains(t.FullName);
-            var traitNotSelected = category is null || !consumed.Contains(category);
-            if (!missingFromList && !traitNotSelected)
+            if (IsRunBySomeStep(t.FullName, category, selectors))
                 continue;
 
-            var reasons = new List<string>();
-            if (missingFromList)
-                reasons.Add("not in the `-class` allow-list");
-            if (traitNotSelected)
-                reasons.Add(category is null
-                    ? "carries no Category trait, which the step's `-trait` requires"
-                    : $"carries Category=\"{category}\", which no `-trait` selector matches");
-            dead.Add($"{t.FullName} ({string.Join("; ", reasons)})");
+            // Report per step, because "no step runs it" is never the useful
+            // fact - which half is missing on which step is.
+            var detail = category is null
+                ? "carries no Category trait, so no step's `-trait` can select it"
+                : "carries Category=\"" + category + "\"; "
+                  + string.Join(", ", selectors.Where(s => s.Traits.Count > 0).Select(s =>
+                      !s.Traits.Contains(category)
+                          ? $"the step selecting [{string.Join(", ", s.Traits.OrderBy(v => v, StringComparer.Ordinal))}] does not select that value"
+                          : $"the step selecting [{string.Join(", ", s.Traits.OrderBy(v => v, StringComparer.Ordinal))}] selects that value but its `-class` allow-list does not name this class"));
+            dead.Add($"{t.FullName} ({detail})");
         }
 
         Assert.True(dead.Count == 0,
-            "These classes need the regtest stack and are run by no CI step. The integration step selects the "
-            + "INTERSECTION of its `-class` allow-list and its `-trait` filter, so satisfying one and not the "
-            + "other still runs nothing - fix every reason listed for each class, not the first one. Add the class "
-            + "to the `-class` list on the \"Run tests\" step in " + WorkflowRelPath + " AND give it a Category "
-            + "value that step selects ([" + string.Join(", ", consumed.OrderBy(v => v, StringComparer.Ordinal))
-            + "]). If the exclusion is deliberate, add the class to KnownNotRunAnywhere in this file with the "
-            + "reason instead. Classes: " + string.Join(", ", dead));
+            "These classes need the regtest stack and no single CI step runs them. A step selects the INTERSECTION "
+            + "of its own `-class` allow-list and its own `-trait` filter, so satisfying one half on one step and "
+            + "the other half on a different step still runs nothing. Fix it on ONE step, either by adding the "
+            + "class to that step's `-class` list, or by giving it a Category value that step selects, or by "
+            + "adding a step that selects its Category with no `-class` filter. If the exclusion is deliberate, "
+            + "add the class to KnownNotRunAnywhere in this file with the reason instead. Classes: "
+            + string.Join(", ", dead));
     }
 
     [Fact]
@@ -236,14 +268,19 @@ public class UnitTestFilterTests
         // An excuse that outlives the thing it excuses is worse than no excuse,
         // because it reads as a live decision.
         var workflow = ReadWorkflow();
-        var listed = AllowListedClasses(workflow);
-        var allTypes = typeof(PlaywrightBaseTest).Assembly.GetTypes()
-            .Select(t => t.FullName)
-            .ToHashSet(StringComparer.Ordinal);
+        var selectors = CiSelectors(workflow);
+        var byName = typeof(PlaywrightBaseTest).Assembly.GetTypes()
+            .Where(t => t.FullName is not null)
+            .ToDictionary(t => t.FullName, t => t, StringComparer.Ordinal);
 
-        var vanished = KnownNotRunAnywhere.Where(e => !allTypes.Contains(e.Class))
+        var vanished = KnownNotRunAnywhere.Where(e => !byName.ContainsKey(e.Class))
             .Select(e => e.Class).OrderBy(n => n, StringComparer.Ordinal).ToList();
-        var nowListed = KnownNotRunAnywhere.Where(e => listed.Contains(e.Class))
+        // Asks whether a step actually runs the class, not whether its name appears
+        // in some `-class` list. An excuse is stale the moment the class runs, and
+        // it can start running via a step that names no classes at all.
+        var nowListed = KnownNotRunAnywhere
+            .Where(e => byName.TryGetValue(e.Class, out var t)
+                        && IsRunBySomeStep(e.Class, CategoryValue(t), selectors))
             .Select(e => e.Class).OrderBy(n => n, StringComparer.Ordinal).ToList();
         var unexplained = KnownNotRunAnywhere.Where(e => string.IsNullOrWhiteSpace(e.Reason))
             .Select(e => e.Class).OrderBy(n => n, StringComparer.Ordinal).ToList();
@@ -253,9 +290,8 @@ public class UnitTestFilterTests
             + string.Join(", ", vanished));
 
         Assert.True(nowListed.Count == 0,
-            "These classes are excused in KnownNotRunAnywhere but ARE in the workflow's `-class` allow-list. The "
-            + "excuse is stale and now misdescribes what CI does. Delete these entries: "
-            + string.Join(", ", nowListed));
+            "These classes are excused in KnownNotRunAnywhere but a CI step DOES run them. The excuse is stale and "
+            + "now misdescribes what CI does. Delete these entries: " + string.Join(", ", nowListed));
 
         Assert.True(unexplained.Count == 0,
             "These KnownNotRunAnywhere entries carry no reason. The reason is the entire point of the list - an "
