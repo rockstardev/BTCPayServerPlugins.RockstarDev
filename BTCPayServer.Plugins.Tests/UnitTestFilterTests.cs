@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Xunit;
@@ -80,16 +79,26 @@ public class UnitTestFilterTests
             typeof(VendorPayTests.EnumExtensionsTests)
         };
 
-        var wronglyExcluded = new List<string>();
-        foreach (var type in mustBeUnitTests)
-        {
-            if (typeof(PlaywrightBaseTest).IsAssignableFrom(type) || HasCategoryTrait(type))
-                wronglyExcluded.Add(type.FullName);
-        }
+        // The two conditions break the step in different ways, so report them
+        // separately rather than under one message. A Category trait drops the
+        // class out of the filter silently; deriving from PlaywrightBaseTest does
+        // not drop it, it keeps it in the pre-docker step where it needs a stack
+        // that is not up yet.
+        var nowTraited = mustBeUnitTests.Where(HasCategoryTrait).Select(t => t.FullName).ToList();
+        var nowStackDependent = mustBeUnitTests
+            .Where(t => typeof(PlaywrightBaseTest).IsAssignableFrom(t))
+            .Select(t => t.FullName).ToList();
 
-        Assert.True(wronglyExcluded.Count == 0,
-            "These classes are expected to run in the CI unit-test step, but they now either derive from "
-            + "PlaywrightBaseTest or carry a Category trait, either of which excludes them from "
-            + "`-trait- \"Category=*\"`: " + string.Join(", ", wronglyExcluded));
+        Assert.True(nowTraited.Count == 0,
+            "These classes carry the settlement and parsing coverage and are expected to run in the CI "
+            + "unit-test step, but they now carry a Category trait, which excludes them from "
+            + "`-trait- \"Category=*\"` - they would stop running entirely, silently: "
+            + string.Join(", ", nowTraited));
+
+        Assert.True(nowStackDependent.Count == 0,
+            "These classes are expected to be pure unit tests but now derive from PlaywrightBaseTest. That "
+            + "does not remove them from `-trait- \"Category=*\"`; it leaves them in the pre-docker step "
+            + "needing a regtest stack that has not started, so they fail on socket connect: "
+            + string.Join(", ", nowStackDependent));
     }
 }
