@@ -263,10 +263,23 @@ public class UnitTestFilterTests
     }
 
     [Fact]
-    public void KnownNotRunAnywhere_ContainsNoStaleEntries()
+    public void KnownNotRunAnywhere_IsConsistentWithTheWorkflow()
     {
         // An excuse that outlives the thing it excuses is worse than no excuse,
         // because it reads as a live decision.
+        //
+        // Selection and completion are different properties, and this list tracks
+        // the second. Both current entries are here because the class HANGS, not
+        // because nobody selected it - so "a step now selects it" is not evidence
+        // the excuse expired, it is evidence CI is about to hang. This check
+        // therefore reports the contradiction and refuses to say which side is
+        // wrong, because it cannot know: the same red means either "someone
+        // deliberately started running this, delete the excuse" or "someone
+        // widened a filter and pulled in a class known to hang, restore it".
+        // Telling the reader to delete the excuse would push them toward the
+        // configuration the repo has already observed hanging - the workflow's
+        // own comment records that `-trait Category=PlaywrightUITest` alone, with
+        // no `-class` filter, hangs exactly this way.
         var workflow = ReadWorkflow();
         var selectors = CiSelectors(workflow);
         var byName = typeof(PlaywrightBaseTest).Assembly.GetTypes()
@@ -275,13 +288,11 @@ public class UnitTestFilterTests
 
         var vanished = KnownNotRunAnywhere.Where(e => !byName.ContainsKey(e.Class))
             .Select(e => e.Class).OrderBy(n => n, StringComparer.Ordinal).ToList();
-        // Asks whether a step actually runs the class, not whether its name appears
-        // in some `-class` list. An excuse is stale the moment the class runs, and
-        // it can start running via a step that names no classes at all.
-        var nowListed = KnownNotRunAnywhere
+        var selectedAnyway = KnownNotRunAnywhere
             .Where(e => byName.TryGetValue(e.Class, out var t)
                         && IsRunBySomeStep(e.Class, CategoryValue(t), selectors))
-            .Select(e => e.Class).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            .Select(e => $"{e.Class} (excused because: {e.Reason})")
+            .OrderBy(n => n, StringComparer.Ordinal).ToList();
         var unexplained = KnownNotRunAnywhere.Where(e => string.IsNullOrWhiteSpace(e.Reason))
             .Select(e => e.Class).OrderBy(n => n, StringComparer.Ordinal).ToList();
 
@@ -289,9 +300,15 @@ public class UnitTestFilterTests
             "KnownNotRunAnywhere excuses classes that no longer exist. Delete these entries: "
             + string.Join(", ", vanished));
 
-        Assert.True(nowListed.Count == 0,
-            "These classes are excused in KnownNotRunAnywhere but a CI step DOES run them. The excuse is stale and "
-            + "now misdescribes what CI does. Delete these entries: " + string.Join(", ", nowListed));
+        Assert.True(selectedAnyway.Count == 0,
+            "These classes are recorded in KnownNotRunAnywhere as run by no CI step, but a step now selects them. "
+            + "Those two facts contradict and this check cannot tell you which one is wrong, so read the recorded "
+            + "reason before you touch anything. If the reason is that the class HANGS, the selector is the thing "
+            + "that changed and the fix is to narrow it again - deleting the excuse would leave CI selecting a "
+            + "class known to hang until the step's timeout. Widening a step by dropping its `-class` filter is "
+            + "the usual way to arrive here, and the \"Run tests\" comment in " + WorkflowRelPath + " records that "
+            + "the trait-only form hangs for exactly these classes. Only if the class has actually been fixed is "
+            + "deleting the entry correct. Entries: " + string.Join("; ", selectedAnyway));
 
         Assert.True(unexplained.Count == 0,
             "These KnownNotRunAnywhere entries carry no reason. The reason is the entire point of the list - an "
