@@ -168,8 +168,10 @@ public class StonewallSplitterTests
         //
         // That remainder wraps back onto the destination, so this is the one way
         // a single invoice puts two outputs on one address. It is the shape
-        // VendorPayPaidHostedService sums rather than assigns for, so the expected
-        // array below is what stops a "simplification" of that += from silently
+        // VendorPayPaidHostedService sums rather than assigns for - written as
+        // amountSats[addr] = amountSats.GetValueOrDefault(addr) + value, so
+        // grepping for a += will not find it - and the expected array below is
+        // what stops a "simplification" of that accumulation from silently
         // undercounting a fully paid invoice.
         //
         // Within one invoice the wrap is the only route, and only when
@@ -182,10 +184,20 @@ public class StonewallSplitterTests
         // unique or check constraint - so the parser is the only enforcement
         // rather than the first of two.
         //
-        // Across a batch the wrap is neither the only route nor the common one:
-        // two invoices paying the same destination each emit a chunk at index 0,
-        // and nothing dedupes addresses across invoices. So the += is load-bearing
-        // for ordinary multi-invoice batches, not just for this remainder wrap.
+        // Across a batch there is a second route onto one address, but it is much
+        // narrower than "nothing dedupes across invoices", which is what this
+        // comment claimed on the first pass and is wrong. Within a store the
+        // upload path does dedupe: VendorPayInvoiceUploadHelper rejects a
+        // destination already held by a pending invoice, and rejects any extra
+        // colliding with a pending invoice's destination or extras.
+        //
+        // The gap is that the guard is scoped to one store while the matcher is
+        // not - the helper filters on User.StoreId == storeId, and
+        // VendorPayPaidHostedService queries PayrollInvoices by state alone with
+        // no store filter. So two stores can hold pending invoices on the same
+        // address, and there the accumulation is load-bearing rather than
+        // defence in depth. Whether that asymmetry is intended is an open
+        // question against the plugin; this test does not assert it either way.
         var plan = StonewallSplitter.PlanBatch(new[]
         {
             Input("big", 10_000_000, Dest, AddrA, AddrB),
