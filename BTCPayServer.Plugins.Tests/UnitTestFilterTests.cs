@@ -30,10 +30,13 @@ namespace BTCPayServer.Plugins.Tests;
 // does run. The number of selecting steps is not fixed at two.
 //
 // This is not hypothetical. MarkPaidSecurityTest derives from PlaywrightBaseTest
-// and carries Category=PluginSecurityTest - a value no CI step selects. It is
-// excluded from the unit step, not selected by the integration step, and its 3
-// tests have never run. Its sibling VendorPaySecurityTests carries
-// Category=PlaywrightUITest and runs.
+// and carries Category=PluginSecurityTest, which for most of this repo's history
+// no CI step selected: excluded from the unit step for having a Category, not
+// selected by the integration step, its 3 tests never ran once. Its sibling
+// VendorPaySecurityTests carried Category=PlaywrightUITest and ran the whole time.
+// That gap is closed - the workflow now has a step selecting
+// Category=PluginSecurityTest - so the example is history, not a live defect, and
+// the tests below are what keeps it history.
 public class UnitTestFilterTests
 {
     private const string WorkflowRelPath = ".github/workflows/playwright.yml";
@@ -82,11 +85,61 @@ public class UnitTestFilterTests
         return null;
     }
 
-    private static IEnumerable<Type> StackDependentTestClasses()
-        => typeof(PlaywrightBaseTest).Assembly.GetTypes()
+    // Fails closed, like ReadWorkflow, and for a sharper reason. This set is the
+    // DENOMINATOR of the three checks below: each of them reports the classes in
+    // here that fail some property, so if it ever comes back empty all three pass
+    // while checking nothing, and they pass in exactly the green, silent way the
+    // file exists to prevent. Verified rather than assumed - short-circuiting
+    // HasTestMethods to false leaves all three green with no other test noticing.
+    //
+    // Emptiness is reachable without anything else going red: HasTestMethods
+    // compares attribute types by identity, so a second Xunit assembly in the load
+    // context, or a runner that stops deriving from FactAttribute, silently
+    // matches nothing. KnownNotRunAnywhere_IsConsistentWithTheWorkflow would not
+    // catch it, because that one resolves names against Assembly.GetTypes()
+    // directly and never touches this filter.
+    //
+    // Non-empty alone is a weak floor - it would be satisfied by one class out of
+    // thirty - so where the excuse list has entries, require them to survive the
+    // filter too. They are known stack-dependent classes carrying test methods, so
+    // any predicate that drops them is wrong, and test 266 already keeps the list
+    // from going stale. When the list is legitimately emptied the membership check
+    // goes vacuous, which is why the count check stays alongside it rather than
+    // being subsumed by it.
+    private static IReadOnlyList<Type> StackDependentTestClasses()
+    {
+        var found = typeof(PlaywrightBaseTest).Assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract)
             .Where(t => typeof(PlaywrightBaseTest).IsAssignableFrom(t) && t != typeof(PlaywrightBaseTest))
-            .Where(HasTestMethods);
+            .Where(HasTestMethods)
+            .ToList();
+
+        if (found.Count == 0)
+            throw new InvalidOperationException(
+                "Found no concrete PlaywrightBaseTest-derived classes carrying test methods, in an assembly that has "
+                + "several. This is the denominator of every check in this file, so an empty result does not mean "
+                + "the invariants hold - it means nothing was examined. Suspect the type-identity comparisons in "
+                + "HasTestMethods against a changed or duplicated xunit reference, or PlaywrightBaseTest moving to "
+                + "another assembly. Do not relax this to a warning: the whole point of these tests is that a check "
+                + "which examines nothing must not report success.");
+
+        var missing = KnownNotRunAnywhere
+            .Select(e => e.Class)
+            .Where(c => !found.Any(t => string.Equals(t.FullName, c, StringComparison.Ordinal)))
+            .OrderBy(c => c, StringComparer.Ordinal)
+            .ToList();
+
+        if (missing.Count > 0)
+            throw new InvalidOperationException(
+                "These KnownNotRunAnywhere classes did not survive the stack-dependent filter, so the checks below "
+                + "would silently stop covering them: " + string.Join(", ", missing) + ". If a class was renamed or "
+                + "deleted, update KnownNotRunAnywhere - "
+                + nameof(KnownNotRunAnywhere_IsConsistentWithTheWorkflow) + " reports that case with a better "
+                + "message. If it still exists and still derives from PlaywrightBaseTest, then this filter is what "
+                + "broke, and the checks below are examining less than they claim.");
+
+        return found;
+    }
 
     private static string ReadWorkflow()
     {
