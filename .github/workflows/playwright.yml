@@ -81,6 +81,14 @@ jobs:
                     COMPOSE_DOCKER_CLI_BUILD: 1
                 run: docker compose -f "submodules/btcpayserver/BTCPayServer.Tests/docker-compose.yml" up -d dev --build
 
+            -   name: Run plugin security tests
+                timeout-minutes: 10
+                # Regression guard for the anonymous MarkAsPaid settlement fix (1c4c18d).
+                # Needs the regtest stack, so it runs after docker, but it drives the
+                # endpoint over HTTP rather than a browser, so it is kept separate from
+                # the Playwright step to keep a failure here unambiguous.
+                run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PluginSecurityTest"
+
             -   name: Run tests
                 timeout-minutes: 15
                 # xunit.v3 self-hosted runner via `dotnet run` (matches OutputType=Exe on
