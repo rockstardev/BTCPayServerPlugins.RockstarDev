@@ -68,6 +68,36 @@ public class VendorPayPaidHostedServiceTests
         Assert.Equal("i1", completing[0].Id);
     }
 
+    // Characterisation of current behaviour, not a claim about what it should be.
+    // The helper builds its budget with StringComparer.OrdinalIgnoreCase, so an
+    // invoice whose stored Destination differs only in case from the observed
+    // key still matches here. All-uppercase is the reachable case: BIP-173
+    // rejects MIXED case, so an address entered in caps parses and is stored as
+    // typed.
+    //
+    // Worth pinning because this half of the match disagrees with the other half.
+    // The EF query that decides which invoices ever reach this helper compares
+    // the same value in SQL, where it is case-sensitive under the database
+    // collation, so a capitalised destination is filtered out upstream and never
+    // gets here to be matched correctly. If this comparer were ever changed to
+    // ordinal the two halves would agree and the disagreement would stop being
+    // observable - which is the thing that would want noticing, hence the test.
+    [Fact]
+    public void UppercaseDestination_StillMatchesLowercaseObservedKey()
+    {
+        var observed = new Dictionary<string, long> { [DestA] = 10_000 };
+
+        var invoices = new[] { Invoice("i1", DestA.ToUpperInvariant(), 10_000, DateTimeOffset.UtcNow) };
+        var completing = VendorPayPaidHostedService.SelectInvoicesToComplete(invoices, observed);
+        Assert.Single(completing);
+        Assert.Equal("i1", completing[0].Id);
+
+        // Control against the same observed map. Without it a helper that matched
+        // every invoice regardless of address would pass the assertion above.
+        var unrelated = new[] { Invoice("i2", DestB, 10_000, DateTimeOffset.UtcNow) };
+        Assert.Empty(VendorPayPaidHostedService.SelectInvoicesToComplete(unrelated, observed));
+    }
+
     [Fact]
     public void OverPayment_CompletesOnce()
     {
