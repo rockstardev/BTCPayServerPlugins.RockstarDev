@@ -254,11 +254,10 @@ public class UnitTestFilterTests
         Assert.True(offenders.Count == 0,
             "These test classes derive from PlaywrightBaseTest, so they need the regtest stack, but carry no "
             + "Category trait. Without one they are selected by the CI unit-test step's `-trait- \"Category=*\"` "
-            + "filter and will run before docker starts, failing on socket connect. Adding the trait is only half "
-            + "of it, and doing only that half leaves the class running nowhere with a green build: (1) add "
-            + "[Trait(\"Category\", \"PlaywrightUITest\")], and (2) name the class in the `-class` allow-list on the "
-            + "\"Run tests\" step in " + WorkflowRelPath + ", since that step has one. See "
-            + "EveryStackDependentTestClass_IsRunBySomeCiStep for the general rule. Classes: "
+            + "filter and will run before docker starts, failing on socket connect. Add "
+            + "[Trait(\"Category\", \"PlaywrightUITest\")], which the \"Run tests\" step in " + WorkflowRelPath
+            + " selects. A different Category value needs a step that selects it; "
+            + "EveryStackDependentTestClass_IsRunBySomeCiStep checks that rule. Classes: "
             + string.Join(", ", offenders));
     }
 

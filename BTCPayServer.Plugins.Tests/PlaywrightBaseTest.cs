@@ -39,7 +39,8 @@ public class PlaywrightBaseTest : UnitTestBase, IAsyncDisposable
     // stack dump showed the thread parked in Dispose under Frame.WaitForLoadStateAsync's completion.
     public async ValueTask DisposeAsync()
     {
-        // Leave whatever thread completed the test's last Playwright await before talking to the connection again.
+        // Yield first, so the rest of the disposal is scheduled as its own work item and the Playwright thread that
+        // completed the test's last await returns to its message loop instead of waiting inside this method.
         await Task.Yield();
         try
         {
@@ -57,7 +58,8 @@ public class PlaywrightBaseTest : UnitTestBase, IAsyncDisposable
         catch { }
         Browser = null;
 
-        // Same hop before the synchronous Dispose, which tears the connection down.
+        // Yield again before the synchronous Dispose, which tears the connection down, so it does not run inside the
+        // connection's dispatch of the close reply the await above just resumed from.
         await Task.Yield();
         try
         {
