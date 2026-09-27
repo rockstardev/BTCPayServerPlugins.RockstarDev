@@ -10,7 +10,7 @@ using Xunit;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class PlaywrightBaseTest : UnitTestBase, IDisposable
+public class PlaywrightBaseTest : UnitTestBase, IAsyncDisposable
 {
     private string CreatedUser;
     private string InvoiceId;
@@ -32,34 +32,40 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
 
-    public void Dispose()
+    // Async all the way down. The synchronous Dispose this replaces blocked on Page/Browser.CloseAsync(). When a
+    // test's last await was a Playwright task, its continuation, and with it xunit's disposal of the test class, ran
+    // on the Playwright connection's own thread, and the blocking close then waited for a reply only that thread could
+    // deliver. PluginPermissionUITest hung that way: its first test ends on WaitForLoadStateAsync, and a
+    // stack dump showed the thread parked in Dispose under Frame.WaitForLoadStateAsync's completion.
+    public async ValueTask DisposeAsync()
     {
-        static void Try(Action action)
+        // Leave whatever thread completed the test's last Playwright await before talking to the connection again.
+        await Task.Yield();
+        try
         {
-            try
-            {
-                action();
-            }
-            catch { }
+            if (Page is not null)
+                await Page.CloseAsync();
         }
+        catch { }
+        Page = null;
 
-        Try(() =>
+        try
         {
-            Page?.CloseAsync().GetAwaiter().GetResult();
-            Page = null;
-        });
+            if (Browser is not null)
+                await Browser.CloseAsync();
+        }
+        catch { }
+        Browser = null;
 
-        Try(() =>
-        {
-            Browser?.CloseAsync().GetAwaiter().GetResult();
-            Browser = null;
-        });
-
-        Try(() =>
+        // Same hop before the synchronous Dispose, which tears the connection down.
+        await Task.Yield();
+        try
         {
             Playwright?.Dispose();
-            Playwright = null;
-        });
+        }
+        catch { }
+        Playwright = null;
+        GC.SuppressFinalize(this);
     }
 
 
