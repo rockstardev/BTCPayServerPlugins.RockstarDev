@@ -46,20 +46,16 @@ jobs:
             -   name: Get Playwright version
                 id: playwright-version
                 run: |
-                    # -m1 on both. Without it a second matching PackageReference makes grep
-                    # emit two lines, and the write below then appends a bare version with no
-                    # `key=` to $GITHUB_OUTPUT - rc stays 0 and the cache key is silently
-                    # wrong. That is the only silent case here: an extraction matching
-                    # NOTHING exits 1 and fails the step, because the default shell is
-                    # `bash -e`. So do not "harden" the empty case with `| head -1` - a
-                    # pipeline takes head's status, which would trade a loud failure for a
-                    # key reading `-host` and a cache that hits when it must not.
+                    # -m1: a second match would append a bare line to $GITHUB_OUTPUT
+                    # (rc stays 0, silently wrong cache key). No match fails loudly
+                    # (bash -e). Don't swap in `| head -1` - it swallows that failure
+                    # and writes "version=-host" instead.
                     PLAYWRIGHT_VERSION=$(grep -m1 -oP 'Microsoft\.Playwright\.NUnit" Version="\K[^"]+' BTCPayServer.Plugins.Tests/BTCPayServer.Plugins.Tests.csproj)
-                    # The browsers are downloaded for whichever Microsoft.Playwright actually
-                    # wins the graph, and the submodule's test project pins it higher than ours
-                    # - 1.48.0 here against 1.57.0 there as of this commit. Keying on our pin
-                    # alone scores an exact hit across a submodule bump and restores browsers
-                    # the new version cannot use.
+                    # The submodule's Playwright (1.57.0) outranks our NUnit pin (1.48.0)
+                    # and decides which browsers get installed, so it belongs in the
+                    # cache key. Otherwise a submodule bump exact-hits a stale cache,
+                    # restoring browsers the new version can't launch (install is
+                    # skipped on a cache hit).
                     HOST_VERSION=$(grep -m1 -oP 'Microsoft\.Playwright" Version="\K[^"]+' submodules/btcpayserver/BTCPayServer.Tests/BTCPayServer.Tests.csproj)
                     echo "version=$PLAYWRIGHT_VERSION-host$HOST_VERSION" >> $GITHUB_OUTPUT
                     echo "Detected Playwright version: $PLAYWRIGHT_VERSION (host $HOST_VERSION)"
