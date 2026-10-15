@@ -46,10 +46,20 @@ jobs:
             -   name: Get Playwright version
                 id: playwright-version
                 run: |
-                    PLAYWRIGHT_VERSION=$(grep -oP 'Microsoft\.Playwright\.NUnit" Version="\K[^"]+' BTCPayServer.Plugins.Tests/BTCPayServer.Plugins.Tests.csproj)
-                    echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
-                    echo "Detected Playwright version: $PLAYWRIGHT_VERSION"
-                    
+                    # -m1: a second match would append a bare line to $GITHUB_OUTPUT
+                    # (rc stays 0, silently wrong cache key). No match fails loudly
+                    # (bash -e). Don't swap in `| head -1` - it swallows that failure
+                    # and writes "version=-host" instead.
+                    PLAYWRIGHT_VERSION=$(grep -m1 -oP 'Microsoft\.Playwright\.NUnit" Version="\K[^"]+' BTCPayServer.Plugins.Tests/BTCPayServer.Plugins.Tests.csproj)
+                    # The submodule's Playwright (1.57.0) outranks our NUnit pin (1.48.0)
+                    # and decides which browsers get installed, so it belongs in the
+                    # cache key. Otherwise a submodule bump exact-hits a stale cache,
+                    # restoring browsers the new version can't launch (install is
+                    # skipped on a cache hit).
+                    HOST_VERSION=$(grep -m1 -oP 'Microsoft\.Playwright" Version="\K[^"]+' submodules/btcpayserver/BTCPayServer.Tests/BTCPayServer.Tests.csproj)
+                    echo "version=$PLAYWRIGHT_VERSION-host$HOST_VERSION" >> $GITHUB_OUTPUT
+                    echo "Detected Playwright version: $PLAYWRIGHT_VERSION (host $HOST_VERSION)"
+
             -   name: Cache Playwright browsers
                 uses: actions/cache@v4
                 id: playwright-cache
