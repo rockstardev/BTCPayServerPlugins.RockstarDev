@@ -10,7 +10,7 @@ using Xunit;
 
 namespace BTCPayServer.Plugins.Tests;
 
-public class PlaywrightBaseTest : UnitTestBase, IDisposable
+public class PlaywrightBaseTest : UnitTestBase, IAsyncDisposable
 {
     private string CreatedUser;
     private string InvoiceId;
@@ -32,34 +32,39 @@ public class PlaywrightBaseTest : UnitTestBase, IDisposable
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
 
-    public void Dispose()
+    // xunit v3 awaits this. The synchronous Dispose this replaced could deadlock:
+    // when a test's last await was a Playwright task, disposal ran on the
+    // Playwright connection's dispatch thread and blocked waiting for a reply
+    // only that thread could deliver.
+    public async ValueTask DisposeAsync()
     {
-        static void Try(Action action)
+        // Get off the connection thread before awaiting the closes.
+        await Task.Yield();
+        try
         {
-            try
-            {
-                action();
-            }
-            catch { }
+            if (Page is not null)
+                await Page.CloseAsync();
         }
+        catch { }
+        Page = null;
 
-        Try(() =>
+        try
         {
-            Page?.CloseAsync().GetAwaiter().GetResult();
-            Page = null;
-        });
+            if (Browser is not null)
+                await Browser.CloseAsync();
+        }
+        catch { }
+        Browser = null;
 
-        Try(() =>
-        {
-            Browser?.CloseAsync().GetAwaiter().GetResult();
-            Browser = null;
-        });
-
-        Try(() =>
+        // Same before the synchronous connection teardown.
+        await Task.Yield();
+        try
         {
             Playwright?.Dispose();
-            Playwright = null;
-        });
+        }
+        catch { }
+        Playwright = null;
+        GC.SuppressFinalize(this);
     }
 
 

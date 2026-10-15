@@ -41,19 +41,10 @@ public class UnitTestFilterTests
 {
     private const string WorkflowRelPath = ".github/workflows/playwright.yml";
 
-    // Classes deliberately run by no CI step, each with the reason. An entry here
-    // is a claim that somebody decided this on purpose; deleting an entry is how
-    // the debt gets closed out. Reasons are quoted from the workflow comment on
-    // the "Run tests" step, which is where this was recorded and where nobody
-    // reads it.
-    private static readonly (string Class, string Reason)[] KnownNotRunAnywhere =
-    {
-        ("BTCPayServer.Plugins.Tests.PluginPermissionUITest",
-            "hangs indefinitely under the runner with zero test output, verified solo at the 20min step timeout; "
-            + "suspected SharedPluginTestFixture init deadlock, needs its own follow-up"),
-        ("BTCPayServer.Plugins.Tests.TransactionCounterPluginUITestStandalone",
-            "hangs the same way as PluginPermissionUITest, same suspected cause"),
-    };
+    // Stack-dependent classes deliberately run by no CI step, each with the
+    // reason. Empty since the Playwright disposal fix; the two classes parked
+    // here (they hung CI) now run in the "Run tests" step.
+    private static readonly (string Class, string Reason)[] KnownNotRunAnywhere = { };
 
     // Includes inherited methods on purpose. xunit discovers and runs a [Fact]
     // inherited from a base class, so a concrete class that declares none of its
@@ -255,12 +246,8 @@ public class UnitTestFilterTests
 
         Assert.True(offenders.Count == 0,
             "These test classes derive from PlaywrightBaseTest, so they need the regtest stack, but carry no "
-            + "Category trait. Without one they are selected by the CI unit-test step's `-trait- \"Category=*\"` "
-            + "filter and will run before docker starts, failing on socket connect. Adding the trait is only half "
-            + "of it, and doing only that half leaves the class running nowhere with a green build: (1) add "
-            + "[Trait(\"Category\", \"PlaywrightUITest\")], and (2) name the class in the `-class` allow-list on the "
-            + "\"Run tests\" step in " + WorkflowRelPath + ", since that step has one. See "
-            + "EveryStackDependentTestClass_IsRunBySomeCiStep for the general rule. Classes: "
+            + "Category trait. Without one the unit-test step selects them before docker is up and they fail on "
+            + "socket connect. Add [Trait(\"Category\", \"PlaywrightUITest\")]. Classes: "
             + string.Join(", ", offenders));
     }
 
@@ -318,21 +305,10 @@ public class UnitTestFilterTests
     [Fact]
     public void KnownNotRunAnywhere_IsConsistentWithTheWorkflow()
     {
-        // An excuse that outlives the thing it excuses is worse than no excuse,
-        // because it reads as a live decision.
-        //
-        // Selection and completion are different properties, and this list tracks
-        // the second. Both current entries are here because the class HANGS, not
-        // because nobody selected it - so "a step now selects it" is not evidence
-        // the excuse expired, it is evidence CI is about to hang. This check
-        // therefore reports the contradiction and refuses to say which side is
-        // wrong, because it cannot know: the same red means either "someone
-        // deliberately started running this, delete the excuse" or "someone
-        // widened a filter and pulled in a class known to hang, restore it".
-        // Telling the reader to delete the excuse would push them toward the
-        // configuration the repo has already observed hanging - the workflow's
-        // own comment records that `-trait Category=PlaywrightUITest` alone, with
-        // no `-class` filter, hangs exactly this way.
+        // A step selecting a class parked in KnownNotRunAnywhere is a
+        // contradiction: either the class was fixed and the excuse is stale, or
+        // the selector was widened and CI is about to hang. This check cannot
+        // tell which, so it just reports the conflict.
         var workflow = ReadWorkflow();
         var selectors = CiSelectors(workflow);
         var byName = typeof(PlaywrightBaseTest).Assembly.GetTypes()
@@ -354,14 +330,9 @@ public class UnitTestFilterTests
             + string.Join(", ", vanished));
 
         Assert.True(selectedAnyway.Count == 0,
-            "These classes are recorded in KnownNotRunAnywhere as run by no CI step, but a step now selects them. "
-            + "Those two facts contradict and this check cannot tell you which one is wrong, so read the recorded "
-            + "reason before you touch anything. If the reason is that the class HANGS, the selector is the thing "
-            + "that changed and the fix is to narrow it again - deleting the excuse would leave CI selecting a "
-            + "class known to hang until the step's timeout. Widening a step by dropping its `-class` filter is "
-            + "the usual way to arrive here, and the \"Run tests\" comment in " + WorkflowRelPath + " records that "
-            + "the trait-only form hangs for exactly these classes. Only if the class has actually been fixed is "
-            + "deleting the entry correct. Entries: " + string.Join("; ", selectedAnyway));
+            "These classes are excused in KnownNotRunAnywhere but a CI step selects them. Either the class was "
+            + "fixed and the excuse is stale, or the selector was widened; read the recorded reason to tell "
+            + "which. Entries: " + string.Join("; ", selectedAnyway));
 
         Assert.True(unexplained.Count == 0,
             "These KnownNotRunAnywhere entries carry no reason. The reason is the entire point of the list - an "
