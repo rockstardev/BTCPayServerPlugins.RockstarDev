@@ -95,12 +95,9 @@ jobs:
                 # BTCPayServer.Plugins.Tests.csproj); `dotnet test` cannot discover the
                 # tests because Microsoft.NET.Test.Sdk + xunit.v3 packages come only
                 # transitively via BTCPayServer.Tests project reference (per PR #135 review).
-                # Trait only, no -class allow-list. The allow-list existed because
-                # PluginPermissionUITest hung the step: PlaywrightBaseTest's synchronous
-                # Dispose deadlocked when a test's last await was a Playwright task, since
-                # xunit then disposed the class on Playwright's connection thread. With the
-                # disposal made async every PlaywrightUITest class runs; UnitTestFilterTests
-                # keeps every stack-dependent class selected by some step.
+                # Trait only; no -class allow-list is needed now that PlaywrightBaseTest
+                # disposes asynchronously (see PlaywrightBaseTest.DisposeAsync), so every
+                # PlaywrightUITest class runs here.
                 run: cd BTCPayServer.Plugins.Tests && dotnet run -- -trait "Category=PlaywrightUITest"
 
             -   name: Cleanup Docker

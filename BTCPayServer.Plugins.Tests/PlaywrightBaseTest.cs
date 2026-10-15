@@ -32,15 +32,13 @@ public class PlaywrightBaseTest : UnitTestBase, IAsyncDisposable
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
 
-    // Async all the way down. The synchronous Dispose this replaces blocked on Page/Browser.CloseAsync(). When a
-    // test's last await was a Playwright task, its continuation, and with it xunit's disposal of the test class, ran
-    // on the Playwright connection's own thread, and the blocking close then waited for a reply only that thread could
-    // deliver. PluginPermissionUITest hung that way: its first test ends on WaitForLoadStateAsync, and a
-    // stack dump showed the thread parked in Dispose under Frame.WaitForLoadStateAsync's completion.
+    // xunit v3 awaits this. The synchronous Dispose this replaced could deadlock:
+    // when a test's last await was a Playwright task, disposal ran on the
+    // Playwright connection's dispatch thread and blocked waiting for a reply
+    // only that thread could deliver.
     public async ValueTask DisposeAsync()
     {
-        // Yield first, so the rest of the disposal is scheduled as its own work item and the Playwright thread that
-        // completed the test's last await returns to its message loop instead of waiting inside this method.
+        // Get off the connection thread before awaiting the closes.
         await Task.Yield();
         try
         {
@@ -58,8 +56,7 @@ public class PlaywrightBaseTest : UnitTestBase, IAsyncDisposable
         catch { }
         Browser = null;
 
-        // Yield again before the synchronous Dispose, which tears the connection down, so it does not run inside the
-        // connection's dispatch of the close reply the await above just resumed from.
+        // Same before the synchronous connection teardown.
         await Task.Yield();
         try
         {
