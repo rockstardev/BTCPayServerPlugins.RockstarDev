@@ -47,6 +47,26 @@ public class PublicPageExceptionFilterTests
     }
 
     [Fact]
+    public void AnExceptionWhileRenderingTheResultIsHandledToo()
+    {
+        // an exception filter does not see result execution (a view throwing), so the result filter must
+        var actionContext = new ActionContext(new DefaultHttpContext(), new RouteData(), new ActionDescriptor());
+        var filter = new PublicPageExceptionFilter(NullLogger<PublicPageExceptionFilter>.Instance);
+
+        var failed = new ResultExecutedContext(actionContext, new List<IFilterMetadata>(), new EmptyResult(), new object())
+        {
+            Exception = new InvalidOperationException("view failed")
+        };
+        filter.OnResultExecuted(failed);
+        Assert.True(failed.ExceptionHandled);
+        Assert.Equal(StatusCodes.Status500InternalServerError, actionContext.HttpContext.Response.StatusCode);
+
+        var clean = new ResultExecutedContext(actionContext, new List<IFilterMetadata>(), new EmptyResult(), new object());
+        filter.OnResultExecuted(clean);
+        Assert.False(clean.ExceptionHandled);
+    }
+
+    [Fact]
     public void ThePublicControllerCarriesTheFilter()
     {
         var filters = typeof(PublicController).GetCustomAttributes(typeof(TypeFilterAttribute), true)
