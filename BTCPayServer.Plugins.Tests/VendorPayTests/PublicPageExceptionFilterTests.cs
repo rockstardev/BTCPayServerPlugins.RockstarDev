@@ -17,7 +17,7 @@ namespace BTCPayServer.Plugins.Tests;
 // reachable without an admin, so an error there must end as a handled 500, never as an escaped exception.
 public class PublicPageExceptionFilterTests
 {
-    private static ExceptionContext ContextFor(Exception exception, HttpContext httpContext = null)
+    private static ExceptionContext ContextFor(Exception exception, HttpContext? httpContext = null)
     {
         var actionContext = new ActionContext(httpContext ?? new DefaultHttpContext(), new RouteData(), new ActionDescriptor());
         return new ExceptionContext(actionContext, new List<IFilterMetadata>()) { Exception = exception };
