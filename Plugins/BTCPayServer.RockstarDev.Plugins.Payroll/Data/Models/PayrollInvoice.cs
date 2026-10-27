@@ -9,6 +9,14 @@ namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 // TODO: Length limits on strings in model, to enhance performance
 public class PayrollInvoice
 {
+    // Column limits, shared with upload validation (VendorPayInvoiceUploadHelper.ValidateLengths) so the two cannot drift.
+    public const int DestinationMaxLength = 100;
+    public const int CurrencyMaxLength = 5;
+    public const int PurchaseOrderMaxLength = 20;
+    public const int DescriptionMaxLength = 300;
+    public const int ExtraFilenamesMaxLength = 1000;
+    public const int FileIdLength = 36; // guid, as InvoiceFilename
+
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public string Id { get; set; }
 
@@ -19,7 +27,7 @@ public class PayrollInvoice
     public PayrollUser User { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
-    [MaxLength(100)]
+    [MaxLength(DestinationMaxLength)]
     public string Destination { get; set; }
 
     // Stonewall split: optional comma-separated extra addresses (max 5) the
@@ -30,19 +38,19 @@ public class PayrollInvoice
 
     public decimal Amount { get; set; }
 
-    [MaxLength(5)]
+    [MaxLength(CurrencyMaxLength)]
     public string Currency { get; set; }
 
-    [MaxLength(20)]
+    [MaxLength(PurchaseOrderMaxLength)]
     public string PurchaseOrder { get; set; }
 
-    [MaxLength(300)]
+    [MaxLength(DescriptionMaxLength)]
     public string Description { get; set; }
 
     [MaxLength(36)] // guid
     public string InvoiceFilename { get; set; }
 
-    [MaxLength(1000)]
+    [MaxLength(ExtraFilenamesMaxLength)]
     public string ExtraFilenames { get; set; }
 
     public bool IsArchived { get; set; }

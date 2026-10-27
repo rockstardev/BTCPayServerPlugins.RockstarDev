@@ -34,9 +34,32 @@ public class VendorPayInvoiceUploadHelper(
         return Process(storeId, userId, mainModel);
     }
 
+    // Extra files are stored as comma-separated ids in one column, so the column bounds how many fit.
+    public const int MaxExtraFiles = (PayrollInvoice.ExtraFilenamesMaxLength + 1) / (PayrollInvoice.FileIdLength + 1);
+
+    /// <summary>Rejects values longer than their database columns. Without this a long description (or a crafted
+    /// currency, purchase order or file list) failed only at SaveChanges, and the unhandled exception made BTCPay
+    /// disable the plugin and restart.</summary>
+    public static void ValidateLengths(VendorPayInvoiceUploadViewModel model, ValidationResult validation)
+    {
+        void Check(string key, string value, int max, string label)
+        {
+            if (value != null && value.Length > max)
+                validation.AddError(key, $"{label} can be at most {max} characters (this one has {value.Length}).");
+        }
+
+        Check(nameof(model.Description), model.Description, PayrollInvoice.DescriptionMaxLength, "Description");
+        Check(nameof(model.PurchaseOrder), model.PurchaseOrder, PayrollInvoice.PurchaseOrderMaxLength, "Purchase Order");
+        Check(nameof(model.Currency), model.Currency, PayrollInvoice.CurrencyMaxLength, "Currency");
+        Check(nameof(model.Destination), model.Destination, PayrollInvoice.DestinationMaxLength, "Destination");
+        if (model.ExtraFiles?.Count > MaxExtraFiles)
+            validation.AddError(nameof(model.ExtraFiles), $"At most {MaxExtraFiles} extra files can be attached.");
+    }
+
     public async Task<ValidationResult> Process(string storeId, string userId, VendorPayInvoiceUploadViewModel model)
     {
         var validation = new ValidationResult();
+        ValidateLengths(model, validation);
 
         if (model.Amount <= 0)
             validation.AddError(nameof(model.Amount), "Amount must be more than 0.");

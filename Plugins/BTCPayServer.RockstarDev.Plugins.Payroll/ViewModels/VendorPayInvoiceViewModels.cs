@@ -71,7 +71,10 @@ public class VendorPayInvoiceUploadViewModel
     public string PurchaseOrder { get; set; }
 
     public bool PurchaseOrdersRequired { get; set; }
+
+    [MaxLength(PayrollInvoice.DescriptionMaxLength)]
     public string Description { get; set; }
+
     public IFormFile Invoice { get; set; }
 
     [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]

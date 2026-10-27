@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
@@ -31,11 +32,30 @@ public class PublicController(
     VendorPayPassHasher hasher,
     VendorPayInvoiceUploadHelper vendorPayInvoiceUploadHelper,
     InvoicesDownloadHelper invoicesDownloadHelper,
-    EmailService emailService)
+    EmailService emailService,
+    ILogger<PublicController> logger)
     : Controller
 {
     private const string VENDORPAY_AUTH_USER_ID = "PAYROLL_AUTH_USER_ID";
     private const string VendorpayEmailCookieName = "vendorpay_email";
+
+    // An unhandled exception here makes BTCPay disable the whole plugin and restart, and these pages are reachable
+    // without an admin. The helper validates every stored field first; a save that fails anyway is logged and shown
+    // on the form instead.
+    private async Task<ValidationResult> SaveUpload(string storeId, string userId, PublicVendorPayInvoiceUploadViewModel model)
+    {
+        try
+        {
+            return await vendorPayInvoiceUploadHelper.Process(storeId, userId, model);
+        }
+        catch (DbUpdateException ex)
+        {
+            logger.LogError(ex, "VendorPay: saving an uploaded invoice failed for store {StoreId}", storeId);
+            var failed = new ValidationResult();
+            failed.AddError(string.Empty, "The invoice could not be saved. Please check the fields and try again.");
+            return failed;
+        }
+    }
 
     private static string GenerateUploadHash(string storeId, string uploadCode)
     {
@@ -322,7 +342,7 @@ public class PublicController(
         model.StoreBranding = await StoreBrandingViewModel.CreateAsync(Request, uriResolver, vali.Store.GetStoreBlob());
         model.StonewallEnabled = settings.StonewallEnabled;
 
-        var validation = await vendorPayInvoiceUploadHelper.Process(storeId, vali.UserId, model);
+        var validation = await SaveUpload(storeId, vali.UserId, model);
         if (!validation.IsValid)
         {
             validation.ApplyToModelState(ModelState);
@@ -600,7 +620,7 @@ public class PublicController(
             ExtraFiles = model.ExtraFiles
         };
 
-        var validation = await vendorPayInvoiceUploadHelper.Process(storeId, userId, uploadModel);
+        var validation = await SaveUpload(storeId, userId, uploadModel);
         if (!validation.IsValid)
         {
             validation.ApplyToModelState(ModelState);
