@@ -50,11 +50,17 @@ public class PublicController(
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "VendorPay: saving an uploaded invoice failed for store {StoreId}", storeId);
-            var failed = new ValidationResult();
-            failed.AddError(string.Empty, "The invoice could not be saved. Please check the fields and try again.");
-            return failed;
+            return SaveFailed(ex, storeId);
         }
+    }
+
+    // The one failure path for saves on the upload pages: logged, then shown on the form.
+    private ValidationResult SaveFailed(DbUpdateException ex, string storeId)
+    {
+        logger.LogError(ex, "VendorPay: saving an upload failed for store {StoreId}", storeId);
+        var failed = new ValidationResult();
+        failed.AddError(string.Empty, "The invoice could not be saved. Please check the fields and try again.");
+        return failed;
     }
 
     private static string GenerateUploadHash(string storeId, string uploadCode)
@@ -604,7 +610,16 @@ public class PublicController(
                 Password = hasher.HashPassword(Guid.NewGuid().ToString(), Guid.NewGuid().ToString())
             };
             dbPlugin.Add(newUser);
-            await dbPlugin.SaveChangesAsync();
+            try
+            {
+                await dbPlugin.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                SaveFailed(ex, storeId).ApplyToModelState(ModelState);
+                return View(model);
+            }
+
             userId = newUser.Id;
         }
 
