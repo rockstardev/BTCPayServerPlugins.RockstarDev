@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using BTCPayServer.Models;
+using BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models;
 using BTCPayServer.RockstarDev.Plugins.VendorPay.Logic;
 using Microsoft.AspNetCore.Http;
 
@@ -50,7 +51,10 @@ public class PublicVendorPayInvoiceUploadViewModel : BaseVendorPayPublicViewMode
     public string PurchaseOrder { get; set; }
 
     public bool PurchaseOrdersRequired { get; set; }
+
+    [MaxLength(PayrollInvoice.DescriptionMaxLength)]
     public string Description { get; set; }
+
     public IFormFile Invoice { get; set; }
 
     [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]
@@ -107,7 +111,10 @@ public class AccountlessUploadViewModel : BaseVendorPayPublicViewModel
     public string PurchaseOrder { get; set; }
 
     public bool PurchaseOrdersRequired { get; set; }
+
+    [MaxLength(PayrollInvoice.DescriptionMaxLength)]
     public string Description { get; set; }
+
     public IFormFile Invoice { get; set; }
 
     [DisplayName("Optional Extra Files (receipts, reimbursements, etc.)")]

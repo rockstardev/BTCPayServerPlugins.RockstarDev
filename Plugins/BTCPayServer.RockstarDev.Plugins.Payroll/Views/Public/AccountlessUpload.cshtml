@@ -7,6 +7,7 @@
 <div id="FormView" class="public-page-wrap" style="--wrap-max-width: 576px;">
     <div class="d-flex flex-column justify-content-center gap-4">
         <form method="post" asp-action="AccountlessUpload" enctype="multipart/form-data" class="preventdoubleclick">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <partial name="_StatusMessage" />
 
             <div class="row">
@@ -84,7 +85,7 @@
                         {
                             <label asp-for="Description" class="form-label"></label>
                         }
-                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        <textarea asp-for="Description" class="form-control" rows="4" maxlength="@BTCPayServer.RockstarDev.Plugins.VendorPay.Data.Models.PayrollInvoice.DescriptionMaxLength"></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
                     </div>
 
