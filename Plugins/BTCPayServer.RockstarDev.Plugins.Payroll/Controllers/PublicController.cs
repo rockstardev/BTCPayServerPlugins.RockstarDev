@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 namespace BTCPayServer.RockstarDev.Plugins.VendorPay.Controllers;
 
 [AllowAnonymous]
+[TypeFilter(typeof(PublicPageExceptionFilter))]
 [Route("~/plugins/{storeId}/vendorpay/public/", Order = 0)]
 [Route("~/plugins/{storeId}/payroll/public/", Order = 1)]
 public class PublicController(
