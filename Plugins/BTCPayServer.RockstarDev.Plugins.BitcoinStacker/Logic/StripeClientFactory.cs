@@ -17,7 +17,12 @@ public class StripeClientFactory
     public async Task<List<Payout>> PayoutsSince(string apiKey, DateTimeOffset sinceDate)
     {
         var payouts = new PayoutService(new StripeClient(apiKey));
-        var payoutsResp = await payouts.ListAsync(new PayoutListOptions { Created = new DateRangeOptions { GreaterThan = sinceDate.UtcDateTime } });
-        return payoutsResp.Data;
+        var options = new PayoutListOptions { Limit = 100, Created = new DateRangeOptions { GreaterThan = sinceDate.UtcDateTime } };
+        // Read every page: a single page holds only the newest payouts, and the heartbeat's cursor
+        // would then move past the older ones and never import them.
+        var result = new List<Payout>();
+        await foreach (var payout in payouts.ListAutoPagingAsync(options))
+            result.Add(payout);
+        return result;
     }
 }

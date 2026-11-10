@@ -168,7 +168,7 @@ public class ExchangeOrderController(
         var db = pluginDbContextFactory.CreateContext();
 
         var order = db.ExchangeOrders.Single(a => a.Id == id);
-        order.DelayUntil = ExchangeOrderHeartbeatService.DELAY_UNTIL;
+        order.DelayUntil = DateTimeOffset.UtcNow.AddYears(1);
         await db.SaveChangesAsync();
 
         TempData[WellKnownTempData.SuccessMessage] =
@@ -181,7 +181,12 @@ public class ExchangeOrderController(
     public async Task<IActionResult> ForceConversion(Guid id)
     {
         await using var db = pluginDbContextFactory.CreateContext();
-        var order = db.ExchangeOrders.Single(a => a.Id == id);
+        var order = db.ExchangeOrders.Single(a => a.Id == id && a.StoreId == StoreId);
+        if (order.State == DbExchangeOrder.States.Completed)
+        {
+            TempData[WellKnownTempData.ErrorMessage] = $"Exchange Order {id} is already completed";
+            return RedirectToAction(nameof(Index), new { StoreId });
+        }
 
         // trimming to 2 decimal places
         order.Amount = Math.Truncate(order.Amount * 100) / 100;

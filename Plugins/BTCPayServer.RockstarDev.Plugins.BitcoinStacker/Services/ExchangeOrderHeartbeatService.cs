@@ -26,7 +26,6 @@ public class ExchangeOrderHeartbeatService(
     PluginDbContextFactory strikeDbContextFactory,
     IServiceScopeFactory serviceScopeFactory) : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {
-    public static readonly DateTimeOffset DELAY_UNTIL = new(2026, 01, 01, 0, 0, 0, DateTimeOffset.UtcNow.Offset);
     private readonly Dictionary<string, DateTimeOffset> _lastRunForStore = new();
 
     private bool _isItFirstRun = true;
