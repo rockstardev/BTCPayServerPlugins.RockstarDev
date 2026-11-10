@@ -1,6 +1,7 @@
 @using BTCPayServer.Abstractions.Contracts
 @using BTCPayServer.Abstractions.Extensions
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.RockstarDev.Plugins.BitcoinStacker.Services
 @model IndexViewModel
 @inject IScopeProvider ScopeProvider
 @{
@@ -119,8 +120,16 @@
                                asp-action="ClearDelayUntil"
                                asp-route-id="@payout.Id"
                                asp-route-storeId="@storeId"
-                               class="text-danger">
-                                @payout.DelayUntil.Value.ToBrowserDate()
+                               class="text-danger"
+                               title="Clear Delay">
+                                @if (ExchangeOrderHeartbeatService.IsDelayedUntilCleared(payout.DelayUntil))
+                                {
+                                    <span>Until cleared</span>
+                                }
+                                else
+                                {
+                                    @payout.DelayUntil.Value.ToBrowserDate()
+                                }
                             </a>
                         }
                     </td>

@@ -26,6 +26,11 @@ public class ExchangeOrderHeartbeatService(
     PluginDbContextFactory strikeDbContextFactory,
     IServiceScopeFactory serviceScopeFactory) : EventHostedServiceBase(eventAggregator, logs), IPeriodicTask
 {
+    // "Add Delay" parks an order until someone clears the delay: no date ever passes this value
+    public static readonly DateTimeOffset DELAY_UNTIL = DateTimeOffset.MaxValue;
+
+    // compared by year: the database may store DELAY_UNTIL with microsecond precision
+    public static bool IsDelayedUntilCleared(DateTimeOffset? delayUntil) => delayUntil?.Year == DELAY_UNTIL.Year;
     private readonly Dictionary<string, DateTimeOffset> _lastRunForStore = new();
 
     private bool _isItFirstRun = true;
@@ -118,7 +123,7 @@ public class ExchangeOrderHeartbeatService(
 
                 using var scope = serviceScopeFactory.CreateScope();
                 var stripeClientFactory = scope.ServiceProvider.GetRequiredService<StripeClientFactory>();
-                var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch);
+                var payouts = await stripeClientFactory.PayoutsSince(settings.StripeApiKey, dateToFetch, cancellationToken);
                 payouts = payouts.OrderBy(a => a.Created).ToList();
                 foreach (var payout in payouts)
                 {
