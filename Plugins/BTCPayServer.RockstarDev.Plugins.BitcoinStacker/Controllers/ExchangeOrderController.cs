@@ -168,7 +168,7 @@ public class ExchangeOrderController(
         var db = pluginDbContextFactory.CreateContext();
 
         var order = db.ExchangeOrders.Single(a => a.Id == id);
-        order.DelayUntil = DateTimeOffset.UtcNow.AddYears(1);
+        order.DelayUntil = DateTimeOffset.MaxValue;
         await db.SaveChangesAsync();
 
         TempData[WellKnownTempData.SuccessMessage] =
